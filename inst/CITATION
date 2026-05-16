@@ -1,0 +1,13 @@
+citHeader("To cite the masque package in publications, use:")
+
+bibentry(
+  bibtype = "Manual",
+  title   = "{masque}: Structurally Faithful Development Surrogates for Tabular Data",
+  author  = person("Max", "Moldovan",
+                   email = "max.moldovan@gmail.com",
+                   comment = c(ORCID = "0000-0001-9680-8474")),
+  year    = "2026",
+  note    = "R package version 0.2.0",
+  url     = "https://github.com/max578/masque"
+)
+

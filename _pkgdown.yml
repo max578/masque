@@ -1,0 +1,50 @@
+url: https://max578.github.io/masque/
+
+template:
+  bootstrap: 5
+
+reference:
+- title: Role discovery
+  desc: Inspect a data frame and decide what each column is.
+  contents:
+  - propose_roles
+  - roles_validate
+
+- title: Masking
+  desc: Produce a structurally faithful synthetic clone of one tabular dataset.
+  contents:
+  - mask
+  - synthetic
+  - recipe
+
+- title: Recipe round-trip
+  desc: Persist a recipe and re-target a pipeline between original and synthetic.
+  contents:
+  - save_recipe
+  - read_recipe
+  - apply_recipe
+  - unmask
+  - reveal_maps
+
+- title: Leakage audit
+  desc: Check a synthetic for residual structural leakage.
+  contents:
+  - audit_mask
+
+- title: Package
+  contents:
+  - masque-package
+
+articles:
+- title: Get started
+  navbar: ~
+  contents:
+  - getting_started
+  - confidentiality
+  - recipe_anatomy
+  - roadmap
+
+navbar:
+  structure:
+    left:  [intro, reference, articles, news]
+    right: [github]
