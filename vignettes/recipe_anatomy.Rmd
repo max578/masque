@@ -1,0 +1,138 @@
+---
+title: "Recipe anatomy"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Recipe anatomy}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+options(width = 100)
+library(masque)
+
+f  <- system.file("extdata", "john_alpha.csv", package = "masque")
+df <- read.csv(f, stringsAsFactors = TRUE)
+roles <- propose_roles(df)
+roles$role[roles$col == "yield"] <- "outcome"
+```
+
+# What is a recipe?
+
+The `masque_recipe` is the only artefact that *must* remain confidential
+alongside the original data. It is what makes the round-trip work:
+without the recipe you cannot translate a pipeline trained on the
+synthetic back onto the original.
+
+A recipe is an S7 object, but users do not need to know that. The two
+exported accessors hide the class details:
+
+```{r accessors}
+m   <- mask(df, roles, mode = "collaborate", seed = 1)
+rec <- recipe(m)
+class(rec)
+```
+
+## Anatomy
+
+A recipe holds **runtime-minimal** state by default:
+
+- `masque_version` — the package version that built the recipe.
+- `created_at` — wall-clock timestamp at construction.
+- `mode` — `"local"` or `"collaborate"`.
+- `seed` — the seed passed to `mask()`, or `NULL` if not given.
+- `roles` — the per-column role tibble.
+- `column_name_map` — original-to-synthetic column-name map (NULL in
+  v0.2; reserved for v0.3+).
+- `level_maps` — per-column factor / character maps. The sensitive bit.
+- `storage_classes` — per-column R class of the original.
+- `factor_meta` — per-factor levels and `ordered` status.
+- `warnings` — text of any warnings raised at construction.
+- `integrity_fp` — SHA-256 of `is.na(original)`. An **integrity
+  fingerprint**, not a privacy guarantee.
+
+What it deliberately does **not** hold:
+
+- Simulator state (the copula covariance matrix, the raw observed
+  margins). This is a v0.3+ extension behind
+  `save_recipe(..., include_simulator = TRUE)`; currently a no-op.
+- Raw observed values.
+- Source file paths, machine usernames, or absolute paths.
+
+## `print(recipe)` is redacted
+
+The default print method shows the per-column role table and a marker
+indicating whether a level map exists for each column (`*` = mapped,
+`=` = no map), but **never** the actual level vocabularies.
+
+```{r print-redacted}
+rec
+```
+
+If you need to inspect the maps — typically the data owner reviewing
+the recipe before saving — call `reveal_maps()` explicitly:
+
+```{r reveal, results = "hide"}
+reveal_maps(rec)
+```
+
+`reveal_maps()` prints a warning banner ("Revealing sensitive level
+maps. Proceed at your discretion.") and then dumps every map and the
+seed value. Save its output sparingly.
+
+## Saving and loading
+
+`save_recipe()` writes a single `.rds` file. The default is
+runtime-minimal — small, safe to store next to the original data with
+the same security class.
+
+```{r save}
+tmp <- tempfile(fileext = ".rds")
+save_recipe(rec, tmp)
+file.info(tmp)$size
+```
+
+`read_recipe()` validates the file and informs (does not error) when
+the recorded `masque_version` differs from the currently installed
+package version.
+
+```{r read}
+rec2 <- read_recipe(tmp)
+identical(rec@integrity_fp, rec2@integrity_fp)
+```
+
+## The integrity fingerprint
+
+`integrity_fp` is `digest::digest(is.na(original), algo = "sha256")`.
+It lets a downstream consumer check that a recipe corresponds to the
+expected missingness pattern, without exposing any other information
+about the original data.
+
+```{r integrity}
+digest::digest(is.na(df), algo = "sha256") == rec@integrity_fp
+```
+
+It is **not** a privacy mechanism. The hash tells you whether two
+data frames share the same NA mask; it does not hide the underlying
+mask or its risks.
+
+## Round-trip the maps directly
+
+The recipe is the bidirectional translator. `apply_recipe()` and
+`unmask()` both operate on it:
+
+```{r roundtrip}
+fwd  <- apply_recipe(df, rec)
+back <- unmask(fwd, rec)
+identical(as.character(back$gen), as.character(df$gen))
+```
+
+## Future: `include_simulator = TRUE`
+
+`save_recipe(rec, path, include_simulator = TRUE)` is accepted today
+but is currently a no-op (no simulator state is stored on the recipe
+in v0.2). v0.3+ will use this flag to persist enough state that
+`draw_new_synthetic(rec, n)` can produce fresh synthetic samples
+without access to the original. See `vignette("roadmap")` for the
+deferred items.

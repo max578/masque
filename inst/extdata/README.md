@@ -1,9 +1,16 @@
 # inst/extdata — test and example fixtures
 
-Empty in v0.2.0.9000. The committed fixture (a small CSV derived from
-`agridat::john.alpha`, John 1987) is added in build-order step 8 of the
-v0.2 plan, with full attribution alongside it.
+## `john_alpha.csv`
 
-**Firewall**: nothing GRDC-funded, CC-BY-SA-licensed, or PII-bearing is
-permitted in this directory. Local-only development fixtures live at the
-workspace root and are excluded via `.Rbuildignore`.
+A small (72-row, 7-column) classical alpha-design field trial from
+John (1987), re-distributed via the `agridat` package. See
+`john_alpha.md` for the full attribution chain and schema. Used by
+the vignettes as a public, licence-clean MET example.
+
+## Firewall
+
+This directory contains **only** public-licence-clean fixtures. Nothing
+GRDC-funded, CC-BY-SA-licensed, or PII-bearing is permitted here.
+Local-only development fixtures (e.g., GRDC barley synthesis data)
+live at the workspace root and are excluded via `.Rbuildignore` and
+`.gitignore`.

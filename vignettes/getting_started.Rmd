@@ -7,59 +7,198 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 ---
 
-```{r, include = FALSE}
+```{r setup, include = FALSE}
 knitr::opts_chunk$set(
   collapse = TRUE,
-  comment = "#>"
+  comment = "#>",
+  fig.width = 6,
+  fig.height = 4
 )
-```
-
-```{r setup}
-library(masque)
+options(width = 100)
 ```
 
 # masque: development surrogates for tabular data
 
-This vignette is a scaffold. The full getting-started walk-through lands in
-build-order step 8 (see `plan/masque_v0.2_plan.md` in the development
-workspace). For now, it documents the contract that the package promises.
+`masque` turns a single tabular dataset into a structurally faithful
+synthetic clone you can develop a pipeline against. It preserves the
+experimental design, the NA pattern, and the global covariance of your
+outcome and numeric covariates. It does **not** anonymise; it produces
+controlled substitutes with a private `recipe` that round-trips the
+finished pipeline back onto the original data.
 
-## Threat model (read first)
+## Read this first: threat model
 
-`masque` is a structurally faithful development surrogate, **not** an
-anonymiser. The recipe is at least as sensitive as the original data; never
-share the recipe and the synthetic together. See the future
-`vignette("confidentiality", package = "masque")` for the full threat model.
+`masque` is *not* a privacy-preserving or differential-privacy tool.
+It is a **structurally faithful development surrogate**. The recipe
+returned by `mask()` is at least as sensitive as the original data:
+never share it alongside the synthetic.
 
-## Two modes
-
-| Knob | `mode = "local"` | `mode = "collaborate"` |
+| Mode | Use case | Defaults |
 |---|---|---|
-| Column names | preserved | preserved by default; user may opt-in to aliasing |
-| Treatment levels | preserved | opaque aliased (`trt_001`, ...) |
-| Categorical covariate levels | preserved | opaque aliased (`<col>_L01`, ...) |
-| `ignore` columns | pass-through option | dropped |
-| NA mask | preserved cell-by-cell | preserved with explicit warning |
-| Numeric synthesis | empirical-quantile | empirical-quantile + within-resolution jitter; integers stochastically rounded |
-| `audit_mask()` | on demand | automatic at `mask()` time |
+| `local` | Owner develops on a realistic surrogate locally | Vocabulary preserved; numeric values may match observed |
+| `collaborate` | Owner shares synthetic with a collaborator while keeping the recipe private | Opaque aliasing of treatment + categorical-covariate levels; jitter on numerics; ignore columns dropped; `audit_mask()` auto-runs |
 
-## Workflow
+For the full threat model and limitations, see
+`vignette("confidentiality")`.
 
-```r
-# Once the API lands:
-roles  <- propose_roles(my_data)
-# (user edits roles)
-m      <- mask(my_data, roles, mode = "collaborate", seed = 20260516)
+## A worked example: an alpha-design field trial
 
-dev    <- synthetic(m)   # share this with the pipeline developer
-rec    <- recipe(m)      # private; never shared
+We use the classical John (1987) alpha-design dataset, shipped as a
+small CSV in `inst/extdata/`.
+
+```{r load-fixture}
+library(masque)
+
+f  <- system.file("extdata", "john_alpha.csv", package = "masque")
+df <- read.csv(f, stringsAsFactors = TRUE)
+str(df)
+head(df)
 ```
 
-The collaborator builds their pipeline against `dev`. The owner runs it on
-the original through `apply_recipe()` and `unmask()`:
+## Step 1: propose roles, edit, validate
 
-```r
-orig_in_synth_space <- apply_recipe(my_data, rec)
-preds_synth         <- pipeline(orig_in_synth_space)
-preds_orig          <- unmask(preds_synth, rec)
+`propose_roles()` runs a heuristic classification of every column into
+one of `{design, treatment, outcome, covariate, ignore}`. The result is
+a tibble that you inspect and edit.
+
+```{r propose-roles}
+roles <- propose_roles(df)
+roles
 ```
+
+`plot`, `rep`, `block`, `row`, and `col` are detected as design columns
+(byte-identical pass-through). `gen` is detected as a treatment factor.
+`yield` defaults to `covariate` — we re-role it as `outcome`.
+
+```{r edit-roles}
+roles$role[roles$col == "yield"] <- "outcome"
+roles
+```
+
+Validation is a single call:
+
+```{r validate-roles}
+roles_validate(roles, df)
+```
+
+## Step 2: mask in local mode
+
+Local mode is the owner's realistic surrogate: it preserves the
+treatment vocabulary, the design pattern, and the NA mask. The
+synthetic is suitable for pipeline development on the owner's machine
+but not for external sharing.
+
+```{r mask-local}
+m_local <- mask(df, roles, mode = "local", seed = 2026)
+```
+
+The construction-time warning is part of the contract — local-mode
+synthetic is not for external sharing.
+
+```{r local-summary}
+m_local
+```
+
+Extract the synthetic data via `synthetic()`:
+
+```{r local-synthetic}
+synth_local <- synthetic(m_local)
+head(synth_local)
+```
+
+Design columns are byte-identical to the original; treatment labels
+are preserved.
+
+```{r local-checks}
+identical(synth_local$rep,   df$rep)
+identical(synth_local$block, df$block)
+identical(levels(synth_local$gen), levels(df$gen))
+```
+
+## Step 3: mask in collaborate mode
+
+Collaborate mode opaquely aliases the treatment and categorical-
+covariate vocabularies (`G01 -> trt_001` etc.), drops `ignore`
+columns, jitters numerics within their observed measurement
+resolution, and auto-runs `audit_mask()`. The synthetic is suitable
+for handing to a pipeline developer while the recipe stays private.
+
+```{r mask-collab}
+m_collab <- mask(df, roles, mode = "collaborate", seed = 2026)
+synth_collab <- synthetic(m_collab)
+head(synth_collab)
+```
+
+Note `gen` is now `trt_NNN`:
+
+```{r collab-gen}
+head(levels(synth_collab$gen))
+```
+
+Original labels never leak through `print(recipe(m))`:
+
+```{r collab-recipe}
+recipe(m_collab)
+```
+
+To see them you must call `reveal_maps()` explicitly.
+
+## Step 4: round-trip a pipeline
+
+The classic `masque` workflow:
+
+```{r roundtrip}
+# Train a model against the synthetic namespace
+fit <- lm(yield ~ gen + rep, data = synth_collab)
+
+# Translate the original into the synthetic namespace via the recipe
+df_in_synth <- apply_recipe(df, recipe(m_collab))
+head(df_in_synth)
+
+# Predict on the translated data
+preds_synth <- predict(fit, newdata = df_in_synth)
+length(preds_synth)
+
+# Numeric predictions need no inverse map
+head(preds_synth)
+```
+
+If the pipeline returned factor-valued predictions (e.g., a classifier
+predicting a treatment), `unmask()` translates them back into the
+original vocabulary:
+
+```{r unmask-atomic}
+pred_factor_synth <- synth_collab$gen[1:5]
+pred_factor_orig  <- unmask(pred_factor_synth, recipe(m_collab),
+                            column = "gen")
+data.frame(synth = as.character(pred_factor_synth),
+           original = as.character(pred_factor_orig))
+```
+
+## Step 5: audit and ship
+
+`audit_mask()` returns a per-column leakage audit. In collaborate mode
+it runs automatically at `mask()` time and is stored on the object.
+
+```{r audit}
+audit_mask(m_collab)
+```
+
+The recipe can be persisted alongside the original data (treat as
+sensitive); the synthetic alone is what crosses the trust boundary.
+
+```{r persist}
+tmp <- tempfile(fileext = ".rds")
+save_recipe(recipe(m_collab), tmp)
+file.info(tmp)$size
+rec2 <- read_recipe(tmp)
+identical(rec2@masque_version, recipe(m_collab)@masque_version)
+```
+
+## Next steps
+
+- `vignette("confidentiality")` — the full threat model, mode comparison,
+  and `audit_mask()` walk-through with deliberately leaky fixtures.
+- `vignette("recipe_anatomy")` — what's inside a recipe, runtime vs full,
+  `print()` vs `reveal_maps()`.
+- `vignette("roadmap")` — what's planned for v0.3+.
