@@ -1,0 +1,119 @@
+make_collab_fixture_for_apply <- function() {
+  set.seed(0)
+  df <- data.frame(
+    Rep      = rep(1:4, 25),
+    Genotype = factor(rep(LETTERS[1:5], each = 20)),
+    yield    = rnorm(100, mean = 10, sd = 2),
+    cov_n    = rnorm(100),
+    cov_c    = factor(sample(c("alpha","beta","gamma"), 100, replace = TRUE)),
+    note     = paste0("n_", seq_len(100)),  # -> ignore
+    stringsAsFactors = FALSE
+  )
+  r <- propose_roles(df)
+  r$role[r$col == "yield"] <- "outcome"
+  m <- mask(df, r, mode = "collaborate", seed = 1)
+  list(df = df, m = m, rec = recipe(m))
+}
+
+test_that("apply_recipe renames treatment levels to opaque aliases", {
+  f <- make_collab_fixture_for_apply()
+  out <- apply_recipe(f$df, f$rec)
+
+  expect_true(inherits(out, "tbl_df"))
+  expect_true(all(grepl("^trt_\\d{3}$", as.character(out$Genotype))))
+  # Should match the synthetic namespace's columns
+  expect_setequal(names(out), names(synthetic(f$m)))
+})
+
+test_that("apply_recipe drops ignore columns under collaborate mode", {
+  f <- make_collab_fixture_for_apply()
+  out <- apply_recipe(f$df, f$rec)
+  expect_false("note" %in% names(out))
+})
+
+test_that("apply_recipe leaves numeric columns unchanged in value", {
+  f <- make_collab_fixture_for_apply()
+  out <- apply_recipe(f$df, f$rec)
+  expect_equal(out$yield, f$df$yield)
+  expect_equal(out$cov_n, f$df$cov_n)
+})
+
+test_that("apply_recipe errors when original is missing a recipe-required column", {
+  f <- make_collab_fixture_for_apply()
+  df_short <- f$df[, setdiff(names(f$df), "Genotype")]
+  expect_error(apply_recipe(df_short, f$rec), "missing column")
+})
+
+test_that("unmask on a data frame reverses apply_recipe (round-trip)", {
+  f <- make_collab_fixture_for_apply()
+  forward <- apply_recipe(f$df, f$rec)
+  back    <- unmask(forward, f$rec)
+
+  # Treatment + categorical levels restored
+  expect_equal(as.character(back$Genotype), as.character(f$df$Genotype))
+  expect_equal(as.character(back$cov_c),    as.character(f$df$cov_c))
+  # Numerics unchanged
+  expect_equal(back$yield, f$df$yield)
+  expect_equal(back$cov_n, f$df$cov_n)
+})
+
+test_that("unmask on an atomic factor (single map) restores original labels", {
+  f <- make_collab_fixture_for_apply()
+  s <- synthetic(f$m)
+  # Take treatment predictions in synthetic-space
+  preds_synth <- s$Genotype[1:5]
+  expect_true(all(grepl("^trt_\\d{3}$", as.character(preds_synth))))
+
+  preds_orig <- unmask(preds_synth, f$rec, column = "Genotype")
+  expect_true(all(as.character(preds_orig) %in% LETTERS[1:5]))
+})
+
+test_that("unmask on atomic vector errors when column is ambiguous", {
+  f <- make_collab_fixture_for_apply()
+  # f$rec has multiple level maps (Genotype + cov_c)
+  preds <- factor(c("trt_001","trt_002"))
+  expect_error(unmask(preds, f$rec), "supply.*column")
+})
+
+test_that("unmask on atomic vector with a single-map recipe auto-selects", {
+  set.seed(0)
+  df <- data.frame(
+    Rep      = rep(1:4, 5),
+    Genotype = factor(rep(LETTERS[1:5], 4)),
+    yield    = rnorm(20),
+    stringsAsFactors = FALSE
+  )
+  r <- propose_roles(df)
+  r$role[r$col == "yield"] <- "outcome"
+  m <- mask(df, r, mode = "collaborate", seed = 1)
+  rec <- recipe(m)
+  # Only one level map (Genotype) since no categorical covariate, no ignore drop
+  expect_length(rec@level_maps, 1L)
+  pred <- factor(c("trt_001","trt_002"))
+  out  <- unmask(pred, rec)
+  expect_true(all(as.character(out) %in% LETTERS[1:5]))
+})
+
+test_that("unmask errors on unsupported type", {
+  f <- make_collab_fixture_for_apply()
+  expect_error(unmask(matrix(1:4, 2, 2), f$rec), "data frame or atomic")
+})
+
+test_that("apply_recipe + unmask is identity on local-mode recipe (no maps)", {
+  set.seed(0)
+  df <- data.frame(
+    Rep      = rep(1:4, 5),
+    Genotype = factor(rep(LETTERS[1:5], 4)),
+    yield    = rnorm(20),
+    stringsAsFactors = FALSE
+  )
+  r <- propose_roles(df)
+  r$role[r$col == "yield"] <- "outcome"
+  m <- suppressWarnings(mask(df, r, mode = "local", seed = 1))
+  rec <- recipe(m)
+
+  forward <- apply_recipe(df, rec)
+  back    <- unmask(forward, rec)
+
+  expect_equal(as.data.frame(back), df)
+})
