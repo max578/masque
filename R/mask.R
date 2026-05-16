@@ -88,6 +88,34 @@ mask <- function(df,
     warnings_acc <- c(warnings_acc, msg)
   }
 
+  # Collaborate mode: auto-run audit and propagate high-leakage warnings
+  audit_tbl <- NULL
+  if (identical(mode, "collaborate")) {
+    # Audit needs a temporary synth-as-tibble + a temporary recipe with the
+    # level_maps we collected so far.
+    .tmp_rec <- masque_recipe(
+      masque_version  = as.character(utils::packageVersion("masque")),
+      created_at      = Sys.time(),
+      mode            = mode,
+      seed            = if (is.null(seed)) NULL else as.integer(seed),
+      roles           = as.data.frame(roles),
+      column_name_map = NULL,
+      level_maps      = level_maps,
+      storage_classes = list(),
+      factor_meta     = list(),
+      warnings        = character(),
+      integrity_fp    = ""
+    )
+    audit_tbl <- .compute_audit(df, synth, .tmp_rec, mode)
+    high_leaks <- audit_tbl$col[audit_tbl$leakage_class == "high"]
+    if (length(high_leaks)) {
+      msg <- sprintf("audit_mask() flagged HIGH leakage on column(s): %s",
+                     paste(high_leaks, collapse = ", "))
+      warning(msg, call. = FALSE)
+      warnings_acc <- c(warnings_acc, msg)
+    }
+  }
+
   # Build the recipe.
   storage_classes <- lapply(df, function(col) class(col))
 
@@ -119,7 +147,7 @@ mask <- function(df,
     synthetic = tibble::as_tibble(synth),
     recipe    = rec,
     mode      = mode,
-    audit     = NULL
+    audit     = audit_tbl
   )
 }
 
