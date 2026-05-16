@@ -26,8 +26,11 @@ Depends:
     R (>= 4.2.0)
 Imports:
     cli,
+    MASS,
+    Matrix,
     stats,
-    tibble
+    tibble,
+    withr
 Suggests:
     fst,
     knitr,

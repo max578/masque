@@ -89,6 +89,18 @@ roles_validate <- function(roles, df = NULL) {
     ))
   }
 
+  if ("kind" %in% names(roles)) {
+    non_num_outcome <- roles$col[
+      roles$role == "outcome" & !(roles$kind %in% c("numeric", "integer"))
+    ]
+    if (length(non_num_outcome)) {
+      cli::cli_abort(c(
+        "Non-numeric column(s) flagged as {.val outcome}: {.field {non_num_outcome}}.",
+        i = "v0.2 supports numeric / integer outcomes only. Re-role categorical outcomes as {.val covariate} or remove."
+      ))
+    }
+  }
+
   if (n_treatment > 1L) {
     treat_cols <- roles$col[roles$role == "treatment"]
     cli::cli_abort(c(
