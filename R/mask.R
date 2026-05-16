@@ -59,6 +59,11 @@ mask <- function(df,
                  mode = c("local", "collaborate"),
                  seed = NULL,
                  ...) {
+  # Belt-and-braces RNG hygiene: any RNG perturbation inside mask() is
+  # rolled back when the function exits, regardless of which path produced
+  # it. The inner with_rng_state still controls per-step reproducibility.
+  withr::local_preserve_seed()
+
   if (!is.data.frame(df)) {
     cli::cli_abort("`df` must be a data frame; got {.cls {class(df)[1]}}.")
   }
@@ -167,6 +172,15 @@ mask <- function(df,
   if (length(num_idx) >= 1L) {
     x_num     <- df[, num_idx, drop = FALSE]
     x_num_new <- synthesise_numeric_local(x_num)
+    # Collaborate mode: layer on within-resolution jitter + integer rounding
+    if (isTRUE(opts$jitter_numeric)) {
+      for (col in names(x_num_new)) {
+        x_num_new[[col]] <- synthesise_numeric_collaborate(
+          x_obs = df[[col]],
+          x_new = x_num_new[[col]]
+        )
+      }
+    }
     for (col in names(x_num_new)) {
       synth[[col]] <- x_num_new[[col]]
     }
