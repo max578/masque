@@ -9,71 +9,65 @@ mask(df, roles, mode = c("local", "collaborate"), seed = NULL, ...)
 \arguments{
 \item{df}{A data frame.}
 
-\item{roles}{A tibble produced by \code{\link[=propose_roles]{propose_roles()}} (possibly edited).}
+\item{roles}{A tibble produced by \code{\link[=propose_roles]{propose_roles()}} (possibly edited).
+May optionally include a \code{mask_levels} column (\code{"permute"} enables
+local-mode seeded permutation on the treatment column).}
 
-\item{mode}{Either \code{"local"} (default) or \code{"collaborate"}.
-\code{"collaborate"} errors with a forward-reference until step 7.}
+\item{mode}{Either \code{"local"} (default) or \code{"collaborate"}.}
 
-\item{seed}{Optional integer for reproducibility; \code{NULL} (default) uses
-whatever RNG state is current and restores it on exit.}
+\item{seed}{Optional integer for reproducibility.}
 
-\item{...}{Currently ignored (future hook for advanced overrides).}
+\item{...}{Currently ignored.}
 }
 \value{
-A \code{masque} object (S3 list) with elements:
-\itemize{
-\item \code{synthetic}: tibble — the synthetic clone.
-\item \code{recipe}: \code{NULL} in step 3 (populated in step 4).
-\item \code{mode}: the resolved mode.
-\item \code{audit}: \code{NULL} in step 3 (populated in step 6).
-\item \code{seed}: the seed used (or \code{NULL}).
-}
-The class slot is \code{c("masque", "list")} for now; replaced by an S7
-class in step 4.
+A \code{masque} S7 object. Use \code{\link[=synthetic]{synthetic()}} and \code{\link[=recipe]{recipe()}} to
+extract the components.
 }
 \description{
 Takes one data frame and a user-edited \code{roles} tibble (from
 \code{\link[=propose_roles]{propose_roles()}}) and produces a synthetic clone whose experimental
 design and NA pattern are preserved, while outcome and numeric-covariate
 values are re-simulated via a Gaussian copula and categorical-covariate
-values are row-permuted.
+values are row-permuted. Returns a \code{masque} S7 object holding the
+synthetic data and a private \code{masque_recipe}.
 }
 \details{
-This function is the single high-level verb of the package. In build-order
-step 3 only \code{mode = "local"} is implemented; \code{mode = "collaborate"}
-(aliasing + jitter + audit + redacted recipe print) lands in steps 4, 6
-and 7.
+\code{mode = "local"} keeps original column / level vocabularies and warns
+that the synthetic is for owner development only. \code{mode = "collaborate"}
+opaque-aliases treatment and categorical-covariate level vocabularies
+(\code{trt_001}, \verb{<col>_L01}) and drops \code{ignore} columns; the resulting
+synthetic can be passed to a collaborator while the recipe stays
+private. Numeric jitter, integer stochastic rounding, and automatic
+\code{audit_mask()} for collaborate mode arrive in build-order steps 6-7.
 }
 \section{Behaviour by role}{
 
 
 \describe{
 \item{\code{design}}{Byte-identical pass-through.}
-\item{\code{treatment}}{Pass-through in step 3 (level handling lands at step 4).}
+\item{\code{treatment}}{Local: pass-through (optional opt-in seeded
+permutation via \code{roles$mask_levels = "permute"}). Collaborate:
+opaque alias \code{trt_NNN}.}
 \item{\code{outcome} + numeric \code{covariate}}{Re-simulated jointly via a
-Gaussian copula on global Pearson Sigma. Empirical-quantile marginals
-(type 1: returns observed values; collaborate mode adds jitter at
-step 7).}
-\item{categorical \code{covariate}}{Row-permuted; level set and per-level
-frequencies preserved exactly.}
-\item{\code{ignore}}{Local mode passes through; collaborate mode drops at
-step 7.}
+Gaussian copula on global Pearson covariance. Empirical-quantile
+marginals (type 1: returns observed values).}
+\item{categorical \code{covariate}}{Row-permuted within non-NA positions.
+Local: vocabulary preserved. Collaborate: opaque alias
+\verb{<col>_LNN}.}
+\item{\code{ignore}}{Local: passes through. Collaborate: dropped.}
 }
 
-The NA pattern is re-applied cell-by-cell after synthesis so
-\code{is.na(synthetic) == is.na(original)}.
-
-RNG state is preserved across the call (no mutation of \code{.Random.seed}),
-wrapped via internal \code{withr::with_seed()} / \code{with_preserve_seed()}.
+RNG state is preserved across the call.
 }
 
 \examples{
 r <- propose_roles(iris)
 r$role[r$col == "Sepal.Length"] <- "outcome"
-m <- mask(iris, r, seed = 1)
-head(m$synthetic)
+m <- suppressWarnings(mask(iris, r, seed = 1))
+head(synthetic(m))
 
 }
 \seealso{
-\code{\link[=propose_roles]{propose_roles()}}, \code{\link[=roles_validate]{roles_validate()}}.
+\code{\link[=propose_roles]{propose_roles()}}, \code{\link[=roles_validate]{roles_validate()}}, \code{\link[=synthetic]{synthetic()}},
+\code{\link[=recipe]{recipe()}}, \code{\link[=reveal_maps]{reveal_maps()}}.
 }

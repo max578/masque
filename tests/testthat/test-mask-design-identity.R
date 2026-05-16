@@ -12,8 +12,8 @@ test_that("design columns are byte-identical between original and synthetic", {
   r <- propose_roles(df)
   r$role[r$col == "yield"] <- "outcome"
 
-  m <- mask(df, r, seed = 1)
-  s <- m$synthetic
+  m <- suppressWarnings(mask(df, r, seed = 1))
+  s <- synthetic(m)
 
   expect_identical(s$Rep,   df$Rep)
   expect_identical(s$block, df$block)
@@ -32,8 +32,8 @@ test_that("treatment column passes through in step 3 (level handling in step 4)"
   r <- propose_roles(df)
   r$role[r$col == "yield"] <- "outcome"
 
-  m <- mask(df, r, seed = 1)
-  expect_identical(m$synthetic$Genotype, df$Genotype)
+  m <- suppressWarnings(mask(df, r, seed = 1))
+  expect_identical(synthetic(m)$Genotype, df$Genotype)
 })
 
 test_that("ignore columns pass through in local mode", {
@@ -47,8 +47,8 @@ test_that("ignore columns pass through in local mode", {
   r <- propose_roles(df)
   r$role[r$col == "yield"] <- "outcome"
 
-  m <- mask(df, r, seed = 1)
-  expect_identical(m$synthetic$sowing_date, df$sowing_date)
+  m <- suppressWarnings(mask(df, r, seed = 1))
+  expect_identical(synthetic(m)$sowing_date, df$sowing_date)
 })
 
 test_that("synthetic has the same shape and column order as original", {
@@ -62,7 +62,7 @@ test_that("synthetic has the same shape and column order as original", {
   r <- propose_roles(df)
   r$role[r$col == "b"] <- "outcome"
 
-  m <- mask(df, r, seed = 1)
-  expect_equal(dim(m$synthetic), dim(df))
-  expect_identical(names(m$synthetic), names(df))
+  m <- suppressWarnings(mask(df, r, seed = 1))
+  expect_equal(dim(synthetic(m)), dim(df))
+  expect_identical(names(synthetic(m)), names(df))
 })

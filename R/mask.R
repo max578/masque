@@ -4,60 +4,54 @@
 #' [propose_roles()]) and produces a synthetic clone whose experimental
 #' design and NA pattern are preserved, while outcome and numeric-covariate
 #' values are re-simulated via a Gaussian copula and categorical-covariate
-#' values are row-permuted.
+#' values are row-permuted. Returns a `masque` S7 object holding the
+#' synthetic data and a private `masque_recipe`.
 #'
-#' This function is the single high-level verb of the package. In build-order
-#' step 3 only `mode = "local"` is implemented; `mode = "collaborate"`
-#' (aliasing + jitter + audit + redacted recipe print) lands in steps 4, 6
-#' and 7.
+#' `mode = "local"` keeps original column / level vocabularies and warns
+#' that the synthetic is for owner development only. `mode = "collaborate"`
+#' opaque-aliases treatment and categorical-covariate level vocabularies
+#' (`trt_001`, `<col>_L01`) and drops `ignore` columns; the resulting
+#' synthetic can be passed to a collaborator while the recipe stays
+#' private. Numeric jitter, integer stochastic rounding, and automatic
+#' `audit_mask()` for collaborate mode arrive in build-order steps 6-7.
 #'
 #' @section Behaviour by role:
 #'
 #' \describe{
 #'   \item{`design`}{Byte-identical pass-through.}
-#'   \item{`treatment`}{Pass-through in step 3 (level handling lands at step 4).}
+#'   \item{`treatment`}{Local: pass-through (optional opt-in seeded
+#'     permutation via `roles$mask_levels = "permute"`). Collaborate:
+#'     opaque alias `trt_NNN`.}
 #'   \item{`outcome` + numeric `covariate`}{Re-simulated jointly via a
-#'     Gaussian copula on global Pearson Sigma. Empirical-quantile marginals
-#'     (type 1: returns observed values; collaborate mode adds jitter at
-#'     step 7).}
-#'   \item{categorical `covariate`}{Row-permuted; level set and per-level
-#'     frequencies preserved exactly.}
-#'   \item{`ignore`}{Local mode passes through; collaborate mode drops at
-#'     step 7.}
+#'     Gaussian copula on global Pearson covariance. Empirical-quantile
+#'     marginals (type 1: returns observed values).}
+#'   \item{categorical `covariate`}{Row-permuted within non-NA positions.
+#'     Local: vocabulary preserved. Collaborate: opaque alias
+#'     `<col>_LNN`.}
+#'   \item{`ignore`}{Local: passes through. Collaborate: dropped.}
 #' }
 #'
-#' The NA pattern is re-applied cell-by-cell after synthesis so
-#' `is.na(synthetic) == is.na(original)`.
-#'
-#' RNG state is preserved across the call (no mutation of `.Random.seed`),
-#' wrapped via internal `withr::with_seed()` / `with_preserve_seed()`.
+#' RNG state is preserved across the call.
 #'
 #' @param df A data frame.
 #' @param roles A tibble produced by [propose_roles()] (possibly edited).
+#'   May optionally include a `mask_levels` column (`"permute"` enables
+#'   local-mode seeded permutation on the treatment column).
 #' @param mode Either `"local"` (default) or `"collaborate"`.
-#'   `"collaborate"` errors with a forward-reference until step 7.
-#' @param seed Optional integer for reproducibility; `NULL` (default) uses
-#'   whatever RNG state is current and restores it on exit.
-#' @param ... Currently ignored (future hook for advanced overrides).
+#' @param seed Optional integer for reproducibility.
+#' @param ... Currently ignored.
 #'
-#' @return A `masque` object (S3 list) with elements:
-#'   \itemize{
-#'     \item `synthetic`: tibble — the synthetic clone.
-#'     \item `recipe`: `NULL` in step 3 (populated in step 4).
-#'     \item `mode`: the resolved mode.
-#'     \item `audit`: `NULL` in step 3 (populated in step 6).
-#'     \item `seed`: the seed used (or `NULL`).
-#'   }
-#'   The class slot is `c("masque", "list")` for now; replaced by an S7
-#'   class in step 4.
+#' @return A `masque` S7 object. Use [synthetic()] and [recipe()] to
+#'   extract the components.
 #'
 #' @examples
 #' r <- propose_roles(iris)
 #' r$role[r$col == "Sepal.Length"] <- "outcome"
-#' m <- mask(iris, r, seed = 1)
-#' head(m$synthetic)
+#' m <- suppressWarnings(mask(iris, r, seed = 1))
+#' head(synthetic(m))
 #'
-#' @seealso [propose_roles()], [roles_validate()].
+#' @seealso [propose_roles()], [roles_validate()], [synthetic()],
+#'   [recipe()], [reveal_maps()].
 #'
 #' @export
 mask <- function(df,
@@ -70,46 +64,72 @@ mask <- function(df,
   }
   mode <- match.arg(mode)
   roles_validate(roles, df)
-  # Defensive: align roles to df column order
   roles <- roles[match(names(df), roles$col), , drop = FALSE]
-
-  if (mode == "collaborate") {
-    cli::cli_abort(c(
-      "{.code mode = \"collaborate\"} lands in build-order steps 4-7.",
-      i = "Use {.code mode = \"local\"} for now."
-    ))
-  }
 
   opts <- mode_defaults(mode)
 
-  synth <- with_rng_state(seed, {
-    .mask_local_orchestrate(df, roles)
-  })
+  result <- with_rng_state(seed, .mask_orchestrate(df, roles, mode, opts))
+  synth        <- result$synth
+  level_maps   <- result$level_maps
+  warnings_acc <- result$warnings
 
-  # NA-mask preservation: cell-by-cell from original
-  na_mask <- is.na(df)
-  for (j in seq_along(synth)) {
-    if (any(na_mask[, j])) {
-      synth[[j]][na_mask[, j]] <- NA
+  # NA-mask preservation cell-by-cell (only over columns retained)
+  retained <- intersect(names(df), names(synth))
+  for (col in retained) {
+    nm <- is.na(df[[col]])
+    if (any(nm)) {
+      synth[[col]][nm] <- NA
     }
   }
 
-  structure(
-    list(
-      synthetic = tibble::as_tibble(synth),
-      recipe    = NULL,
-      mode      = mode,
-      audit     = NULL,
-      seed      = seed
-    ),
-    class = c("masque", "list")
+  if (identical(mode, "local")) {
+    msg <- "local mode: synthetic data is for owner development only, not external sharing."
+    warning(msg, call. = FALSE)
+    warnings_acc <- c(warnings_acc, msg)
+  }
+
+  # Build the recipe.
+  storage_classes <- lapply(df, function(col) class(col))
+
+  factor_meta <- list()
+  for (col in names(df)) {
+    if (is.factor(df[[col]])) {
+      factor_meta[[col]] <- list(
+        levels  = levels(df[[col]]),
+        ordered = is.ordered(df[[col]])
+      )
+    }
+  }
+
+  rec <- masque_recipe(
+    masque_version  = as.character(utils::packageVersion("masque")),
+    created_at      = Sys.time(),
+    mode            = mode,
+    seed            = if (is.null(seed)) NULL else as.integer(seed),
+    roles           = as.data.frame(roles),
+    column_name_map = NULL,
+    level_maps      = level_maps,
+    storage_classes = storage_classes,
+    factor_meta     = factor_meta,
+    warnings        = warnings_acc,
+    integrity_fp    = digest::digest(is.na(df), algo = "sha256")
+  )
+
+  masque(
+    synthetic = tibble::as_tibble(synth),
+    recipe    = rec,
+    mode      = mode,
+    audit     = NULL
   )
 }
 
 # Internal: orchestrate the per-role synthesis with the RNG state already set.
-.mask_local_orchestrate <- function(df, roles) {
-  synth <- df
+.mask_orchestrate <- function(df, roles, mode, opts) {
+  synth      <- df
+  level_maps <- list()
+  warnings   <- character()
 
+  i_treatment <- which(roles$role == "treatment")
   i_outcome   <- which(roles$role == "outcome")
   i_covariate <- which(roles$role == "covariate")
 
@@ -124,12 +144,52 @@ mask <- function(df,
     }
   }
 
-  # Categorical covariate: row-permute (independent of numeric)
+  # Categorical covariates: row-permute, then (collaborate) opaque-alias
   cat_idx <- i_covariate[!(roles$kind[i_covariate] %in% c("numeric", "integer"))]
   for (j in cat_idx) {
-    col <- roles$col[j]
-    synth[[col]] <- synthesise_categorical_local(df[[col]])
+    col  <- roles$col[j]
+    perm <- synthesise_categorical_local(df[[col]])
+    if (isTRUE(opts$alias_covariate_levels) && (is.factor(perm) || is.character(perm))) {
+      res <- alias_levels(perm, prefix = paste0(col, "_L"))
+      # prefix "cov_cat_L" + width-3 digit -> "cov_cat_L001"
+      synth[[col]] <- res$x
+      level_maps[[col]] <- res$map
+    } else {
+      synth[[col]] <- perm
+    }
   }
 
-  synth
+  # Treatment column: optional local permutation OR collaborate aliasing
+  if (length(i_treatment) == 1L) {
+    treat_col <- roles$col[i_treatment]
+    treat_val <- df[[treat_col]]
+    do_alias  <- isTRUE(opts$alias_treatment_levels)
+    do_perm   <- (!do_alias) &&
+                 "mask_levels" %in% names(roles) &&
+                 isTRUE(roles$mask_levels[i_treatment] == "permute")
+    if (do_alias && (is.factor(treat_val) || is.character(treat_val))) {
+      res <- alias_levels(treat_val, prefix = "trt_")
+      synth[[treat_col]] <- res$x
+      level_maps[[treat_col]] <- res$map
+    } else if (do_perm && (is.factor(treat_val) || is.character(treat_val))) {
+      res <- permute_levels(treat_val)
+      synth[[treat_col]] <- res$x
+      level_maps[[treat_col]] <- res$map
+    }
+    # else: pass through (local default)
+  }
+
+  # Ignore columns: drop in collaborate; pass-through in local
+  if (isTRUE(opts$drop_ignore)) {
+    i_ignore <- which(roles$role == "ignore")
+    if (length(i_ignore)) {
+      dropped <- roles$col[i_ignore]
+      synth   <- synth[, setdiff(names(synth), dropped), drop = FALSE]
+      warnings <- c(warnings,
+                    sprintf("Dropped %d ignore column(s) under collaborate mode: %s",
+                            length(dropped), paste(dropped, collapse = ", ")))
+    }
+  }
+
+  list(synth = synth, level_maps = level_maps, warnings = warnings)
 }

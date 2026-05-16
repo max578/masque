@@ -26,10 +26,13 @@ Depends:
     R (>= 4.2.0)
 Imports:
     cli,
+    digest,
     MASS,
     Matrix,
+    S7,
     stats,
     tibble,
+    utils,
     withr
 Suggests:
     fst,

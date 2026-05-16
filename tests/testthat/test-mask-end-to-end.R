@@ -1,4 +1,4 @@
-test_that("mask() returns a masque-classed list with the expected slots", {
+test_that("mask() returns an S7 masque object with synthetic + recipe", {
   set.seed(0)
   df <- data.frame(
     Rep      = rep(1:4, 25),
@@ -11,15 +11,14 @@ test_that("mask() returns a masque-classed list with the expected slots", {
   r <- propose_roles(df)
   r$role[r$col == "yield"] <- "outcome"
 
-  m <- mask(df, r, seed = 42)
+  m <- suppressWarnings(mask(df, r, seed = 42))
 
-  expect_s3_class(m, "masque")
-  expect_named(m, c("synthetic","recipe","mode","audit","seed"))
-  expect_s3_class(m$synthetic, "tbl_df")
-  expect_null(m$recipe)
-  expect_null(m$audit)
-  expect_equal(m$mode, "local")
-  expect_equal(m$seed, 42)
+  expect_true(inherits(m, "masque::masque"))
+  expect_true(inherits(synthetic(m), "tbl_df"))
+  expect_true(inherits(recipe(m), "masque::masque_recipe"))
+  expect_equal(m@mode, "local")
+  expect_null(m@audit)
+  expect_equal(recipe(m)@seed, 42L)
 })
 
 test_that("mask() preserves design, treatment pass-through; outcome stays in observed range", {
@@ -33,8 +32,8 @@ test_that("mask() preserves design, treatment pass-through; outcome stays in obs
   r <- propose_roles(df)
   r$role[r$col == "yield"] <- "outcome"
 
-  m <- mask(df, r, seed = 42)
-  s <- m$synthetic
+  m <- suppressWarnings(mask(df, r, seed = 42))
+  s <- synthetic(m)
 
   expect_identical(s$Rep, df$Rep)
   expect_identical(s$Genotype, df$Genotype)
@@ -53,15 +52,16 @@ test_that("Categorical covariate frequencies are preserved", {
   r <- propose_roles(df)
   r$role[r$col == "yield"] <- "outcome"
 
-  m <- mask(df, r, seed = 1)
-  expect_equal(as.vector(table(m$synthetic$cat_c)), as.vector(table(df$cat_c)))
-  expect_setequal(names(table(m$synthetic$cat_c)), names(table(df$cat_c)))
+  m <- suppressWarnings(mask(df, r, seed = 1))
+  s <- synthetic(m)
+  expect_equal(as.vector(table(s$cat_c)), as.vector(table(df$cat_c)))
+  expect_setequal(names(table(s$cat_c)), names(table(df$cat_c)))
 })
 
-test_that("mask(mode = 'collaborate') errors with a forward-reference (step 7)", {
+test_that("mask(mode = 'local') prints the not-for-sharing warning", {
   r <- propose_roles(iris)
   r$role[r$col == "Sepal.Length"] <- "outcome"
-  expect_error(mask(iris, r, mode = "collaborate"), "step")
+  expect_warning(mask(iris, r), "local mode")
 })
 
 test_that("mask() errors on non-data-frame input", {
@@ -71,13 +71,13 @@ test_that("mask() errors on non-data-frame input", {
 })
 
 test_that("mask() errors propagated from roles_validate (no outcome)", {
-  r <- propose_roles(iris)  # propose_roles never assigns outcome
+  r <- propose_roles(iris)
   expect_error(mask(iris, r), "outcome")
 })
 
 test_that("roles_validate errors on non-numeric outcome (semantic check)", {
   r <- propose_roles(iris)
-  r$role[r$col == "Species"] <- "outcome"  # factor outcome
+  r$role[r$col == "Species"] <- "outcome"
   expect_error(roles_validate(r), "Non-numeric")
 })
 
@@ -91,17 +91,17 @@ test_that("mask() runs end-to-end on MET tab_04 (skip if .fst fixture absent)", 
 
   df <- fst::read_fst(fpath, as.data.table = FALSE)
   r  <- propose_roles(df)
-  r$role[r$col == "G_Yield_Tn_ha"] <- "outcome"
-  # Re-role secondary "treatment" (false-positive Cultivar_Habit) to covariate
+  r$role[r$col == "G_Yield_Tn_ha"]  <- "outcome"
   r$role[r$col == "Cultivar_Habit"] <- "covariate"
 
-  m <- mask(df, r, seed = 1)
+  m <- suppressWarnings(mask(df, r, seed = 1))
+  s <- synthetic(m)
 
-  expect_s3_class(m, "masque")
-  expect_equal(nrow(m$synthetic), nrow(df))
-  expect_equal(ncol(m$synthetic), ncol(df))
-  expect_identical(m$synthetic$Rep,    df$Rep)
-  expect_identical(m$synthetic$Row,    df$Row)
-  expect_identical(m$synthetic$Column, df$Column)
-  expect_equal(is.na(m$synthetic$G_Yield_Tn_ha), is.na(df$G_Yield_Tn_ha))
+  expect_true(inherits(m, "masque::masque"))
+  expect_equal(nrow(s), nrow(df))
+  expect_equal(ncol(s), ncol(df))
+  expect_identical(s$Rep,    df$Rep)
+  expect_identical(s$Row,    df$Row)
+  expect_identical(s$Column, df$Column)
+  expect_equal(is.na(s$G_Yield_Tn_ha), is.na(df$G_Yield_Tn_ha))
 })

@@ -2,4 +2,7 @@
 
 export(mask)
 export(propose_roles)
+export(recipe)
+export(reveal_maps)
 export(roles_validate)
+export(synthetic)
