@@ -1,0 +1,35 @@
+Package: masque
+Title: Structurally Faithful Development Surrogates for Tabular Data
+Version: 0.2.0.9000
+Authors@R: c(
+    person("Max", "Moldovan",
+           email = "max.moldovan@gmail.com",
+           role  = c("aut", "cre"),
+           comment = c(ORCID = "0000-0001-9680-8474",
+                       affiliation = "Adelaide University"))
+    )
+Description: Turns a single tabular dataset into a structurally faithful
+    synthetic clone suitable for pipeline development. Experimental-design
+    columns and the NA pattern are preserved exactly; treatment and
+    categorical-covariate level vocabularies are optionally aliased; outcome
+    and numeric-covariate values are re-simulated via a Gaussian copula that
+    preserves the global covariance structure. A private 'recipe' object
+    round-trips a pipeline written against the synthetic clone onto the
+    original data. Not a differential-privacy or anonymisation tool: outputs
+    are development surrogates, not public-release-safe artefacts.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Language: en-AU
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.3
+Depends:
+    R (>= 4.2.0)
+Suggests:
+    knitr,
+    rmarkdown,
+    spelling,
+    testthat (>= 3.0.0)
+VignetteBuilder: knitr
+Config/testthat/edition: 3
+URL: https://github.com/max578/masque
+BugReports: https://github.com/max578/masque/issues

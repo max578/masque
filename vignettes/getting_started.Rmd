@@ -1,0 +1,65 @@
+---
+title: "Getting started with masque"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Getting started with masque}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(masque)
+```
+
+# masque: development surrogates for tabular data
+
+This vignette is a scaffold. The full getting-started walk-through lands in
+build-order step 8 (see `plan/masque_v0.2_plan.md` in the development
+workspace). For now, it documents the contract that the package promises.
+
+## Threat model (read first)
+
+`masque` is a structurally faithful development surrogate, **not** an
+anonymiser. The recipe is at least as sensitive as the original data; never
+share the recipe and the synthetic together. See the future
+`vignette("confidentiality", package = "masque")` for the full threat model.
+
+## Two modes
+
+| Knob | `mode = "local"` | `mode = "collaborate"` |
+|---|---|---|
+| Column names | preserved | preserved by default; user may opt-in to aliasing |
+| Treatment levels | preserved | opaque aliased (`trt_001`, ...) |
+| Categorical covariate levels | preserved | opaque aliased (`<col>_L01`, ...) |
+| `ignore` columns | pass-through option | dropped |
+| NA mask | preserved cell-by-cell | preserved with explicit warning |
+| Numeric synthesis | empirical-quantile | empirical-quantile + within-resolution jitter; integers stochastically rounded |
+| `audit_mask()` | on demand | automatic at `mask()` time |
+
+## Workflow
+
+```r
+# Once the API lands:
+roles  <- propose_roles(my_data)
+# (user edits roles)
+m      <- mask(my_data, roles, mode = "collaborate", seed = 20260516)
+
+dev    <- synthetic(m)   # share this with the pipeline developer
+rec    <- recipe(m)      # private; never shared
+```
+
+The collaborator builds their pipeline against `dev`. The owner runs it on
+the original through `apply_recipe()` and `unmask()`:
+
+```r
+orig_in_synth_space <- apply_recipe(my_data, rec)
+preds_synth         <- pipeline(orig_in_synth_space)
+preds_orig          <- unmask(preds_synth, rec)
+```

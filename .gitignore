@@ -1,0 +1,36 @@
+# R session / build state
+.Rproj.user/
+.Rhistory
+.Rdata
+.RData
+.Ruserdata
+.Renviron
+*.Rproj
+*.tar.gz
+
+# pkgdown
+docs/
+
+# Tests / coverage
+tests/testthat/_snaps/
+coverage.html
+coverage.json
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Working notes / private artefacts that must never enter shared history
+aa_notes*
+PROJECT_LOG*.md
+research_*.md
+implementation_plan_*
+CLAUDE.md
+AGENTS.md
+.claude/
+.cursor/
+.Codex/
+
+# Local-only dev fixtures (CC-BY-SA + PII residue — never ship)
+*.fst
+fst_00_dataset_tab_*.fst
