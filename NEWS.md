@@ -1,3 +1,38 @@
+# masque 0.4.0
+
+Adds first-class geospatial synthesis. One new export, no breaking
+changes to the v0.3.0 surface.
+
+## New export
+
+* `synthesise_geospatial(synth, original, anchor_col, lat_col,
+  lon_col, anchor_centroids, site_spread_deg, jitter_deg, seed)` —
+  re-anchors the latitude / longitude columns in a masqued data frame
+  at user-supplied centroids, while preserving (a) the count of
+  distinct sites per anchor level, (b) the per-site replication
+  distribution, and (c) within-site tight clustering with
+  between-site spread. The original positions are never published;
+  the function reads them only to count distinct sites. NA pattern
+  in coordinates is preserved cell-by-cell. RNG hygiene via
+  `withr::local_preserve_seed()`.
+
+  Motivated by the masque release walkthrough, where state-centroid
+  + uniform-jitter (per-walkthrough recipe) failed to preserve the
+  within-state clustering of real trial sites.
+
+## CRAN and r-universe readiness
+
+* Added `cran-comments.md` for first-submission notes.
+* Added `.github/workflows/R-CMD-check.yaml` (r-lib standard matrix:
+  Linux release / devel / oldrel-1, macOS release, Windows release).
+* `R CMD check --as-cran` reports 0 errors, 0 warnings, 2 NOTEs
+  (new-submission boilerplate and local HTML Tidy environmental).
+
+## Documentation
+
+* `R/synthesise_geospatial.R` carries the full roxygen doc + a
+  `\donttest{}` example.
+
 # masque 0.3.0
 
 Adds automatic experimental-design detection and a sanity-check
