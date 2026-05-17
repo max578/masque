@@ -1,3 +1,63 @@
+# masque 0.3.0
+
+Adds automatic experimental-design detection and a sanity-check
+visualisation. New public surface: 3 exports, 1 vignette.
+
+## New exports
+
+* `detect_design(df, roles = NULL, interactive = FALSE, threshold = 0.5,
+  tie_delta = 0.02)` — returns an S7 `design_summary` with the most
+  likely design class (`CRD`, `RCBD`, `IBD/alpha-lattice`,
+  `row-column`, `split-plot`, `factorial`, or `none`), per-rule scores,
+  evidence, and a `recommended_roles` tibble. Rule engine, not ML.
+* `design_summary` — S7 class wrapping the detection result.
+  `print()` is cli-styled and surfaces top-3 alternates so the user
+  can see how confident the call was. Slots include `class_label`,
+  `treatment_col`, `block_cols`, `whole_plot_col`, `sub_plot_col`,
+  `spatial_cols`, `scores`, `evidence`, `recommended_roles`,
+  `candidates`, `warnings`.
+* `plot_design_summary(x, df, engine = c("base", "ggplot2"))` — also
+  registered as an S7 `plot()` method. Base-graphics sanity-check
+  visualisation dispatched per class: replication tile, spatial
+  layout, factor-nesting tree, treatment-frequency + NA-pattern.
+
+## Behaviour change
+
+* `propose_roles(df)` flips to `detect = TRUE` by default. The
+  detected design's `recommended_roles` are overlaid on the name-based
+  proposal, promoting structurally-identified treatments and blocks
+  even when their column names don't match the design / treatment
+  regexes (e.g., `gen` in an alpha-lattice). The `design_summary` is
+  stashed as `attr(roles, "design")`. Pass `detect = FALSE` to
+  recover the v0.2.x byte-stable behaviour.
+
+## Design philosophy
+
+* Detection is **read-only**. `mask()` synthesis behaviour is
+  unchanged. Only `propose_roles()` consumes detection output, and
+  only as role hints.
+* Rule engine over ML: each of the six rules is a pure function
+  returning a score in `[0, 1]` with evidence; the orchestrator picks
+  the top above threshold, breaking ties in favour of the simpler
+  design (CRD &lt; RCBD &lt; factorial &lt; IBD &lt; row-column &lt; split-plot).
+* Visualisation is sanity-check grade. For publication-quality field
+  layouts use `desplot::desplot()` or `ggplot2`-based packages.
+
+## Suggests
+
+* `agridat` — canonical fixtures for tests and the new vignette.
+* `ggplot2` — optional plot engine via `engine = "ggplot2"`; base
+  graphics is the default and the fallback.
+
+## Limitations
+
+* The detector cannot distinguish a true split-plot from a
+  factorial-in-blocks: both have the same data layout. The
+  whole-plot / sub-plot assignment uses cardinality (fewer levels =
+  whole-plot), which is heuristic.
+* Detection on fewer than ~20 rows is unreliable. Pass
+  `detect = FALSE` for toy fixtures.
+
 # masque 0.2.0
 
 First public release of `masque` — a structurally faithful development

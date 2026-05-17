@@ -32,10 +32,13 @@ as tied. Default \code{0.02} — tight enough that 0.05-point score
 differences (the typical name-bonus / coverage gap) are decisive.}
 }
 \value{
-A \link{design_summary} S7 object. See \link{design_summary} for slots.
+An S7 \code{design_summary} object with slots \code{class_label},
+\code{treatment_col}, \code{block_cols}, \code{whole_plot_col}, \code{sub_plot_col},
+\code{spatial_cols}, \code{scores}, \code{evidence}, \code{recommended_roles},
+\code{candidates}, \code{warnings}.
 }
 \description{
-Inspects \code{df} and returns an S7 \link{design_summary} describing the most
+Inspects \code{df} and returns an S7 \code{design_summary} describing the most
 likely experimental design — one of \code{"CRD"}, \code{"RCBD"},
 \code{"IBD/alpha-lattice"}, \code{"row-column"}, \code{"split-plot"}, \code{"factorial"},
 or \code{"none"} (observational / no detectable design).

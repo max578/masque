@@ -1,5 +1,11 @@
 # plot() method for the S7 design_summary class.
 #
+# Silence R CMD check's "no visible binding" NOTE for `.data` (the
+# rlang pronoun used inside ggplot2 aes()). `.data` is only referenced
+# from inside Suggests-only ggplot2 code paths.
+utils::globalVariables(".data")
+
+#
 # Sanity-check visualisations in base graphics. Four atoms — replication
 # tile, spatial layout tile, factor-nesting tree, frequency + NA-pattern
 # tile — composed differently per design class. Borrowing the desplot

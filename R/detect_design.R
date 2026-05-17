@@ -6,7 +6,7 @@
 
 #' Detect the experimental-design structure of a data frame
 #'
-#' Inspects `df` and returns an S7 [design_summary] describing the most
+#' Inspects `df` and returns an S7 `design_summary` describing the most
 #' likely experimental design — one of `"CRD"`, `"RCBD"`,
 #' `"IBD/alpha-lattice"`, `"row-column"`, `"split-plot"`, `"factorial"`,
 #' or `"none"` (observational / no detectable design).
@@ -35,7 +35,10 @@
 #'   as tied. Default `0.02` — tight enough that 0.05-point score
 #'   differences (the typical name-bonus / coverage gap) are decisive.
 #'
-#' @return A [design_summary] S7 object. See [design_summary] for slots.
+#' @return An S7 `design_summary` object with slots `class_label`,
+#'   `treatment_col`, `block_cols`, `whole_plot_col`, `sub_plot_col`,
+#'   `spatial_cols`, `scores`, `evidence`, `recommended_roles`,
+#'   `candidates`, `warnings`.
 #'
 #' @examples
 #' # Classic alpha-lattice (24 genotypes, 3 reps, 6 blocks per rep).
@@ -112,8 +115,12 @@ detect_design <- function(df,
   contenders_ord[1L]
 }
 
-# Interactive disambiguation between two near-tied classes.
+# Interactive disambiguation between two near-tied classes. Uses
+# utils::menu() so we keep cli as a hard runtime dep but don't need any
+# cli function that isn't part of the stable surface.
 .interactive_tie_break <- function(top2, scores, results, df) {
+  if (!interactive()) return(top2[1L])
+
   choices <- vapply(top2, function(nm) {
     ev <- results[[nm]]$evidence
     short <- if (!is.null(ev$treatment_col)) {
@@ -124,16 +131,16 @@ detect_design <- function(df,
     sprintf("%s (score=%.2f) %s", nm, scores[[nm]], short)
   }, character(1L))
 
-  ans <- tryCatch(
-    cli::cli_menu(
-      choices = choices,
-      title   = "Two designs are close. Which fits better?",
-      not_interactive = top2[1L]
-    ),
-    error = function(e) NULL
+  cli::cli_alert_info("Two designs are close. Which fits better?")
+  pick <- tryCatch(
+    utils::menu(choices = choices, graphics = FALSE,
+                title = "Pick one (0 to accept the simpler default)"),
+    error = function(e) 0L
   )
-  if (is.null(ans) || is.na(ans)) return(NA_character_)
-  top2[ans]
+  if (is.null(pick) || !is.numeric(pick) || pick < 1L || pick > length(top2)) {
+    return(top2[1L])
+  }
+  top2[pick]
 }
 
 .build_design_summary <- function(label, result, scores, cands, warnings_msgs) {
@@ -198,34 +205,14 @@ detect_design <- function(df,
 # A tiny null-coalescer used in a handful of places.
 `%||%` <- function(a, b) if (is.null(a) || (is.atomic(a) && length(a) == 0L)) b else a
 
-#' S7 design_summary class
-#'
-#' Returned by [detect_design()]. Slots:
-#'
-#' \describe{
-#'   \item{`class_label`}{One of `"none"`, `"CRD"`, `"RCBD"`,
-#'     `"IBD/alpha-lattice"`, `"row-column"`, `"split-plot"`,
-#'     `"factorial"`.}
-#'   \item{`treatment_col`}{Character vector — the working treatment
-#'     column(s). Length 0 if no treatment was identified; length 2 for
-#'     factorial.}
-#'   \item{`block_cols`}{Character vector — block(s) used by the winning
-#'     rule.}
-#'   \item{`whole_plot_col`, `sub_plot_col`}{Split-plot only.}
-#'   \item{`spatial_cols`}{Length-2 character (`row`, `col`) if a
-#'     spatial pair was detected; otherwise empty.}
-#'   \item{`scores`}{Named numeric vector — score from every rule.}
-#'   \item{`evidence`}{Named list — measurements that drove the winning
-#'     rule's score.}
-#'   \item{`recommended_roles`}{Data frame with two columns (`col`,
-#'     `role`). Fed into [propose_roles()] when `detect = TRUE`.}
-#'   \item{`candidates`}{The candidate set used (for `plot()` and
-#'     debugging).}
-#'   \item{`warnings`}{Character vector — non-blocking diagnostics.}
-#' }
-#'
+# S7 design_summary class — returned by detect_design().
+# Internal constructor; users get instances via detect_design() and
+# interact via slot access (e.g., ds@class_label). Following the
+# masque_recipe pattern: no Rd is generated and the class is not
+# auto-exported. Tests use `inherits(ds, "masque::design_summary")`.
+#
 #' @keywords internal
-#' @export
+#' @noRd
 design_summary <- S7::new_class(
   "design_summary",
   package    = "masque",

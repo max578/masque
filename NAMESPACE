@@ -2,7 +2,6 @@
 
 export(apply_recipe)
 export(audit_mask)
-export(design_summary)
 export(detect_design)
 export(mask)
 export(plot_design_summary)

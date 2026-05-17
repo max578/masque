@@ -4,10 +4,15 @@
 \alias{propose_roles}
 \title{Propose role classifications for the columns of a data frame}
 \usage{
-propose_roles(df)
+propose_roles(df, detect = TRUE)
 }
 \arguments{
 \item{df}{A data frame. Must have at least one column.}
+
+\item{detect}{Logical scalar (default \code{TRUE}). When \code{TRUE}, run
+\code{\link[=detect_design]{detect_design()}} and overlay its recommended role hints on the
+name-based heuristic. Stash the \code{design_summary} as \code{attr(roles, "design")}. When \code{FALSE}, only the v0.2.x name-based heuristic
+runs.}
 }
 \value{
 A tibble with one row per column, containing:
@@ -64,6 +69,15 @@ columns as \code{outcome}.
 
 Failing to designate at least one \code{outcome} is a hard error at \code{mask()}
 time (via \code{\link[=roles_validate]{roles_validate()}}).
+
+Since masque 0.3.0, \code{\link[=propose_roles]{propose_roles()}} also calls \code{\link[=detect_design]{detect_design()}} by
+default (\code{detect = TRUE}) and applies the detected design's
+\code{recommended_roles} on top of the name-based heuristic. This promotes
+structurally-identified block / treatment columns even when the
+column names do not match the design / treatment regexes. The
+resulting design summary is stashed as \code{attr(roles, "design")} so the
+user can \code{\link[=plot]{plot()}} it or inspect alternates. Pass \code{detect = FALSE} to
+recover the v0.2.x name-only behaviour byte-for-byte.
 }
 \examples{
 propose_roles(iris)

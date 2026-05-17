@@ -10,6 +10,12 @@ reference:
   - propose_roles
   - roles_validate
 
+- title: Design detection
+  desc: Identify the experimental design and visualise it for sanity.
+  contents:
+  - detect_design
+  - plot_design_summary
+
 - title: Masking
   desc: Produce a structurally faithful synthetic clone of one tabular dataset.
   contents:
@@ -41,6 +47,7 @@ articles:
   contents:
   - getting_started
   - confidentiality
+  - design_detection
   - recipe_anatomy
   - roadmap
 

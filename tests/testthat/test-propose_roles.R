@@ -21,7 +21,7 @@ test_that("propose_roles(detect = TRUE) overlays structural design hints (defaul
   expect_equal(r$role[r$col == "Species"], "treatment")
   expect_match(r$notes[r$col == "Species"], "detect_design")
   ds <- attr(r, "design")
-  expect_s7_class(ds, design_summary)
+  expect_true(inherits(ds, "masque::design_summary"))
   expect_equal(ds@class_label, "CRD")
 })
 

@@ -12,7 +12,7 @@ test_that("detect_design() rejects too-small input", {
 
 test_that("detect_design() returns S7 design_summary with the expected shape", {
   ds <- detect_design(iris)
-  expect_s7_class(ds, design_summary)
+  expect_true(inherits(ds, "masque::design_summary"))
   expect_true(ds@class_label %in% c("CRD", "RCBD", "IBD/alpha-lattice",
                                     "row-column", "split-plot",
                                     "factorial", "none"))
