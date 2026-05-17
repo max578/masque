@@ -35,7 +35,9 @@ Imports:
     utils,
     withr
 Suggests:
+    agridat,
     fst,
+    ggplot2,
     knitr,
     rmarkdown,
     spelling,

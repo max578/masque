@@ -27,8 +27,8 @@
 #'   factor candidates, and any column roled `treatment` is forced as the
 #'   working treatment.
 #' @param interactive If `TRUE`, when the top-2 rule scores are within
-#'   `tie_delta` the user is asked to choose between them via
-#'   [cli::cli_menu()]. Default `FALSE`.
+#'   `tie_delta` the user is asked to choose between them via a cli
+#'   menu. Default `FALSE`.
 #' @param threshold Minimum top-rule score for a class to be reported.
 #'   Below this, `class_label` is `"none"`. Default `0.5`.
 #' @param tie_delta Score difference within which two rules are treated
@@ -48,8 +48,8 @@
 #' # Observational data frame -> class_label "none".
 #' detect_design(mtcars)
 #'
-#' @seealso [propose_roles()] for the role tibble that feeds detection,
-#'   [plot.masque::design_summary] for the sanity-check visualisation.
+#' @seealso [propose_roles()] for the role tibble that feeds detection;
+#'   [plot_design_summary()] for the sanity-check visualisation.
 #'
 #' @export
 detect_design <- function(df,
@@ -140,9 +140,14 @@ detect_design <- function(df,
   ev <- result$evidence %||% list()
 
   treatment_col  <- ev$treatment_col %||% character(0L)
+  # `block_cols` always holds the BASIS columns (real names in df).
+  # The label (e.g., "rep:block") lives in evidence$block_col for printing.
   block_cols     <- character(0L)
-  if (!is.null(ev$block_col))   block_cols <- c(block_cols, ev$block_col)
-  if (!is.null(ev$block_basis)) block_cols <- unique(c(block_cols, ev$block_basis))
+  if (!is.null(ev$block_basis)) {
+    block_cols <- ev$block_basis
+  } else if (!is.null(ev$block_col)) {
+    block_cols <- ev$block_col
+  }
   whole_plot_col <- ev$whole_plot_col %||% character(0L)
   sub_plot_col   <- ev$sub_plot_col   %||% character(0L)
   spatial_cols <- character(0L)
