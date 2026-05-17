@@ -7,17 +7,31 @@ test_that("propose_roles returns a tibble with the expected schema", {
   expect_true(all(r$role %in% c("design", "treatment", "outcome", "covariate", "ignore")))
 })
 
-test_that("propose_roles classifies iris (no treatment/design keywords)", {
-  r <- propose_roles(iris)
+test_that("propose_roles(detect = FALSE) classifies iris by name only (v0.2 baseline)", {
+  r <- propose_roles(iris, detect = FALSE)
   expect_true(all(r$role[r$col %in% c("Sepal.Length","Sepal.Width","Petal.Length","Petal.Width")] == "covariate"))
   expect_true(r$role[r$col == "Species"] == "covariate")  # factor, no treatment name
   expect_false(any(r$pii_suspected))
+  expect_null(attr(r, "design"))
+})
+
+test_that("propose_roles(detect = TRUE) overlays structural design hints (default)", {
+  r <- propose_roles(iris)
+  # Species has 3 levels balanced 50/50/50 -> looks like CRD treatment.
+  expect_equal(r$role[r$col == "Species"], "treatment")
+  expect_match(r$notes[r$col == "Species"], "detect_design")
+  ds <- attr(r, "design")
+  expect_s7_class(ds, design_summary)
+  expect_equal(ds@class_label, "CRD")
 })
 
 test_that("propose_roles classifies mtcars (all numeric -> covariate)", {
   r <- propose_roles(mtcars)
   expect_true(all(r$role == "covariate"))
   expect_true(all(r$kind %in% c("numeric", "integer")))
+  # mtcars has no design structure -> detect_design returns "none".
+  ds <- attr(r, "design")
+  expect_equal(ds@class_label, "none")
 })
 
 test_that("propose_roles errors on non-data-frame input", {
@@ -59,7 +73,11 @@ test_that("Design patterns assign role = design (case-insensitive)", {
     yield = c(1, 2, 3, 4),
     stringsAsFactors = FALSE
   )
-  r <- propose_roles(df)
+  # detect = FALSE: this test exercises the name-pattern logic only.
+  # With detect on, a 4-row toy frame is too small for design detection
+  # to fire meaningfully (and small toys can give surprising structural
+  # matches).
+  r <- propose_roles(df, detect = FALSE)
   design_cols <- r$col[r$role == "design"]
   expect_setequal(design_cols, c("Rep","BLOCK","Row","col","site","year","plot"))
   expect_equal(r$role[r$col == "yield"], "covariate")
@@ -117,7 +135,9 @@ test_that("Free-text character columns default to ignore", {
     yield  = rnorm(50),
     stringsAsFactors = FALSE
   )
-  r <- propose_roles(df)
+  # detect = FALSE: this test exercises the free-text ignore logic, not
+  # structural detection (which might pick `region` as a treatment).
+  r <- propose_roles(df, detect = FALSE)
   expect_equal(r$role[r$col == "notes"],  "ignore")
   expect_equal(r$role[r$col == "region"], "covariate")
 })

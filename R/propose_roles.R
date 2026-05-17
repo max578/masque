@@ -40,7 +40,21 @@
 #' Failing to designate at least one `outcome` is a hard error at `mask()`
 #' time (via [roles_validate()]).
 #'
+#' Since masque 0.3.0, [propose_roles()] also calls [detect_design()] by
+#' default (`detect = TRUE`) and applies the detected design's
+#' `recommended_roles` on top of the name-based heuristic. This promotes
+#' structurally-identified block / treatment columns even when the
+#' column names do not match the design / treatment regexes. The
+#' resulting design summary is stashed as `attr(roles, "design")` so the
+#' user can [plot()] it or inspect alternates. Pass `detect = FALSE` to
+#' recover the v0.2.x name-only behaviour byte-for-byte.
+#'
 #' @param df A data frame. Must have at least one column.
+#' @param detect Logical scalar (default `TRUE`). When `TRUE`, run
+#'   [detect_design()] and overlay its recommended role hints on the
+#'   name-based heuristic. Stash the `design_summary` as `attr(roles,
+#'   "design")`. When `FALSE`, only the v0.2.x name-based heuristic
+#'   runs.
 #'
 #' @return A tibble with one row per column, containing:
 #'   \itemize{
@@ -61,7 +75,7 @@
 #'   `mask()` time.
 #'
 #' @export
-propose_roles <- function(df) {
+propose_roles <- function(df, detect = TRUE) {
   if (!is.data.frame(df)) {
     cli::cli_abort("`df` must be a data frame; got {.cls {class(df)[1]}}.")
   }
@@ -69,8 +83,42 @@ propose_roles <- function(df) {
     cli::cli_abort("`df` has no columns.")
   }
 
-  rows <- lapply(names(df), function(nm) classify_one_column(nm, df[[nm]]))
-  tibble::as_tibble(do.call(rbind.data.frame, c(rows, list(stringsAsFactors = FALSE))))
+  rows  <- lapply(names(df), function(nm) classify_one_column(nm, df[[nm]]))
+  roles <- tibble::as_tibble(do.call(rbind.data.frame,
+                                     c(rows, list(stringsAsFactors = FALSE))))
+
+  if (!isTRUE(detect)) return(roles)
+
+  # Structural overlay: detect_design() consumes the name-based proposal.
+  # Need at least 2 rows for detection to be meaningful.
+  if (nrow(df) < 2L) return(roles)
+
+  ds <- detect_design(df, roles = roles)
+  if (ds@class_label != "none" && nrow(ds@recommended_roles) > 0L) {
+    roles <- .overlay_recommended_roles(roles, ds@recommended_roles)
+  }
+  attr(roles, "design") <- ds
+  roles
+}
+
+# Apply detect_design()'s recommended_roles on top of the name-based
+# tibble. Override role + extend the notes string. Never introduces or
+# drops rows.
+.overlay_recommended_roles <- function(roles, rec) {
+  for (i in seq_len(nrow(rec))) {
+    col_i  <- rec$col[i]
+    role_i <- rec$role[i]
+    row_idx <- which(roles$col == col_i)
+    if (length(row_idx) != 1L) next
+    if (identical(roles$role[row_idx], role_i)) next
+    old_role <- roles$role[row_idx]
+    roles$role[row_idx]  <- role_i
+    roles$notes[row_idx] <- sprintf(
+      "detect_design: %s -> %s (was: %s)",
+      old_role, role_i, roles$notes[row_idx]
+    )
+  }
+  roles
 }
 
 # Internal: classify a single column and return a single-row data.frame.
