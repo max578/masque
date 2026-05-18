@@ -8,20 +8,21 @@ original that pipeline code runs unchanged. It returns a private `recipe`
 object that round-trips: a pipeline written against the synthetic can be
 re-targeted to the original data with no source changes.
 
-Version 0.4.0. Pre-CRAN; tagged releases on the GitHub repository.
+Version 0.4.1. Pre-CRAN; tagged releases on the GitHub repository.
 
 ---
 
 ## Installation
 
-Once the repository is public:
+From GitHub:
 
 ```r
 # install.packages("pak")
 pak::pak("max578/masque")
 ```
 
-A companion r-universe distribution will provide pre-built binaries:
+A companion r-universe distribution will provide pre-built binaries
+once the registry is live:
 
 ```r
 install.packages("masque", repos = "https://max578.r-universe.dev")
@@ -105,8 +106,8 @@ only the synthetic crosses the trust boundary.
   redacted print versus `reveal_maps()`.
 - `vignette("roadmap")` — what is deferred from v0.4 and why.
 
-Reference index: [https://max578.github.io/masque/](https://max578.github.io/masque/)
-(deploys once the repository is public).
+Reference index: <https://max578.github.io/masque/> — full per-function
+docs + rendered vignettes, deployed from the `gh-pages` branch.
 
 API stability policy: see `API_STABILITY.md`.
 
@@ -119,7 +120,7 @@ citation("masque")
 ```
 
 The package also ships a `CITATION.cff` file; GitHub renders a "Cite this
-repository" widget once the repository is public.
+repository" widget on the repo landing page.
 
 ---
 
