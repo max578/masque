@@ -117,3 +117,91 @@ test_that("apply_recipe + unmask is identity on local-mode recipe (no maps)", {
 
   expect_equal(as.data.frame(back), df)
 })
+
+# v0.4.1 contract tests: atomic pass-through, fail-closed unknown levels,
+# NA-mask integrity check.
+
+test_that("unmask passes through atomic numeric vectors unchanged", {
+  f <- make_collab_fixture_for_apply()
+  preds <- runif(20)
+  expect_identical(unmask(preds, f$rec), preds)
+})
+
+test_that("unmask passes through atomic integer vectors unchanged", {
+  f <- make_collab_fixture_for_apply()
+  preds <- 1L:20L
+  expect_identical(unmask(preds, f$rec), preds)
+})
+
+test_that("unmask passes through atomic logical vectors unchanged", {
+  f <- make_collab_fixture_for_apply()
+  preds <- c(TRUE, FALSE, NA, TRUE)
+  expect_identical(unmask(preds, f$rec), preds)
+})
+
+test_that("unmask passes through atomic numeric when recipe has no level maps", {
+  set.seed(0)
+  df <- data.frame(
+    Rep   = rep(1:4, 25),
+    yield = rnorm(100),
+    stringsAsFactors = FALSE
+  )
+  r <- propose_roles(df, detect = FALSE)
+  r$role[r$col == "yield"] <- "outcome"
+  m   <- suppressWarnings(mask(df, r, mode = "local", seed = 1))
+  rec <- recipe(m)
+  expect_length(rec@level_maps, 0L)
+  preds <- runif(10)
+  expect_identical(unmask(preds, rec), preds)
+})
+
+test_that("unmask errors when column argument is unknown to the recipe", {
+  f <- make_collab_fixture_for_apply()
+  expect_error(
+    unmask(runif(5), f$rec, column = "definitely_not_a_column"),
+    "not known"
+  )
+})
+
+test_that("apply_recipe fail-closed on unknown original-namespace level", {
+  f <- make_collab_fixture_for_apply()
+  df2 <- f$df
+  df2$Genotype <- as.character(df2$Genotype)
+  df2$Genotype[1L] <- "UNSEEN_LEVEL"
+  df2$Genotype <- factor(df2$Genotype)
+  expect_error(
+    apply_recipe(df2, f$rec, check_integrity = FALSE),
+    "level map"
+  )
+})
+
+test_that("unmask data frame: fail-closed on unknown synthetic-namespace alias", {
+  f <- make_collab_fixture_for_apply()
+  fwd <- apply_recipe(f$df, f$rec)
+  fwd$Genotype <- as.character(fwd$Genotype)
+  fwd$Genotype[1L] <- "trt_NOT_REAL"
+  fwd$Genotype <- factor(fwd$Genotype)
+  expect_error(unmask(fwd, f$rec), "level map")
+})
+
+test_that("apply_recipe enforces NA-mask integrity by default", {
+  f <- make_collab_fixture_for_apply()
+  df2 <- f$df
+  df2$yield[1L] <- NA          # flips the NA mask
+  expect_error(
+    apply_recipe(df2, f$rec),
+    "integrity check failed"
+  )
+})
+
+test_that("apply_recipe(check_integrity = FALSE) bypasses the integrity check", {
+  f <- make_collab_fixture_for_apply()
+  df2 <- f$df
+  df2$yield[1L] <- NA
+  expect_silent(apply_recipe(df2, f$rec, check_integrity = FALSE))
+})
+
+test_that("apply_recipe integrity check passes on the unmodified original df", {
+  f <- make_collab_fixture_for_apply()
+  expect_silent(apply_recipe(f$df, f$rec))  # default check_integrity = TRUE
+})

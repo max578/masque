@@ -7,8 +7,13 @@
 ^docs$
 ^pkgdown$
 ^cran-comments\.md$
-^\.github$
 ^CRAN-SUBMISSION$
 ^revdep$
 ^codecov\.yml$
 ^\.lintr$
+^CITATION\.cff$
+^CODE_OF_CONDUCT\.md$
+^CONTRIBUTING\.md$
+^API_STABILITY\.md$
+^\.zenodo\.json$
+^critical_review_.*\.md$

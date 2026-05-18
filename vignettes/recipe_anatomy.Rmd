@@ -43,8 +43,9 @@ A recipe holds **runtime-minimal** state by default:
 - `mode` — `"local"` or `"collaborate"`.
 - `seed` — the seed passed to `mask()`, or `NULL` if not given.
 - `roles` — the per-column role tibble.
-- `column_name_map` — original-to-synthetic column-name map (NULL in
-  v0.2; reserved for v0.3+).
+- `column_name_map` — original-to-synthetic column-name map (currently
+  `NULL`; reserved for a future opt-in column-aliasing flag — see
+  `vignette("roadmap")`).
 - `level_maps` — per-column factor / character maps. The sensitive bit.
 - `storage_classes` — per-column R class of the original.
 - `factor_meta` — per-factor levels and `ordered` status.
@@ -55,7 +56,7 @@ A recipe holds **runtime-minimal** state by default:
 What it deliberately does **not** hold:
 
 - Simulator state (the copula covariance matrix, the raw observed
-  margins). This is a v0.3+ extension behind
+  margins). Reserved for a future opt-in via
   `save_recipe(..., include_simulator = TRUE)`; currently a no-op.
 - Raw observed values.
 - Source file paths, machine usernames, or absolute paths.
@@ -131,8 +132,8 @@ identical(as.character(back$gen), as.character(df$gen))
 ## Future: `include_simulator = TRUE`
 
 `save_recipe(rec, path, include_simulator = TRUE)` is accepted today
-but is currently a no-op (no simulator state is stored on the recipe
-in v0.2). v0.3+ will use this flag to persist enough state that
+but is currently a no-op (no simulator state is stored on the recipe).
+A future release will use this flag to persist enough state that
 `draw_new_synthetic(rec, n)` can produce fresh synthetic samples
 without access to the original. See `vignette("roadmap")` for the
 deferred items.

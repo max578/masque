@@ -11,8 +11,8 @@
 #'     `c("design","treatment","outcome","covariate","ignore")`);
 #'   \item any `NA` role;
 #'   \item zero columns flagged `outcome`;
-#'   \item more than one column flagged `treatment` (joint-treatment masking
-#'     is deferred to v0.3+);
+#'   \item more than one column flagged `treatment` (joint-treatment
+#'     masking is not yet supported by [mask()]);
 #'   \item duplicate `col` entries;
 #'   \item if `df` supplied: any `df` column missing from `roles`, or any
 #'     `roles` column missing from `df`.
@@ -96,7 +96,7 @@ roles_validate <- function(roles, df = NULL) {
     if (length(non_num_outcome)) {
       cli::cli_abort(c(
         "Non-numeric column(s) flagged as {.val outcome}: {.field {non_num_outcome}}.",
-        i = "v0.2 supports numeric / integer outcomes only. Re-role categorical outcomes as {.val covariate} or remove."
+        i = "{.fun mask} currently supports only numeric / integer outcomes. Re-role categorical outcomes as {.val covariate} or remove."
       ))
     }
   }
@@ -105,7 +105,9 @@ roles_validate <- function(roles, df = NULL) {
     treat_cols <- roles$col[roles$role == "treatment"]
     cli::cli_abort(c(
       "Multiple columns ({n_treatment}) flagged as {.val treatment}: {.field {treat_cols}}.",
-      i = "v0.2 supports at most one treatment column. Joint-treatment masking is deferred to v0.3."
+      i = "{.fun mask} currently supports at most one treatment column. Joint-treatment masking is on the roadmap.",
+      "*" = "Edit the roles tibble to keep exactly one {.val treatment} column (demote the others, commonly to {.val covariate}),",
+      "*" = "or call {.code propose_roles(df, detect = FALSE)} to recover the v0.2.x byte-stable proposal before editing."
     ))
   }
 

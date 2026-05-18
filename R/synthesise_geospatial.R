@@ -106,6 +106,13 @@ synthesise_geospatial <- function(synth, original,
   if (!is.list(anchor_centroids) || is.null(names(anchor_centroids))) {
     cli::cli_abort("`anchor_centroids` must be a named list.")
   }
+  if (nrow(synth) != nrow(original)) {
+    cli::cli_abort(c(
+      "`synth` and `original` must have the same number of rows.",
+      i = "Got nrow(synth) = {nrow(synth)}, nrow(original) = {nrow(original)}.",
+      "*" = "`synthesise_geospatial()` preserves the original's NA mask cell-by-cell; the two frames must align row-by-row."
+    ))
+  }
 
   withr::local_preserve_seed()
   if (!is.null(seed)) set.seed(seed)
@@ -155,13 +162,16 @@ synthesise_geospatial <- function(synth, original,
   # a small within-site jitter.
   out_lat <- rep(NA_real_, nrow(synth))
   out_lon <- rep(NA_real_, nrow(synth))
-  # Preserve NA pattern: rows whose original lat / lon are NA stay NA.
-  na_in_synth <- is.na(synth[[lat_col]]) | is.na(synth[[lon_col]])
+  # Preserve the *original*'s NA pattern cell-by-cell: rows whose
+  # original lat / lon are NA stay NA in the synthetic, regardless of
+  # what `synth` currently holds. The original is the authority because
+  # the synthetic may have been coordinate-filled by an earlier step.
+  na_in_original <- is.na(original[[lat_col]]) | is.na(original[[lon_col]])
 
   for (a in unique(stats::na.omit(synth_anchor))) {
     sa <- fake_sites[[a]]
     if (is.null(sa) || nrow(sa) == 0L) next
-    idx <- which(synth_anchor == a & !na_in_synth)
+    idx <- which(synth_anchor == a & !na_in_original)
     if (length(idx) == 0L) next
     weights <- sites_by_anchor[[a]] %||% rep(1L, nrow(sa))
     if (length(weights) != nrow(sa)) weights <- rep(1L, nrow(sa))

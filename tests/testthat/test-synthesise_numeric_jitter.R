@@ -73,7 +73,15 @@ test_that("Collaborate mode lowers numeric exact-match-pct in mask() integration
   r <- propose_roles(df)
   r$role[r$col == "yield"] <- "outcome"
 
-  m   <- mask(df, r, mode = "collaborate", seed = 1)
+  # Rep is a numeric design-like covariate that audit_mask() flags HIGH
+  # by design (collaborate-mode integer pass-through). The warning is
+  # expected here; the assignment lives *inside* expect_warning() so
+  # that testthat 3e returns the warning condition (rather than the
+  # masque object) without breaking the downstream code.
+  expect_warning(
+    m <- mask(df, r, mode = "collaborate", seed = 1),
+    "HIGH leakage"
+  )
   audit <- audit_mask(m, print = FALSE)
 
   # Continuous outcome: exact_match_pct < 1
@@ -117,7 +125,11 @@ test_that("Mask() RNG hygiene holds with jitter in collaborate", {
   # initialised internal state); the test is specifically about mask().
   set.seed(999)
   before <- .Random.seed
-  m <- mask(df, r, mode = "collaborate", seed = 42)
+  # Expected HIGH-leakage warning on Rep; see jitter test above.
+  expect_warning(
+    m <- mask(df, r, mode = "collaborate", seed = 42),
+    "HIGH leakage"
+  )
   after <- .Random.seed
   expect_identical(before, after)
 })
@@ -135,7 +147,11 @@ test_that("Collaborate mode preserves integer storage on int outcome columns", {
   r <- propose_roles(df)
   r$role[r$col == "grain_count"] <- "outcome"
 
-  m <- mask(df, r, mode = "collaborate", seed = 1)
+  # Expected HIGH-leakage warning on Rep; see jitter test above.
+  expect_warning(
+    m <- mask(df, r, mode = "collaborate", seed = 1),
+    "HIGH leakage"
+  )
   expect_type(synthetic(m)$grain_count, "integer")
   rng <- range(synthetic(m)$grain_count, na.rm = TRUE)
   expect_gte(rng[1], min(df$grain_count))

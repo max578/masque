@@ -11,8 +11,8 @@ save_recipe(rec, path, include_simulator = FALSE)
 
 \item{path}{File path. By convention, \code{.rds} extension.}
 
-\item{include_simulator}{Logical. Reserved for v0.3+. Currently a no-op
-(recipe is always written runtime-minimal).}
+\item{include_simulator}{Logical. Reserved for a future release.
+Currently a no-op (recipe is always written runtime-minimal).}
 }
 \value{
 \code{path}, invisibly.
@@ -25,23 +25,22 @@ and warnings. This keeps the saved artefact small and reduces the
 information that would leak if the recipe file alone were shared.
 }
 \details{
-\code{include_simulator = TRUE} is accepted but is a no-op in v0.2 because the
-recipe does not yet carry simulator state. It becomes meaningful in v0.3
-(when the package supports drawing fresh synthetic samples from a stored
-simulator without re-running \code{\link[=mask]{mask()}} against the original data).
+\code{include_simulator = TRUE} is accepted but is currently a no-op: the
+recipe does not carry simulator state. The flag is reserved for a
+future release that will let \code{\link[=read_recipe]{read_recipe()}} regenerate fresh
+synthetic samples without access to the original data (see
+\code{vignette("roadmap")}).
 
 Recipes are at least as sensitive as the original data. Protect the saved
 file at the same security class as the original.
 }
 \examples{
-\dontrun{
 r <- propose_roles(iris)
 r$role[r$col == "Sepal.Length"] <- "outcome"
 m <- mask(iris, r, mode = "collaborate", seed = 1)
 tmp <- tempfile(fileext = ".rds")
 save_recipe(recipe(m), tmp)
 rec2 <- read_recipe(tmp)
-}
 
 }
 \seealso{

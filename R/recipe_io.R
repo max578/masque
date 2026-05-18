@@ -6,30 +6,29 @@
 #' and warnings. This keeps the saved artefact small and reduces the
 #' information that would leak if the recipe file alone were shared.
 #'
-#' `include_simulator = TRUE` is accepted but is a no-op in v0.2 because the
-#' recipe does not yet carry simulator state. It becomes meaningful in v0.3
-#' (when the package supports drawing fresh synthetic samples from a stored
-#' simulator without re-running [mask()] against the original data).
+#' `include_simulator = TRUE` is accepted but is currently a no-op: the
+#' recipe does not carry simulator state. The flag is reserved for a
+#' future release that will let [read_recipe()] regenerate fresh
+#' synthetic samples without access to the original data (see
+#' `vignette("roadmap")`).
 #'
 #' Recipes are at least as sensitive as the original data. Protect the saved
 #' file at the same security class as the original.
 #'
 #' @param rec A `masque_recipe` object, e.g. from `recipe(m)`.
 #' @param path File path. By convention, `.rds` extension.
-#' @param include_simulator Logical. Reserved for v0.3+. Currently a no-op
-#'   (recipe is always written runtime-minimal).
+#' @param include_simulator Logical. Reserved for a future release.
+#'   Currently a no-op (recipe is always written runtime-minimal).
 #'
 #' @return `path`, invisibly.
 #'
 #' @examples
-#' \dontrun{
 #' r <- propose_roles(iris)
 #' r$role[r$col == "Sepal.Length"] <- "outcome"
 #' m <- mask(iris, r, mode = "collaborate", seed = 1)
 #' tmp <- tempfile(fileext = ".rds")
 #' save_recipe(recipe(m), tmp)
 #' rec2 <- read_recipe(tmp)
-#' }
 #'
 #' @seealso [read_recipe()], [recipe()].
 #' @export
@@ -43,7 +42,7 @@ save_recipe <- function(rec, path, include_simulator = FALSE) {
   if (!is.logical(include_simulator) || length(include_simulator) != 1L) {
     cli::cli_abort("`include_simulator` must be a single logical.")
   }
-  # include_simulator is a no-op in v0.2 (recipe carries no simulator state).
+  # include_simulator is currently a no-op (recipe carries no simulator state).
   saveRDS(rec, file = path, version = 3L)
   invisible(path)
 }

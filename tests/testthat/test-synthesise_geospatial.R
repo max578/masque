@@ -127,3 +127,37 @@ test_that("seed gives reproducible output", {
   expect_equal(o1$lat, o2$lat)
   expect_equal(o1$lon, o2$lon)
 })
+
+# v0.4.1: NA-mask authority is the *original*, not the *synth* (CODEX
+# finding 6). Constructs a case where synth has full coords but original
+# has missing ones, and asserts the output preserves the original's NAs.
+
+test_that("synthesise_geospatial uses original's NA mask, not synth's", {
+  df <- .toy_df()
+  # synth has full coordinates, original has NAs in rows 1:5
+  synth_full <- df
+  orig_with_na <- df
+  orig_with_na$lat[1:5] <- NA
+  orig_with_na$lon[1:5] <- NA
+
+  out <- synthesise_geospatial(
+    synth_full, orig_with_na,
+    "state", "lat", "lon",
+    anchor_centroids = .centroids, seed = 1L
+  )
+
+  # Rows missing in the original must remain NA in the output, even
+  # though synth_full had full coordinates for them.
+  expect_true(all(is.na(out$lat[1:5])))
+  expect_true(all(is.na(out$lon[1:5])))
+  expect_false(any(is.na(out$lat[-c(1:5)])))
+})
+
+test_that("synthesise_geospatial errors on row-count mismatch", {
+  df <- .toy_df()
+  expect_error(
+    synthesise_geospatial(df[1:10, ], df, "state", "lat", "lon",
+                          anchor_centroids = .centroids),
+    "same number of rows"
+  )
+})

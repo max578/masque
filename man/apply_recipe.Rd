@@ -4,12 +4,18 @@
 \alias{apply_recipe}
 \title{Translate a data frame into the synthetic namespace}
 \usage{
-apply_recipe(original, rec)
+apply_recipe(original, rec, check_integrity = TRUE)
 }
 \arguments{
 \item{original}{A data frame in the original namespace.}
 
 \item{rec}{A \code{masque_recipe} object (e.g. from \code{recipe(m)}).}
+
+\item{check_integrity}{Logical. When \code{TRUE} (default), verifies that
+the NA mask of \code{original} matches the recipe's recorded
+\code{integrity_fp}. Mismatches error with guidance. Pass \code{FALSE} to
+bypass when the missingness has legitimately changed since the
+recipe was built.}
 }
 \value{
 A tibble in the synthetic namespace, ready for the pipeline.
@@ -23,15 +29,19 @@ synthetic) against the original data without modifying pipeline code.
 \details{
 Operations applied (in order):
 \enumerate{
+\item \strong{Verify integrity} by comparing the NA mask of \code{original} to the
+SHA-256 fingerprint stored on the recipe (controlled by
+\code{check_integrity}).
 \item \strong{Drop} columns that \code{mask()} dropped (in \code{collaborate} mode this is
 every \code{ignore} column; in \code{local} mode no columns are dropped).
 \item \strong{Subset and reorder} to the columns the recipe knows about.
 \item \strong{Re-label factors / characters} for any column with a level map
 held by the recipe (i.e., treatment and categorical covariates in
 \code{collaborate} mode; or treatment in \code{local} mode with opt-in
-permutation).
-\item \strong{Rename columns} per \code{recipe@column_name_map} (NULL in v0.2;
-reserved for v0.3+).
+permutation). Unknown non-NA values fail closed.
+\item \strong{Rename columns} per \code{recipe@column_name_map} (currently \code{NULL};
+reserved for a future opt-in column-aliasing flag — see
+\code{vignette("roadmap")}).
 }
 
 Numeric columns are passed through unchanged: the synthetic-namespace

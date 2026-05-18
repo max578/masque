@@ -28,8 +28,8 @@ Hard errors:
 \code{c("design","treatment","outcome","covariate","ignore")});
 \item any \code{NA} role;
 \item zero columns flagged \code{outcome};
-\item more than one column flagged \code{treatment} (joint-treatment masking
-is deferred to v0.3+);
+\item more than one column flagged \code{treatment} (joint-treatment
+masking is not yet supported by \code{\link[=mask]{mask()}});
 \item duplicate \code{col} entries;
 \item if \code{df} supplied: any \code{df} column missing from \code{roles}, or any
 \code{roles} column missing from \code{df}.

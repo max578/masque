@@ -22,10 +22,15 @@
     x  <- df[[col]]
 
     exact_match_pct <- NA_real_
+    comparable_n    <- NA_integer_
     if (in_synth && kind %in% c("numeric", "integer")) {
       y <- synth[[col]]
-      matched <- !is.na(x) & !is.na(y) & (x == y)
-      exact_match_pct <- 100 * sum(matched) / n
+      comparable   <- !is.na(x) & !is.na(y)
+      comparable_n <- as.integer(sum(comparable))
+      if (comparable_n > 0L) {
+        matched <- comparable & (x == y)
+        exact_match_pct <- 100 * sum(matched) / comparable_n
+      }
     }
 
     n_unique_levels <- NA_integer_
@@ -57,6 +62,7 @@
       n_unique_levels        = n_unique_levels,
       freq_min               = freq_min,
       exact_match_pct        = exact_match_pct,
+      comparable_n           = comparable_n,
       na_pct                 = na_pct,
       na_pattern_uniqueness  = na_pattern_uniq,
       alias_status           = alias_status,

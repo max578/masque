@@ -37,8 +37,9 @@ that the synthetic is for owner development only. \code{mode = "collaborate"}
 opaque-aliases treatment and categorical-covariate level vocabularies
 (\code{trt_001}, \verb{<col>_L01}) and drops \code{ignore} columns; the resulting
 synthetic can be passed to a collaborator while the recipe stays
-private. Numeric jitter, integer stochastic rounding, and automatic
-\code{audit_mask()} for collaborate mode arrive in build-order steps 6-7.
+private. In \code{collaborate} mode, numeric draws are jittered within
+their measurement resolution, integer columns are stochastically
+rounded, and \code{\link[=audit_mask]{audit_mask()}} runs automatically.
 }
 \section{Behaviour by role}{
 

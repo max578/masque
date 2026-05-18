@@ -2,14 +2,65 @@
 
 > Structurally faithful development surrogates for tabular data.
 
-`masque` turns a single tabular dataset into a synthetic clone whose
-experimental design, NA pattern, and global covariance structure are close
-enough to the original that pipeline code runs unchanged. It keeps a private
-`recipe` object that round-trips: a pipeline built against the synthetic clone
-can be re-targeted to the original data.
+`masque` turns one tabular dataset into a synthetic clone whose experimental
+design, NA pattern, and global covariance structure are close enough to the
+original that pipeline code runs unchanged. It returns a private `recipe`
+object that round-trips: a pipeline written against the synthetic can be
+re-targeted to the original data with no source changes.
 
-The package is in early development (v0.2.0.9000). No public API has been
-released yet.
+Version 0.4.0. Pre-CRAN; tagged releases on the GitHub repository.
+
+---
+
+## Installation
+
+Once the repository is public:
+
+```r
+# install.packages("pak")
+pak::pak("max578/masque")
+```
+
+A companion r-universe distribution will provide pre-built binaries:
+
+```r
+install.packages("masque", repos = "https://max578.r-universe.dev")
+```
+
+CRAN submission is in preparation.
+
+---
+
+## Two-minute example
+
+```r
+library(masque)
+
+# 1. Read a small public fixture (alpha-design field trial; John, 1987).
+f  <- system.file("extdata", "john_alpha.csv", package = "masque")
+df <- read.csv(f, stringsAsFactors = TRUE)
+
+# 2. Heuristic role classification; the user edits before passing to mask().
+roles <- propose_roles(df)
+roles$role[roles$col == "yield"] <- "outcome"
+
+# 3. Mask in collaborate mode: opaque level aliases, numeric jitter,
+#    ignore columns dropped, audit_mask() auto-run.
+m     <- mask(df, roles, mode = "collaborate", seed = 1L)
+synth <- synthetic(m)
+rec   <- recipe(m)
+
+# 4. Build a pipeline against the synthetic namespace.
+fit <- lm(yield ~ gen + rep, data = synth)
+
+# 5. Translate the original into the synthetic namespace and predict.
+df_in_synth <- apply_recipe(df, rec)
+preds       <- predict(fit, newdata = df_in_synth)
+```
+
+See `vignette("getting_started", package = "masque")` for the full walk-through
+and `vignette("design_detection", package = "masque")` for the experimental-
+design detector that drives `propose_roles()`.
 
 ---
 
@@ -17,17 +68,19 @@ released yet.
 
 `masque` is **not** a privacy-preserving or differential-privacy tool. It is a
 **structurally faithful development surrogate** with explicit confidentiality
-guardrails. Read this section before using.
+guardrails. Read `vignette("confidentiality", package = "masque")` before
+using.
 
 **What `masque` does**
 
 - Preserves enough structure for pipelines to run unchanged.
-- Provides two explicit modes: `local` for owner-only realistic surrogates, and
-  `collaborate` for controlled sharing with opaque aliasing and an automatic
-  leakage audit.
+- Provides two explicit modes: `local` for owner-only realistic surrogates,
+  and `collaborate` for controlled sharing with opaque aliasing, numeric
+  jitter, and an automatic leakage audit.
 - Records every translation (column names, factor levels) in a private
   `recipe` object that is, at minimum, as sensitive as the original data.
-- Audits its own output and flags realistic leakage risks before sharing.
+- Audits its own output (`audit_mask()`) and flags realistic leakage risks
+  before sharing.
 
 **What `masque` does not do**
 
@@ -38,29 +91,35 @@ guardrails. Read this section before using.
 - It does not rewrite arbitrary pipeline source code.
 
 **Bottom line.** The recipe is at least as sensitive as the original. Never
-share the recipe and the synthetic data together. The synthetic-with-
-collaborator workflow assumes only the synthetic crosses the trust boundary.
-
-For the full threat model see
-`vignette("confidentiality", package = "masque")` (planned).
+share the recipe and the synthetic together. The collaborate workflow assumes
+only the synthetic crosses the trust boundary.
 
 ---
 
-## Installation
+## Documentation
 
-Not yet on CRAN. Development version:
+- `vignette("getting_started")` — five-step worked example on a public fixture.
+- `vignette("confidentiality")` — full threat model and mode comparison.
+- `vignette("design_detection")` — the rule-engine design detector.
+- `vignette("recipe_anatomy")` — what a recipe holds, runtime-minimal vs full,
+  redacted print versus `reveal_maps()`.
+- `vignette("roadmap")` — what is deferred from v0.4 and why.
+
+Reference index: [https://max578.github.io/masque/](https://max578.github.io/masque/)
+(deploys once the repository is public).
+
+API stability policy: see `API_STABILITY.md`.
+
+---
+
+## Citation
 
 ```r
-# pak::pak("max578/masque")  # planned
+citation("masque")
 ```
 
----
-
-## Status
-
-This README, and the package, are scaffolding. The CODEX-consolidated
-implementation plan lives at `plan/masque_v0.2_plan.md` in the development
-workspace. See `NEWS.md` for what has and has not landed.
+The package also ships a `CITATION.cff` file; GitHub renders a "Cite this
+repository" widget once the repository is public.
 
 ---
 

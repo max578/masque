@@ -12,15 +12,22 @@ synthetic-namespace to original-namespace.}
 
 \item{rec}{A \code{masque_recipe} object.}
 
-\item{column}{Optional column name (only needed when \code{x} is atomic and
-the recipe holds multiple level maps).}
+\item{column}{Optional column name. Only consulted for atomic
+factor / character \code{x} when the recipe holds more than one level
+map. Ignored for atomic numeric / logical / Date-like input
+(pass-through), but if supplied is validated against the recipe's
+known columns.}
 }
 \value{
 An object of the same type as \code{x}, in the original namespace.
 }
 \description{
-Inverse of \code{\link[=apply_recipe]{apply_recipe()}}. Accepts a data frame \strong{or} an atomic
-vector. For atomic input, \code{column} must name which level map to invert.
+Inverse of \code{\link[=apply_recipe]{apply_recipe()}}. Accepts a data frame or an atomic vector.
+For an atomic factor / character vector with a recipe that holds
+multiple level maps, \code{column} must name which map to invert. Atomic
+numeric, integer, logical, and \code{Date} / \code{POSIXct} vectors are
+returned unchanged (no inverse map applies — these are pass-through
+under \code{\link[=apply_recipe]{apply_recipe()}} too).
 }
 \details{
 The most common pattern is round-tripping pipeline predictions:
@@ -32,10 +39,9 @@ preds_synth         <- predict(fit, orig_in_synth_space)
 preds_orig          <- unmask(preds_synth, recipe(m))        # inverse
 }
 
-Numeric predictions are unchanged by \code{unmask()} (no inverse map needed).
-For predictions that carry factor-level labels (e.g., a classifier
-predicting a treatment), \code{unmask()} translates the labels back to the
-original vocabulary.
+Unknown levels (synthetic aliases not in the recipe's map) fail
+closed with an informative error rather than silently coercing to
+\code{NA}.
 }
 \seealso{
 \code{\link[=apply_recipe]{apply_recipe()}}, \code{\link[=mask]{mask()}}.

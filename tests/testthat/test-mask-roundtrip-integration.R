@@ -81,11 +81,13 @@ test_that("Round-trip on MET tab_04 (skip if .fst fixture absent)", {
   skip_if_not(file.exists(fpath), sprintf("Local-only MET fixture not at %s", fpath))
 
   df <- fst::read_fst(fpath, as.data.table = FALSE)
-  r  <- propose_roles(df)
+  # detect = FALSE: see note in test-mask-end-to-end.R; multi-treatment
+  # masking is roadmap, not v0.4.x.
+  r  <- propose_roles(df, detect = FALSE)
   r$role[r$col == "G_Yield_Tn_ha"]  <- "outcome"
   r$role[r$col == "Cultivar_Habit"] <- "covariate"
 
-  m   <- mask(df, r, mode = "collaborate", seed = 1)
+  m   <- suppressWarnings(mask(df, r, mode = "collaborate", seed = 1))
   rec <- recipe(m)
 
   fwd <- apply_recipe(df, rec)

@@ -1,3 +1,75 @@
+# masque 0.4.1
+
+Maintenance release: contract-sharpening corrections plus the
+documentation and metadata that were prepared for v0.4.0 but not
+released. No new public exports. The two behaviour changes below are
+deliberate fail-closed corrections to existing exports; user code
+that depended on the silent failure mode will need to be updated.
+
+## Behaviour: fail-closed corrections
+
+* `apply_recipe()` and `unmask()` now **error** when a non-NA value is
+  not present in the recipe's level map. Previously the row was
+  silently coerced to `NA`, which could quietly poison downstream
+  model matrices. Schema drift or a new treatment level in the input
+  now fails closed with the offending values listed.
+* `apply_recipe()` now verifies that the NA mask of `original` matches
+  the recipe's recorded `integrity_fp`. A mismatch errors with
+  guidance. New `check_integrity = TRUE` parameter (default) gives
+  an escape hatch (`check_integrity = FALSE`) for workflows where the
+  missingness has legitimately changed since the recipe was built.
+
+## Bug fixes
+
+* `unmask(x, rec)` now passes through atomic numeric, integer,
+  logical, and `Date` / `POSIXct` vectors unchanged, matching the
+  documented numeric pass-through contract. Previously these inputs
+  errored when the recipe held no level maps.
+* `audit_mask()`'s `exact_match_pct` now divides by the number of
+  jointly-observed comparable cells, not by `nrow(df)`. Columns
+  dominated by NAs no longer underreport leakage. The audit tibble
+  gains a new `comparable_n` column for interpretability.
+* `synthesise_geospatial()` now uses `original`'s NA mask as the
+  authority for cell-level preservation (previously used `synth`'s
+  mask, which could let synthesised coordinates leak into rows that
+  the original had missing). Adds a `nrow(synth) == nrow(original)`
+  check.
+
+## Documentation
+
+* `roles_validate()` error message for the multiple-treatment case is
+  refreshed: drops the stale "v0.2 / deferred to v0.3" wording and
+  guides the user to either edit the roles tibble or call
+  `propose_roles(df, detect = FALSE)` for byte-stable v0.2.x
+  behaviour.
+* Stale "arrive in build-order steps 6-7" comment in `mask()`'s
+  roxygen removed.
+* `recipe_io.R` doc and the `recipe_anatomy` vignette reword the
+  `include_simulator = TRUE` no-op without pinning it to v0.2 / v0.3.
+* `roadmap` vignette restructured around feature areas. The hard
+  version pins ("v0.3", "v0.4") are gone — v0.3 / v0.4 shipped
+  different features from the prior roadmap, so the pins were stale.
+* `getting_started` vignette: "vignette('roadmap') — what's planned
+  for v0.3+" replaced by "features deliberately deferred from the
+  current release".
+
+## Test suite
+
+* Local MET integration tests (`test-mask-end-to-end.R`,
+  `test-mask-roundtrip-integration.R`) call
+  `propose_roles(df, detect = FALSE)` so the suite is clean against
+  the maintainer's local fixtures while the multi-treatment design
+  decision remains roadmap.
+* Three jitter tests that intentionally trigger the collaborate-mode
+  HIGH-leakage warning now wrap with `expect_warning("HIGH leakage")`
+  so future warning regressions remain visible.
+* New tests cover: atomic numeric / integer / logical pass-through
+  in `unmask()`; fail-closed unknown-level handling in
+  `apply_recipe()` and `unmask()`; `integrity_fp` enforcement
+  (positive, negative, and the `check_integrity = FALSE` escape
+  hatch); `synthesise_geospatial()` NA-mask source authority and
+  row-count check.
+
 # masque 0.4.0
 
 Adds first-class geospatial synthesis. One new export, no breaking

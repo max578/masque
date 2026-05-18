@@ -12,8 +12,9 @@
 #' opaque-aliases treatment and categorical-covariate level vocabularies
 #' (`trt_001`, `<col>_L01`) and drops `ignore` columns; the resulting
 #' synthetic can be passed to a collaborator while the recipe stays
-#' private. Numeric jitter, integer stochastic rounding, and automatic
-#' `audit_mask()` for collaborate mode arrive in build-order steps 6-7.
+#' private. In `collaborate` mode, numeric draws are jittered within
+#' their measurement resolution, integer columns are stochastically
+#' rounded, and [audit_mask()] runs automatically.
 #'
 #' @section Behaviour by role:
 #'

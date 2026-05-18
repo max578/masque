@@ -201,4 +201,5 @@ identical(rec2@masque_version, recipe(m_collab)@masque_version)
   and `audit_mask()` walk-through with deliberately leaky fixtures.
 - `vignette("recipe_anatomy")` — what's inside a recipe, runtime vs full,
   `print()` vs `reveal_maps()`.
-- `vignette("roadmap")` — what's planned for v0.3+.
+- `vignette("roadmap")` — features deliberately deferred from the
+  current release.
