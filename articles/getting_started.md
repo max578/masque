@@ -134,7 +134,7 @@ m_local
 #> Use `synthetic(m)` to extract data; `recipe(m)` for the recipe.
 #> 
 #> ── masque_recipe ───────────────────────────────────────────────────────────────────────────────────
-#> • Created: 2026-05-18 02:27:44 UTC
+#> • Created: 2026-05-18 02:33:40 UTC
 #> • Mode: local
 #> • Seed: present (redacted)
 #> • masque version: 0.4.1
@@ -228,7 +228,7 @@ Original labels never leak through `print(recipe(m))`:
 recipe(m_collab)
 #> 
 #> ── masque_recipe ───────────────────────────────────────────────────────────────────────────────────
-#> • Created: 2026-05-18 02:27:44 UTC
+#> • Created: 2026-05-18 02:33:40 UTC
 #> • Mode: collaborate
 #> • Seed: present (redacted)
 #> • masque version: 0.4.1
