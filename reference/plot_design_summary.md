@@ -48,8 +48,7 @@ The input `x`, invisibly. Called for the plot side-effect.
 - `split-plot` -\> factor-nesting tree + within-block replication.
 
 Output is purely diagnostic; do not use it as a publication figure (use
-[`desplot::desplot()`](http://kwstat.github.io/desplot/reference/desplot.md)
-or `ggplot2`-based packages for that).
+`desplot::desplot()` or `ggplot2`-based packages for that).
 
 ## Examples
 

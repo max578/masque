@@ -58,7 +58,7 @@ indicating whether a level map exists for each column (`*` = mapped, `=`
 rec
 #> 
 #> ── masque_recipe ───────────────────────────────────────────────────────────────────────────────────
-#> • Created: 2026-05-18 11:53:17 ACST
+#> • Created: 2026-05-18 02:27:46 UTC
 #> • Mode: collaborate
 #> • Seed: present (redacted)
 #> • masque version: 0.4.1
@@ -109,7 +109,7 @@ safe to store next to the original data with the same security class.
 tmp <- tempfile(fileext = ".rds")
 save_recipe(rec, tmp)
 file.info(tmp)$size
-#> [1] 6806
+#> [1] 6808
 ```
 
 [`read_recipe()`](https://max578.github.io/masque/reference/read_recipe.md)

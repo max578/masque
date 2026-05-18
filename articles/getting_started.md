@@ -134,7 +134,7 @@ m_local
 #> Use `synthetic(m)` to extract data; `recipe(m)` for the recipe.
 #> 
 #> ── masque_recipe ───────────────────────────────────────────────────────────────────────────────────
-#> • Created: 2026-05-18 11:53:16 ACST
+#> • Created: 2026-05-18 02:27:44 UTC
 #> • Mode: local
 #> • Seed: present (redacted)
 #> • masque version: 0.4.1
@@ -228,7 +228,7 @@ Original labels never leak through `print(recipe(m))`:
 recipe(m_collab)
 #> 
 #> ── masque_recipe ───────────────────────────────────────────────────────────────────────────────────
-#> • Created: 2026-05-18 11:53:16 ACST
+#> • Created: 2026-05-18 02:27:44 UTC
 #> • Mode: collaborate
 #> • Seed: present (redacted)
 #> • masque version: 0.4.1
@@ -340,7 +340,7 @@ sensitive); the synthetic alone is what crosses the trust boundary.
 tmp <- tempfile(fileext = ".rds")
 save_recipe(recipe(m_collab), tmp)
 file.info(tmp)$size
-#> [1] 6811
+#> [1] 6813
 rec2 <- read_recipe(tmp)
 identical(rec2@masque_version, recipe(m_collab)@masque_version)
 #> [1] TRUE

@@ -162,9 +162,7 @@ visualisation. New public surface: 3 exports, 1 vignette.
   the top above threshold, breaking ties in favour of the simpler design
   (CRD \< RCBD \< factorial \< IBD \< row-column \< split-plot).
 - Visualisation is sanity-check grade. For publication-quality field
-  layouts use
-  [`desplot::desplot()`](http://kwstat.github.io/desplot/reference/desplot.md)
-  or `ggplot2`-based packages.
+  layouts use `desplot::desplot()` or `ggplot2`-based packages.
 
 ### Suggests
 
