@@ -1,0 +1,69 @@
+# API stability policy
+
+`masque` follows a published, two-phase policy. The phase boundary is
+the 1.0.0 release.
+
+## Pre-1.0 (current)
+
+Versions `0.x.y` follow **additive-by-policy** evolution. The
+maintainer’s intent is that every minor release (`0.x → 0.(x+1)`) adds
+new exports without breaking existing signatures. The track record so
+far:
+
+- `0.2.0` — first public surface (11 exports).
+- `0.3.0` — added
+  [`detect_design()`](https://max578.github.io/masque/reference/detect_design.md),
+  [`plot_design_summary()`](https://max578.github.io/masque/reference/plot_design_summary.md),
+  and the `design_summary` S7 class.
+  [`propose_roles()`](https://max578.github.io/masque/reference/propose_roles.md)
+  gained `detect = TRUE` as a new default with `detect = FALSE`
+  recovering v0.2.x behaviour byte-for-byte. **No breaking changes.**
+- `0.4.0` — added
+  [`synthesise_geospatial()`](https://max578.github.io/masque/reference/synthesise_geospatial.md).
+  **No breaking changes.**
+
+The policy is “additive-by-intent” rather than “frozen”: pre-1.0
+reserves the right to break an existing signature when a design flaw
+surfaces, but every such change must be:
+
+1.  Listed under a `## Breaking changes` heading in `NEWS.md`, first.
+2.  Justified in the release notes.
+3.  Where feasible, accompanied by a temporary back-compat shim.
+
+If you depend on `masque` pre-1.0, pin the version in `renv.lock` or
+`DESCRIPTION` (`Imports: masque (>= 0.4.0)`).
+
+## 1.0 and after
+
+From `1.0.0`, `masque` adopts **strict frozen-API additive evolution** —
+the same policy as `glmnet` and `mgcv`:
+
+- Signatures of exported functions never change in a
+  backwards-incompatible way across major versions.
+- New capability arrives via new entry points (new exports), never via
+  changes to existing ones.
+- If an existing function genuinely needs to be retired, it is marked
+  with
+  [`lifecycle::deprecate_warn()`](https://lifecycle.r-lib.org/reference/deprecate_soft.html),
+  kept for ≥ 2 minor versions, then promoted to
+  [`lifecycle::deprecate_stop()`](https://lifecycle.r-lib.org/reference/deprecate_soft.html)
+  for ≥ 1 more minor version, then removed in the next major release.
+  Successors are signposted in the deprecation message.
+
+This policy is chosen because `masque` is invoked from pipeline code
+that the maintainer cannot edit (the whole point of the `recipe`
+round-trip is that pipeline code runs unchanged against the synthetic).
+Silent breakage across versions would defeat that contract.
+
+## Versioning and tags
+
+`masque` uses [Semantic Versioning 2.0.0](https://semver.org/). Every
+release is git-tagged `vX.Y.Z` on `main`; the tag is annotated and
+carries the NEWS.md entry as its message.
+
+## Reporting an unintended break
+
+If you discover that a `masque` release has silently broken your
+pipeline, open an issue at <https://github.com/max578/masque/issues>
+with the version you upgraded from and to plus a small reproducible
+example. Unintended breaks at any stage are treated as bugs.
