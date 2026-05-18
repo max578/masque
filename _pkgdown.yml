@@ -37,6 +37,11 @@ reference:
   contents:
   - audit_mask
 
+- title: Geospatial post-processing
+  desc: Re-anchor synthetic coordinates at plausible-but-fake locations while preserving site-count clustering.
+  contents:
+  - synthesise_geospatial
+
 - title: Package
   contents:
   - masque-package
