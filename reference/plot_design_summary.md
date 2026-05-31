@@ -54,7 +54,7 @@ Output is purely diagnostic; do not use it as a publication figure (use
 
 ``` r
 if (requireNamespace("agridat", quietly = TRUE)) {
-  d  <- agridat::john.alpha
+  d <- agridat::john.alpha
   ds <- detect_design(d)
   plot(ds, df = d)
 }

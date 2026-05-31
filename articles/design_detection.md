@@ -114,7 +114,7 @@ The classic 1935 split-plot oat trial: six blocks, three nitrogen levels
 ``` r
 
 if (has_agridat) {
-  oats    <- agridat::yates.oats
+  oats <- agridat::yates.oats
   ds_oats <- detect_design(oats)
   ds_oats
   plot(ds_oats, df = oats)
@@ -169,8 +169,10 @@ re-running the detector:
 if (has_agridat) {
   roles <- propose_roles(agridat::john.alpha)
   print(attr(roles, "design")@class_label)
-  print(roles[roles$role %in% c("treatment", "design"),
-              c("col", "role", "notes")])
+  print(roles[
+    roles$role %in% c("treatment", "design"),
+    c("col", "role", "notes")
+  ])
 }
 #> [1] "IBD/alpha-lattice"
 #> # A tibble: 6 × 3

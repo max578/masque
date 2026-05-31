@@ -35,7 +35,7 @@ small CSV in `inst/extdata/`.
 
 library(masque)
 
-f  <- system.file("extdata", "john_alpha.csv", package = "masque")
+f <- system.file("extdata", "john_alpha.csv", package = "masque")
 df <- read.csv(f, stringsAsFactors = TRUE)
 str(df)
 #> 'data.frame':    72 obs. of  7 variables:
@@ -134,7 +134,7 @@ m_local
 #> Use `synthetic(m)` to extract data; `recipe(m)` for the recipe.
 #> 
 #> ── masque_recipe ───────────────────────────────────────────────────────────────────────────────────
-#> • Created: 2026-05-18 02:33:40 UTC
+#> • Created: 2026-05-31 11:07:29 UTC
 #> • Mode: local
 #> • Seed: present (redacted)
 #> • masque version: 0.4.1
@@ -179,7 +179,7 @@ preserved.
 
 ``` r
 
-identical(synth_local$rep,   df$rep)
+identical(synth_local$rep, df$rep)
 #> [1] TRUE
 identical(synth_local$block, df$block)
 #> [1] TRUE
@@ -228,7 +228,7 @@ Original labels never leak through `print(recipe(m))`:
 recipe(m_collab)
 #> 
 #> ── masque_recipe ───────────────────────────────────────────────────────────────────────────────────
-#> • Created: 2026-05-18 02:33:40 UTC
+#> • Created: 2026-05-31 11:07:29 UTC
 #> • Mode: collaborate
 #> • Seed: present (redacted)
 #> • masque version: 0.4.1
@@ -293,10 +293,13 @@ translates them back into the original vocabulary:
 ``` r
 
 pred_factor_synth <- synth_collab$gen[1:5]
-pred_factor_orig  <- unmask(pred_factor_synth, recipe(m_collab),
-                            column = "gen")
-data.frame(synth = as.character(pred_factor_synth),
-           original = as.character(pred_factor_orig))
+pred_factor_orig <- unmask(pred_factor_synth, recipe(m_collab),
+  column = "gen"
+)
+data.frame(
+  synth = as.character(pred_factor_synth),
+  original = as.character(pred_factor_orig)
+)
 #>     synth original
 #> 1 trt_011      G11
 #> 2 trt_004      G04
@@ -340,7 +343,7 @@ sensitive); the synthetic alone is what crosses the trust boundary.
 tmp <- tempfile(fileext = ".rds")
 save_recipe(recipe(m_collab), tmp)
 file.info(tmp)$size
-#> [1] 6813
+#> [1] 6809
 rec2 <- read_recipe(tmp)
 identical(rec2@masque_version, recipe(m_collab)@masque_version)
 #> [1] TRUE

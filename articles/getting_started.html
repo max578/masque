@@ -122,7 +122,7 @@ small CSV in <code>inst/extdata/</code>.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/max578/masque" class="external-link">masque</a></span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">f</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, <span class="st">"john_alpha.csv"</span>, package <span class="op">=</span> <span class="st">"masque"</span><span class="op">)</span></span>
+<span><span class="va">f</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, <span class="st">"john_alpha.csv"</span>, package <span class="op">=</span> <span class="st">"masque"</span><span class="op">)</span></span>
 <span><span class="va">df</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.csv</a></span><span class="op">(</span><span class="va">f</span>, stringsAsFactors <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/str.html" class="external-link">str</a></span><span class="op">(</span><span class="va">df</span><span class="op">)</span></span>
 <span><span class="co">#&gt; 'data.frame':    72 obs. of  7 variables:</span></span>
@@ -207,7 +207,7 @@ synthetic is not for external sharing.</p>
 <span><span class="co">#&gt; Use `synthetic(m)` to extract data; `recipe(m)` for the recipe.</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">──</span> <span style="font-weight: bold;">masque_recipe</span> <span style="color: #00BBBB;">───────────────────────────────────────────────────────────────────────────────────</span></span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Created: 2026-05-18 02:33:40 UTC</span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Created: 2026-05-31 11:07:29 UTC</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Mode: local</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Seed: present (redacted)</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> masque version: 0.4.1</span></span>
@@ -243,7 +243,7 @@ synthetic is not for external sharing.</p>
 <p>Design columns are byte-identical to the original; treatment labels
 are preserved.</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical</a></span><span class="op">(</span><span class="va">synth_local</span><span class="op">$</span><span class="va">rep</span>,   <span class="va">df</span><span class="op">$</span><span class="va">rep</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical</a></span><span class="op">(</span><span class="va">synth_local</span><span class="op">$</span><span class="va">rep</span>, <span class="va">df</span><span class="op">$</span><span class="va">rep</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] TRUE</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical</a></span><span class="op">(</span><span class="va">synth_local</span><span class="op">$</span><span class="va">block</span>, <span class="va">df</span><span class="op">$</span><span class="va">block</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] TRUE</span></span>
@@ -281,7 +281,7 @@ recipe stays private.</p>
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/recipe.html">recipe</a></span><span class="op">(</span><span class="va">m_collab</span><span class="op">)</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">──</span> <span style="font-weight: bold;">masque_recipe</span> <span style="color: #00BBBB;">───────────────────────────────────────────────────────────────────────────────────</span></span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Created: 2026-05-18 02:33:40 UTC</span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Created: 2026-05-31 11:07:29 UTC</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Mode: collaborate</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Seed: present (redacted)</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> masque version: 0.4.1</span></span>
@@ -336,10 +336,13 @@ classifier predicting a treatment), <code><a href="../reference/unmask.html">unm
 them back into the original vocabulary:</p>
 <div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">pred_factor_synth</span> <span class="op">&lt;-</span> <span class="va">synth_collab</span><span class="op">$</span><span class="va">gen</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">5</span><span class="op">]</span></span>
-<span><span class="va">pred_factor_orig</span>  <span class="op">&lt;-</span> <span class="fu"><a href="../reference/unmask.html">unmask</a></span><span class="op">(</span><span class="va">pred_factor_synth</span>, <span class="fu"><a href="../reference/recipe.html">recipe</a></span><span class="op">(</span><span class="va">m_collab</span><span class="op">)</span>,</span>
-<span>                            column <span class="op">=</span> <span class="st">"gen"</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>synth <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="va">pred_factor_synth</span><span class="op">)</span>,</span>
-<span>           original <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="va">pred_factor_orig</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">pred_factor_orig</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/unmask.html">unmask</a></span><span class="op">(</span><span class="va">pred_factor_synth</span>, <span class="fu"><a href="../reference/recipe.html">recipe</a></span><span class="op">(</span><span class="va">m_collab</span><span class="op">)</span>,</span>
+<span>  column <span class="op">=</span> <span class="st">"gen"</span></span>
+<span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
+<span>  synth <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="va">pred_factor_synth</span><span class="op">)</span>,</span>
+<span>  original <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="va">pred_factor_orig</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
 <span><span class="co">#&gt;     synth original</span></span>
 <span><span class="co">#&gt; 1 trt_011      G11</span></span>
 <span><span class="co">#&gt; 2 trt_004      G04</span></span>
@@ -375,7 +378,7 @@ sensitive); the synthetic alone is what crosses the trust boundary.</p>
 <code class="sourceCode R"><span><span class="va">tmp</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span>fileext <span class="op">=</span> <span class="st">".rds"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/save_recipe.html">save_recipe</a></span><span class="op">(</span><span class="fu"><a href="../reference/recipe.html">recipe</a></span><span class="op">(</span><span class="va">m_collab</span><span class="op">)</span>, <span class="va">tmp</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/file.info.html" class="external-link">file.info</a></span><span class="op">(</span><span class="va">tmp</span><span class="op">)</span><span class="op">$</span><span class="va">size</span></span>
-<span><span class="co">#&gt; [1] 6813</span></span>
+<span><span class="co">#&gt; [1] 6809</span></span>
 <span><span class="va">rec2</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/read_recipe.html">read_recipe</a></span><span class="op">(</span><span class="va">tmp</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical</a></span><span class="op">(</span><span class="va">rec2</span><span class="op">@</span><span class="va">masque_version</span>, <span class="fu"><a href="../reference/recipe.html">recipe</a></span><span class="op">(</span><span class="va">m_collab</span><span class="op">)</span><span class="op">@</span><span class="va">masque_version</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>

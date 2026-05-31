@@ -76,7 +76,7 @@ for the sanity-check visualisation.
 ``` r
 # Classic alpha-lattice (24 genotypes, 3 reps, 6 blocks per rep).
 if (requireNamespace("agridat", quietly = TRUE)) {
-  d  <- agridat::john.alpha
+  d <- agridat::john.alpha
   ds <- detect_design(d)
   print(ds)
 }

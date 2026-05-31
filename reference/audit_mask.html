@@ -98,9 +98,11 @@ on every row).</p></li>
 </ul><p>Classification heuristics (CODEX-aligned):</p>
 <ul><li><p>Retained PII-pattern column -&gt; <code>high</code>.</p></li>
 <li><p>Treatment unaliased in collaborate -&gt; <code>high</code>.</p></li>
-<li><p>Categorical covariate with a frequency-1 level in collaborate -&gt; <code>high</code>.</p></li>
+<li><p>Categorical covariate with a frequency-1 level in collaborate -&gt;
+<code>high</code>.</p></li>
 <li><p>Outcome with exact-match-pct &gt; 1\<!-- % in collaborate -&gt; \code{medium}. --></p></li>
-<li><p>Numeric covariate with exact-match-pct &gt; 5\<!-- % in collaborate -&gt; \code{medium}. --></p></li>
+<li><p>Numeric covariate with exact-match-pct &gt; 5\<!-- % in collaborate -&gt; -->
+<code>medium</code>.</p></li>
 <li><p>Ignore column retained in local -&gt; <code>low</code> (informational).</p></li>
 </ul><p>Step 7 will lower numeric exact-match-pct under collaborate by adding
 within-resolution jitter; until then, expect <code>medium</code> leakage on
@@ -115,7 +117,7 @@ collaborate-mode numerics.</p>
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">r</span> <span class="op">&lt;-</span> <span class="fu"><a href="propose_roles.html">propose_roles</a></span><span class="op">(</span><span class="va">iris</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">r</span><span class="op">$</span><span class="va">role</span><span class="op">[</span><span class="va">r</span><span class="op">$</span><span class="va">col</span> <span class="op">==</span> <span class="st">"Sepal.Length"</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="st">"outcome"</span></span></span>
-<span class="r-in"><span><span class="va">r</span><span class="op">$</span><span class="va">role</span><span class="op">[</span><span class="va">r</span><span class="op">$</span><span class="va">col</span> <span class="op">==</span> <span class="st">"Species"</span><span class="op">]</span>      <span class="op">&lt;-</span> <span class="st">"covariate"</span></span></span>
+<span class="r-in"><span><span class="va">r</span><span class="op">$</span><span class="va">role</span><span class="op">[</span><span class="va">r</span><span class="op">$</span><span class="va">col</span> <span class="op">==</span> <span class="st">"Species"</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="st">"covariate"</span></span></span>
 <span class="r-in"><span><span class="va">m</span> <span class="op">&lt;-</span> <span class="fu"><a href="mask.html">mask</a></span><span class="op">(</span><span class="va">iris</span>, <span class="va">r</span>, mode <span class="op">=</span> <span class="st">"collaborate"</span>, seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu">audit_mask</span><span class="op">(</span><span class="va">m</span><span class="op">)</span></span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> </span>

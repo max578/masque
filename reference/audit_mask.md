@@ -73,7 +73,7 @@ Classification heuristics (CODEX-aligned):
 
 - Outcome with exact-match-pct \> 1\\
 
-- Numeric covariate with exact-match-pct \> 5\\
+- Numeric covariate with exact-match-pct \> 5\\ `medium`.
 
 - Ignore column retained in local -\> `low` (informational).
 
@@ -90,7 +90,7 @@ collaborate-mode numerics.
 ``` r
 r <- propose_roles(iris)
 r$role[r$col == "Sepal.Length"] <- "outcome"
-r$role[r$col == "Species"]      <- "covariate"
+r$role[r$col == "Species"] <- "covariate"
 m <- mask(iris, r, mode = "collaborate", seed = 1)
 audit_mask(m)
 #> 

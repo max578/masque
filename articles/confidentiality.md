@@ -63,14 +63,16 @@ default), and a categorical covariate with a frequency-1 level.
 ``` r
 
 set.seed(0)
-n  <- 60
+n <- 60
 df <- data.frame(
-  rep            = rep(1:3, each = 20),
-  variety        = factor(rep(paste0("V", 1:6), 10)),
-  contact_email  = factor(rep(c("a@x", "b@y"), 30)),
-  rare_treatment = factor(c("only_one", sample(c("alpha","beta","gamma"),
-                                                59, replace = TRUE))),
-  yield          = rnorm(60, 5, 1),
+  rep = rep(1:3, each = 20),
+  variety = factor(rep(paste0("V", 1:6), 10)),
+  contact_email = factor(rep(c("a@x", "b@y"), 30)),
+  rare_treatment = factor(c(
+    "only_one",
+    sample(c("alpha", "beta", "gamma"), 59, replace = TRUE)
+  )),
+  yield = rnorm(60, 5, 1),
   stringsAsFactors = FALSE
 )
 
@@ -92,8 +94,8 @@ column — to see what the audit flags.
 
 ``` r
 
-roles$role[roles$col == "yield"]          <- "outcome"
-roles$role[roles$col == "contact_email"]  <- "covariate"
+roles$role[roles$col == "yield"] <- "outcome"
+roles$role[roles$col == "contact_email"] <- "covariate"
 roles$role[roles$col == "rare_treatment"] <- "covariate"
 roles
 #> # A tibble: 5 × 6
