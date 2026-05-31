@@ -1,33 +1,36 @@
 make_recipe <- function(mode = "collaborate", seed = 1) {
   r <- propose_roles(iris)
   r$role[r$col == "Sepal.Length"] <- "outcome"
-  r$role[r$col == "Species"]      <- "covariate"
-  m <- if (mode == "local") suppressWarnings(mask(iris, r, mode = "local", seed = seed)) else
-       mask(iris, r, mode = "collaborate", seed = seed)
+  r$role[r$col == "Species"] <- "covariate"
+  m <- if (mode == "local") {
+    suppressWarnings(mask(iris, r, mode = "local", seed = seed))
+  } else {
+    mask(iris, r, mode = "collaborate", seed = seed)
+  }
   recipe(m)
 }
 
 test_that("save_recipe + read_recipe round-trip is identity", {
-  rec  <- make_recipe()
-  tmp  <- tempfile(fileext = ".rds")
+  rec <- make_recipe()
+  tmp <- tempfile(fileext = ".rds")
   save_recipe(rec, tmp)
   rec2 <- read_recipe(tmp)
 
   expect_identical(rec@masque_version, rec2@masque_version)
-  expect_identical(rec@mode,            rec2@mode)
-  expect_identical(rec@seed,            rec2@seed)
-  expect_equal(rec@roles,               rec2@roles)
-  expect_identical(rec@level_maps,      rec2@level_maps)
+  expect_identical(rec@mode, rec2@mode)
+  expect_identical(rec@seed, rec2@seed)
+  expect_equal(rec@roles, rec2@roles)
+  expect_identical(rec@level_maps, rec2@level_maps)
   expect_identical(rec@storage_classes, rec2@storage_classes)
-  expect_identical(rec@factor_meta,     rec2@factor_meta)
-  expect_identical(rec@warnings,        rec2@warnings)
-  expect_identical(rec@integrity_fp,    rec2@integrity_fp)
+  expect_identical(rec@factor_meta, rec2@factor_meta)
+  expect_identical(rec@warnings, rec2@warnings)
+  expect_identical(rec@integrity_fp, rec2@integrity_fp)
 })
 
 test_that("save_recipe default file is small (< 50 KB on a 1000x20 fixture)", {
   set.seed(0)
   df <- data.frame(
-    Rep   = rep(1:4, 250),
+    Rep = rep(1:4, 250),
     block = rep(1:5, each = 200),
     Genotype = factor(rep(LETTERS[1:10], 100)),
     yield = rnorm(1000)
@@ -45,11 +48,13 @@ test_that("save_recipe default file is small (< 50 KB on a 1000x20 fixture)", {
 
 test_that("save_recipe errors on invalid inputs", {
   rec <- make_recipe()
-  expect_error(save_recipe(list(), tempfile()),   "must be a")
-  expect_error(save_recipe(rec, ""),              "non-empty")
-  expect_error(save_recipe(rec, c("a","b")),      "single non-empty")
-  expect_error(save_recipe(rec, tempfile(), include_simulator = "yes"),
-               "single logical")
+  expect_error(save_recipe(list(), tempfile()), "must be a")
+  expect_error(save_recipe(rec, ""), "non-empty")
+  expect_error(save_recipe(rec, c("a", "b")), "single non-empty")
+  expect_error(
+    save_recipe(rec, tempfile(), include_simulator = "yes"),
+    "single logical"
+  )
 })
 
 test_that("read_recipe errors on missing file", {

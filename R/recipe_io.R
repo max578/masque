@@ -1,6 +1,7 @@
 #' Save a masque recipe to disk
 #'
-#' Writes the recipe to a single `.rds` file. The default is **runtime-minimal**:
+#' Writes the recipe to a single `.rds` file. The default is
+#' **runtime-minimal**:
 #' no simulator state (copula covariance, raw margins) is written, only the
 #' translation maps, factor metadata, storage classes, integrity fingerprint,
 #' and warnings. This keeps the saved artefact small and reduces the
@@ -34,7 +35,9 @@
 #' @export
 save_recipe <- function(rec, path, include_simulator = FALSE) {
   if (!S7::S7_inherits(rec, masque_recipe)) {
-    cli::cli_abort("`rec` must be a {.cls masque_recipe} object; got {.cls {class(rec)[1]}}.")
+    cli::cli_abort(
+      "`rec` must be a {.cls masque_recipe} object; got {.cls {class(rec)[1]}}."
+    )
   }
   if (!is.character(path) || length(path) != 1L || !nzchar(path)) {
     cli::cli_abort("`path` must be a single non-empty string.")
@@ -69,13 +72,21 @@ read_recipe <- function(path) {
   }
   rec <- readRDS(path)
   if (!S7::S7_inherits(rec, masque_recipe)) {
-    cli::cli_abort("File at {.file {path}} does not contain a {.cls masque_recipe}.")
+    cli::cli_abort(
+      "File at {.file {path}} does not contain a {.cls masque_recipe}."
+    )
   }
   current <- as.character(utils::packageVersion("masque"))
   if (!identical(rec@masque_version, current)) {
     cli::cli_inform(c(
-      i = "Recipe was written by masque {rec@masque_version}; current is {current}.",
-      "*" = "Cross-version compatibility is not yet validated. Proceed with care."
+      i = paste0(
+        "Recipe was written by masque {rec@masque_version}; ",
+        "current is {current}."
+      ),
+      "*" = paste0(
+        "Cross-version compatibility is not yet validated. ",
+        "Proceed with care."
+      )
     ))
   }
   rec

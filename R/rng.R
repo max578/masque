@@ -18,7 +18,12 @@ with_rng_state <- function(seed, expr) {
     return(withr::with_preserve_seed(expr))
   }
   if (!is.numeric(seed) || length(seed) != 1L || is.na(seed)) {
-    cli::cli_abort("`seed` must be a single integer (or NULL); got {.cls {class(seed)[1]}} of length {length(seed)}.")
+    cli::cli_abort(
+      paste0(
+        "`seed` must be a single integer (or NULL); got ",
+        "{.cls {class(seed)[1]}} of length {length(seed)}."
+      )
+    )
   }
   withr::with_seed(as.integer(seed), expr)
 }

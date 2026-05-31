@@ -1,12 +1,12 @@
 make_collab_fixture_for_apply <- function() {
   set.seed(0)
   df <- data.frame(
-    Rep      = rep(1:4, 25),
+    Rep = rep(1:4, 25),
     Genotype = factor(rep(LETTERS[1:5], each = 20)),
-    yield    = rnorm(100, mean = 10, sd = 2),
-    cov_n    = rnorm(100),
-    cov_c    = factor(sample(c("alpha","beta","gamma"), 100, replace = TRUE)),
-    note     = paste0("n_", seq_len(100)),  # -> ignore
+    yield = rnorm(100, mean = 10, sd = 2),
+    cov_n = rnorm(100),
+    cov_c = factor(sample(c("alpha", "beta", "gamma"), 100, replace = TRUE)),
+    note = paste0("n_", seq_len(100)), # -> ignore
     stringsAsFactors = FALSE
   )
   r <- propose_roles(df)
@@ -38,7 +38,7 @@ test_that("apply_recipe leaves numeric columns unchanged in value", {
   expect_equal(out$cov_n, f$df$cov_n)
 })
 
-test_that("apply_recipe errors when original is missing a recipe-required column", {
+test_that("apply_recipe errors when original misses a required column", {
   f <- make_collab_fixture_for_apply()
   df_short <- f$df[, setdiff(names(f$df), "Genotype")]
   expect_error(apply_recipe(df_short, f$rec), "missing column")
@@ -47,11 +47,11 @@ test_that("apply_recipe errors when original is missing a recipe-required column
 test_that("unmask on a data frame reverses apply_recipe (round-trip)", {
   f <- make_collab_fixture_for_apply()
   forward <- apply_recipe(f$df, f$rec)
-  back    <- unmask(forward, f$rec)
+  back <- unmask(forward, f$rec)
 
   # Treatment + categorical levels restored
   expect_equal(as.character(back$Genotype), as.character(f$df$Genotype))
-  expect_equal(as.character(back$cov_c),    as.character(f$df$cov_c))
+  expect_equal(as.character(back$cov_c), as.character(f$df$cov_c))
   # Numerics unchanged
   expect_equal(back$yield, f$df$yield)
   expect_equal(back$cov_n, f$df$cov_n)
@@ -71,16 +71,16 @@ test_that("unmask on an atomic factor (single map) restores original labels", {
 test_that("unmask on atomic vector errors when column is ambiguous", {
   f <- make_collab_fixture_for_apply()
   # f$rec has multiple level maps (Genotype + cov_c)
-  preds <- factor(c("trt_001","trt_002"))
+  preds <- factor(c("trt_001", "trt_002"))
   expect_error(unmask(preds, f$rec), "supply.*column")
 })
 
 test_that("unmask on atomic vector with a single-map recipe auto-selects", {
   set.seed(0)
   df <- data.frame(
-    Rep      = rep(1:4, 5),
+    Rep = rep(1:4, 5),
     Genotype = factor(rep(LETTERS[1:5], 4)),
-    yield    = rnorm(20),
+    yield = rnorm(20),
     stringsAsFactors = FALSE
   )
   r <- propose_roles(df)
@@ -89,8 +89,8 @@ test_that("unmask on atomic vector with a single-map recipe auto-selects", {
   rec <- recipe(m)
   # Only one level map (Genotype) since no categorical covariate, no ignore drop
   expect_length(rec@level_maps, 1L)
-  pred <- factor(c("trt_001","trt_002"))
-  out  <- unmask(pred, rec)
+  pred <- factor(c("trt_001", "trt_002"))
+  out <- unmask(pred, rec)
   expect_true(all(as.character(out) %in% LETTERS[1:5]))
 })
 
@@ -102,9 +102,9 @@ test_that("unmask errors on unsupported type", {
 test_that("apply_recipe + unmask is identity on local-mode recipe (no maps)", {
   set.seed(0)
   df <- data.frame(
-    Rep      = rep(1:4, 5),
+    Rep = rep(1:4, 5),
     Genotype = factor(rep(LETTERS[1:5], 4)),
-    yield    = rnorm(20),
+    yield = rnorm(20),
     stringsAsFactors = FALSE
   )
   r <- propose_roles(df)
@@ -113,7 +113,7 @@ test_that("apply_recipe + unmask is identity on local-mode recipe (no maps)", {
   rec <- recipe(m)
 
   forward <- apply_recipe(df, rec)
-  back    <- unmask(forward, rec)
+  back <- unmask(forward, rec)
 
   expect_equal(as.data.frame(back), df)
 })
@@ -139,16 +139,16 @@ test_that("unmask passes through atomic logical vectors unchanged", {
   expect_identical(unmask(preds, f$rec), preds)
 })
 
-test_that("unmask passes through atomic numeric when recipe has no level maps", {
+test_that("unmask passes atomic numeric through with no level maps", {
   set.seed(0)
   df <- data.frame(
-    Rep   = rep(1:4, 25),
+    Rep = rep(1:4, 25),
     yield = rnorm(100),
     stringsAsFactors = FALSE
   )
   r <- propose_roles(df, detect = FALSE)
   r$role[r$col == "yield"] <- "outcome"
-  m   <- suppressWarnings(mask(df, r, mode = "local", seed = 1))
+  m <- suppressWarnings(mask(df, r, mode = "local", seed = 1))
   rec <- recipe(m)
   expect_length(rec@level_maps, 0L)
   preds <- runif(10)
@@ -175,7 +175,7 @@ test_that("apply_recipe fail-closed on unknown original-namespace level", {
   )
 })
 
-test_that("unmask data frame: fail-closed on unknown synthetic-namespace alias", {
+test_that("unmask data frame: fail-closed on unknown synthetic alias", {
   f <- make_collab_fixture_for_apply()
   fwd <- apply_recipe(f$df, f$rec)
   fwd$Genotype <- as.character(fwd$Genotype)
@@ -187,14 +187,14 @@ test_that("unmask data frame: fail-closed on unknown synthetic-namespace alias",
 test_that("apply_recipe enforces NA-mask integrity by default", {
   f <- make_collab_fixture_for_apply()
   df2 <- f$df
-  df2$yield[1L] <- NA          # flips the NA mask
+  df2$yield[1L] <- NA # flips the NA mask
   expect_error(
     apply_recipe(df2, f$rec),
     "integrity check failed"
   )
 })
 
-test_that("apply_recipe(check_integrity = FALSE) bypasses the integrity check", {
+test_that("apply_recipe(check_integrity = FALSE) bypasses the check", {
   f <- make_collab_fixture_for_apply()
   df2 <- f$df
   df2$yield[1L] <- NA
@@ -203,5 +203,5 @@ test_that("apply_recipe(check_integrity = FALSE) bypasses the integrity check", 
 
 test_that("apply_recipe integrity check passes on the unmodified original df", {
   f <- make_collab_fixture_for_apply()
-  expect_silent(apply_recipe(f$df, f$rec))  # default check_integrity = TRUE
+  expect_silent(apply_recipe(f$df, f$rec)) # default check_integrity = TRUE
 })

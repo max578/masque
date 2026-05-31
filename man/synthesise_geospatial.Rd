@@ -91,7 +91,7 @@ synthetic — the NA pattern is preserved cell-by-cell.
 \donttest{
 # Toy example: 50 rows split across two states.
 set.seed(1)
-n  <- 50
+n <- 50
 df <- data.frame(
   state = sample(c("NSW", "VIC"), n, replace = TRUE),
   lat   = stats::rnorm(n, -33, 0.3),
@@ -101,8 +101,8 @@ df <- data.frame(
 roles <- propose_roles(df, detect = FALSE)
 roles$role[roles$col == "y"] <- "outcome"
 roles$role[roles$col \%in\% c("lat", "lon")] <- "covariate"
-roles$role[roles$col == "state"]            <- "design"
-m  <- mask(df, roles, mode = "collaborate", seed = 1L)
+roles$role[roles$col == "state"] <- "design"
+m <- mask(df, roles, mode = "collaborate", seed = 1L)
 centroids <- list(
   NSW = c(lat = -32.5, lon = 147),
   VIC = c(lat = -36.5, lon = 144)

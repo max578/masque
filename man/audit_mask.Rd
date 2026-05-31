@@ -48,9 +48,11 @@ Classification heuristics (CODEX-aligned):
 \itemize{
 \item Retained PII-pattern column -> \code{high}.
 \item Treatment unaliased in collaborate -> \code{high}.
-\item Categorical covariate with a frequency-1 level in collaborate -> \code{high}.
+\item Categorical covariate with a frequency-1 level in collaborate ->
+\code{high}.
 \item Outcome with exact-match-pct > 1\\% in collaborate -> \code{medium}.
-\item Numeric covariate with exact-match-pct > 5\\% in collaborate -> \code{medium}.
+\item Numeric covariate with exact-match-pct > 5\\% in collaborate ->
+\code{medium}.
 \item Ignore column retained in local -> \code{low} (informational).
 }
 
@@ -61,7 +63,7 @@ collaborate-mode numerics.
 \examples{
 r <- propose_roles(iris)
 r$role[r$col == "Sepal.Length"] <- "outcome"
-r$role[r$col == "Species"]      <- "covariate"
+r$role[r$col == "Species"] <- "covariate"
 m <- mask(iris, r, mode = "collaborate", seed = 1)
 audit_mask(m)
 

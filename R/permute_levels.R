@@ -25,8 +25,7 @@ permute_levels <- function(x) {
       return(list(x = x, map = stats::setNames(lvls, lvls)))
     }
     perm <- sample(lvls, length(lvls), replace = FALSE)
-    map  <- stats::setNames(perm, lvls)
-    new_levels <- map
+    map <- stats::setNames(perm, lvls)
     # Re-label the factor: each value gets its mapped label, levels updated
     out <- factor(map[as.character(x)], levels = unname(perm))
     return(list(x = out, map = map))
@@ -37,9 +36,11 @@ permute_levels <- function(x) {
       return(list(x = x, map = stats::setNames(uvals, uvals)))
     }
     perm <- sample(uvals, length(uvals), replace = FALSE)
-    map  <- stats::setNames(perm, uvals)
-    out  <- ifelse(is.na(x), NA_character_, map[as.character(x)])
+    map <- stats::setNames(perm, uvals)
+    out <- ifelse(is.na(x), NA_character_, map[as.character(x)])
     return(list(x = out, map = map))
   }
-  cli::cli_abort("permute_levels() supports factor or character; got {.cls {class(x)[1]}}.")
+  cli::cli_abort(
+    "permute_levels() supports factor or character; got {.cls {class(x)[1]}}."
+  )
 }

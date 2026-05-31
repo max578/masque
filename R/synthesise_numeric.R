@@ -20,16 +20,27 @@
 #'   containing `n` rows of synthetic values.
 #' @keywords internal
 #' @noRd
-synthesise_numeric_local <- function(x_obs, n = nrow(x_obs), regularise = TRUE) {
+synthesise_numeric_local <- function(
+  x_obs, n = nrow(x_obs), regularise = TRUE
+) {
   if (!is.data.frame(x_obs)) {
     cli::cli_abort("`x_obs` must be a data frame.")
   }
   p <- ncol(x_obs)
-  if (p == 0L) return(x_obs[FALSE, , drop = FALSE])
+  if (p == 0L) {
+    return(x_obs[FALSE, , drop = FALSE])
+  }
 
-  num_ok <- vapply(x_obs, function(x) is.numeric(x) || is.integer(x), logical(1))
+  num_ok <- vapply(
+    x_obs, function(x) is.numeric(x) || is.integer(x), logical(1)
+  )
   if (!all(num_ok)) {
-    cli::cli_abort("Non-numeric column(s) passed to numeric synthesiser: {.field {names(x_obs)[!num_ok]}}.")
+    cli::cli_abort(
+      paste0(
+        "Non-numeric column(s) passed to numeric synthesiser: ",
+        "{.field {names(x_obs)[!num_ok]}}."
+      )
+    )
   }
 
   # Zero-variance / all-NA columns: pass observed-as-is sample.
@@ -44,15 +55,21 @@ synthesise_numeric_local <- function(x_obs, n = nrow(x_obs), regularise = TRUE) 
     rk <- rank(x, na.last = "keep", ties.method = "average")
     rk / (sum(!is.na(x)) + 1)
   }, numeric(nrow(x_obs)))
-  if (is.null(dim(ranks))) ranks <- matrix(ranks, ncol = p, dimnames = list(NULL, names(x_obs)))
+  if (is.null(dim(ranks))) {
+    ranks <- matrix(ranks, ncol = p, dimnames = list(NULL, names(x_obs)))
+  }
 
   Z <- stats::qnorm(ranks)
 
   if (p == 1L) {
-    # Univariate: skip copula machinery; sample uniform, push through empirical quantile.
+    # Univariate: skip copula machinery; sample uniform, push through the
+    # empirical quantile.
     u_new <- stats::runif(n)
-    val   <- stats::quantile(x_obs[[1L]], probs = u_new, na.rm = TRUE, names = FALSE, type = 1L)
-    out   <- data.frame(val, stringsAsFactors = FALSE)
+    val <- stats::quantile(
+      x_obs[[1L]],
+      probs = u_new, na.rm = TRUE, names = FALSE, type = 1L
+    )
+    out <- data.frame(val, stringsAsFactors = FALSE)
     names(out) <- names(x_obs)
     if (is.integer(x_obs[[1L]])) out[[1L]] <- as.integer(out[[1L]])
     return(out)
@@ -60,11 +77,13 @@ synthesise_numeric_local <- function(x_obs, n = nrow(x_obs), regularise = TRUE) 
 
   # Latent covariance on Z; pairwise complete to tolerate NAs.
   sigma <- stats::cov(Z, use = "pairwise.complete.obs")
-  # Replace any residual NA (column had all NA pairwise overlap) with 0; identity on diagonal.
+  # Replace any residual NA (column had all NA pairwise overlap) with 0;
+  # identity on diagonal.
   sigma[is.na(sigma)] <- 0
   diag_na <- is.na(diag(sigma))
   if (any(diag_na)) diag(sigma)[diag_na] <- 1
-  # Zero-variance columns: force corresponding row/col to identity-like (no correlation).
+  # Zero-variance columns: force corresponding row/col to identity-like
+  # (no correlation).
   if (any(zero_var)) {
     sigma[zero_var, ] <- 0
     sigma[, zero_var] <- 0
@@ -74,7 +93,9 @@ synthesise_numeric_local <- function(x_obs, n = nrow(x_obs), regularise = TRUE) 
   if (regularise) {
     ev <- min(eigen(sigma, symmetric = TRUE, only.values = TRUE)$values)
     if (!is.finite(ev) || ev < sqrt(.Machine$double.eps)) {
-      sigma <- as.matrix(Matrix::nearPD(sigma, corr = FALSE, ensureSymmetry = TRUE)$mat)
+      sigma <- as.matrix(
+        Matrix::nearPD(sigma, corr = FALSE, ensureSymmetry = TRUE)$mat
+      )
     }
   }
 
@@ -82,18 +103,27 @@ synthesise_numeric_local <- function(x_obs, n = nrow(x_obs), regularise = TRUE) 
   if (n == 1L) Z_new <- matrix(Z_new, nrow = 1L)
   U_new <- stats::pnorm(Z_new)
 
-  # Empirical-quantile inverse (type = 1: discontinuous step; returns observed values).
+  # Empirical-quantile inverse (type = 1: discontinuous step; returns
+  # observed values).
   out_cols <- lapply(seq_len(p), function(j) {
     obs_j <- x_obs[[j]]
-    if (all(is.na(obs_j))) return(rep(NA_real_, n))
+    if (all(is.na(obs_j))) {
+      return(rep(NA_real_, n))
+    }
     if (zero_var[j]) {
       val <- unique(obs_j[!is.na(obs_j)])[1L]
       return(rep(val, n))
     }
-    stats::quantile(obs_j, probs = U_new[, j], na.rm = TRUE, names = FALSE, type = 1L)
+    stats::quantile(
+      obs_j,
+      probs = U_new[, j], na.rm = TRUE, names = FALSE, type = 1L
+    )
   })
 
-  out <- as.data.frame(out_cols, stringsAsFactors = FALSE, col.names = names(x_obs))
+  out <- as.data.frame(
+    out_cols,
+    stringsAsFactors = FALSE, col.names = names(x_obs)
+  )
 
   # Preserve integer class
   for (j in seq_len(p)) {

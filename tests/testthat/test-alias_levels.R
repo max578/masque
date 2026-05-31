@@ -1,5 +1,5 @@
 test_that("alias_levels produces deterministic NNN aliases on a factor", {
-  x <- factor(c("Bravo","Alpha","Charlie","Alpha","Bravo"))
+  x <- factor(c("Bravo", "Alpha", "Charlie", "Alpha", "Bravo"))
   res <- masque:::alias_levels(x, prefix = "trtX")
   expect_true(is.factor(res$x))
   expect_true(all(grepl("^trtX\\d{3}$", as.character(levels(res$x)))))
@@ -9,13 +9,13 @@ test_that("alias_levels produces deterministic NNN aliases on a factor", {
 
 test_that("alias_levels preserves per-level frequencies (factor)", {
   set.seed(0)
-  x <- factor(sample(c("A","B","C"), 200, replace = TRUE))
+  x <- factor(sample(c("A", "B", "C"), 200, replace = TRUE))
   res <- masque:::alias_levels(x, prefix = "trtX")
   expect_equal(sort(as.vector(table(res$x))), sort(as.vector(table(x))))
 })
 
 test_that("alias_levels works on character input", {
-  x <- c("X","Y","X","Z","Y")
+  x <- c("X", "Y", "X", "Z", "Y")
   res <- masque:::alias_levels(x, prefix = "covLX")
   expect_true(is.character(res$x))
   expect_true(all(grepl("^covLX\\d{3}$", res$x)))
@@ -23,13 +23,13 @@ test_that("alias_levels works on character input", {
 })
 
 test_that("alias_levels preserves NAs", {
-  x <- factor(c("A","B",NA,"A",NA,"B"))
+  x <- factor(c("A", "B", NA, "A", NA, "B"))
   res <- masque:::alias_levels(x, prefix = "trtX")
   expect_equal(is.na(res$x), is.na(x))
 })
 
 test_that("alias_levels is invertible via res$map", {
-  x <- factor(c("alpha","beta","gamma","alpha","beta"))
+  x <- factor(c("alpha", "beta", "gamma", "alpha", "beta"))
   res <- masque:::alias_levels(x, prefix = "trtX")
   inv <- setNames(names(res$map), unname(res$map))
   recon <- factor(inv[as.character(res$x)], levels = unname(inv))
@@ -38,10 +38,10 @@ test_that("alias_levels is invertible via res$map", {
 })
 
 test_that("alias_levels errors on bad prefix", {
-  x <- factor(c("a","b"))
-  expect_error(masque:::alias_levels(x, prefix = ""),    "non-empty")
-  expect_error(masque:::alias_levels(x, prefix = NULL),  "non-empty")
-  expect_error(masque:::alias_levels(x, prefix = c("a","b")), "non-empty")
+  x <- factor(c("a", "b"))
+  expect_error(masque:::alias_levels(x, prefix = ""), "non-empty")
+  expect_error(masque:::alias_levels(x, prefix = NULL), "non-empty")
+  expect_error(masque:::alias_levels(x, prefix = c("a", "b")), "non-empty")
 })
 
 test_that("alias_levels errors on non-categorical input", {

@@ -49,7 +49,7 @@ small CSV in `inst/extdata/`.
 ```{r load-fixture}
 library(masque)
 
-f  <- system.file("extdata", "john_alpha.csv", package = "masque")
+f <- system.file("extdata", "john_alpha.csv", package = "masque")
 df <- read.csv(f, stringsAsFactors = TRUE)
 str(df)
 head(df)
@@ -110,7 +110,7 @@ Design columns are byte-identical to the original; treatment labels
 are preserved.
 
 ```{r local-checks}
-identical(synth_local$rep,   df$rep)
+identical(synth_local$rep, df$rep)
 identical(synth_local$block, df$block)
 identical(levels(synth_local$gen), levels(df$gen))
 ```
@@ -169,10 +169,13 @@ original vocabulary:
 
 ```{r unmask-atomic}
 pred_factor_synth <- synth_collab$gen[1:5]
-pred_factor_orig  <- unmask(pred_factor_synth, recipe(m_collab),
-                            column = "gen")
-data.frame(synth = as.character(pred_factor_synth),
-           original = as.character(pred_factor_orig))
+pred_factor_orig <- unmask(pred_factor_synth, recipe(m_collab),
+  column = "gen"
+)
+data.frame(
+  synth = as.character(pred_factor_synth),
+  original = as.character(pred_factor_orig)
+)
 ```
 
 ## Step 5: audit and ship

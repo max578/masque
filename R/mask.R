@@ -75,8 +75,8 @@ mask <- function(df,
   opts <- mode_defaults(mode)
 
   result <- with_rng_state(seed, .mask_orchestrate(df, roles, mode, opts))
-  synth        <- result$synth
-  level_maps   <- result$level_maps
+  synth <- result$synth
+  level_maps <- result$level_maps
   warnings_acc <- result$warnings
 
   # NA-mask preservation cell-by-cell (only over columns retained)
@@ -89,7 +89,10 @@ mask <- function(df,
   }
 
   if (identical(mode, "local")) {
-    msg <- "local mode: synthetic data is for owner development only, not external sharing."
+    msg <- paste0(
+      "local mode: synthetic data is for owner development only, ",
+      "not external sharing."
+    )
     warning(msg, call. = FALSE)
     warnings_acc <- c(warnings_acc, msg)
   }
@@ -115,8 +118,10 @@ mask <- function(df,
     audit_tbl <- .compute_audit(df, synth, .tmp_rec, mode)
     high_leaks <- audit_tbl$col[audit_tbl$leakage_class == "high"]
     if (length(high_leaks)) {
-      msg <- sprintf("audit_mask() flagged HIGH leakage on column(s): %s",
-                     paste(high_leaks, collapse = ", "))
+      msg <- sprintf(
+        "audit_mask() flagged HIGH leakage on column(s): %s",
+        paste(high_leaks, collapse = ", ")
+      )
       warning(msg, call. = FALSE)
       warnings_acc <- c(warnings_acc, msg)
     }
@@ -159,19 +164,19 @@ mask <- function(df,
 
 # Internal: orchestrate the per-role synthesis with the RNG state already set.
 .mask_orchestrate <- function(df, roles, mode, opts) {
-  synth      <- df
+  synth <- df
   level_maps <- list()
-  warnings   <- character()
+  warnings <- character()
 
   i_treatment <- which(roles$role == "treatment")
-  i_outcome   <- which(roles$role == "outcome")
+  i_outcome <- which(roles$role == "outcome")
   i_covariate <- which(roles$role == "covariate")
 
   # Numeric block: outcome + numeric covariates jointly via Gaussian copula
   num_idx <- c(i_outcome, i_covariate)
   num_idx <- num_idx[roles$kind[num_idx] %in% c("numeric", "integer")]
   if (length(num_idx) >= 1L) {
-    x_num     <- df[, num_idx, drop = FALSE]
+    x_num <- df[, num_idx, drop = FALSE]
     x_num_new <- synthesise_numeric_local(x_num)
     # Collaborate mode: layer on within-resolution jitter + integer rounding
     if (isTRUE(opts$jitter_numeric)) {
@@ -188,11 +193,14 @@ mask <- function(df,
   }
 
   # Categorical covariates: row-permute, then (collaborate) opaque-alias
-  cat_idx <- i_covariate[!(roles$kind[i_covariate] %in% c("numeric", "integer"))]
+  cat_idx <- i_covariate[
+    !(roles$kind[i_covariate] %in% c("numeric", "integer"))
+  ]
   for (j in cat_idx) {
-    col  <- roles$col[j]
+    col <- roles$col[j]
     perm <- synthesise_categorical_local(df[[col]])
-    if (isTRUE(opts$alias_covariate_levels) && (is.factor(perm) || is.character(perm))) {
+    if (isTRUE(opts$alias_covariate_levels) &&
+      (is.factor(perm) || is.character(perm))) {
       res <- alias_levels(perm, prefix = paste0(col, "_L"))
       # prefix "cov_cat_L" + width-3 digit -> "cov_cat_L001"
       synth[[col]] <- res$x
@@ -206,10 +214,10 @@ mask <- function(df,
   if (length(i_treatment) == 1L) {
     treat_col <- roles$col[i_treatment]
     treat_val <- df[[treat_col]]
-    do_alias  <- isTRUE(opts$alias_treatment_levels)
-    do_perm   <- (!do_alias) &&
-                 "mask_levels" %in% names(roles) &&
-                 isTRUE(roles$mask_levels[i_treatment] == "permute")
+    do_alias <- isTRUE(opts$alias_treatment_levels)
+    do_perm <- (!do_alias) &&
+      "mask_levels" %in% names(roles) &&
+      isTRUE(roles$mask_levels[i_treatment] == "permute")
     if (do_alias && (is.factor(treat_val) || is.character(treat_val))) {
       res <- alias_levels(treat_val, prefix = "trt_")
       synth[[treat_col]] <- res$x
@@ -227,10 +235,14 @@ mask <- function(df,
     i_ignore <- which(roles$role == "ignore")
     if (length(i_ignore)) {
       dropped <- roles$col[i_ignore]
-      synth   <- synth[, setdiff(names(synth), dropped), drop = FALSE]
-      warnings <- c(warnings,
-                    sprintf("Dropped %d ignore column(s) under collaborate mode: %s",
-                            length(dropped), paste(dropped, collapse = ", ")))
+      synth <- synth[, setdiff(names(synth), dropped), drop = FALSE]
+      warnings <- c(
+        warnings,
+        sprintf(
+          "Dropped %d ignore column(s) under collaborate mode: %s",
+          length(dropped), paste(dropped, collapse = ", ")
+        )
+      )
     }
   }
 

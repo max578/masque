@@ -18,7 +18,8 @@ runs.}
 A tibble with one row per column, containing:
 \itemize{
 \item \code{col}: column name.
-\item \code{role}: one of \code{design}, \code{treatment}, \code{outcome}, \code{covariate}, \code{ignore}.
+\item \code{role}: one of \code{design}, \code{treatment}, \code{outcome}, \code{covariate},
+\code{ignore}.
 \item \code{kind}: storage kind (\code{numeric}, \code{integer}, \code{factor},
 \code{character}, \code{logical}, \code{date}, \code{datetime}, \code{other}).
 \item \code{freq_or_range}: brief summary string (range for numeric,

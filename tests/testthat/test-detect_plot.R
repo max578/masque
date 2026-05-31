@@ -37,7 +37,7 @@ test_that("plot() handles RCBD without error", {
 
 test_that("plot() handles IBD/alpha-lattice without error", {
   skip_if_not_installed("agridat")
-  d  <- agridat::john.alpha
+  d <- agridat::john.alpha
   ds <- detect_design(d)
   expect_equal(ds@class_label, "IBD/alpha-lattice")
   plot_smoke(ds, d)
@@ -45,19 +45,20 @@ test_that("plot() handles IBD/alpha-lattice without error", {
 
 test_that("plot() handles split-plot without error", {
   skip_if_not_installed("agridat")
-  d  <- agridat::yates.oats
+  d <- agridat::yates.oats
   ds <- detect_design(d)
   expect_equal(ds@class_label, "split-plot")
   plot_smoke(ds, d)
 })
 
-test_that("plot() falls back to base when ggplot2 path requested without ggplot2", {
+test_that("plot() falls back to base when ggplot2 requested but absent", {
   ds <- detect_design(iris)
   # Force engine = "ggplot2" with ggplot2 actually installed in suggests.
   # When ggplot2 IS installed, this exercises the ggplot2 dispatch
   # without erroring.
   skip_if_not_installed("ggplot2")
-  pdf(NULL); on.exit(dev.off(), add = TRUE)
+  pdf(NULL)
+  on.exit(dev.off(), add = TRUE)
   expect_no_error(plot(ds, df = iris, engine = "ggplot2"))
 })
 

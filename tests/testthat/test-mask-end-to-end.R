@@ -1,11 +1,11 @@
 test_that("mask() returns an S7 masque object with synthetic + recipe", {
   set.seed(0)
   df <- data.frame(
-    Rep      = rep(1:4, 25),
+    Rep = rep(1:4, 25),
     Genotype = factor(rep(LETTERS[1:5], each = 20)),
-    yield    = rnorm(100, mean = 10, sd = 2),
-    cov_n    = rnorm(100),
-    cov_c    = factor(sample(c("X","Y"), 100, replace = TRUE)),
+    yield = rnorm(100, mean = 10, sd = 2),
+    cov_n = rnorm(100),
+    cov_c = factor(sample(c("X", "Y"), 100, replace = TRUE)),
     stringsAsFactors = FALSE
   )
   r <- propose_roles(df)
@@ -21,12 +21,12 @@ test_that("mask() returns an S7 masque object with synthetic + recipe", {
   expect_equal(recipe(m)@seed, 42L)
 })
 
-test_that("mask() preserves design, treatment pass-through; outcome stays in observed range", {
+test_that("mask() keeps design + treatment; outcome stays in range", {
   set.seed(0)
   df <- data.frame(
-    Rep      = rep(1:4, 25),
+    Rep = rep(1:4, 25),
     Genotype = factor(rep(LETTERS[1:5], each = 20)),
-    yield    = rnorm(100, mean = 10, sd = 2),
+    yield = rnorm(100, mean = 10, sd = 2),
     stringsAsFactors = FALSE
   )
   r <- propose_roles(df)
@@ -44,9 +44,9 @@ test_that("mask() preserves design, treatment pass-through; outcome stays in obs
 test_that("Categorical covariate frequencies are preserved", {
   set.seed(0)
   df <- data.frame(
-    Rep   = rep(1:4, 25),
+    Rep = rep(1:4, 25),
     yield = rnorm(100),
-    cat_c = factor(rep(c("L1","L2","L3"), length.out = 100)),
+    cat_c = factor(rep(c("L1", "L2", "L3"), length.out = 100)),
     stringsAsFactors = FALSE
   )
   r <- propose_roles(df)
@@ -83,11 +83,14 @@ test_that("roles_validate errors on non-numeric outcome (semantic check)", {
 
 # Real MET fixture smoke test (skipped under R CMD check) --------------------
 
-test_that("mask() runs end-to-end on MET tab_04 (skip if .fst fixture absent)", {
+test_that("mask() runs end-to-end on MET tab_04 (skip if fixture absent)", {
   skip_on_cran()
   skip_if_not_installed("fst")
   fpath <- normalizePath("../../../fst_00_dataset_tab_04.fst", mustWork = FALSE)
-  skip_if_not(file.exists(fpath), sprintf("Local-only MET fixture not at %s", fpath))
+  skip_if_not(
+    file.exists(fpath),
+    sprintf("Local-only MET fixture not at %s", fpath)
+  )
 
   df <- fst::read_fst(fpath, as.data.table = FALSE)
   # detect = FALSE: v0.2.x byte-stable role proposal. With detect = TRUE
@@ -95,8 +98,8 @@ test_that("mask() runs end-to-end on MET tab_04 (skip if .fst fixture absent)", 
   # labels multiple columns as treatment-like, which hits the single-
   # treatment guard in roles_validate(). Multi-treatment masking is on
   # the roadmap (see vignette("roadmap")).
-  r  <- propose_roles(df, detect = FALSE)
-  r$role[r$col == "G_Yield_Tn_ha"]  <- "outcome"
+  r <- propose_roles(df, detect = FALSE)
+  r$role[r$col == "G_Yield_Tn_ha"] <- "outcome"
   r$role[r$col == "Cultivar_Habit"] <- "covariate"
 
   m <- suppressWarnings(mask(df, r, seed = 1))
@@ -105,8 +108,8 @@ test_that("mask() runs end-to-end on MET tab_04 (skip if .fst fixture absent)", 
   expect_true(inherits(m, "masque::masque"))
   expect_equal(nrow(s), nrow(df))
   expect_equal(ncol(s), ncol(df))
-  expect_identical(s$Rep,    df$Rep)
-  expect_identical(s$Row,    df$Row)
+  expect_identical(s$Rep, df$Rep)
+  expect_identical(s$Row, df$Row)
   expect_identical(s$Column, df$Column)
   expect_equal(is.na(s$G_Yield_Tn_ha), is.na(df$G_Yield_Tn_ha))
 })

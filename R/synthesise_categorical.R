@@ -13,17 +13,23 @@
 #' @noRd
 synthesise_categorical_local <- function(x) {
   n <- length(x)
-  if (n <= 1L) return(x)
+  if (n <= 1L) {
+    return(x)
+  }
 
   # Permute only within the non-NA positions so the NA pattern is preserved
   # automatically. `mask()` re-applies the original NA mask at orchestration
   # level, but doing it here keeps the per-column contract clean.
   na_idx <- is.na(x)
-  if (all(na_idx)) return(x)
+  if (all(na_idx)) {
+    return(x)
+  }
 
-  out         <- x
-  pos_obs     <- which(!na_idx)
-  permuted    <- pos_obs[sample.int(length(pos_obs), length(pos_obs), replace = FALSE)]
+  out <- x
+  pos_obs <- which(!na_idx)
+  permuted <- pos_obs[
+    sample.int(length(pos_obs), length(pos_obs), replace = FALSE)
+  ]
   out[pos_obs] <- x[permuted]
   out
 }

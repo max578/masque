@@ -44,7 +44,16 @@ test_that("mask() differs between distinct seeds", {
 test_that("with_rng_state errors on bad seed type", {
   # Internal helper; test via mask()
   r <- make_outcome_roles(iris, "Sepal.Length")
-  expect_error(suppressWarnings(mask(iris, r, seed = "not-a-number")), "must be a single integer")
-  expect_error(suppressWarnings(mask(iris, r, seed = c(1, 2))),         "must be a single integer")
-  expect_error(suppressWarnings(mask(iris, r, seed = NA_integer_)),     "must be a single integer")
+  expect_error(
+    suppressWarnings(mask(iris, r, seed = "not-a-number")),
+    "must be a single integer"
+  )
+  expect_error(
+    suppressWarnings(mask(iris, r, seed = c(1, 2))),
+    "must be a single integer"
+  )
+  expect_error(
+    suppressWarnings(mask(iris, r, seed = NA_integer_)),
+    "must be a single integer"
+  )
 })

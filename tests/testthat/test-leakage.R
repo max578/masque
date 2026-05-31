@@ -8,7 +8,7 @@ test_that(".classify_leakage flags PII-retained-as-not-ignored as HIGH", {
   expect_equal(out, "high")
 })
 
-test_that(".classify_leakage flags treatment passthrough in collaborate as HIGH", {
+test_that(".classify_leakage: treatment passthrough is HIGH (collaborate)", {
   out <- masque:::.classify_leakage(
     role = "treatment", kind = "factor", pii = FALSE, mode = "collaborate",
     in_synth = TRUE, alias_status = "passthrough",
@@ -18,7 +18,7 @@ test_that(".classify_leakage flags treatment passthrough in collaborate as HIGH"
   expect_equal(out, "high")
 })
 
-test_that(".classify_leakage flags freq=1 categorical covariate in collaborate as HIGH", {
+test_that(".classify_leakage: freq=1 categorical covariate is HIGH", {
   out <- masque:::.classify_leakage(
     role = "covariate", kind = "factor", pii = FALSE, mode = "collaborate",
     in_synth = TRUE, alias_status = "aliased",
@@ -28,7 +28,7 @@ test_that(".classify_leakage flags freq=1 categorical covariate in collaborate a
   expect_equal(out, "high")
 })
 
-test_that(".classify_leakage flags outcome exact-match > 1% in collaborate as MEDIUM", {
+test_that(".classify_leakage: outcome exact-match > 1% is MEDIUM", {
   out <- masque:::.classify_leakage(
     role = "outcome", kind = "numeric", pii = FALSE, mode = "collaborate",
     in_synth = TRUE, alias_status = "passthrough",
@@ -38,7 +38,7 @@ test_that(".classify_leakage flags outcome exact-match > 1% in collaborate as ME
   expect_equal(out, "medium")
 })
 
-test_that(".classify_leakage flags numeric covariate exact-match > 5% in collaborate as MEDIUM", {
+test_that(".classify_leakage: numeric covariate exact-match > 5% is MEDIUM", {
   out <- masque:::.classify_leakage(
     role = "covariate", kind = "numeric", pii = FALSE, mode = "collaborate",
     in_synth = TRUE, alias_status = "passthrough",
@@ -78,7 +78,11 @@ test_that(".global_na_pattern_uniqueness on per-row-unique NA = 1", {
   # Patterns: 01, 10, 01, 10, 01 -> all duplicates (3,2), uniqueness 0
   expect_equal(masque:::.global_na_pattern_uniqueness(df), 0)
   # Now build one with one unique row:
-  df2 <- data.frame(a = c(1, NA, 3, NA, 5), b = c(NA, 2, NA, 4, NA), c = c(NA, NA, NA, NA, 99))
+  df2 <- data.frame(
+    a = c(1, NA, 3, NA, 5),
+    b = c(NA, 2, NA, 4, NA),
+    c = c(NA, NA, NA, NA, 99)
+  )
   # Row 5 has NA pattern 010 (unique); others share 100/010 patterns
   u <- masque:::.global_na_pattern_uniqueness(df2)
   expect_gt(u, 0)

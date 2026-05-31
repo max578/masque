@@ -14,7 +14,8 @@ if (requireNamespace("spelling", quietly = TRUE)) {
     ),
     error = function(e) {
       if (grepl("Dictionary file not found", conditionMessage(e),
-                fixed = TRUE)) {
+        fixed = TRUE
+      )) {
         message(sprintf(
           "Skipping spelling check: %s (dictionary not installed).",
           conditionMessage(e)

@@ -15,7 +15,7 @@ test_that("recipe() returns a masque_recipe with required properties", {
   expect_true(is.list(rec@level_maps))
   expect_true(is.list(rec@storage_classes))
   expect_true(is.list(rec@factor_meta))
-  expect_match(rec@integrity_fp, "^[0-9a-f]{64}$")  # SHA-256 hex
+  expect_match(rec@integrity_fp, "^[0-9a-f]{64}$") # SHA-256 hex
 })
 
 test_that("integrity_fp matches digest of the original NA mask", {

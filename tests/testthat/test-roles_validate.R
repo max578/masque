@@ -11,15 +11,26 @@ test_that("roles_validate accepts a clean roles tibble", {
 })
 
 test_that("roles_validate errors on non-data-frame", {
-  expect_error(roles_validate(list(col = "x", role = "outcome", kind = "numeric")),
-               "must be a data frame")
+  expect_error(
+    roles_validate(list(col = "x", role = "outcome", kind = "numeric")),
+    "must be a data frame"
+  )
 })
 
 test_that("roles_validate errors when required columns are missing", {
   r <- make_valid_roles()
-  expect_error(roles_validate(r[, c("col","role")]),     "missing required column.*kind")
-  expect_error(roles_validate(r[, c("col","kind")]),     "missing required column.*role")
-  expect_error(roles_validate(r[, c("role","kind")]),    "missing required column.*col")
+  expect_error(
+    roles_validate(r[, c("col", "role")]),
+    "missing required column.*kind"
+  )
+  expect_error(
+    roles_validate(r[, c("col", "kind")]),
+    "missing required column.*role"
+  )
+  expect_error(
+    roles_validate(r[, c("role", "kind")]),
+    "missing required column.*col"
+  )
 })
 
 test_that("roles_validate errors on NA role", {
@@ -35,13 +46,13 @@ test_that("roles_validate errors on unknown role string", {
 })
 
 test_that("roles_validate errors when no outcome flagged", {
-  r <- propose_roles(iris)  # propose_roles never picks outcome
+  r <- propose_roles(iris) # propose_roles never picks outcome
   expect_error(roles_validate(r), "outcome")
 })
 
 test_that("roles_validate errors on multiple treatment columns", {
   r <- make_valid_roles()
-  r$role[r$col %in% c("Sepal.Width","Petal.Width")] <- "treatment"
+  r$role[r$col %in% c("Sepal.Width", "Petal.Width")] <- "treatment"
   expect_error(roles_validate(r), "Multiple columns")
 })
 

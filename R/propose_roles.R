@@ -59,7 +59,8 @@
 #' @return A tibble with one row per column, containing:
 #'   \itemize{
 #'     \item `col`: column name.
-#'     \item `role`: one of `design`, `treatment`, `outcome`, `covariate`, `ignore`.
+#'     \item `role`: one of `design`, `treatment`, `outcome`, `covariate`,
+#'       `ignore`.
 #'     \item `kind`: storage kind (`numeric`, `integer`, `factor`,
 #'       `character`, `logical`, `date`, `datetime`, `other`).
 #'     \item `freq_or_range`: brief summary string (range for numeric,
@@ -83,15 +84,21 @@ propose_roles <- function(df, detect = TRUE) {
     cli::cli_abort("`df` has no columns.")
   }
 
-  rows  <- lapply(names(df), function(nm) classify_one_column(nm, df[[nm]]))
-  roles <- tibble::as_tibble(do.call(rbind.data.frame,
-                                     c(rows, list(stringsAsFactors = FALSE))))
+  rows <- lapply(names(df), function(nm) classify_one_column(nm, df[[nm]]))
+  roles <- tibble::as_tibble(do.call(
+    rbind.data.frame,
+    c(rows, list(stringsAsFactors = FALSE))
+  ))
 
-  if (!isTRUE(detect)) return(roles)
+  if (!isTRUE(detect)) {
+    return(roles)
+  }
 
   # Structural overlay: detect_design() consumes the name-based proposal.
   # Need at least 2 rows for detection to be meaningful.
-  if (nrow(df) < 2L) return(roles)
+  if (nrow(df) < 2L) {
+    return(roles)
+  }
 
   ds <- detect_design(df, roles = roles)
   if (ds@class_label != "none" && nrow(ds@recommended_roles) > 0L) {
@@ -106,13 +113,13 @@ propose_roles <- function(df, detect = TRUE) {
 # drops rows.
 .overlay_recommended_roles <- function(roles, rec) {
   for (i in seq_len(nrow(rec))) {
-    col_i  <- rec$col[i]
+    col_i <- rec$col[i]
     role_i <- rec$role[i]
     row_idx <- which(roles$col == col_i)
     if (length(row_idx) != 1L) next
     if (identical(roles$role[row_idx], role_i)) next
     old_role <- roles$role[row_idx]
-    roles$role[row_idx]  <- role_i
+    roles$role[row_idx] <- role_i
     roles$notes[row_idx] <- sprintf(
       "detect_design: %s -> %s (was: %s)",
       old_role, role_i, roles$notes[row_idx]
@@ -127,63 +134,88 @@ classify_one_column <- function(nm, x) {
   is_pii <- matches_pattern(nm, PII_PATTERN)
 
   if (is_pii) {
-    role  <- "ignore"
+    role <- "ignore"
     notes <- "PII pattern in column name -> ignore (flagged)."
   } else if (kind %in% c("date", "datetime")) {
-    role  <- "ignore"
+    role <- "ignore"
     notes <- "Date/time column -> ignore by default."
   } else if (matches_pattern(nm, ID_PATTERN)) {
-    role  <- "ignore"
+    role <- "ignore"
     notes <- "ID-pattern name -> ignore."
   } else if (matches_pattern(nm, DESIGN_PATTERN)) {
-    role  <- "design"
+    role <- "design"
     notes <- "Design-pattern name -> design (byte-identical)."
   } else if (matches_pattern(nm, TREATMENT_PATTERN)) {
-    role  <- "treatment"
+    role <- "treatment"
     notes <- "Treatment-pattern name -> treatment."
   } else if (kind == "character" && is_free_text(x)) {
-    role  <- "ignore"
+    role <- "ignore"
     notes <- "High-cardinality character (likely free text) -> ignore."
   } else {
-    role  <- "covariate"
+    role <- "covariate"
     notes <- "Default -> covariate; re-role to outcome if response variable."
   }
 
   data.frame(
-    col            = nm,
-    role           = role,
-    kind           = kind,
-    freq_or_range  = summarise_kind(x, kind),
-    pii_suspected  = is_pii,
-    notes          = notes,
+    col = nm,
+    role = role,
+    kind = kind,
+    freq_or_range = summarise_kind(x, kind),
+    pii_suspected = is_pii,
+    notes = notes,
     stringsAsFactors = FALSE
   )
 }
 
 col_kind <- function(x) {
-  if (inherits(x, c("POSIXct", "POSIXlt"))) return("datetime")
-  if (inherits(x, "Date"))                  return("date")
-  if (inherits(x, "difftime"))              return("datetime")
-  if (is.logical(x))                        return("logical")
-  if (is.factor(x))                         return("factor")
-  if (is.integer(x))                        return("integer")
-  if (is.numeric(x))                        return("numeric")
-  if (is.character(x))                      return("character")
+  if (inherits(x, c("POSIXct", "POSIXlt"))) {
+    return("datetime")
+  }
+  if (inherits(x, "Date")) {
+    return("date")
+  }
+  if (inherits(x, "difftime")) {
+    return("datetime")
+  }
+  if (is.logical(x)) {
+    return("logical")
+  }
+  if (is.factor(x)) {
+    return("factor")
+  }
+  if (is.integer(x)) {
+    return("integer")
+  }
+  if (is.numeric(x)) {
+    return("numeric")
+  }
+  if (is.character(x)) {
+    return("character")
+  }
   "other"
 }
 
 is_free_text <- function(x, threshold = 0.5) {
   n <- length(x)
-  if (n == 0L) return(FALSE)
+  if (n == 0L) {
+    return(FALSE)
+  }
   k <- length(unique(stats::na.omit(x)))
   k / n > threshold
 }
 
 # Pattern constants. Tested in test-propose_roles.R.
-ID_PATTERN        <- "(\\bid\\b|_id$|^id_)"
-DESIGN_PATTERN    <- "(^rep[0-9]*$|^block$|^row$|^col(umn)?$|^range$|^plot(no)?$|^site$|^env(ironment)?$|^trial(_?acronym)?$|^year$|^season$|^colrep$|^tos$)"
+ID_PATTERN <- "(\\bid\\b|_id$|^id_)"
+DESIGN_PATTERN <- paste0(
+  "(^rep[0-9]*$|^block$|^row$|^col(umn)?$|^range$|^plot(no)?$|^site$|",
+  "^env(ironment)?$|^trial(_?acronym)?$|^year$|^season$|^colrep$|^tos$)"
+)
 TREATMENT_PATTERN <- "(treatment|^variety|^cultivar|genotype|^trt|^dose$)"
-PII_PATTERN       <- "(contact|email|phone|address|gps|latitude|longitude|\\blat\\b|\\blon\\b|postcode|postal|^zip|ssn|dob|birthdate|password|secret|api[_-]?key|owner|farmer|operator|customer)"
+PII_PATTERN <- paste0(
+  "(contact|email|phone|address|gps|latitude|longitude|\\blat\\b|",
+  "\\blon\\b|postcode|postal|^zip|ssn|dob|birthdate|password|secret|",
+  "api[_-]?key|owner|farmer|operator|customer)"
+)
 
 matches_pattern <- function(nm, pat) {
   grepl(pat, nm, ignore.case = TRUE, perl = TRUE)
@@ -191,22 +223,26 @@ matches_pattern <- function(nm, pat) {
 
 summarise_kind <- function(x, kind) {
   switch(kind,
-    "numeric"   = ,
-    "integer"   = {
+    "numeric" = ,
+    "integer" = {
       r <- suppressWarnings(range(x, na.rm = TRUE))
       if (any(!is.finite(r))) "[all NA]" else sprintf("[%g, %g]", r[1], r[2])
     },
-    "factor"    = sprintf("n=%d levels", length(levels(x))),
+    "factor" = sprintf("n=%d levels", length(levels(x))),
     "character" = sprintf("n=%d unique", length(unique(stats::na.omit(x)))),
-    "logical"   = {
+    "logical" = {
       tbl <- table(x, useNA = "no")
       paste(names(tbl), tbl, sep = "=", collapse = ", ")
     },
-    "date"      = ,
-    "datetime"  = {
+    "date" = ,
+    "datetime" = {
       r <- suppressWarnings(range(x, na.rm = TRUE))
-      if (any(!is.finite(unclass(r)))) "[all NA]" else sprintf("[%s, %s]", format(r[1]), format(r[2]))
+      if (any(!is.finite(unclass(r)))) {
+        "[all NA]"
+      } else {
+        sprintf("[%s, %s]", format(r[1]), format(r[2]))
+      }
     },
-    "other"     = paste(class(x), collapse = "/")
+    "other" = paste(class(x), collapse = "/")
   )
 }

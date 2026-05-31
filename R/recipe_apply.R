@@ -38,8 +38,8 @@
 #' @examples
 #' r <- propose_roles(iris)
 #' r$role[r$col == "Sepal.Length"] <- "outcome"
-#' r$role[r$col == "Species"]      <- "covariate"
-#' m   <- mask(iris, r, mode = "collaborate", seed = 1)
+#' r$role[r$col == "Species"] <- "covariate"
+#' m <- mask(iris, r, mode = "collaborate", seed = 1)
 #' rec <- recipe(m)
 #' iris_in_synth_space <- apply_recipe(iris, rec)
 #' head(iris_in_synth_space)
@@ -48,10 +48,14 @@
 #' @export
 apply_recipe <- function(original, rec, check_integrity = TRUE) {
   if (!is.data.frame(original)) {
-    cli::cli_abort("`original` must be a data frame; got {.cls {class(original)[1]}}.")
+    cli::cli_abort(
+      "`original` must be a data frame; got {.cls {class(original)[1]}}."
+    )
   }
   if (!S7::S7_inherits(rec, masque_recipe)) {
-    cli::cli_abort("`rec` must be a {.cls masque_recipe} object; got {.cls {class(rec)[1]}}.")
+    cli::cli_abort(
+      "`rec` must be a {.cls masque_recipe} object; got {.cls {class(rec)[1]}}."
+    )
   }
   if (!is.logical(check_integrity) || length(check_integrity) != 1L) {
     cli::cli_abort("`check_integrity` must be a single logical.")
@@ -67,7 +71,10 @@ apply_recipe <- function(original, rec, check_integrity = TRUE) {
   missing_in_orig <- setdiff(retained, names(original))
   if (length(missing_in_orig)) {
     cli::cli_abort(c(
-      "`original` is missing column(s) required by the recipe: {.field {missing_in_orig}}.",
+      paste0(
+        "`original` is missing column(s) required by the recipe: ",
+        "{.field {missing_in_orig}}."
+      ),
       i = "Was the recipe built from a different schema?"
     ))
   }
@@ -80,12 +87,15 @@ apply_recipe <- function(original, rec, check_integrity = TRUE) {
 
   for (col in names(rec@level_maps)) {
     if (!(col %in% names(out))) next
-    out[[col]] <- .apply_level_map_forward(out[[col]], rec@level_maps[[col]], col = col)
+    out[[col]] <- .apply_level_map_forward(
+      out[[col]], rec@level_maps[[col]],
+      col = col
+    )
   }
 
   if (!is.null(rec@column_name_map)) {
     cmap <- rec@column_name_map
-    nm   <- names(out)
+    nm <- names(out)
     hits <- nm %in% names(cmap)
     nm[hits] <- unname(unlist(cmap[nm[hits]]))
     names(out) <- nm
@@ -106,10 +116,10 @@ apply_recipe <- function(original, rec, check_integrity = TRUE) {
 #' The most common pattern is round-tripping pipeline predictions:
 #'
 #' \preformatted{
-#' fit                 <- my_model(synthetic(m))                # train on synthetic
-#' orig_in_synth_space <- apply_recipe(original, recipe(m))     # forward
+#' fit                 <- my_model(synthetic(m))            # train on synthetic
+#' orig_in_synth_space <- apply_recipe(original, recipe(m)) # forward
 #' preds_synth         <- predict(fit, orig_in_synth_space)
-#' preds_orig          <- unmask(preds_synth, recipe(m))        # inverse
+#' preds_orig          <- unmask(preds_synth, recipe(m))    # inverse
 #' }
 #'
 #' Unknown levels (synthetic aliases not in the recipe's map) fail
@@ -131,7 +141,9 @@ apply_recipe <- function(original, rec, check_integrity = TRUE) {
 #' @export
 unmask <- function(x, rec, column = NULL) {
   if (!S7::S7_inherits(rec, masque_recipe)) {
-    cli::cli_abort("`rec` must be a {.cls masque_recipe} object; got {.cls {class(rec)[1]}}.")
+    cli::cli_abort(
+      "`rec` must be a {.cls masque_recipe} object; got {.cls {class(rec)[1]}}."
+    )
   }
 
   if (is.data.frame(x)) {
@@ -141,14 +153,17 @@ unmask <- function(x, rec, column = NULL) {
         names(rec@column_name_map),
         unlist(unname(rec@column_name_map))
       )
-      nm  <- names(out)
+      nm <- names(out)
       hits <- nm %in% names(cmap_inv)
       nm[hits] <- unname(cmap_inv[nm[hits]])
       names(out) <- nm
     }
     for (col in names(rec@level_maps)) {
       if (!(col %in% names(out))) next
-      out[[col]] <- .apply_level_map_inverse(out[[col]], rec@level_maps[[col]], col = col)
+      out[[col]] <- .apply_level_map_inverse(
+        out[[col]], rec@level_maps[[col]],
+        col = col
+      )
     }
     return(tibble::as_tibble(out))
   }
@@ -159,7 +174,7 @@ unmask <- function(x, rec, column = NULL) {
     # so they cannot need an inverse map.
     if (!is.character(x) && !is.factor(x)) {
       if (!is.null(column) && length(rec@roles$col) > 0L &&
-          !(column %in% rec@roles$col)) {
+        !(column %in% rec@roles$col)) {
         cli::cli_abort(c(
           "Column {.field {column}} is not known to the recipe.",
           i = "Available columns: {.val {rec@roles$col}}."
@@ -171,8 +186,14 @@ unmask <- function(x, rec, column = NULL) {
     # Categorical atomic: need a level map.
     if (length(rec@level_maps) == 0L) {
       cli::cli_abort(c(
-        "Recipe holds no level maps; cannot unmask a categorical atomic vector.",
-        i = "Numeric / logical / Date-like vectors are passed through unchanged."
+        paste0(
+          "Recipe holds no level maps; cannot unmask a categorical ",
+          "atomic vector."
+        ),
+        i = paste0(
+          "Numeric / logical / Date-like vectors are passed through ",
+          "unchanged."
+        )
       ))
     }
     if (is.null(column)) {
@@ -180,7 +201,10 @@ unmask <- function(x, rec, column = NULL) {
         column <- names(rec@level_maps)[1L]
       } else {
         cli::cli_abort(c(
-          "Atomic `x` with multiple level maps in the recipe; please supply {.arg column}.",
+          paste0(
+            "Atomic `x` with multiple level maps in the recipe; ",
+            "please supply {.arg column}."
+          ),
           i = "Available: {.val {names(rec@level_maps)}}."
         ))
       }
@@ -194,18 +218,23 @@ unmask <- function(x, rec, column = NULL) {
     return(.apply_level_map_inverse(x, rec@level_maps[[column]], col = column))
   }
 
-  cli::cli_abort("`x` must be a data frame or atomic vector; got {.cls {class(x)[1]}}.")
+  cli::cli_abort(
+    "`x` must be a data frame or atomic vector; got {.cls {class(x)[1]}}."
+  )
 }
 
-# Internal: original-label -> synthetic-label.
+# Internal: maps an original-label to its synthetic-label.
 # Fail-closed: unmapped non-NA values raise an error rather than coerce to NA.
 .apply_level_map_forward <- function(val, map, col = NULL) {
   if (is.factor(val) || is.character(val)) {
-    val_chr  <- as.character(val)
-    not_na   <- !is.na(val_chr)
+    val_chr <- as.character(val)
+    not_na <- !is.na(val_chr)
     unmapped <- not_na & !(val_chr %in% names(map))
     if (any(unmapped)) {
-      .fail_unmapped(unique(val_chr[unmapped]), col = col, direction = "forward")
+      .fail_unmapped(
+        unique(val_chr[unmapped]),
+        col = col, direction = "forward"
+      )
     }
     new_chr <- ifelse(is.na(val_chr), NA_character_, unname(map[val_chr]))
     if (is.factor(val)) {
@@ -222,11 +251,14 @@ unmask <- function(x, rec, column = NULL) {
 .apply_level_map_inverse <- function(val, map, col = NULL) {
   inv <- stats::setNames(names(map), unname(map))
   if (is.factor(val) || is.character(val)) {
-    val_chr  <- as.character(val)
-    not_na   <- !is.na(val_chr)
+    val_chr <- as.character(val)
+    not_na <- !is.na(val_chr)
     unmapped <- not_na & !(val_chr %in% names(inv))
     if (any(unmapped)) {
-      .fail_unmapped(unique(val_chr[unmapped]), col = col, direction = "inverse")
+      .fail_unmapped(
+        unique(val_chr[unmapped]),
+        col = col, direction = "inverse"
+      )
     }
     new_chr <- ifelse(is.na(val_chr), NA_character_, unname(inv[val_chr]))
     if (is.factor(val)) {
@@ -250,13 +282,22 @@ unmask <- function(x, rec, column = NULL) {
     cli::cli_abort(c(
       "Value(s) not in the recipe's level map: {.val {bad_preview}}.",
       i = paste(hint, "Unknown values are not coerced to NA (fail-closed)."),
-      "*" = "Rebuild the recipe from a dataset that contains these values, or strip them before retargeting."
+      "*" = paste0(
+        "Rebuild the recipe from a dataset that contains these values, ",
+        "or strip them before retargeting."
+      )
     ))
   } else {
     cli::cli_abort(c(
-      "Value(s) not in the recipe's level map in column {.field {col}}: {.val {bad_preview}}.",
+      paste0(
+        "Value(s) not in the recipe's level map in column ",
+        "{.field {col}}: {.val {bad_preview}}."
+      ),
       i = paste(hint, "Unknown values are not coerced to NA (fail-closed)."),
-      "*" = "Rebuild the recipe from a dataset that contains these values, or strip them before retargeting."
+      "*" = paste0(
+        "Rebuild the recipe from a dataset that contains these values, ",
+        "or strip them before retargeting."
+      )
     ))
   }
 }

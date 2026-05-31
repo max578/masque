@@ -18,20 +18,20 @@ test_that("permute_levels map is bijective", {
 
 test_that("permute_levels handles character input", {
   set.seed(1)
-  x <- c("alpha","beta","gamma","alpha","beta")
+  x <- c("alpha", "beta", "gamma", "alpha", "beta")
   res <- masque:::permute_levels(x)
   expect_setequal(names(res$map), unique(x))
   expect_setequal(unname(res$map), unique(x))
 })
 
 test_that("permute_levels preserves NAs (character)", {
-  x <- c("A","B",NA,"A",NA)
+  x <- c("A", "B", NA, "A", NA)
   res <- masque:::permute_levels(x)
   expect_equal(is.na(res$x), is.na(x))
 })
 
 test_that("permute_levels singleton-vocab is identity", {
-  x <- factor(c("only","only","only"))
+  x <- factor(c("only", "only", "only"))
   res <- masque:::permute_levels(x)
   expect_identical(res$x, x)
   expect_equal(names(res$map), "only")

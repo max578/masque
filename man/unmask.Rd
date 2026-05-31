@@ -33,10 +33,10 @@ under \code{\link[=apply_recipe]{apply_recipe()}} too).
 The most common pattern is round-tripping pipeline predictions:
 
 \preformatted{
-fit                 <- my_model(synthetic(m))                # train on synthetic
-orig_in_synth_space <- apply_recipe(original, recipe(m))     # forward
+fit                 <- my_model(synthetic(m))            # train on synthetic
+orig_in_synth_space <- apply_recipe(original, recipe(m)) # forward
 preds_synth         <- predict(fit, orig_in_synth_space)
-preds_orig          <- unmask(preds_synth, recipe(m))        # inverse
+preds_orig          <- unmask(preds_synth, recipe(m))    # inverse
 }
 
 Unknown levels (synthetic aliases not in the recipe's map) fail
