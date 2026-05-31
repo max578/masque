@@ -1,12 +1,12 @@
 make_collab_fixture <- function(n = 100, seed = 0) {
   set.seed(seed)
   df <- data.frame(
-    Rep       = rep(1:4, n / 4),
-    Genotype  = factor(rep(LETTERS[1:5], each = n / 5)),
-    yield     = rnorm(n, mean = 10, sd = 2),
-    cov_n     = rnorm(n),
-    cov_cat   = factor(sample(c("alpha","beta","gamma"), n, replace = TRUE)),
-    notes_id  = paste0("note_", seq_len(n)),  # auto -> ignore (free-text)
+    Rep = rep(1:4, n / 4),
+    Genotype = factor(rep(LETTERS[1:5], each = n / 5)),
+    yield = rnorm(n, mean = 10, sd = 2),
+    cov_n = rnorm(n),
+    cov_cat = factor(sample(c("alpha", "beta", "gamma"), n, replace = TRUE)),
+    notes_id = paste0("note_", seq_len(n)), # auto-ignored (free-text)
     stringsAsFactors = FALSE
   )
   r <- propose_roles(df)
@@ -44,18 +44,24 @@ test_that("Categorical covariate is opaque-aliased in collaborate mode", {
   s <- synthetic(m)
 
   expect_true(all(grepl("^cov_cat_L\\d{3}$", as.character(levels(s$cov_cat)))))
-  expect_false(any(as.character(s$cov_cat) %in% c("alpha","beta","gamma")))
+  expect_false(any(as.character(s$cov_cat) %in% c("alpha", "beta", "gamma")))
   rec <- recipe(m)
   expect_true("cov_cat" %in% names(rec@level_maps))
-  expect_setequal(names(rec@level_maps$cov_cat), c("alpha","beta","gamma"))
+  expect_setequal(names(rec@level_maps$cov_cat), c("alpha", "beta", "gamma"))
 })
 
-test_that("Frequencies of treatment + categorical levels preserved across aliasing", {
+test_that("Treatment + categorical level frequencies survive aliasing", {
   f <- make_collab_fixture()
   m <- mask(f$df, f$roles, mode = "collaborate", seed = 1)
   s <- synthetic(m)
-  expect_equal(sort(as.vector(table(s$Genotype))), sort(as.vector(table(f$df$Genotype))))
-  expect_equal(sort(as.vector(table(s$cov_cat))),  sort(as.vector(table(f$df$cov_cat))))
+  expect_equal(
+    sort(as.vector(table(s$Genotype))),
+    sort(as.vector(table(f$df$Genotype)))
+  )
+  expect_equal(
+    sort(as.vector(table(s$cov_cat))),
+    sort(as.vector(table(f$df$cov_cat)))
+  )
 })
 
 test_that("Design columns remain byte-identical in collaborate mode", {
@@ -81,9 +87,9 @@ test_that("Collaborate mode does NOT emit the local-mode warning", {
 test_that("Local-mode optional permute via roles$mask_levels = 'permute'", {
   set.seed(0)
   df <- data.frame(
-    Rep      = rep(1:4, 5),
+    Rep = rep(1:4, 5),
     Genotype = factor(rep(LETTERS[1:5], 4)),
-    yield    = rnorm(20),
+    yield = rnorm(20),
     stringsAsFactors = FALSE
   )
   r <- propose_roles(df)

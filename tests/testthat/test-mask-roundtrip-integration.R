@@ -1,18 +1,18 @@
-test_that("Round-trip: lm trained on synthetic, applied to original via apply_recipe", {
+test_that("Round-trip: lm on synthetic, applied to original via recipe", {
   set.seed(0)
   n <- 200
   df <- data.frame(
-    Rep      = rep(1:4, n / 4),
+    Rep = rep(1:4, n / 4),
     Genotype = factor(rep(LETTERS[1:5], each = n / 5)),
-    yield    = rnorm(n, mean = 10, sd = 2),
-    cov_n    = rnorm(n),
+    yield = rnorm(n, mean = 10, sd = 2),
+    cov_n = rnorm(n),
     stringsAsFactors = FALSE
   )
   r <- propose_roles(df)
   r$role[r$col == "yield"] <- "outcome"
 
-  m   <- mask(df, r, mode = "collaborate", seed = 1)
-  s   <- synthetic(m)
+  m <- mask(df, r, mode = "collaborate", seed = 1)
+  s <- synthetic(m)
   rec <- recipe(m)
 
   # Train a trivial linear model against the synthetic namespace
@@ -31,16 +31,16 @@ test_that("Round-trip: classifier predicts treatment, unmask restores labels", {
   set.seed(0)
   n <- 200
   df <- data.frame(
-    Rep      = rep(1:4, n / 4),
+    Rep = rep(1:4, n / 4),
     Genotype = factor(rep(LETTERS[1:5], each = n / 5)),
-    yield    = rnorm(n, mean = 10, sd = 2),
+    yield = rnorm(n, mean = 10, sd = 2),
     stringsAsFactors = FALSE
   )
   r <- propose_roles(df)
   r$role[r$col == "yield"] <- "outcome"
 
-  m   <- mask(df, r, mode = "collaborate", seed = 1)
-  s   <- synthetic(m)
+  m <- mask(df, r, mode = "collaborate", seed = 1)
+  s <- synthetic(m)
   rec <- recipe(m)
 
   # Mock a "classifier" that emits factor labels in synthetic-namespace
@@ -52,12 +52,12 @@ test_that("Round-trip: classifier predicts treatment, unmask restores labels", {
   expect_setequal(levels(pred_orig), LETTERS[1:5])
 })
 
-test_that("Round-trip: save_recipe -> read_recipe -> apply still works (cross-process simulation)", {
+test_that("Round-trip: save then read then apply recipe (cross-process)", {
   set.seed(0)
   df <- data.frame(
-    Rep      = rep(1:4, 25),
+    Rep = rep(1:4, 25),
     Genotype = factor(rep(LETTERS[1:5], each = 20)),
-    yield    = rnorm(100),
+    yield = rnorm(100),
     stringsAsFactors = FALSE
   )
   r <- propose_roles(df)
@@ -70,7 +70,7 @@ test_that("Round-trip: save_recipe -> read_recipe -> apply still works (cross-pr
   rec2 <- read_recipe(tmp)
 
   forward <- apply_recipe(df, rec2)
-  back    <- unmask(forward, rec2)
+  back <- unmask(forward, rec2)
   expect_equal(as.character(back$Genotype), as.character(df$Genotype))
 })
 
@@ -78,16 +78,19 @@ test_that("Round-trip on MET tab_04 (skip if .fst fixture absent)", {
   skip_on_cran()
   skip_if_not_installed("fst")
   fpath <- normalizePath("../../../fst_00_dataset_tab_04.fst", mustWork = FALSE)
-  skip_if_not(file.exists(fpath), sprintf("Local-only MET fixture not at %s", fpath))
+  skip_if_not(
+    file.exists(fpath),
+    sprintf("Local-only MET fixture not at %s", fpath)
+  )
 
   df <- fst::read_fst(fpath, as.data.table = FALSE)
   # detect = FALSE: see note in test-mask-end-to-end.R; multi-treatment
   # masking is roadmap, not v0.4.x.
-  r  <- propose_roles(df, detect = FALSE)
-  r$role[r$col == "G_Yield_Tn_ha"]  <- "outcome"
+  r <- propose_roles(df, detect = FALSE)
+  r$role[r$col == "G_Yield_Tn_ha"] <- "outcome"
   r$role[r$col == "Cultivar_Habit"] <- "covariate"
 
-  m   <- suppressWarnings(mask(df, r, mode = "collaborate", seed = 1))
+  m <- suppressWarnings(mask(df, r, mode = "collaborate", seed = 1))
   rec <- recipe(m)
 
   fwd <- apply_recipe(df, rec)
@@ -96,5 +99,5 @@ test_that("Round-trip on MET tab_04 (skip if .fst fixture absent)", {
 
   back <- unmask(fwd, rec)
   expect_equal(as.character(back$Genotype), as.character(df$Genotype))
-  expect_equal(as.character(back$M_STATE),  as.character(df$M_STATE))
+  expect_equal(as.character(back$M_STATE), as.character(df$M_STATE))
 })

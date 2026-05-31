@@ -17,9 +17,11 @@ test_that("Spearman correlation roughly preserved on multivariate input", {
   set.seed(1)
   n <- 2000
   z <- rnorm(n)
-  x <- data.frame(a = z + rnorm(n, sd = 0.3),
-                  b = 2 * z + rnorm(n, sd = 0.7),
-                  c = rnorm(n))
+  x <- data.frame(
+    a = z + rnorm(n, sd = 0.3),
+    b = 2 * z + rnorm(n, sd = 0.7),
+    c = rnorm(n)
+  )
   y <- masque:::synthesise_numeric_local(x)
 
   cor_x <- stats::cor(x, method = "spearman")
@@ -38,8 +40,10 @@ test_that("Single-column path returns correct dimensions and values", {
 
 test_that("Integer columns stay integer through synthesis", {
   set.seed(1)
-  x <- data.frame(a = sample(1:20, 200, replace = TRUE),
-                  b = rnorm(200))
+  x <- data.frame(
+    a = sample(1:20, 200, replace = TRUE),
+    b = rnorm(200)
+  )
   expect_true(is.integer(x$a))
   y <- masque:::synthesise_numeric_local(x)
   expect_true(is.integer(y$a))

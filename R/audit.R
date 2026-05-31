@@ -29,9 +29,11 @@
 #' \itemize{
 #'   \item Retained PII-pattern column -> `high`.
 #'   \item Treatment unaliased in collaborate -> `high`.
-#'   \item Categorical covariate with a frequency-1 level in collaborate -> `high`.
+#'   \item Categorical covariate with a frequency-1 level in collaborate ->
+#'     `high`.
 #'   \item Outcome with exact-match-pct > 1\% in collaborate -> `medium`.
-#'   \item Numeric covariate with exact-match-pct > 5\% in collaborate -> `medium`.
+#'   \item Numeric covariate with exact-match-pct > 5\% in collaborate ->
+#'     `medium`.
 #'   \item Ignore column retained in local -> `low` (informational).
 #' }
 #'
@@ -49,7 +51,7 @@
 #' @examples
 #' r <- propose_roles(iris)
 #' r$role[r$col == "Sepal.Length"] <- "outcome"
-#' r$role[r$col == "Species"]      <- "covariate"
+#' r$role[r$col == "Species"] <- "covariate"
 #' m <- mask(iris, r, mode = "collaborate", seed = 1)
 #' audit_mask(m)
 #'
@@ -57,14 +59,19 @@
 #' @export
 audit_mask <- function(m, original = NULL, print = TRUE) {
   if (!S7::S7_inherits(m, masque)) {
-    cli::cli_abort("`m` must be a {.cls masque} object; got {.cls {class(m)[1]}}.")
+    cli::cli_abort(
+      "`m` must be a {.cls masque} object; got {.cls {class(m)[1]}}."
+    )
   }
 
   audit <- m@audit
   if (is.null(audit)) {
     if (is.null(original)) {
       cli::cli_abort(c(
-        "Audit is not stored on this masque object (local mode does not auto-audit).",
+        paste0(
+          "Audit is not stored on this masque object ",
+          "(local mode does not auto-audit)."
+        ),
         i = "Supply {.arg original} to recompute."
       ))
     }
@@ -79,12 +86,14 @@ audit_mask <- function(m, original = NULL, print = TRUE) {
   cli::cli_h1(sprintf("masque audit (mode = %s)", mode))
 
   n_high <- sum(audit$leakage_class == "high")
-  n_med  <- sum(audit$leakage_class == "medium")
-  n_low  <- sum(audit$leakage_class == "low")
+  n_med <- sum(audit$leakage_class == "medium")
+  n_low <- sum(audit$leakage_class == "low")
 
   cli::cli_bullets(c(
-    "*" = sprintf("%d HIGH, %d medium, %d low across %d columns",
-                  n_high, n_med, n_low, nrow(audit))
+    "*" = sprintf(
+      "%d HIGH, %d medium, %d low across %d columns",
+      n_high, n_med, n_low, nrow(audit)
+    )
   ))
 
   if (!is.na(audit$na_pattern_uniqueness[1L])) {
@@ -99,8 +108,10 @@ audit_mask <- function(m, original = NULL, print = TRUE) {
     if (!nrow(rows)) next
     cli::cli_h2(sprintf("%s (%d)", toupper(cls), nrow(rows)))
     for (i in seq_len(nrow(rows))) {
-      line <- sprintf("  %-9s %-32s  %s",
-                      rows$role[i], rows$col[i], rows$notes[i])
+      line <- sprintf(
+        "  %-9s %-32s  %s",
+        rows$role[i], rows$col[i], rows$notes[i]
+      )
       switch(cls,
         high   = cli::cli_alert_danger(line),
         medium = cli::cli_alert_warning(line),

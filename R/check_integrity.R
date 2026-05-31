@@ -19,9 +19,19 @@
   actual <- digest::digest(is.na(original), algo = "sha256")
   if (!identical(expected, actual)) {
     cli::cli_abort(c(
-      "Recipe integrity check failed: the NA mask of {.arg original} does not match the recipe's recorded fingerprint.",
-      i = "The recipe was built against a data frame with a different missingness pattern (or a different schema).",
-      "*" = "If this is intentional (the missingness has legitimately changed since the recipe was built), pass {.code check_integrity = FALSE} to {.fun apply_recipe}."
+      paste0(
+        "Recipe integrity check failed: the NA mask of {.arg original} ",
+        "does not match the recipe's recorded fingerprint."
+      ),
+      i = paste0(
+        "The recipe was built against a data frame with a different ",
+        "missingness pattern (or a different schema)."
+      ),
+      "*" = paste0(
+        "If this is intentional (the missingness has legitimately ",
+        "changed since the recipe was built), pass ",
+        "{.code check_integrity = FALSE} to {.fun apply_recipe}."
+      )
     ))
   }
   invisible(TRUE)

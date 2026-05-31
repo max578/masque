@@ -12,7 +12,7 @@ knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 options(width = 100)
 library(masque)
 
-f  <- system.file("extdata", "john_alpha.csv", package = "masque")
+f <- system.file("extdata", "john_alpha.csv", package = "masque")
 df <- read.csv(f, stringsAsFactors = TRUE)
 roles <- propose_roles(df)
 roles$role[roles$col == "yield"] <- "outcome"
@@ -29,7 +29,7 @@ A recipe is an S7 object, but users do not need to know that. The two
 exported accessors hide the class details:
 
 ```{r accessors}
-m   <- mask(df, roles, mode = "collaborate", seed = 1)
+m <- mask(df, roles, mode = "collaborate", seed = 1)
 rec <- recipe(m)
 class(rec)
 ```
@@ -124,7 +124,7 @@ The recipe is the bidirectional translator. `apply_recipe()` and
 `unmask()` both operate on it:
 
 ```{r roundtrip}
-fwd  <- apply_recipe(df, rec)
+fwd <- apply_recipe(df, rec)
 back <- unmask(fwd, rec)
 identical(as.character(back$gen), as.character(df$gen))
 ```

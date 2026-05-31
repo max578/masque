@@ -64,7 +64,7 @@
 #' \donttest{
 #' # Toy example: 50 rows split across two states.
 #' set.seed(1)
-#' n  <- 50
+#' n <- 50
 #' df <- data.frame(
 #'   state = sample(c("NSW", "VIC"), n, replace = TRUE),
 #'   lat   = stats::rnorm(n, -33, 0.3),
@@ -74,8 +74,8 @@
 #' roles <- propose_roles(df, detect = FALSE)
 #' roles$role[roles$col == "y"] <- "outcome"
 #' roles$role[roles$col %in% c("lat", "lon")] <- "covariate"
-#' roles$role[roles$col == "state"]            <- "design"
-#' m  <- mask(df, roles, mode = "collaborate", seed = 1L)
+#' roles$role[roles$col == "state"] <- "design"
+#' m <- mask(df, roles, mode = "collaborate", seed = 1L)
 #' centroids <- list(
 #'   NSW = c(lat = -32.5, lon = 147),
 #'   VIC = c(lat = -36.5, lon = 144)
@@ -93,14 +93,16 @@ synthesise_geospatial <- function(synth, original,
                                   anchor_col, lat_col, lon_col,
                                   anchor_centroids,
                                   site_spread_deg = 0.6,
-                                  jitter_deg      = 0.05,
-                                  seed            = NULL) {
+                                  jitter_deg = 0.05,
+                                  seed = NULL) {
   if (!is.data.frame(synth) || !is.data.frame(original)) {
     cli::cli_abort("`synth` and `original` must both be data frames.")
   }
   for (cn in c(anchor_col, lat_col, lon_col)) {
     if (!cn %in% names(synth) || !cn %in% names(original)) {
-      cli::cli_abort("Column {.field {cn}} missing from {.code synth} or {.code original}.")
+      cli::cli_abort(
+        "Column {.field {cn}} missing from {.code synth} or {.code original}."
+      )
     }
   }
   if (!is.list(anchor_centroids) || is.null(names(anchor_centroids))) {
@@ -110,7 +112,10 @@ synthesise_geospatial <- function(synth, original,
     cli::cli_abort(c(
       "`synth` and `original` must have the same number of rows.",
       i = "Got nrow(synth) = {nrow(synth)}, nrow(original) = {nrow(original)}.",
-      "*" = "`synthesise_geospatial()` preserves the original's NA mask cell-by-cell; the two frames must align row-by-row."
+      "*" = paste0(
+        "`synthesise_geospatial()` preserves the original's NA mask ",
+        "cell-by-cell; the two frames must align row-by-row."
+      )
     ))
   }
 
@@ -119,15 +124,17 @@ synthesise_geospatial <- function(synth, original,
 
   # 1. Per (anchor, site) replication counts in the original.
   has_xy <- !is.na(original[[lat_col]]) & !is.na(original[[lon_col]])
-  o      <- original[has_xy, c(anchor_col, lat_col, lon_col), drop = FALSE]
+  o <- original[has_xy, c(anchor_col, lat_col, lon_col), drop = FALSE]
   if (nrow(o) > 0L) {
     o$.key <- paste(as.character(o[[anchor_col]]),
-                    o[[lat_col]], o[[lon_col]], sep = "\u0001")
-    tab    <- table(o$.key)
-    keys   <- strsplit(names(tab), "\u0001", fixed = TRUE)
-    sites  <- data.frame(
+      o[[lat_col]], o[[lon_col]],
+      sep = "\u0001"
+    )
+    tab <- table(o$.key)
+    keys <- strsplit(names(tab), "\u0001", fixed = TRUE)
+    sites <- data.frame(
       anchor = vapply(keys, `[`, character(1L), 1L),
-      n      = as.integer(tab),
+      n = as.integer(tab),
       stringsAsFactors = FALSE
     )
   } else {
@@ -143,12 +150,15 @@ synthesise_geospatial <- function(synth, original,
     if (!a %in% names(anchor_centroids)) {
       cli::cli_warn(c(
         "Anchor level {.val {a}} has no centroid in {.arg anchor_centroids}.",
-        i = "Coordinates for {sum(synth_anchor == a, na.rm = TRUE)} synthetic row(s) will be NA."
+        i = paste0(
+          "Coordinates for {sum(synth_anchor == a, na.rm = TRUE)} ",
+          "synthetic row(s) will be NA."
+        )
       ))
       next
     }
     n_sites <- length(sites_by_anchor[[a]] %||% integer(0L))
-    if (n_sites == 0L) n_sites <- 1L                          # fallback
+    if (n_sites == 0L) n_sites <- 1L # fallback
     c_lat <- anchor_centroids[[a]][["lat"]]
     c_lon <- anchor_centroids[[a]][["lon"]]
     fake_sites[[a]] <- data.frame(
@@ -176,13 +186,14 @@ synthesise_geospatial <- function(synth, original,
     weights <- sites_by_anchor[[a]] %||% rep(1L, nrow(sa))
     if (length(weights) != nrow(sa)) weights <- rep(1L, nrow(sa))
     pick <- sample(seq_len(nrow(sa)),
-                   size    = length(idx),
-                   replace = TRUE,
-                   prob    = weights / sum(weights))
+      size    = length(idx),
+      replace = TRUE,
+      prob    = weights / sum(weights)
+    )
     out_lat[idx] <- sa$lat[pick] +
-                    stats::runif(length(idx), -jitter_deg, jitter_deg)
+      stats::runif(length(idx), -jitter_deg, jitter_deg)
     out_lon[idx] <- sa$lon[pick] +
-                    stats::runif(length(idx), -jitter_deg, jitter_deg)
+      stats::runif(length(idx), -jitter_deg, jitter_deg)
   }
 
   synth[[lat_col]] <- out_lat

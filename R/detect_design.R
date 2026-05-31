@@ -43,7 +43,7 @@
 #' @examples
 #' # Classic alpha-lattice (24 genotypes, 3 reps, 6 blocks per rep).
 #' if (requireNamespace("agridat", quietly = TRUE)) {
-#'   d  <- agridat::john.alpha
+#'   d <- agridat::john.alpha
 #'   ds <- detect_design(d)
 #'   print(ds)
 #' }
@@ -56,10 +56,10 @@
 #'
 #' @export
 detect_design <- function(df,
-                          roles       = NULL,
+                          roles = NULL,
                           interactive = FALSE,
-                          threshold   = 0.5,
-                          tie_delta   = 0.02) {
+                          threshold = 0.5,
+                          tie_delta = 0.02) {
   if (!is.data.frame(df)) {
     cli::cli_abort("`df` must be a data frame; got {.cls {class(df)[1]}}.")
   }
@@ -74,15 +74,17 @@ detect_design <- function(df,
   names(results) <- names(.rules_all)
   scores <- vapply(results, `[[`, numeric(1L), "score")
 
-  picked <- .pick_top_class(scores, threshold = threshold,
-                            tie_delta = tie_delta)
+  picked <- .pick_top_class(scores,
+    threshold = threshold,
+    tie_delta = tie_delta
+  )
 
   warnings_msgs <- character(0L)
 
   # Interactive tie-break.
   if (interactive && !is.na(picked) && length(scores) > 1L) {
     ordered <- sort(scores, decreasing = TRUE)
-    top2    <- names(ordered)[1:2]
+    top2 <- names(ordered)[1:2]
     if (abs(ordered[1L] - ordered[2L]) <= tie_delta && top2[1L] != top2[2L]) {
       chosen <- .interactive_tie_break(top2, scores, results, df)
       if (!is.na(chosen)) picked <- chosen
@@ -99,13 +101,19 @@ detect_design <- function(df,
 
 # Pick the top class label using a simpler-is-better tie-break.
 .pick_top_class <- function(scores, threshold, tie_delta) {
-  if (length(scores) == 0L) return(NA_character_)
+  if (length(scores) == 0L) {
+    return(NA_character_)
+  }
   top <- max(scores)
-  if (top < threshold) return(NA_character_)
+  if (top < threshold) {
+    return(NA_character_)
+  }
 
   # Order from simpler to more complex.
-  order_simpler <- c("CRD", "RCBD", "factorial",
-                     "IBD/alpha-lattice", "row-column", "split-plot")
+  order_simpler <- c(
+    "CRD", "RCBD", "factorial",
+    "IBD/alpha-lattice", "row-column", "split-plot"
+  )
   contenders <- names(scores)[scores >= top - tie_delta]
   # Filter to contenders in the simpler-order list, then pick the earliest.
   contenders_ord <- order_simpler[order_simpler %in% contenders]
@@ -119,7 +127,9 @@ detect_design <- function(df,
 # utils::menu() so we keep cli as a hard runtime dep but don't need any
 # cli function that isn't part of the stable surface.
 .interactive_tie_break <- function(top2, scores, results, df) {
-  if (!interactive()) return(top2[1L])
+  if (!interactive()) {
+    return(top2[1L])
+  }
 
   choices <- vapply(top2, function(nm) {
     ev <- results[[nm]]$evidence
@@ -133,8 +143,10 @@ detect_design <- function(df,
 
   cli::cli_alert_info("Two designs are close. Which fits better?")
   pick <- tryCatch(
-    utils::menu(choices = choices, graphics = FALSE,
-                title = "Pick one (0 to accept the simpler default)"),
+    utils::menu(
+      choices = choices, graphics = FALSE,
+      title = "Pick one (0 to accept the simpler default)"
+    ),
     error = function(e) 0L
   )
   if (is.null(pick) || !is.numeric(pick) || pick < 1L || pick > length(top2)) {
@@ -146,17 +158,17 @@ detect_design <- function(df,
 .build_design_summary <- function(label, result, scores, cands, warnings_msgs) {
   ev <- result$evidence %||% list()
 
-  treatment_col  <- ev$treatment_col %||% character(0L)
+  treatment_col <- ev$treatment_col %||% character(0L)
   # `block_cols` always holds the BASIS columns (real names in df).
   # The label (e.g., "rep:block") lives in evidence$block_col for printing.
-  block_cols     <- character(0L)
+  block_cols <- character(0L)
   if (!is.null(ev$block_basis)) {
     block_cols <- ev$block_basis
   } else if (!is.null(ev$block_col)) {
     block_cols <- ev$block_col
   }
   whole_plot_col <- ev$whole_plot_col %||% character(0L)
-  sub_plot_col   <- ev$sub_plot_col   %||% character(0L)
+  sub_plot_col <- ev$sub_plot_col %||% character(0L)
   spatial_cols <- character(0L)
   if (!is.null(ev$row_col) && !is.null(ev$col_col)) {
     spatial_cols <- c(ev$row_col, ev$col_col)
@@ -166,18 +178,18 @@ detect_design <- function(df,
   }
 
   design_summary(
-    class_label       = label,
-    treatment_col     = treatment_col,
-    block_cols        = block_cols,
-    whole_plot_col    = whole_plot_col,
-    sub_plot_col      = sub_plot_col,
-    spatial_cols      = spatial_cols,
-    scores            = scores,
-    evidence          = ev,
+    class_label = label,
+    treatment_col = treatment_col,
+    block_cols = block_cols,
+    whole_plot_col = whole_plot_col,
+    sub_plot_col = sub_plot_col,
+    spatial_cols = spatial_cols,
+    scores = scores,
+    evidence = ev,
     recommended_roles = result$recommended_roles %||%
-                          .empty_recommended_roles(),
-    candidates        = cands,
-    warnings          = warnings_msgs
+      .empty_recommended_roles(),
+    candidates = cands,
+    warnings = warnings_msgs
   )
 }
 
@@ -198,12 +210,16 @@ detect_design <- function(df,
 }
 
 .empty_recommended_roles <- function() {
-  data.frame(col = character(0L), role = character(0L),
-             stringsAsFactors = FALSE)
+  data.frame(
+    col = character(0L), role = character(0L),
+    stringsAsFactors = FALSE
+  )
 }
 
 # A tiny null-coalescer used in a handful of places.
-`%||%` <- function(a, b) if (is.null(a) || (is.atomic(a) && length(a) == 0L)) b else a
+`%||%` <- function(a, b) {
+  if (is.null(a) || (is.atomic(a) && length(a) == 0L)) b else a
+}
 
 # S7 design_summary class — returned by detect_design().
 # Internal constructor; users get instances via detect_design() and
@@ -215,7 +231,7 @@ detect_design <- function(df,
 #' @noRd
 design_summary <- S7::new_class(
   "design_summary",
-  package    = "masque",
+  package = "masque",
   properties = list(
     class_label       = S7::class_character,
     treatment_col     = S7::class_character,

@@ -36,22 +36,29 @@
 #' @export
 roles_validate <- function(roles, df = NULL) {
   if (!is.data.frame(roles)) {
-    cli::cli_abort("`roles` must be a data frame / tibble; got {.cls {class(roles)[1]}}.")
+    cli::cli_abort(
+      "`roles` must be a data frame / tibble; got {.cls {class(roles)[1]}}."
+    )
   }
 
   required <- c("col", "role", "kind")
-  missing  <- setdiff(required, names(roles))
+  missing <- setdiff(required, names(roles))
   if (length(missing)) {
     cli::cli_abort("`roles` is missing required column(s): {.field {missing}}.")
   }
 
   # Structural checks first (NAs, duplicates, df mismatches), then semantic.
   if (any(is.na(roles$role))) {
-    cli::cli_abort("`roles$role` has NA value(s) for: {.field {roles$col[is.na(roles$role)]}}.")
+    cli::cli_abort(
+      paste0(
+        "`roles$role` has NA value(s) for: ",
+        "{.field {roles$col[is.na(roles$role)]}}."
+      )
+    )
   }
 
   valid <- c("design", "treatment", "outcome", "covariate", "ignore")
-  bad   <- setdiff(unique(roles$role), valid)
+  bad <- setdiff(unique(roles$role), valid)
   if (length(bad)) {
     cli::cli_abort(c(
       "Unknown role(s) in `roles$role`: {.val {bad}}.",
@@ -69,23 +76,30 @@ roles_validate <- function(roles, df = NULL) {
       cli::cli_abort("`df` must be a data frame; got {.cls {class(df)[1]}}.")
     }
     missing_in_roles <- setdiff(names(df), roles$col)
-    extra_in_roles   <- setdiff(roles$col, names(df))
+    extra_in_roles <- setdiff(roles$col, names(df))
     if (length(missing_in_roles)) {
-      cli::cli_abort("`df` column(s) not in `roles`: {.field {missing_in_roles}}.")
+      cli::cli_abort(
+        "`df` column(s) not in `roles`: {.field {missing_in_roles}}."
+      )
     }
     if (length(extra_in_roles)) {
-      cli::cli_abort("`roles` column(s) not in `df`: {.field {extra_in_roles}}.")
+      cli::cli_abort(
+        "`roles` column(s) not in `df`: {.field {extra_in_roles}}."
+      )
     }
   }
 
   # Semantic checks last
-  n_outcome   <- sum(roles$role == "outcome")
+  n_outcome <- sum(roles$role == "outcome")
   n_treatment <- sum(roles$role == "treatment")
 
   if (n_outcome == 0L) {
     cli::cli_abort(c(
       "No column flagged as {.val outcome}.",
-      i = "`mask()` requires at least one outcome column. Edit the roles tibble and try again."
+      i = paste0(
+        "`mask()` requires at least one outcome column. ",
+        "Edit the roles tibble and try again."
+      )
     ))
   }
 
@@ -95,8 +109,15 @@ roles_validate <- function(roles, df = NULL) {
     ]
     if (length(non_num_outcome)) {
       cli::cli_abort(c(
-        "Non-numeric column(s) flagged as {.val outcome}: {.field {non_num_outcome}}.",
-        i = "{.fun mask} currently supports only numeric / integer outcomes. Re-role categorical outcomes as {.val covariate} or remove."
+        paste0(
+          "Non-numeric column(s) flagged as {.val outcome}: ",
+          "{.field {non_num_outcome}}."
+        ),
+        i = paste0(
+          "{.fun mask} currently supports only numeric / integer ",
+          "outcomes. Re-role categorical outcomes as {.val covariate} ",
+          "or remove."
+        )
       ))
     }
   }
@@ -104,10 +125,22 @@ roles_validate <- function(roles, df = NULL) {
   if (n_treatment > 1L) {
     treat_cols <- roles$col[roles$role == "treatment"]
     cli::cli_abort(c(
-      "Multiple columns ({n_treatment}) flagged as {.val treatment}: {.field {treat_cols}}.",
-      i = "{.fun mask} currently supports at most one treatment column. Joint-treatment masking is on the roadmap.",
-      "*" = "Edit the roles tibble to keep exactly one {.val treatment} column (demote the others, commonly to {.val covariate}),",
-      "*" = "or call {.code propose_roles(df, detect = FALSE)} to recover the v0.2.x byte-stable proposal before editing."
+      paste0(
+        "Multiple columns ({n_treatment}) flagged as {.val treatment}: ",
+        "{.field {treat_cols}}."
+      ),
+      i = paste0(
+        "{.fun mask} currently supports at most one treatment column. ",
+        "Joint-treatment masking is on the roadmap."
+      ),
+      "*" = paste0(
+        "Edit the roles tibble to keep exactly one {.val treatment} ",
+        "column (demote the others, commonly to {.val covariate}),"
+      ),
+      "*" = paste0(
+        "or call {.code propose_roles(df, detect = FALSE)} to recover ",
+        "the v0.2.x byte-stable proposal before editing."
+      )
     ))
   }
 

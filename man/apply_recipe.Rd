@@ -51,8 +51,8 @@ remain NA in the output (no synthesis is performed here).
 \examples{
 r <- propose_roles(iris)
 r$role[r$col == "Sepal.Length"] <- "outcome"
-r$role[r$col == "Species"]      <- "covariate"
-m   <- mask(iris, r, mode = "collaborate", seed = 1)
+r$role[r$col == "Species"] <- "covariate"
+m <- mask(iris, r, mode = "collaborate", seed = 1)
 rec <- recipe(m)
 iris_in_synth_space <- apply_recipe(iris, rec)
 head(iris_in_synth_space)

@@ -25,11 +25,11 @@ alias_levels <- function(x, prefix) {
   }
 
   if (is.factor(x)) {
-    lvls   <- levels(x)
+    lvls <- levels(x)
     if (length(lvls) == 0L) {
       return(list(x = x, map = stats::setNames(character(), character())))
     }
-    width   <- max(3L, nchar(as.character(length(lvls))))
+    width <- max(3L, nchar(as.character(length(lvls))))
     aliases <- sprintf(paste0("%s%0", width, "d"), prefix, seq_along(lvls))
     if (anyDuplicated(aliases)) {
       cli::cli_abort("Aliasing produced duplicate labels (internal bug).")
@@ -39,11 +39,11 @@ alias_levels <- function(x, prefix) {
     return(list(x = out, map = map))
   }
   if (is.character(x)) {
-    uvals  <- sort(unique(stats::na.omit(x)))
+    uvals <- sort(unique(stats::na.omit(x)))
     if (length(uvals) == 0L) {
       return(list(x = x, map = stats::setNames(character(), character())))
     }
-    width   <- max(3L, nchar(as.character(length(uvals))))
+    width <- max(3L, nchar(as.character(length(uvals))))
     aliases <- sprintf(paste0("%s%0", width, "d"), prefix, seq_along(uvals))
     if (anyDuplicated(aliases)) {
       cli::cli_abort("Aliasing produced duplicate labels (internal bug).")
@@ -53,5 +53,7 @@ alias_levels <- function(x, prefix) {
     return(list(x = out, map = map))
   }
 
-  cli::cli_abort("alias_levels() supports factor or character; got {.cls {class(x)[1]}}.")
+  cli::cli_abort(
+    "alias_levels() supports factor or character; got {.cls {class(x)[1]}}."
+  )
 }

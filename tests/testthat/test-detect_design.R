@@ -1,23 +1,27 @@
 # detect_design(): orchestrator + agridat fixture regression.
 
 test_that("detect_design() rejects non-data-frame input", {
-  expect_error(detect_design(1:10),         "must be a data frame")
-  expect_error(detect_design(list(a = 1)),  "must be a data frame")
+  expect_error(detect_design(1:10), "must be a data frame")
+  expect_error(detect_design(list(a = 1)), "must be a data frame")
 })
 
 test_that("detect_design() rejects too-small input", {
-  expect_error(detect_design(data.frame(x = 1)),       "at least 2 rows")
-  expect_error(detect_design(data.frame()),            "at least 2 rows")
+  expect_error(detect_design(data.frame(x = 1)), "at least 2 rows")
+  expect_error(detect_design(data.frame()), "at least 2 rows")
 })
 
 test_that("detect_design() returns S7 design_summary with the expected shape", {
   ds <- detect_design(iris)
   expect_true(inherits(ds, "masque::design_summary"))
-  expect_true(ds@class_label %in% c("CRD", "RCBD", "IBD/alpha-lattice",
-                                    "row-column", "split-plot",
-                                    "factorial", "none"))
-  expect_named(ds@scores, c("CRD", "RCBD", "IBD/alpha-lattice",
-                            "row-column", "split-plot", "factorial"))
+  expect_true(ds@class_label %in% c(
+    "CRD", "RCBD", "IBD/alpha-lattice",
+    "row-column", "split-plot",
+    "factorial", "none"
+  ))
+  expect_named(ds@scores, c(
+    "CRD", "RCBD", "IBD/alpha-lattice",
+    "row-column", "split-plot", "factorial"
+  ))
   expect_true(is.list(ds@evidence))
   expect_s3_class(ds@recommended_roles, "data.frame")
 })
@@ -41,7 +45,7 @@ test_that("detect_design() classifies ToothGrowth as factorial", {
   expect_setequal(ds@treatment_col, c("supp", "dose"))
 })
 
-test_that("detect_design() respects user-supplied roles for treatment override", {
+test_that("detect_design() respects user roles for treatment override", {
   d <- iris
   roles <- propose_roles(d, detect = FALSE)
   # Force a different treatment than detection would pick.
@@ -72,7 +76,7 @@ test_that("detect_design() on agridat::yates.oats -> split-plot", {
   ds <- detect_design(agridat::yates.oats)
   expect_equal(ds@class_label, "split-plot")
   expect_true(length(ds@whole_plot_col) == 1L)
-  expect_true(length(ds@sub_plot_col)   == 1L)
+  expect_true(length(ds@sub_plot_col) == 1L)
 })
 
 test_that("detect_design() on agridat::beall.webworms -> RCBD (simpler wins)", {
@@ -98,7 +102,7 @@ test_that("print(design_summary) renders without error and includes label", {
 })
 
 test_that("print(design_summary) for 'none' indicates no design detected", {
-  ds  <- detect_design(mtcars)
+  ds <- detect_design(mtcars)
   out <- capture_full(print(ds))
   expect_match(out, "none")
   expect_match(out, "No experimental design", fixed = TRUE)
