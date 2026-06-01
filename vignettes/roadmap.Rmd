@@ -85,14 +85,6 @@ new_synth <- draw_new_synthetic(rec, n = 5000, seed = 99)
 This is useful for cross-validation folds and bootstrap pipelines
 that need many synthetic draws without revealing the original.
 
-### Joint-treatment masking
-
-`mask()` currently requires at most one treatment column. A future
-release will accept multiple treatment columns and produce joint
-aliases (factorial trials, treatment combinations) with an
-order-of-magnitude larger alias namespace and a corresponding update
-to `audit_mask()`'s leakage thresholds.
-
 ## Deferred — collaboration ergonomics
 
 ### Column-name aliasing in collaborate mode

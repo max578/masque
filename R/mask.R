@@ -22,7 +22,9 @@
 #'   \item{`design`}{Byte-identical pass-through.}
 #'   \item{`treatment`}{Local: pass-through (optional opt-in seeded
 #'     permutation via `roles$mask_levels = "permute"`). Collaborate:
-#'     opaque alias `trt_NNN`.}
+#'     opaque alias `trt_NNN`. Designs with two or more treatment factors
+#'     (factorial, split-plot) are supported; each factor is aliased
+#'     independently as `<col>_trt_NNN` so the labels stay distinct.}
 #'   \item{`outcome` + numeric `covariate`}{Re-simulated jointly via a
 #'     Gaussian copula on global Pearson covariance. Empirical-quantile
 #'     marginals (type 1: returns observed values).}
@@ -210,16 +212,24 @@ mask <- function(df,
     }
   }
 
-  # Treatment column: optional local permutation OR collaborate aliasing
-  if (length(i_treatment) == 1L) {
-    treat_col <- roles$col[i_treatment]
+  # Treatment columns: optional local permutation OR collaborate aliasing.
+  # Each treatment factor (factorial / split-plot designs carry several) is
+  # masked independently. A single treatment keeps the historical `trt_NNN`
+  # alias prefix for recipe stability; with two or more, the column name is
+  # folded into the prefix (`<col>_trt_NNN`) so the opaque labels stay
+  # distinct and self-documenting, mirroring the categorical-covariate
+  # convention. Level maps are keyed by column, so each inverts on its own.
+  n_treatment <- length(i_treatment)
+  for (j in i_treatment) {
+    treat_col <- roles$col[j]
     treat_val <- df[[treat_col]]
     do_alias <- isTRUE(opts$alias_treatment_levels)
     do_perm <- (!do_alias) &&
       "mask_levels" %in% names(roles) &&
-      isTRUE(roles$mask_levels[i_treatment] == "permute")
+      isTRUE(roles$mask_levels[j] == "permute")
     if (do_alias && (is.factor(treat_val) || is.character(treat_val))) {
-      res <- alias_levels(treat_val, prefix = "trt_")
+      prefix <- if (n_treatment == 1L) "trt_" else paste0(treat_col, "_trt_")
+      res <- alias_levels(treat_val, prefix = prefix)
       synth[[treat_col]] <- res$x
       level_maps[[treat_col]] <- res$map
     } else if (do_perm && (is.factor(treat_val) || is.character(treat_val))) {

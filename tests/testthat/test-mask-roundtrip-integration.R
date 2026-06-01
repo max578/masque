@@ -84,8 +84,10 @@ test_that("Round-trip on MET tab_04 (skip if .fst fixture absent)", {
   )
 
   df <- fst::read_fst(fpath, as.data.table = FALSE)
-  # detect = FALSE: see note in test-mask-end-to-end.R; multi-treatment
-  # masking is roadmap, not v0.4.x.
+  # detect = FALSE: see note in test-mask-end-to-end.R. This fixture keeps a
+  # single treatment (Cultivar_Habit demoted) so the `trt_001` assertion below
+  # holds; joint-treatment masking has its own coverage in
+  # test-mask-multi-treatment.R.
   r <- propose_roles(df, detect = FALSE)
   r$role[r$col == "G_Yield_Tn_ha"] <- "outcome"
   r$role[r$col == "Cultivar_Habit"] <- "covariate"

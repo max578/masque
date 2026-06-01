@@ -48,7 +48,9 @@ rounded, and \code{\link[=audit_mask]{audit_mask()}} runs automatically.
 \item{\code{design}}{Byte-identical pass-through.}
 \item{\code{treatment}}{Local: pass-through (optional opt-in seeded
 permutation via \code{roles$mask_levels = "permute"}). Collaborate:
-opaque alias \code{trt_NNN}.}
+opaque alias \code{trt_NNN}. Designs with two or more treatment factors
+(factorial, split-plot) are supported; each factor is aliased
+independently as \verb{<col>_trt_NNN} so the labels stay distinct.}
 \item{\code{outcome} + numeric \code{covariate}}{Re-simulated jointly via a
 Gaussian copula on global Pearson covariance. Empirical-quantile
 marginals (type 1: returns observed values).}

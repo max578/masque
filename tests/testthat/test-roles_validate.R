@@ -50,10 +50,13 @@ test_that("roles_validate errors when no outcome flagged", {
   expect_error(roles_validate(r), "outcome")
 })
 
-test_that("roles_validate errors on multiple treatment columns", {
+test_that("roles_validate accepts multiple treatment columns", {
+  # Joint-treatment masking (factorial / split-plot designs) is supported:
+  # two or more treatment factors must validate cleanly.
   r <- make_valid_roles()
   r$role[r$col %in% c("Sepal.Width", "Petal.Width")] <- "treatment"
-  expect_error(roles_validate(r), "Multiple columns")
+  expect_invisible(roles_validate(r))
+  expect_invisible(roles_validate(r, iris))
 })
 
 test_that("roles_validate errors on duplicate col entries", {

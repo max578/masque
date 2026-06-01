@@ -93,11 +93,11 @@ test_that("mask() runs end-to-end on MET tab_04 (skip if fixture absent)", {
   )
 
   df <- fst::read_fst(fpath, as.data.table = FALSE)
-  # detect = FALSE: v0.2.x byte-stable role proposal. With detect = TRUE
-  # (the v0.3+ default), the MET fixture's design-detection legitimately
-  # labels multiple columns as treatment-like, which hits the single-
-  # treatment guard in roles_validate(). Multi-treatment masking is on
-  # the roadmap (see vignette("roadmap")).
+  # detect = FALSE: v0.2.x byte-stable role proposal, kept here so this
+  # fixture exercises the single-treatment path. With detect = TRUE (the
+  # v0.3+ default) the MET fixture's design-detection labels several columns
+  # as treatment-like; joint-treatment masking handles that and is covered in
+  # test-mask-multi-treatment.R.
   r <- propose_roles(df, detect = FALSE)
   r$role[r$col == "G_Yield_Tn_ha"] <- "outcome"
   r$role[r$col == "Cultivar_Habit"] <- "covariate"
