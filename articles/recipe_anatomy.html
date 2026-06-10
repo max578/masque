@@ -60,7 +60,7 @@
       <h1>Recipe anatomy</h1>
             
       
-      <small class="dont-index">Source: <a href="https://github.com/max578/masque/blob/main/vignettes/recipe_anatomy.Rmd" class="external-link"><code>vignettes/recipe_anatomy.Rmd</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/max578/masque/blob/v0.5.0/vignettes/recipe_anatomy.Rmd" class="external-link"><code>vignettes/recipe_anatomy.Rmd</code></a></small>
       <div class="d-none name"><code>recipe_anatomy.Rmd</code></div>
     </div>
 
@@ -143,7 +143,7 @@ level vocabularies.</p>
 <code class="sourceCode R"><span><span class="va">rec</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">──</span> <span style="font-weight: bold;">masque_recipe</span> <span style="color: #00BBBB;">───────────────────────────────────────────────────────────────────────────────────</span></span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Created: 2026-06-10 13:13:36 UTC</span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Created: 2026-06-10 13:15:31 UTC</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Mode: collaborate</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Seed: present (redacted)</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> masque version: 0.5.0</span></span>
@@ -185,7 +185,7 @@ original data with the same security class.</p>
 <code class="sourceCode R"><span><span class="va">tmp</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span>fileext <span class="op">=</span> <span class="st">".rds"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/save_recipe.html">save_recipe</a></span><span class="op">(</span><span class="va">rec</span>, <span class="va">tmp</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/file.info.html" class="external-link">file.info</a></span><span class="op">(</span><span class="va">tmp</span><span class="op">)</span><span class="op">$</span><span class="va">size</span></span>
-<span><span class="co">#&gt; [1] 6832</span></span></code></pre></div>
+<span><span class="co">#&gt; [1] 6829</span></span></code></pre></div>
 <p><code><a href="../reference/read_recipe.html">read_recipe()</a></code> validates the file and informs (does not
 error) when the recorded <code>masque_version</code> differs from the
 currently installed package version.</p>
