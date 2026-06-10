@@ -58,6 +58,66 @@ test_that("Categorical covariate frequencies are preserved", {
   expect_setequal(names(table(s$cat_c)), names(table(df$cat_c)))
 })
 
+test_that("Date and datetime covariates are retained with class and NA mask", {
+  set.seed(0)
+  n <- 60
+  df <- data.frame(
+    Rep = rep(1:3, length.out = n),
+    sowing_date = as.Date("2026-04-01") + rep(0:9, length.out = n),
+    measured_at = as.POSIXct("2026-04-01 08:00:00", tz = "UTC") +
+      seq_len(n) * 3600,
+    yield = rnorm(n),
+    stringsAsFactors = FALSE
+  )
+  df$sowing_date[c(3, 17)] <- NA
+  df$measured_at[c(5, 23)] <- NA
+
+  r <- propose_roles(df, detect = FALSE)
+  r$role[r$col == "yield"] <- "outcome"
+
+  m <- suppressWarnings(mask(df, r, mode = "collaborate", seed = 1))
+  s <- synthetic(m)
+
+  expect_true("sowing_date" %in% names(s))
+  expect_true(inherits(s$sowing_date, "Date"))
+  expect_true(inherits(s$measured_at, "POSIXct"))
+  expect_equal(is.na(s$sowing_date), is.na(df$sowing_date))
+  expect_equal(is.na(s$measured_at), is.na(df$measured_at))
+  expect_equal(
+    sort(as.character(stats::na.omit(s$sowing_date))),
+    sort(as.character(stats::na.omit(df$sowing_date)))
+  )
+  expect_equal(
+    sort(as.character(stats::na.omit(s$measured_at))),
+    sort(as.character(stats::na.omit(df$measured_at)))
+  )
+})
+
+test_that("Explicit keep columns pass through collaborate mode unchanged", {
+  set.seed(0)
+  df <- data.frame(
+    Rep = rep(1:4, 10),
+    site_label = rep(c("north", "south"), 20),
+    yield = rnorm(40),
+    stringsAsFactors = FALSE
+  )
+  r <- propose_roles(df, detect = FALSE)
+  r$role[r$col == "yield"] <- "outcome"
+  r$role[r$col == "site_label"] <- "keep"
+
+  m <- mask(df, r, mode = "collaborate", seed = 1)
+  s <- synthetic(m)
+  rec <- recipe(m)
+  fwd <- apply_recipe(df, rec)
+
+  expect_identical(s$site_label, df$site_label)
+  expect_identical(fwd$site_label, df$site_label)
+  expect_equal(
+    m@audit$notes[m@audit$col == "site_label"],
+    "kept as-is"
+  )
+})
+
 test_that("mask(mode = 'local') prints the not-for-sharing warning", {
   r <- propose_roles(iris)
   r$role[r$col == "Sepal.Length"] <- "outcome"
@@ -93,11 +153,11 @@ test_that("mask() runs end-to-end on MET tab_04 (skip if fixture absent)", {
   )
 
   df <- fst::read_fst(fpath, as.data.table = FALSE)
-  # detect = FALSE: v0.2.x byte-stable role proposal. With detect = TRUE
-  # (the v0.3+ default), the MET fixture's design-detection legitimately
-  # labels multiple columns as treatment-like, which hits the single-
-  # treatment guard in roles_validate(). Multi-treatment masking is on
-  # the roadmap (see vignette("roadmap")).
+  # detect = FALSE: v0.2.x byte-stable role proposal, kept here so this
+  # fixture exercises the single-treatment path. With detect = TRUE (the
+  # v0.3+ default) the MET fixture's design-detection labels several columns
+  # as treatment-like; joint-treatment masking handles that and is covered in
+  # test-mask-multi-treatment.R.
   r <- propose_roles(df, detect = FALSE)
   r$role[r$col == "G_Yield_Tn_ha"] <- "outcome"
   r$role[r$col == "Cultivar_Habit"] <- "covariate"

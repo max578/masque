@@ -7,7 +7,9 @@ test_that("propose_roles returns a tibble with the expected schema", {
   expect_equal(nrow(r), ncol(iris))
   expect_equal(r$col, names(iris))
   expect_true(all(
-    r$role %in% c("design", "treatment", "outcome", "covariate", "ignore")
+    r$role %in% c(
+      "design", "keep", "treatment", "outcome", "covariate", "ignore"
+    )
   ))
 })
 
@@ -126,7 +128,7 @@ test_that("ID patterns assign role = ignore", {
   expect_equal(r$role[r$col == "something"], "covariate")
 })
 
-test_that("Date and POSIXct columns default to ignore", {
+test_that("Date and POSIXct columns default to covariate", {
   df <- data.frame(
     sowing_date = as.Date(c("2026-01-01", "2026-01-02", "2026-01-03")),
     measured_at = as.POSIXct(c(
@@ -136,10 +138,22 @@ test_that("Date and POSIXct columns default to ignore", {
     stringsAsFactors = FALSE
   )
   r <- propose_roles(df)
-  expect_equal(r$role[r$col == "sowing_date"], "ignore")
-  expect_equal(r$role[r$col == "measured_at"], "ignore")
+  expect_equal(r$role[r$col == "sowing_date"], "covariate")
+  expect_equal(r$role[r$col == "measured_at"], "covariate")
   expect_equal(r$kind[r$col == "sowing_date"], "date")
   expect_equal(r$kind[r$col == "measured_at"], "datetime")
+  expect_match(r$notes[r$col == "sowing_date"], "use keep")
+})
+
+test_that("Unsupported column classes default to explicit keep", {
+  df <- data.frame(
+    payload = I(list(list(a = 1), list(a = 2), list(a = 3))),
+    yield = c(1.0, 2.0, 3.0)
+  )
+  r <- propose_roles(df, detect = FALSE)
+  expect_equal(r$kind[r$col == "payload"], "other")
+  expect_equal(r$role[r$col == "payload"], "keep")
+  expect_match(r$notes[r$col == "payload"], "keep as-is")
 })
 
 test_that("Free-text character columns default to ignore", {
@@ -200,7 +214,7 @@ test_that("propose_roles handles MET tab_04 (skip if .fst fixture absent)", {
   expect_true(r$pii_suspected[r$col == "M_CONTACT"])
   expect_equal(r$role[r$col == "M_GPS_S"], "ignore")
   expect_true(r$pii_suspected[r$col == "M_GPS_S"])
-  expect_equal(r$role[r$col == "Sowing_Date"], "ignore")
+  expect_equal(r$role[r$col == "Sowing_Date"], "covariate")
   expect_equal(r$role[r$col == "Rep"], "design")
   expect_equal(r$role[r$col == "Row"], "design")
   expect_equal(r$role[r$col == "Genotype"], "treatment")

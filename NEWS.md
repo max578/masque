@@ -1,3 +1,53 @@
+# masque 0.5.0.9000
+
+Development version focused on role-table usability and first-class date
+handling.
+
+## Usability
+
+* New `keep` role: users can now explicitly mark a column for
+  byte-identical pass-through in both local and collaborate mode. This is
+  distinct from `design`, which remains for experimental-design structure,
+  and from `ignore`, which is still dropped in collaborate mode.
+* `propose_roles()` now proposes Date / POSIX / difftime columns as
+  `covariate` rather than `ignore`. Date/time covariates are row-permuted,
+  retain their original class, and preserve the cell-level NA mask.
+* Unsupported column classes now default to `keep` with a clear note,
+  avoiding a confusing attempt to synthesize objects masque does not know
+  how to mask.
+
+## Masking and recipes
+
+* Collaborate-mode logical covariates now receive opaque level aliases,
+  matching the documented categorical-covariate contract. `apply_recipe()`
+  and `unmask()` round-trip those aliases back to logical values.
+* `detect_design()` and its candidate proposer now honour user-supplied
+  `keep` roles so explicitly-kept columns are not promoted into design
+  hints.
+
+# masque 0.5.0
+
+New feature release: joint-treatment masking. `mask()` and
+`roles_validate()` now accept designs with two or more treatment
+factors (factorial, split-plot trials).
+
+## New features
+
+* `mask()` now masks every column flagged `treatment`, not just one.
+  Each treatment factor is aliased independently. A single treatment
+  keeps the historical `trt_NNN` collaborate-mode alias prefix; with
+  two or more, the column name is folded into the prefix
+  (`<col>_trt_NNN`, e.g. `variety_trt_001`) so the opaque labels stay
+  distinct and self-documenting, mirroring the categorical-covariate
+  `<col>_LNN` convention. Aliasing each factor separately (rather than
+  the treatment *combination*) preserves the per-factor structure that
+  factorial models fit, and keeps each column's alias namespace — and
+  therefore `audit_mask()`'s leakage accounting — unchanged.
+* `roles_validate()` no longer errors when more than one column is
+  flagged `treatment`. The round-trip path (`apply_recipe()`,
+  `unmask()`) already inverted multiple per-column level maps, so
+  recovery of every treatment factor works unchanged.
+
 # masque 0.4.1
 
 Maintenance release: contract-sharpening corrections plus the

@@ -8,11 +8,10 @@
 #' \itemize{
 #'   \item missing required columns (`col`, `role`, `kind`);
 #'   \item unknown role string (not in
-#'     `c("design","treatment","outcome","covariate","ignore")`);
+#'     `c("design","keep","treatment","outcome","covariate","ignore")`);
 #'   \item any `NA` role;
 #'   \item zero columns flagged `outcome`;
-#'   \item more than one column flagged `treatment` (joint-treatment
-#'     masking is not yet supported by [mask()]);
+#'   \item unsupported `other` columns flagged as `covariate`;
 #'   \item duplicate `col` entries;
 #'   \item if `df` supplied: any `df` column missing from `roles`, or any
 #'     `roles` column missing from `df`.
@@ -57,7 +56,7 @@ roles_validate <- function(roles, df = NULL) {
     )
   }
 
-  valid <- c("design", "treatment", "outcome", "covariate", "ignore")
+  valid <- c("design", "keep", "treatment", "outcome", "covariate", "ignore")
   bad <- setdiff(unique(roles$role), valid)
   if (length(bad)) {
     cli::cli_abort(c(
@@ -91,7 +90,6 @@ roles_validate <- function(roles, df = NULL) {
 
   # Semantic checks last
   n_outcome <- sum(roles$role == "outcome")
-  n_treatment <- sum(roles$role == "treatment")
 
   if (n_outcome == 0L) {
     cli::cli_abort(c(
@@ -120,28 +118,22 @@ roles_validate <- function(roles, df = NULL) {
         )
       ))
     }
-  }
 
-  if (n_treatment > 1L) {
-    treat_cols <- roles$col[roles$role == "treatment"]
-    cli::cli_abort(c(
-      paste0(
-        "Multiple columns ({n_treatment}) flagged as {.val treatment}: ",
-        "{.field {treat_cols}}."
-      ),
-      i = paste0(
-        "{.fun mask} currently supports at most one treatment column. ",
-        "Joint-treatment masking is on the roadmap."
-      ),
-      "*" = paste0(
-        "Edit the roles tibble to keep exactly one {.val treatment} ",
-        "column (demote the others, commonly to {.val covariate}),"
-      ),
-      "*" = paste0(
-        "or call {.code propose_roles(df, detect = FALSE)} to recover ",
-        "the v0.2.x byte-stable proposal before editing."
-      )
-    ))
+    unsupported_covariate <- roles$col[
+      roles$role == "covariate" & roles$kind == "other"
+    ]
+    if (length(unsupported_covariate)) {
+      cli::cli_abort(c(
+        paste0(
+          "Unsupported column class(es) flagged as {.val covariate}: ",
+          "{.field {unsupported_covariate}}."
+        ),
+        i = paste0(
+          "Use {.val keep} to pass these columns through unchanged, ",
+          "or {.val ignore} to drop them in collaborate mode."
+        )
+      ))
+    }
   }
 
   invisible(roles)

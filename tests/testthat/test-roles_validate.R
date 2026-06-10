@@ -50,16 +50,37 @@ test_that("roles_validate errors when no outcome flagged", {
   expect_error(roles_validate(r), "outcome")
 })
 
-test_that("roles_validate errors on multiple treatment columns", {
+test_that("roles_validate accepts multiple treatment columns", {
+  # Joint-treatment masking (factorial / split-plot designs) is supported:
+  # two or more treatment factors must validate cleanly.
   r <- make_valid_roles()
   r$role[r$col %in% c("Sepal.Width", "Petal.Width")] <- "treatment"
-  expect_error(roles_validate(r), "Multiple columns")
+  expect_invisible(roles_validate(r))
+  expect_invisible(roles_validate(r, iris))
+})
+
+test_that("roles_validate accepts explicit keep columns", {
+  r <- make_valid_roles()
+  r$role[r$col == "Species"] <- "keep"
+  expect_invisible(roles_validate(r))
+  expect_invisible(roles_validate(r, iris))
 })
 
 test_that("roles_validate errors on duplicate col entries", {
   r <- make_valid_roles()
   r <- rbind(r, r[1, ])
   expect_error(roles_validate(r), "Duplicate")
+})
+
+test_that("roles_validate errors when unsupported columns are covariates", {
+  df <- data.frame(
+    payload = I(list(list(a = 1), list(a = 2), list(a = 3))),
+    yield = c(1.0, 2.0, 3.0)
+  )
+  r <- propose_roles(df, detect = FALSE)
+  r$role[r$col == "yield"] <- "outcome"
+  r$role[r$col == "payload"] <- "covariate"
+  expect_error(roles_validate(r, df), "Unsupported")
 })
 
 test_that("roles_validate cross-checks df columns when df supplied", {

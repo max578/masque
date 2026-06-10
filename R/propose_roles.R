@@ -9,14 +9,16 @@
 #' \describe{
 #'   \item{`design`}{Byte-identical pass-through. Trial / site / replicate /
 #'     block / plot / row / column / year etc.}
+#'   \item{`keep`}{Intentional byte-identical pass-through for non-design
+#'     metadata that should remain exactly as supplied.}
 #'   \item{`treatment`}{Same factor cardinality and per-level frequency;
 #'     optional label aliasing or seeded permutation.}
 #'   \item{`outcome`}{Re-simulated via Gaussian copula. Multiple allowed.}
 #'   \item{`covariate`}{Numeric: Gaussian copula (joint with outcomes).
-#'     Categorical: row-permuted, levels preserved (local) or aliased
-#'     (collaborate).}
+#'     Categorical and date/time: row-permuted, with categorical levels
+#'     preserved (local) or aliased where possible (collaborate).}
 #'   \item{`ignore`}{Dropped or passed through depending on `mask()` options;
-#'     auto-assigned for date/time, free text, and PII-pattern names.}
+#'     auto-assigned for free text and PII-pattern names.}
 #' }
 #'
 #' Default classification rules, applied in order:
@@ -25,7 +27,7 @@
 #'    `latitude`/`longitude`, `postcode`, `ssn`, `password`, `owner`,
 #'    `farmer`, `operator`, etc., case-insensitive substring) -> `ignore`
 #'    with `pii_suspected = TRUE`.
-#' 2. Date / POSIXct / POSIXlt / difftime columns -> `ignore`.
+#' 2. Date / POSIXct / POSIXlt / difftime columns -> `covariate`.
 #' 3. ID-pattern names (`\\bid\\b`, `_id$`, `^id_`) -> `ignore`.
 #' 4. Design-pattern names (`rep`, `block`, `row`, `col(umn)?`, `range`,
 #'    `plot(no)?`, `site`, `env(ironment)?`, `trial`, `year`, `season`,
@@ -60,7 +62,7 @@
 #'   \itemize{
 #'     \item `col`: column name.
 #'     \item `role`: one of `design`, `treatment`, `outcome`, `covariate`,
-#'       `ignore`.
+#'       `keep`, `ignore`.
 #'     \item `kind`: storage kind (`numeric`, `integer`, `factor`,
 #'       `character`, `logical`, `date`, `datetime`, `other`).
 #'     \item `freq_or_range`: brief summary string (range for numeric,
@@ -137,8 +139,11 @@ classify_one_column <- function(nm, x) {
     role <- "ignore"
     notes <- "PII pattern in column name -> ignore (flagged)."
   } else if (kind %in% c("date", "datetime")) {
-    role <- "ignore"
-    notes <- "Date/time column -> ignore by default."
+    role <- "covariate"
+    notes <- paste0(
+      "Date/time column -> covariate (row-permuted); ",
+      "use keep to leave unchanged."
+    )
   } else if (matches_pattern(nm, ID_PATTERN)) {
     role <- "ignore"
     notes <- "ID-pattern name -> ignore."
@@ -151,9 +156,15 @@ classify_one_column <- function(nm, x) {
   } else if (kind == "character" && is_free_text(x)) {
     role <- "ignore"
     notes <- "High-cardinality character (likely free text) -> ignore."
+  } else if (kind == "other") {
+    role <- "keep"
+    notes <- "Unsupported class -> keep as-is; re-role to ignore to drop."
   } else {
     role <- "covariate"
-    notes <- "Default -> covariate; re-role to outcome if response variable."
+    notes <- paste0(
+      "Default -> covariate; re-role to outcome if response variable, ",
+      "or keep to leave unchanged."
+    )
   }
 
   data.frame(

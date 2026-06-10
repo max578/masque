@@ -22,6 +22,15 @@ test_that("alias_levels works on character input", {
   expect_equal(length(unique(res$x)), 3L)
 })
 
+test_that("alias_levels works on logical input", {
+  x <- c(TRUE, FALSE, TRUE, NA)
+  res <- masque:::alias_levels(x, prefix = "flag_L")
+  expect_true(is.character(res$x))
+  expect_true(all(grepl("^flag_L\\d{3}$", stats::na.omit(res$x))))
+  expect_named(res$map, c("FALSE", "TRUE"))
+  expect_equal(is.na(res$x), is.na(x))
+})
+
 test_that("alias_levels preserves NAs", {
   x <- factor(c("A", "B", NA, "A", NA, "B"))
   res <- masque:::alias_levels(x, prefix = "trtX")

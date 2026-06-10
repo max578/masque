@@ -42,11 +42,13 @@ A recipe holds **runtime-minimal** state by default:
 - `created_at` — wall-clock timestamp at construction.
 - `mode` — `"local"` or `"collaborate"`.
 - `seed` — the seed passed to `mask()`, or `NULL` if not given.
-- `roles` — the per-column role tibble.
+- `roles` — the per-column role tibble (`design`, `keep`, `treatment`,
+  `outcome`, `covariate`, or `ignore`).
 - `column_name_map` — original-to-synthetic column-name map (currently
   `NULL`; reserved for a future opt-in column-aliasing flag — see
   `vignette("roadmap")`).
-- `level_maps` — per-column factor / character maps. The sensitive bit.
+- `level_maps` — per-column factor / character / logical maps. The
+  sensitive bit.
 - `storage_classes` — per-column R class of the original.
 - `factor_meta` — per-factor levels and `ordered` status.
 - `warnings` — text of any warnings raised at construction.
@@ -128,6 +130,12 @@ fwd <- apply_recipe(df, rec)
 back <- unmask(fwd, rec)
 identical(as.character(back$gen), as.character(df$gen))
 ```
+
+Columns roled `keep` are intentionally not translated: they pass through
+`mask()`, `apply_recipe()`, and `unmask()` unchanged. Date/time covariates
+are different: `mask()` row-permutes them in the synthetic, while
+`apply_recipe()` leaves the original values unchanged because the pipeline
+is being retargeted to the original data.
 
 ## Future: `include_simulator = TRUE`
 

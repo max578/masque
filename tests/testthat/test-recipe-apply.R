@@ -38,6 +38,30 @@ test_that("apply_recipe leaves numeric columns unchanged in value", {
   expect_equal(out$cov_n, f$df$cov_n)
 })
 
+test_that("logical covariate aliases round-trip back to logical values", {
+  set.seed(0)
+  n <- 90
+  df <- data.frame(
+    Rep = rep(1:3, length.out = n),
+    sprayed = rep(c(TRUE, FALSE, NA), length.out = n),
+    yield = rnorm(n),
+    stringsAsFactors = FALSE
+  )
+  r <- propose_roles(df, detect = FALSE)
+  r$role[r$col == "yield"] <- "outcome"
+  r$role[r$col == "sprayed"] <- "covariate"
+
+  m <- mask(df, r, mode = "collaborate", seed = 1)
+  s <- synthetic(m)
+  fwd <- apply_recipe(df, recipe(m))
+  back <- unmask(fwd, recipe(m))
+
+  expect_type(s$sprayed, "character")
+  expect_true(all(grepl("^sprayed_L\\d{3}$", stats::na.omit(s$sprayed))))
+  expect_type(fwd$sprayed, "character")
+  expect_identical(back$sprayed, df$sprayed)
+})
+
 test_that("apply_recipe errors when original misses a required column", {
   f <- make_collab_fixture_for_apply()
   df_short <- f$df[, setdiff(names(f$df), "Genotype")]

@@ -19,7 +19,7 @@ A tibble with one row per column, containing:
 \itemize{
 \item \code{col}: column name.
 \item \code{role}: one of \code{design}, \code{treatment}, \code{outcome}, \code{covariate},
-\code{ignore}.
+\code{keep}, \code{ignore}.
 \item \code{kind}: storage kind (\code{numeric}, \code{integer}, \code{factor},
 \code{character}, \code{logical}, \code{date}, \code{datetime}, \code{other}).
 \item \code{freq_or_range}: brief summary string (range for numeric,
@@ -39,14 +39,16 @@ Roles are exactly one of:
 \describe{
 \item{\code{design}}{Byte-identical pass-through. Trial / site / replicate /
 block / plot / row / column / year etc.}
+\item{\code{keep}}{Intentional byte-identical pass-through for non-design
+metadata that should remain exactly as supplied.}
 \item{\code{treatment}}{Same factor cardinality and per-level frequency;
 optional label aliasing or seeded permutation.}
 \item{\code{outcome}}{Re-simulated via Gaussian copula. Multiple allowed.}
 \item{\code{covariate}}{Numeric: Gaussian copula (joint with outcomes).
-Categorical: row-permuted, levels preserved (local) or aliased
-(collaborate).}
+Categorical and date/time: row-permuted, with categorical levels
+preserved (local) or aliased where possible (collaborate).}
 \item{\code{ignore}}{Dropped or passed through depending on \code{mask()} options;
-auto-assigned for date/time, free text, and PII-pattern names.}
+auto-assigned for free text and PII-pattern names.}
 }
 
 Default classification rules, applied in order:
@@ -55,7 +57,7 @@ Default classification rules, applied in order:
 \code{latitude}/\code{longitude}, \code{postcode}, \code{ssn}, \code{password}, \code{owner},
 \code{farmer}, \code{operator}, etc., case-insensitive substring) -> \code{ignore}
 with \code{pii_suspected = TRUE}.
-\item Date / POSIXct / POSIXlt / difftime columns -> \code{ignore}.
+\item Date / POSIXct / POSIXlt / difftime columns -> \code{covariate}.
 \item ID-pattern names (\verb{\\\\bid\\\\b}, \verb{_id$}, \verb{^id_}) -> \code{ignore}.
 \item Design-pattern names (\code{rep}, \code{block}, \code{row}, \verb{col(umn)?}, \code{range},
 \verb{plot(no)?}, \code{site}, \verb{env(ironment)?}, \code{trial}, \code{year}, \code{season},

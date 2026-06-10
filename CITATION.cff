@@ -5,12 +5,12 @@ title: "masque: Structurally Faithful Development Surrogates for Tabular Data"
 abstract: >-
   masque turns a single tabular dataset into a structurally faithful
   synthetic clone suitable for pipeline development. Experimental-design
-  columns and the NA pattern are preserved exactly; treatment and
-  categorical-covariate level vocabularies are optionally aliased; outcome
-  and numeric-covariate values are re-simulated via a Gaussian copula
-  that preserves the global covariance structure. A private recipe object
-  round-trips a pipeline written against the synthetic clone onto the
-  original data.
+  columns, explicitly kept columns, and the NA pattern are preserved
+  exactly; treatment and categorical-covariate level vocabularies are
+  optionally aliased; outcome and numeric-covariate values are
+  re-simulated via a Gaussian copula that preserves the global covariance
+  structure. A private recipe object round-trips a pipeline written
+  against the synthetic clone onto the original data.
 authors:
   - family-names: Moldovan
     given-names: Max
@@ -20,8 +20,8 @@ authors:
 repository-code: "https://github.com/max578/masque"
 url: "https://max578.github.io/masque/"
 license: MIT
-version: 0.4.0
-date-released: "2026-05-17"
+version: 0.5.0.9000
+date-released: "2026-06-10"
 keywords:
   - synthetic-data
   - data-masking

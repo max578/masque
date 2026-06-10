@@ -25,11 +25,10 @@ Hard errors:
 \itemize{
 \item missing required columns (\code{col}, \code{role}, \code{kind});
 \item unknown role string (not in
-\code{c("design","treatment","outcome","covariate","ignore")});
+\code{c("design","keep","treatment","outcome","covariate","ignore")});
 \item any \code{NA} role;
 \item zero columns flagged \code{outcome};
-\item more than one column flagged \code{treatment} (joint-treatment
-masking is not yet supported by \code{\link[=mask]{mask()}});
+\item unsupported \code{other} columns flagged as \code{covariate};
 \item duplicate \code{col} entries;
 \item if \code{df} supplied: any \code{df} column missing from \code{roles}, or any
 \code{roles} column missing from \code{df}.

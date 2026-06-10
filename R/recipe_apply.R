@@ -162,7 +162,8 @@ unmask <- function(x, rec, column = NULL) {
       if (!(col %in% names(out))) next
       out[[col]] <- .apply_level_map_inverse(
         out[[col]], rec@level_maps[[col]],
-        col = col
+        col = col,
+        target_class = rec@storage_classes[[col]]
       )
     }
     return(tibble::as_tibble(out))
@@ -215,7 +216,11 @@ unmask <- function(x, rec, column = NULL) {
         i = "Available: {.val {names(rec@level_maps)}}."
       ))
     }
-    return(.apply_level_map_inverse(x, rec@level_maps[[column]], col = column))
+    return(.apply_level_map_inverse(
+      x, rec@level_maps[[column]],
+      col = column,
+      target_class = rec@storage_classes[[column]]
+    ))
   }
 
   cli::cli_abort(
@@ -226,7 +231,7 @@ unmask <- function(x, rec, column = NULL) {
 # Internal: maps an original-label to its synthetic-label.
 # Fail-closed: unmapped non-NA values raise an error rather than coerce to NA.
 .apply_level_map_forward <- function(val, map, col = NULL) {
-  if (is.factor(val) || is.character(val)) {
+  if (is.factor(val) || is.character(val) || is.logical(val)) {
     val_chr <- as.character(val)
     not_na <- !is.na(val_chr)
     unmapped <- not_na & !(val_chr %in% names(map))
@@ -248,9 +253,9 @@ unmask <- function(x, rec, column = NULL) {
 }
 
 # Internal: synthetic-label -> original-label. Fail-closed (see forward).
-.apply_level_map_inverse <- function(val, map, col = NULL) {
+.apply_level_map_inverse <- function(val, map, col = NULL, target_class = NULL) {
   inv <- stats::setNames(names(map), unname(map))
-  if (is.factor(val) || is.character(val)) {
+  if (is.factor(val) || is.character(val) || is.logical(val)) {
     val_chr <- as.character(val)
     not_na <- !is.na(val_chr)
     unmapped <- not_na & !(val_chr %in% names(inv))
@@ -261,6 +266,9 @@ unmask <- function(x, rec, column = NULL) {
       )
     }
     new_chr <- ifelse(is.na(val_chr), NA_character_, unname(inv[val_chr]))
+    if (is_logical_class(target_class)) {
+      return(as_logical_labels(new_chr))
+    }
     if (is.factor(val)) {
       factor(new_chr, levels = unname(inv))
     } else {
@@ -269,6 +277,18 @@ unmask <- function(x, rec, column = NULL) {
   } else {
     val
   }
+}
+
+is_logical_class <- function(x) {
+  is.character(x) && "logical" %in% x
+}
+
+as_logical_labels <- function(x) {
+  out <- rep(NA, length(x))
+  known <- !is.na(x)
+  out[known & x == "TRUE"] <- TRUE
+  out[known & x == "FALSE"] <- FALSE
+  out
 }
 
 .fail_unmapped <- function(bad, col, direction) {
