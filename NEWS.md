@@ -45,6 +45,18 @@ guided verb.
   automatically with a one-time deprecation warning, preserving the v1
   mode semantics exactly.
 
+## Depth controls
+
+* New `alias_names` argument on `mask()` hides the column names
+  themselves - the last identifying surface a kept or design column
+  exposes. `TRUE` replaces every retained name with an opaque alias
+  (`col_001`, `col_002`, ...); a character vector aliases just the named
+  columns. The original-to-alias map lives in the (private) recipe and
+  is inverted by `apply_recipe()` and `unmask()`, so a pipeline written
+  against the aliased synthetic round-trips. This realises the
+  long-reserved `column_name_map` recipe slot. `reveal_maps()` now also
+  prints the column-name map.
+
 ## Hygiene
 
 * New `clean_table()` verb (and a `clean` argument on `mask()`, default

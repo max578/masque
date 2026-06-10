@@ -51,6 +51,15 @@
 #'   remapped to match, so a `roles` table built against the dirty names
 #'   still applies. The fixes are recorded in the recipe and re-applied
 #'   by [apply_recipe()].
+#' @param alias_names Hide the column names themselves. `FALSE` (the
+#'   default) keeps them. `TRUE` replaces every retained column name with
+#'   an opaque alias (`col_001`, `col_002`, ... in column order). A
+#'   character vector names just the columns to alias. The
+#'   original-to-alias map is stored in the recipe and inverted by
+#'   [apply_recipe()] / [unmask()], so a pipeline written against the
+#'   aliased synthetic round-trips. Column names are the last identifying
+#'   surface a kept or design column exposes; alias them when even the
+#'   schema is sensitive.
 #' @param ... Currently ignored.
 #'
 #' @return A `masque` S7 object. Use [synthetic()] and [recipe()] to
@@ -71,6 +80,7 @@ mask <- function(df,
                  mode = c("local", "collaborate"),
                  seed = NULL,
                  clean = c("auto", "report", "off"),
+                 alias_names = FALSE,
                  ...) {
   # Belt-and-braces RNG hygiene: any RNG perturbation inside mask() is
   # rolled back when the function exits, regardless of which path produced
@@ -157,6 +167,17 @@ mask <- function(df,
     }
   }
 
+  # Column-name aliasing (after the audit, which is keyed on the real
+  # column names). Renames the synthetic's columns to opaque aliases and
+  # records the map so apply_recipe() / unmask() invert it.
+  column_name_map <- .build_column_name_map(names(synth), alias_names)
+  if (!is.null(column_name_map)) {
+    nm <- names(synth)
+    hits <- nm %in% names(column_name_map)
+    nm[hits] <- unname(unlist(column_name_map[nm[hits]]))
+    names(synth) <- nm
+  }
+
   # Build the recipe.
   storage_classes <- lapply(df, function(col) class(col))
 
@@ -176,7 +197,7 @@ mask <- function(df,
     mode            = mode,
     seed            = if (is.null(seed)) NULL else as.integer(seed),
     roles           = as.data.frame(roles),
-    column_name_map = NULL,
+    column_name_map = column_name_map,
     level_maps      = level_maps,
     storage_classes = storage_classes,
     factor_meta     = factor_meta,
@@ -191,6 +212,42 @@ mask <- function(df,
     mode      = mode,
     audit     = audit_tbl
   )
+}
+
+# Internal: resolve the alias_names argument to an original -> alias
+# named list (or NULL when no columns are aliased). Aliases are
+# `col_001`, `col_002`, ... in the order the columns appear in `cols`.
+.build_column_name_map <- function(cols, alias_names) {
+  target <- if (isTRUE(alias_names)) {
+    cols
+  } else if (is.character(alias_names)) {
+    unknown <- setdiff(alias_names, cols)
+    if (length(unknown)) {
+      cli::cli_abort(c(
+        "`alias_names` names column(s) not in the synthetic output: ",
+        x = "{.field {unknown}}",
+        i = paste0(
+          "Dropped columns cannot be aliased. Available: ",
+          "{.val {cols}}."
+        )
+      ))
+    }
+    alias_names
+  } else if (isFALSE(alias_names)) {
+    return(NULL)
+  } else {
+    cli::cli_abort(
+      "`alias_names` must be a single logical or a character vector."
+    )
+  }
+  if (!length(target)) {
+    return(NULL)
+  }
+
+  width <- max(3L, nchar(as.character(length(cols))))
+  idx <- match(target, cols)
+  aliases <- sprintf(paste0("col_%0", width, "d"), idx)
+  as.list(stats::setNames(aliases, target))
 }
 
 # Internal: orchestrate the per-action synthesis with the RNG state

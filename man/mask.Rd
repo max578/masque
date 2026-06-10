@@ -10,6 +10,7 @@ mask(
   mode = c("local", "collaborate"),
   seed = NULL,
   clean = c("auto", "report", "off"),
+  alias_names = FALSE,
   ...
 )
 }
@@ -31,6 +32,16 @@ names are legalised, the \code{roles} table's column references are
 remapped to match, so a \code{roles} table built against the dirty names
 still applies. The fixes are recorded in the recipe and re-applied
 by \code{\link[=apply_recipe]{apply_recipe()}}.}
+
+\item{alias_names}{Hide the column names themselves. \code{FALSE} (the
+default) keeps them. \code{TRUE} replaces every retained column name with
+an opaque alias (\code{col_001}, \code{col_002}, ... in column order). A
+character vector names just the columns to alias. The
+original-to-alias map is stored in the recipe and inverted by
+\code{\link[=apply_recipe]{apply_recipe()}} / \code{\link[=unmask]{unmask()}}, so a pipeline written against the
+aliased synthetic round-trips. Column names are the last identifying
+surface a kept or design column exposes; alias them when even the
+schema is sensitive.}
 
 \item{...}{Currently ignored.}
 }
