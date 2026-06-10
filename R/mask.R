@@ -212,7 +212,7 @@ mask <- function(df,
     integrity_fp    = digest::digest(is.na(df), algo = "sha256")
   )
 
-  masque(
+  masque_obj(
     synthetic = tibble::as_tibble(synth),
     recipe    = rec,
     mode      = mode,

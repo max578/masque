@@ -1,8 +1,20 @@
 # masque 0.6.0.9000
 
-Development version. The roles step becomes two-axis and a set of new
-roles arrives; this is the foundation for the v0.6.0 set layer and
-guided verb.
+Development version. A two-axis roles step, a hygiene layer, column-name
+aliasing, a multi-table set layer, and a single guided verb turn masque
+into an end-to-end tool for confidential tabular data.
+
+## The guided verb
+
+* New `masque()` is the front door: one call reads the input (a data
+  frame, a file, a folder, an Excel workbook, or a named list), proposes
+  column roles, pauses for review in an interactive session, masks,
+  audits, and - given an `out` path - writes the result. It dispatches a
+  single table through `mask()` and a multi-table input through
+  `mask_set()`, and returns the same object the lower-level verbs do, so
+  it stays fully scriptable: pass an edited `roles` table to skip the
+  prompt. (The internal S7 result class previously bound to `masque` is
+  now `masque_obj`; the class name is unchanged.)
 
 ## Two-axis roles (breaking, with an upgrade path)
 

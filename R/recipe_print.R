@@ -79,7 +79,7 @@ S7::method(format, masque_recipe) <- function(x, ...) {
   )
 }
 
-S7::method(print, masque) <- function(x, ...) {
+S7::method(print, masque_obj) <- function(x, ...) {
   cli::cli_h1("masque")
   cli::cli_bullets(c(
     "*" = sprintf("Mode: %s", x@mode),

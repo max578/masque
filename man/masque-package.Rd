@@ -2,7 +2,6 @@
 % Please edit documentation in R/masque-package.R
 \docType{package}
 \name{masque-package}
-\alias{masque}
 \alias{masque-package}
 \title{masque: Structurally Faithful Development Surrogates for Tabular Data}
 \description{

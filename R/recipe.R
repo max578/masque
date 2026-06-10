@@ -52,7 +52,7 @@ masque_recipe <- S7::new_class(
 #'
 #' @keywords internal
 #' @noRd
-masque <- S7::new_class(
+masque_obj <- S7::new_class(
   "masque",
   properties = list(
     synthetic = S7::class_data.frame,
@@ -82,7 +82,7 @@ synthetic <- function(m) {
   if (S7::S7_inherits(m, masque_set)) {
     return(m@synthetic)
   }
-  if (!S7::S7_inherits(m, masque)) {
+  if (!S7::S7_inherits(m, masque_obj)) {
     cli::cli_abort(
       "`m` must be a {.cls masque} or {.cls masque_set} object; got ",
       "{.cls {class(m)[1]}}."
@@ -111,7 +111,7 @@ recipe <- function(m) {
   if (S7::S7_inherits(m, masque_set)) {
     return(m@recipe)
   }
-  if (!S7::S7_inherits(m, masque)) {
+  if (!S7::S7_inherits(m, masque_obj)) {
     cli::cli_abort(
       "`m` must be a {.cls masque} or {.cls masque_set} object; got ",
       "{.cls {class(m)[1]}}."
