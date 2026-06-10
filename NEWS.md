@@ -45,6 +45,21 @@ guided verb.
   automatically with a one-time deprecation warning, preserving the v1
   mode semantics exactly.
 
+## Hygiene
+
+* New `clean_table()` verb (and a `clean` argument on `mask()`, default
+  `"auto"`) tidies a dirty table before masking: column names are
+  legalised (valid, unique R names), and leading / trailing whitespace
+  is trimmed from names and from character / factor labels. Both fixes
+  are reported through `cli`, recorded in the recipe, and re-applied by
+  `apply_recipe()` so retargeting still lines up.
+* Near-duplicate labels - pairs that differ only in case (`"north"` vs
+  `"North"`) or by a single edit (`"Compass"` vs `"Compas"`) - are
+  *reported, never merged*: deciding whether two similar labels are the
+  same value is a judgement masque leaves to the user. Set
+  `clean = "report"` to preview fixes without applying them, or
+  `clean = "off"` to skip hygiene entirely.
+
 ## Internal
 
 * Dropped the `MASS` dependency: the copula now draws latent normals

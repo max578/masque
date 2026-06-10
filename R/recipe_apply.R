@@ -61,6 +61,11 @@ apply_recipe <- function(original, rec, check_integrity = TRUE) {
     cli::cli_abort("`check_integrity` must be a single logical.")
   }
 
+  # Re-apply the recipe's hygiene (name legalisation + whitespace trim) so
+  # a pipeline written against the cleaned synthetic lines up with the
+  # original. Idempotent if the caller already passed a clean frame.
+  original <- .apply_cleaning_forward(original, rec@cleaning)
+
   dropped <- .recipe_dropped_cols(rec)
   retained <- setdiff(rec@roles$col, dropped)
 

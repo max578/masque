@@ -32,6 +32,10 @@ masque_recipe <- S7::new_class(
       class = S7::class_list, default = list()
     ),
     factor_meta = S7::new_property(class = S7::class_list, default = list()),
+    cleaning = S7::new_property(
+      class   = S7::new_union(S7::class_list, NULL),
+      default = NULL
+    ),
     warnings = S7::new_property(
       class = S7::class_character, default = character()
     ),

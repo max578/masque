@@ -4,7 +4,14 @@
 \alias{mask}
 \title{Mask a tabular dataset into a structurally faithful development surrogate}
 \usage{
-mask(df, roles, mode = c("local", "collaborate"), seed = NULL, ...)
+mask(
+  df,
+  roles,
+  mode = c("local", "collaborate"),
+  seed = NULL,
+  clean = c("auto", "report", "off"),
+  ...
+)
 }
 \arguments{
 \item{df}{A data frame.}
@@ -16,6 +23,14 @@ warning; see \code{\link[=roles_validate]{roles_validate()}}.}
 \item{mode}{Either \code{"local"} (default) or \code{"collaborate"}.}
 
 \item{seed}{Optional integer for reproducibility.}
+
+\item{clean}{Column-name and label hygiene before masking, passed to
+\code{\link[=clean_table]{clean_table()}}: one of \code{"auto"} (default - legalise names, trim
+whitespace, report near-duplicates), \code{"report"}, or \code{"off"}. When
+names are legalised, the \code{roles} table's column references are
+remapped to match, so a \code{roles} table built against the dirty names
+still applies. The fixes are recorded in the recipe and re-applied
+by \code{\link[=apply_recipe]{apply_recipe()}}.}
 
 \item{...}{Currently ignored.}
 }

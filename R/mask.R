@@ -44,6 +44,13 @@
 #'   warning; see [roles_validate()].
 #' @param mode Either `"local"` (default) or `"collaborate"`.
 #' @param seed Optional integer for reproducibility.
+#' @param clean Column-name and label hygiene before masking, passed to
+#'   [clean_table()]: one of `"auto"` (default - legalise names, trim
+#'   whitespace, report near-duplicates), `"report"`, or `"off"`. When
+#'   names are legalised, the `roles` table's column references are
+#'   remapped to match, so a `roles` table built against the dirty names
+#'   still applies. The fixes are recorded in the recipe and re-applied
+#'   by [apply_recipe()].
 #' @param ... Currently ignored.
 #'
 #' @return A `masque` S7 object. Use [synthetic()] and [recipe()] to
@@ -63,6 +70,7 @@ mask <- function(df,
                  roles,
                  mode = c("local", "collaborate"),
                  seed = NULL,
+                 clean = c("auto", "report", "off"),
                  ...) {
   # Belt-and-braces RNG hygiene: any RNG perturbation inside mask() is
   # rolled back when the function exits, regardless of which path produced
@@ -73,6 +81,24 @@ mask <- function(df,
     cli::cli_abort("`df` must be a data frame; got {.cls {class(df)[1]}}.")
   }
   mode <- match.arg(mode)
+  clean <- match.arg(clean)
+
+  # Hygiene first: legalise names + trim whitespace, then remap the roles
+  # table's column references so a roles table built against the dirty
+  # names still applies. `report` / `off` leave df and roles untouched.
+  cl <- clean_table(df, clean = clean, quiet = TRUE)
+  cleaning_rec <- NULL
+  if (identical(clean, "auto") &&
+    (length(cl$name_map) || length(cl$level_fixes))) {
+    df <- cl$data
+    roles <- .remap_roles_cols(roles, cl$name_map)
+    cleaning_rec <- .cleaning_record(cl)
+  } else if (nrow(cl$near_duplicates) || length(cl$name_map) ||
+    length(cl$level_fixes)) {
+    # report mode (or auto with nothing applied): still note what was seen.
+    cleaning_rec <- .cleaning_record(cl)
+  }
+
   roles <- roles_validate(roles, df, mode = mode)
   roles <- roles[match(names(df), roles$col), , drop = FALSE]
 
@@ -154,6 +180,7 @@ mask <- function(df,
     level_maps      = level_maps,
     storage_classes = storage_classes,
     factor_meta     = factor_meta,
+    cleaning        = cleaning_rec,
     warnings        = warnings_acc,
     integrity_fp    = digest::digest(is.na(df), algo = "sha256")
   )
