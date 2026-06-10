@@ -4,11 +4,18 @@ template:
   bootstrap: 5
 
 reference:
+- title: Guided masking
+  desc: The one-call front door for a table, a folder, or a workbook.
+  contents:
+  - masque
+
 - title: Role discovery
-  desc: Inspect a data frame and decide what each column is.
+  desc: Inspect a data frame and decide what each column is and how to mask it.
   contents:
   - propose_roles
+  - set_role
   - roles_validate
+  - clean_table
 
 - title: Design detection
   desc: Identify the experimental design and visualise it for sanity.
@@ -17,9 +24,12 @@ reference:
   - plot_design_summary
 
 - title: Masking
-  desc: Produce a structurally faithful synthetic clone of one tabular dataset.
+  desc: Produce a structurally faithful synthetic clone of one or many tables.
   contents:
   - mask
+  - mask_set
+  - read_set
+  - write_set
   - synthetic
   - recipe
 
@@ -52,9 +62,7 @@ articles:
   contents:
   - getting_started
   - confidentiality
-  - design_detection
   - recipe_anatomy
-  - roadmap
 
 navbar:
   structure:

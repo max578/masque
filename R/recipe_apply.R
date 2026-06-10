@@ -17,9 +17,9 @@
 #'    held by the recipe (i.e., treatment and categorical covariates in
 #'    `collaborate` mode; or treatment in `local` mode with opt-in
 #'    permutation). Unknown non-NA values fail closed.
-#' 5. **Rename columns** per `recipe@column_name_map` (currently `NULL`;
-#'    reserved for a future opt-in column-aliasing flag — see
-#'    `vignette("roadmap")`).
+#' 5. **Rename columns** per `recipe@column_name_map` when `mask()` was
+#'    called with `alias_names` (otherwise `NULL`, and names are
+#'    unchanged).
 #'
 #' Numeric columns are passed through unchanged: the synthetic-namespace
 #' for numeric columns is the same as the original. NA cells in the input

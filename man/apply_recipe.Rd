@@ -39,9 +39,9 @@ every \code{ignore} column; in \code{local} mode no columns are dropped).
 held by the recipe (i.e., treatment and categorical covariates in
 \code{collaborate} mode; or treatment in \code{local} mode with opt-in
 permutation). Unknown non-NA values fail closed.
-\item \strong{Rename columns} per \code{recipe@column_name_map} (currently \code{NULL};
-reserved for a future opt-in column-aliasing flag — see
-\code{vignette("roadmap")}).
+\item \strong{Rename columns} per \code{recipe@column_name_map} when \code{mask()} was
+called with \code{alias_names} (otherwise \code{NULL}, and names are
+unchanged).
 }
 
 Numeric columns are passed through unchanged: the synthetic-namespace

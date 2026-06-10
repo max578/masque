@@ -10,8 +10,7 @@
 #' `include_simulator = TRUE` is accepted but is currently a no-op: the
 #' recipe does not carry simulator state. The flag is reserved for a
 #' future release that will let [read_recipe()] regenerate fresh
-#' synthetic samples without access to the original data (see
-#' `vignette("roadmap")`).
+#' synthetic samples without access to the original data.
 #'
 #' Recipes are at least as sensitive as the original data. Protect the saved
 #' file at the same security class as the original.
