@@ -18,3 +18,4 @@
 ^\.zenodo\.json$
 ^critical_review_.*\.md$
 ^CONSTELLATION_MEMBER\.md$
+^data-raw$

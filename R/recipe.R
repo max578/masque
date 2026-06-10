@@ -67,19 +67,25 @@ masque <- S7::new_class(
 
 #' Extract the synthetic data from a masque object
 #'
-#' @param m A `masque` object returned by [mask()].
-#' @return A tibble: the synthetic data frame.
+#' @param m A `masque` object from [mask()], or a `masque_set` from
+#'   [mask_set()].
+#' @return For a `masque`, a tibble (the synthetic data frame); for a
+#'   `masque_set`, a named list of synthetic tables.
 #' @examples
 #' r <- propose_roles(iris)
 #' r$role[r$col == "Sepal.Length"] <- "outcome"
 #' m <- suppressWarnings(mask(iris, r, seed = 1))
 #' head(synthetic(m))
-#' @seealso [recipe()], [mask()].
+#' @seealso [recipe()], [mask()], [mask_set()].
 #' @export
 synthetic <- function(m) {
+  if (S7::S7_inherits(m, masque_set)) {
+    return(m@synthetic)
+  }
   if (!S7::S7_inherits(m, masque)) {
     cli::cli_abort(
-      "`m` must be a {.cls masque} object; got {.cls {class(m)[1]}}."
+      "`m` must be a {.cls masque} or {.cls masque_set} object; got ",
+      "{.cls {class(m)[1]}}."
     )
   }
   m@synthetic
@@ -91,19 +97,24 @@ synthetic <- function(m) {
 #' Never share alongside the synthetic. By default `print(recipe(m))`
 #' redacts all level maps; use [reveal_maps()] for an explicit reveal.
 #'
-#' @param m A `masque` object returned by [mask()].
-#' @return A `masque_recipe` S7 object.
+#' @param m A `masque` object from [mask()], or a `masque_set` from
+#'   [mask_set()].
+#' @return A `masque_recipe`, or for a set a `masque_recipe_set` bundle.
 #' @examples
 #' r <- propose_roles(iris)
 #' r$role[r$col == "Sepal.Length"] <- "outcome"
 #' m <- suppressWarnings(mask(iris, r, seed = 1))
 #' recipe(m)
-#' @seealso [synthetic()], [reveal_maps()], [mask()].
+#' @seealso [synthetic()], [reveal_maps()], [mask()], [mask_set()].
 #' @export
 recipe <- function(m) {
+  if (S7::S7_inherits(m, masque_set)) {
+    return(m@recipe)
+  }
   if (!S7::S7_inherits(m, masque)) {
     cli::cli_abort(
-      "`m` must be a {.cls masque} object; got {.cls {class(m)[1]}}."
+      "`m` must be a {.cls masque} or {.cls masque_set} object; got ",
+      "{.cls {class(m)[1]}}."
     )
   }
   m@recipe

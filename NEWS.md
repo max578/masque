@@ -45,6 +45,30 @@ guided verb.
   automatically with a one-time deprecation warning, preserving the v1
   mode semantics exactly.
 
+## Multi-table sets
+
+* New `mask_set()` masks a whole multi-table dataset at once - a folder
+  of CSV / TSV / `.fst` files, a multi-sheet Excel workbook, or a named
+  list of data frames - returning one synthetic table per input table
+  and a single private recipe bundle.
+* **Cross-table-consistent aliasing.** A column that appears in several
+  tables (a site code, a genotype name, a plot id) is detected as a
+  *link* and aliased identically everywhere it occurs, so a join written
+  against the synthetic set still resolves on the masked data. Links are
+  proposed automatically and printed; override with the `links`
+  argument, or set `links = FALSE` to mask each table independently.
+* New `read_set()` ingests the folder / workbook / list into a named
+  list of data frames (clean rectangles only - a missing header row or
+  non-rectangular sheet fails with an explanatory error). New
+  `write_set()` writes a masked set back out, mirroring the input format
+  (workbook in, workbook out; folder in, folder of CSVs out). The
+  private recipe bundle is never written by `write_set()`.
+* `synthetic()`, `recipe()`, `apply_recipe()`, and `unmask()` all
+  dispatch on the set: `synthetic()` returns the named list of tables,
+  `recipe()` the bundle, and the round-trip verbs operate table by table.
+* `data.table` joins Imports (fast `fread` / `fwrite`); `readxl` and
+  `writexl` are Suggested for the Excel paths.
+
 ## Depth controls
 
 * New `alias_names` argument on `mask()` hides the column names

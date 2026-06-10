@@ -47,6 +47,9 @@
 #' @seealso [unmask()], [mask()].
 #' @export
 apply_recipe <- function(original, rec, check_integrity = TRUE) {
+  if (S7::S7_inherits(rec, masque_recipe_set)) {
+    return(.apply_recipe_set(original, rec, check_integrity))
+  }
   if (!is.data.frame(original)) {
     cli::cli_abort(
       "`original` must be a data frame; got {.cls {class(original)[1]}}."
@@ -141,6 +144,9 @@ apply_recipe <- function(original, rec, check_integrity = TRUE) {
 #' @seealso [apply_recipe()], [mask()].
 #' @export
 unmask <- function(x, rec, column = NULL) {
+  if (S7::S7_inherits(rec, masque_recipe_set)) {
+    return(.unmask_set(x, rec))
+  }
   if (!S7::S7_inherits(rec, masque_recipe)) {
     cli::cli_abort(
       "`rec` must be a {.cls masque_recipe} object; got {.cls {class(rec)[1]}}."
@@ -227,6 +233,41 @@ unmask <- function(x, rec, column = NULL) {
   cli::cli_abort(
     "`x` must be a data frame or atomic vector; got {.cls {class(x)[1]}}."
   )
+}
+
+# Internal: apply a recipe bundle to a named list of original tables.
+# Shared link maps live on the per-table recipes already (they were
+# injected at mask time), so each table retargets with its own recipe.
+.apply_recipe_set <- function(original, rec, check_integrity) {
+  if (!is.list(original) || is.data.frame(original)) {
+    cli::cli_abort(
+      "`original` must be a named list of tables for a recipe bundle."
+    )
+  }
+  missing <- setdiff(names(rec@recipes), names(original))
+  if (length(missing)) {
+    cli::cli_abort(c(
+      "`original` is missing table(s) the bundle expects: {.val {missing}}.",
+      i = "Bundle tables: {.val {names(rec@recipes)}}."
+    ))
+  }
+  out <- lapply(names(rec@recipes), function(nm) {
+    apply_recipe(original[[nm]], rec@recipes[[nm]], check_integrity)
+  })
+  stats::setNames(out, names(rec@recipes))
+}
+
+# Internal: unmask a named list of synthetic-namespace tables back to the
+# original namespace via a recipe bundle.
+.unmask_set <- function(x, rec) {
+  if (!is.list(x) || is.data.frame(x)) {
+    cli::cli_abort(
+      "`x` must be a named list of tables for a recipe bundle."
+    )
+  }
+  shared <- intersect(names(x), names(rec@recipes))
+  out <- lapply(shared, function(nm) unmask(x[[nm]], rec@recipes[[nm]]))
+  stats::setNames(out, shared)
 }
 
 # Internal: which columns did mask() drop? Two-axis recipes record the

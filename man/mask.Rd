@@ -11,6 +11,7 @@ mask(
   seed = NULL,
   clean = c("auto", "report", "off"),
   alias_names = FALSE,
+  .shared_maps = list(),
   ...
 )
 }
@@ -42,6 +43,10 @@ original-to-alias map is stored in the recipe and inverted by
 aliased synthetic round-trips. Column names are the last identifying
 surface a kept or design column exposes; alias them when even the
 schema is sensitive.}
+
+\item{.shared_maps}{Internal. A named list of pre-computed
+\code{original -> alias} level maps for cross-table linked columns, set
+by \code{\link[=mask_set]{mask_set()}}. Not for direct use.}
 
 \item{...}{Currently ignored.}
 }

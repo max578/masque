@@ -7,10 +7,11 @@
 recipe(m)
 }
 \arguments{
-\item{m}{A \code{masque} object returned by \code{\link[=mask]{mask()}}.}
+\item{m}{A \code{masque} object from \code{\link[=mask]{mask()}}, or a \code{masque_set} from
+\code{\link[=mask_set]{mask_set()}}.}
 }
 \value{
-A \code{masque_recipe} S7 object.
+A \code{masque_recipe}, or for a set a \code{masque_recipe_set} bundle.
 }
 \description{
 The recipe is \strong{private}: at least as sensitive as the original data.
@@ -24,5 +25,5 @@ m <- suppressWarnings(mask(iris, r, seed = 1))
 recipe(m)
 }
 \seealso{
-\code{\link[=synthetic]{synthetic()}}, \code{\link[=reveal_maps]{reveal_maps()}}, \code{\link[=mask]{mask()}}.
+\code{\link[=synthetic]{synthetic()}}, \code{\link[=reveal_maps]{reveal_maps()}}, \code{\link[=mask]{mask()}}, \code{\link[=mask_set]{mask_set()}}.
 }
