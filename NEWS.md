@@ -1,8 +1,22 @@
-# masque 0.6.0.9000
+# masque 0.6.0
 
-Development version. A two-axis roles step, a hygiene layer, column-name
-aliasing, a multi-table set layer, and a single guided verb turn masque
-into an end-to-end tool for confidential tabular data.
+A two-axis roles step, a hygiene layer, column-name aliasing, a
+multi-table set layer, and a single guided verb turn masque into an
+end-to-end tool for confidential tabular data.
+
+## Breaking changes
+
+* The roles table is now **two-axis**: a `role` column (what a column
+  is) and a new `action` column (what `mask()` does to it). The role
+  vocabulary changed -- the old `keep` and `ignore` roles become the
+  `keep` and `drop` *actions*, and new roles `date`, `id`, `text`, and
+  `other` join `design` / `treatment` / `outcome` / `covariate`.
+* `mask()` no longer requires a column roled `outcome`.
+* Roles tables produced by masque 0.5.0 and earlier are upgraded
+  automatically by `roles_validate()` (and therefore by `mask()`) with a
+  one-time deprecation warning that preserves the old mode semantics, so
+  existing scripts keep working. Re-run `propose_roles()` to silence the
+  warning and adopt the new schema.
 
 ## The guided verb
 
