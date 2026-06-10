@@ -1,7 +1,9 @@
-# masque 0.5.0.9000
+# masque 0.5.0
 
-Development version focused on role-table usability and first-class date
-handling.
+New feature release: joint-treatment masking plus role-table usability
+and first-class date handling. `mask()` and `roles_validate()` now
+accept designs with two or more treatment factors (factorial,
+split-plot trials).
 
 ## Usability
 
@@ -24,12 +26,6 @@ handling.
 * `detect_design()` and its candidate proposer now honour user-supplied
   `keep` roles so explicitly-kept columns are not promoted into design
   hints.
-
-# masque 0.5.0
-
-New feature release: joint-treatment masking. `mask()` and
-`roles_validate()` now accept designs with two or more treatment
-factors (factorial, split-plot trials).
 
 ## New features
 
