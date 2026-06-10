@@ -11,7 +11,7 @@ Heuristics are seeds, not law."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">masque</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.4.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -73,7 +73,7 @@ runs.</p></dd>
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>A tibble with one row per column, containing:</p><ul><li><p><code>col</code>: column name.</p></li>
 <li><p><code>role</code>: one of <code>design</code>, <code>treatment</code>, <code>outcome</code>, <code>covariate</code>,
-<code>ignore</code>.</p></li>
+<code>keep</code>, <code>ignore</code>.</p></li>
 <li><p><code>kind</code>: storage kind (<code>numeric</code>, <code>integer</code>, <code>factor</code>,
 <code>character</code>, <code>logical</code>, <code>date</code>, <code>datetime</code>, <code>other</code>).</p></li>
 <li><p><code>freq_or_range</code>: brief summary string (range for numeric,
@@ -88,6 +88,10 @@ level count for factor, etc.).</p></li>
 <dd><p>Byte-identical pass-through. Trial / site / replicate /
 block / plot / row / column / year etc.</p></dd>
 
+<dt><code>keep</code></dt>
+<dd><p>Intentional byte-identical pass-through for non-design
+metadata that should remain exactly as supplied.</p></dd>
+
 <dt><code>treatment</code></dt>
 <dd><p>Same factor cardinality and per-level frequency;
 optional label aliasing or seeded permutation.</p></dd>
@@ -97,19 +101,19 @@ optional label aliasing or seeded permutation.</p></dd>
 
 <dt><code>covariate</code></dt>
 <dd><p>Numeric: Gaussian copula (joint with outcomes).
-Categorical: row-permuted, levels preserved (local) or aliased
-(collaborate).</p></dd>
+Categorical and date/time: row-permuted, with categorical levels
+preserved (local) or aliased where possible (collaborate).</p></dd>
 
 <dt><code>ignore</code></dt>
 <dd><p>Dropped or passed through depending on <code><a href="mask.html">mask()</a></code> options;
-auto-assigned for date/time, free text, and PII-pattern names.</p></dd>
+auto-assigned for free text and PII-pattern names.</p></dd>
 
 
 </dl><p>Default classification rules, applied in order:</p><ol><li><p>PII-pattern column names (<code>contact</code>, <code>email</code>, <code>phone</code>, <code>gps</code>,
 <code>latitude</code>/<code>longitude</code>, <code>postcode</code>, <code>ssn</code>, <code>password</code>, <code>owner</code>,
 <code>farmer</code>, <code>operator</code>, etc., case-insensitive substring) -&gt; <code>ignore</code>
 with <code>pii_suspected = TRUE</code>.</p></li>
-<li><p>Date / POSIXct / POSIXlt / difftime columns -&gt; <code>ignore</code>.</p></li>
+<li><p>Date / POSIXct / POSIXlt / difftime columns -&gt; <code>covariate</code>.</p></li>
 <li><p>ID-pattern names (<code>\\bid\\b</code>, <code>_id$</code>, <code>^id_</code>) -&gt; <code>ignore</code>.</p></li>
 <li><p>Design-pattern names (<code>rep</code>, <code>block</code>, <code>row</code>, <code>col(umn)?</code>, <code>range</code>,
 <code>plot(no)?</code>, <code>site</code>, <code>env(ironment)?</code>, <code>trial</code>, <code>year</code>, <code>season</code>,

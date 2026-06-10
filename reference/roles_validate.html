@@ -9,7 +9,7 @@ Errors are raised for every misuse the v0.2 spec calls out."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">masque</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.4.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -73,11 +73,10 @@ one-to-one column-name correspondence with <code>df</code>.</p></dd>
     <p>Hard errors:</p>
 <ul><li><p>missing required columns (<code>col</code>, <code>role</code>, <code>kind</code>);</p></li>
 <li><p>unknown role string (not in
-<code>c("design","treatment","outcome","covariate","ignore")</code>);</p></li>
+<code>c("design","keep","treatment","outcome","covariate","ignore")</code>);</p></li>
 <li><p>any <code>NA</code> role;</p></li>
 <li><p>zero columns flagged <code>outcome</code>;</p></li>
-<li><p>more than one column flagged <code>treatment</code> (joint-treatment
-masking is not yet supported by <code><a href="mask.html">mask()</a></code>);</p></li>
+<li><p>unsupported <code>other</code> columns flagged as <code>covariate</code>;</p></li>
 <li><p>duplicate <code>col</code> entries;</p></li>
 <li><p>if <code>df</code> supplied: any <code>df</code> column missing from <code>roles</code>, or any
 <code>roles</code> column missing from <code>df</code>.</p></li>

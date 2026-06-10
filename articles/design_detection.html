@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">masque</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.4.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -230,6 +230,10 @@ without re-running the detector:</p>
 <p>Without detection (v0.2 behaviour), <code>gen</code> would have been
 left as <code>covariate</code> because its column name does not match
 any treatment regex. The structural detector promotes it.</p>
+<p>Detection also respects explicit user intent. Columns already roled
+as <code>outcome</code>, <code>keep</code>, or <code>ignore</code> are
+excluded from detector candidates, so a metadata column marked
+<code>keep</code> will not be promoted into a design hint.</p>
 <p>Pass <code>detect = FALSE</code> to disable:</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">roles_v2</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/propose_roles.html">propose_roles</a></span><span class="op">(</span><span class="va">iris</span>, detect <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>

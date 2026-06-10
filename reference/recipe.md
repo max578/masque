@@ -38,10 +38,10 @@ m <- suppressWarnings(mask(iris, r, seed = 1))
 recipe(m)
 #> 
 #> ── masque_recipe ───────────────────────────────────────────────────────────────
-#> • Created: 2026-05-31 11:07:23 UTC
+#> • Created: 2026-06-10 13:13:27 UTC
 #> • Mode: local
 #> • Seed: present (redacted)
-#> • masque version: 0.4.1
+#> • masque version: 0.5.0
 #> • Integrity fingerprint: 62a4affb7e41...
 #> 
 #> ── Columns (5 total; 0 level-map(s); 0 column-name map(s)) ──

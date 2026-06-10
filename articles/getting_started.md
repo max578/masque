@@ -4,10 +4,12 @@
 
 `masque` turns a single tabular dataset into a structurally faithful
 synthetic clone you can develop a pipeline against. It preserves the
-experimental design, the NA pattern, and the global covariance of your
-outcome and numeric covariates. It does **not** anonymise; it produces
-controlled substitutes with a private `recipe` that round-trips the
-finished pipeline back onto the original data.
+experimental design, explicitly kept columns, the NA pattern, and the
+global covariance of your outcome and numeric covariates. Date/time
+covariates are retained as date/time vectors and row-permuted by
+default. It does **not** anonymise; it produces controlled substitutes
+with a private `recipe` that round-trips the finished pipeline back onto
+the original data.
 
 ### Read this first: threat model
 
@@ -20,8 +22,8 @@ synthetic.
 
 | Mode | Use case | Defaults |
 |----|----|----|
-| `local` | Owner develops on a realistic surrogate locally | Vocabulary preserved; numeric values may match observed |
-| `collaborate` | Owner shares synthetic with a collaborator while keeping the recipe private | Opaque aliasing of treatment + categorical-covariate levels; jitter on numerics; ignore columns dropped; [`audit_mask()`](https://max578.github.io/masque/reference/audit_mask.md) auto-runs |
+| `local` | Owner develops on a realistic surrogate locally | Vocabulary preserved; `keep` columns pass through; numeric values may match observed |
+| `collaborate` | Owner shares synthetic with a collaborator while keeping the recipe private | Opaque aliasing of treatment + categorical/logical covariate levels; date/time covariates row-permuted; jitter on numerics; `keep` columns pass through; `ignore` columns dropped; [`audit_mask()`](https://max578.github.io/masque/reference/audit_mask.md) auto-runs |
 
 For the full threat model and limitations, see
 [`vignette("confidentiality")`](https://max578.github.io/masque/articles/confidentiality.md).
@@ -60,7 +62,7 @@ head(df)
 
 [`propose_roles()`](https://max578.github.io/masque/reference/propose_roles.md)
 runs a heuristic classification of every column into one of
-`{design, treatment, outcome, covariate, ignore}`. The result is a
+`{design, keep, treatment, outcome, covariate, ignore}`. The result is a
 tibble that you inspect and edit.
 
 ``` r
@@ -82,6 +84,11 @@ roles
 `plot`, `rep`, `block`, `row`, and `col` are detected as design columns
 (byte-identical pass-through). `gen` is detected as a treatment factor.
 `yield` defaults to `covariate` — we re-role it as `outcome`.
+
+Use `keep` when a non-design column should remain exactly as supplied in
+both modes. Use `ignore` when a column should be dropped before
+collaboration. Date/time columns are proposed as `covariate` by default:
+they are row-permuted while retaining their class and NA pattern.
 
 ``` r
 
@@ -134,10 +141,10 @@ m_local
 #> Use `synthetic(m)` to extract data; `recipe(m)` for the recipe.
 #> 
 #> ── masque_recipe ───────────────────────────────────────────────────────────────────────────────────
-#> • Created: 2026-05-31 11:07:29 UTC
+#> • Created: 2026-06-10 13:13:34 UTC
 #> • Mode: local
 #> • Seed: present (redacted)
-#> • masque version: 0.4.1
+#> • masque version: 0.5.0
 #> • Integrity fingerprint: 0cec319ba9e2...
 #> 
 #> ── Columns (7 total; 0 level-map(s); 0 column-name map(s)) ──
@@ -187,6 +194,31 @@ identical(levels(synth_local$gen), levels(df$gen))
 #> [1] TRUE
 ```
 
+For a date/time or explicit-keep column, the intent is visible in the
+role table:
+
+``` r
+
+demo <- data.frame(
+  rep = 1:6,
+  sample_date = as.Date("2026-01-01") + 0:5,
+  lab_batch = c("A", "A", "B", "B", "C", "C"),
+  yield = c(3.1, 2.8, 4.0, 3.7, 5.2, 5.0),
+  stringsAsFactors = FALSE
+)
+demo_roles <- propose_roles(demo, detect = FALSE)
+demo_roles$role[demo_roles$col == "yield"] <- "outcome"
+demo_roles$role[demo_roles$col == "lab_batch"] <- "keep"
+demo_roles[, c("col", "role", "kind", "notes")]
+#> # A tibble: 4 × 4
+#>   col         role      kind      notes                                                             
+#>   <chr>       <chr>     <chr>     <chr>                                                             
+#> 1 rep         design    integer   Design-pattern name -> design (byte-identical).                   
+#> 2 sample_date covariate date      Date/time column -> covariate (row-permuted); use keep to leave u…
+#> 3 lab_batch   keep      character Default -> covariate; re-role to outcome if response variable, or…
+#> 4 yield       outcome   numeric   Default -> covariate; re-role to outcome if response variable, or…
+```
+
 ### Step 3: mask in collaborate mode
 
 Collaborate mode opaquely aliases the treatment and categorical-
@@ -228,10 +260,10 @@ Original labels never leak through `print(recipe(m))`:
 recipe(m_collab)
 #> 
 #> ── masque_recipe ───────────────────────────────────────────────────────────────────────────────────
-#> • Created: 2026-05-31 11:07:29 UTC
+#> • Created: 2026-06-10 13:13:34 UTC
 #> • Mode: collaborate
 #> • Seed: present (redacted)
-#> • masque version: 0.4.1
+#> • masque version: 0.5.0
 #> • Integrity fingerprint: 0cec319ba9e2...
 #> 
 #> ── Columns (7 total; 1 level-map(s); 0 column-name map(s)) ──
@@ -343,7 +375,7 @@ sensitive); the synthetic alone is what crosses the trust boundary.
 tmp <- tempfile(fileext = ".rds")
 save_recipe(recipe(m_collab), tmp)
 file.info(tmp)$size
-#> [1] 6809
+#> [1] 6836
 rec2 <- read_recipe(tmp)
 identical(rec2@masque_version, recipe(m_collab)@masque_version)
 #> [1] TRUE

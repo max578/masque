@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">masque</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.4.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -93,6 +93,10 @@ integrity-fingerprint check on <code><a href="../reference/apply_recipe.html">ap
 numeric pass-through in <code><a href="../reference/unmask.html">unmask()</a></code>; honest
 <code>exact_match_pct</code> denominator in <code><a href="../reference/audit_mask.html">audit_mask()</a></code>;
 <code><a href="../reference/synthesise_geospatial.html">synthesise_geospatial()</a></code> NA-mask source authority.</li>
+<li>v0.5.0.9000 — development version: explicit <code>keep</code> role,
+date/time covariates proposed and row-permuted by default, logical
+covariate aliasing, and validation guardrails for unsupported column
+classes.</li>
 </ul>
 </div>
 <div class="section level3">
@@ -142,15 +146,6 @@ a no-op) so:</p>
 <p>This is useful for cross-validation folds and bootstrap pipelines
 that need many synthetic draws without revealing the original.</p>
 </div>
-<div class="section level4">
-<h4 id="joint-treatment-masking">Joint-treatment masking<a class="anchor" aria-label="anchor" href="#joint-treatment-masking"></a>
-</h4>
-<p><code><a href="../reference/mask.html">mask()</a></code> currently requires at most one treatment column.
-A future release will accept multiple treatment columns and produce
-joint aliases (factorial trials, treatment combinations) with an
-order-of-magnitude larger alias namespace and a corresponding update to
-<code><a href="../reference/audit_mask.html">audit_mask()</a></code>’s leakage thresholds.</p>
-</div>
 </div>
 <div class="section level3">
 <h3 id="deferred-collaboration-ergonomics">Deferred — collaboration ergonomics<a class="anchor" aria-label="anchor" href="#deferred-collaboration-ergonomics"></a>
@@ -169,9 +164,11 @@ identities are hidden behind opaque names (<code>x_001</code>,
 <h4 id="interactive-role-builder">Interactive role builder<a class="anchor" aria-label="anchor" href="#interactive-role-builder"></a>
 </h4>
 <p><code><a href="../reference/propose_roles.html">propose_roles()</a></code> is declarative — the user edits the
-returned tibble. A thin interactive wrapper (using <code>cli</code>
-prompts for ambiguous columns) would lower the barrier for one-off use.
-The declarative core stays unchanged so scripts remain reproducible.</p>
+returned tibble, including explicit <code>keep</code> /
+<code>ignore</code> choices. A thin interactive wrapper (using
+<code>cli</code> prompts for ambiguous columns) would lower the barrier
+for one-off use. The declarative core stays unchanged so scripts remain
+reproducible.</p>
 </div>
 <div class="section level4">
 <h4 id="mask_csv-convenience-verb">

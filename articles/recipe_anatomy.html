@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">masque</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.4.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -97,14 +97,17 @@ recipe.</li>
 <code>seed</code> — the seed passed to <code><a href="../reference/mask.html">mask()</a></code>, or
 <code>NULL</code> if not given.</li>
 <li>
-<code>roles</code> — the per-column role tibble.</li>
+<code>roles</code> — the per-column role tibble
+(<code>design</code>, <code>keep</code>, <code>treatment</code>,
+<code>outcome</code>, <code>covariate</code>, or
+<code>ignore</code>).</li>
 <li>
 <code>column_name_map</code> — original-to-synthetic column-name map
 (currently <code>NULL</code>; reserved for a future opt-in
 column-aliasing flag — see <code><a href="../articles/roadmap.html">vignette("roadmap")</a></code>).</li>
 <li>
-<code>level_maps</code> — per-column factor / character maps. The
-sensitive bit.</li>
+<code>level_maps</code> — per-column factor / character / logical
+maps. The sensitive bit.</li>
 <li>
 <code>storage_classes</code> — per-column R class of the
 original.</li>
@@ -140,10 +143,10 @@ level vocabularies.</p>
 <code class="sourceCode R"><span><span class="va">rec</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">──</span> <span style="font-weight: bold;">masque_recipe</span> <span style="color: #00BBBB;">───────────────────────────────────────────────────────────────────────────────────</span></span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Created: 2026-05-31 11:07:31 UTC</span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Created: 2026-06-10 13:13:36 UTC</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Mode: collaborate</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Seed: present (redacted)</span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> masque version: 0.4.1</span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> masque version: 0.5.0</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Integrity fingerprint: 0cec319ba9e2...</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; ── <span style="font-weight: bold;">Columns (7 total; 1 level-map(s); 0 column-name map(s))</span> ──</span></span>
@@ -182,7 +185,7 @@ original data with the same security class.</p>
 <code class="sourceCode R"><span><span class="va">tmp</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span>fileext <span class="op">=</span> <span class="st">".rds"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/save_recipe.html">save_recipe</a></span><span class="op">(</span><span class="va">rec</span>, <span class="va">tmp</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/file.info.html" class="external-link">file.info</a></span><span class="op">(</span><span class="va">tmp</span><span class="op">)</span><span class="op">$</span><span class="va">size</span></span>
-<span><span class="co">#&gt; [1] 6804</span></span></code></pre></div>
+<span><span class="co">#&gt; [1] 6832</span></span></code></pre></div>
 <p><code><a href="../reference/read_recipe.html">read_recipe()</a></code> validates the file and informs (does not
 error) when the recorded <code>masque_version</code> differs from the
 currently installed package version.</p>
@@ -217,6 +220,12 @@ it:</p>
 <span><span class="va">back</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/unmask.html">unmask</a></span><span class="op">(</span><span class="va">fwd</span>, <span class="va">rec</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="va">back</span><span class="op">$</span><span class="va">gen</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="va">df</span><span class="op">$</span><span class="va">gen</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
+<p>Columns roled <code>keep</code> are intentionally not translated:
+they pass through <code><a href="../reference/mask.html">mask()</a></code>, <code><a href="../reference/apply_recipe.html">apply_recipe()</a></code>, and
+<code><a href="../reference/unmask.html">unmask()</a></code> unchanged. Date/time covariates are different:
+<code><a href="../reference/mask.html">mask()</a></code> row-permutes them in the synthetic, while
+<code><a href="../reference/apply_recipe.html">apply_recipe()</a></code> leaves the original values unchanged because
+the pipeline is being retargeted to the original data.</p>
 </div>
 <div class="section level3">
 <h3 id="future-include_simulator-true">Future: <code>include_simulator = TRUE</code><a class="anchor" aria-label="anchor" href="#future-include_simulator-true"></a>

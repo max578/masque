@@ -28,11 +28,13 @@ A recipe holds **runtime-minimal** state by default:
 - `seed` — the seed passed to
   [`mask()`](https://max578.github.io/masque/reference/mask.md), or
   `NULL` if not given.
-- `roles` — the per-column role tibble.
+- `roles` — the per-column role tibble (`design`, `keep`, `treatment`,
+  `outcome`, `covariate`, or `ignore`).
 - `column_name_map` — original-to-synthetic column-name map (currently
   `NULL`; reserved for a future opt-in column-aliasing flag — see
   [`vignette("roadmap")`](https://max578.github.io/masque/articles/roadmap.md)).
-- `level_maps` — per-column factor / character maps. The sensitive bit.
+- `level_maps` — per-column factor / character / logical maps. The
+  sensitive bit.
 - `storage_classes` — per-column R class of the original.
 - `factor_meta` — per-factor levels and `ordered` status.
 - `warnings` — text of any warnings raised at construction.
@@ -58,10 +60,10 @@ indicating whether a level map exists for each column (`*` = mapped, `=`
 rec
 #> 
 #> ── masque_recipe ───────────────────────────────────────────────────────────────────────────────────
-#> • Created: 2026-05-31 11:07:31 UTC
+#> • Created: 2026-06-10 13:13:36 UTC
 #> • Mode: collaborate
 #> • Seed: present (redacted)
-#> • masque version: 0.4.1
+#> • masque version: 0.5.0
 #> • Integrity fingerprint: 0cec319ba9e2...
 #> 
 #> ── Columns (7 total; 1 level-map(s); 0 column-name map(s)) ──
@@ -109,7 +111,7 @@ safe to store next to the original data with the same security class.
 tmp <- tempfile(fileext = ".rds")
 save_recipe(rec, tmp)
 file.info(tmp)$size
-#> [1] 6804
+#> [1] 6832
 ```
 
 [`read_recipe()`](https://max578.github.io/masque/reference/read_recipe.md)
@@ -154,6 +156,17 @@ back <- unmask(fwd, rec)
 identical(as.character(back$gen), as.character(df$gen))
 #> [1] TRUE
 ```
+
+Columns roled `keep` are intentionally not translated: they pass through
+[`mask()`](https://max578.github.io/masque/reference/mask.md),
+[`apply_recipe()`](https://max578.github.io/masque/reference/apply_recipe.md),
+and [`unmask()`](https://max578.github.io/masque/reference/unmask.md)
+unchanged. Date/time covariates are different:
+[`mask()`](https://max578.github.io/masque/reference/mask.md)
+row-permutes them in the synthetic, while
+[`apply_recipe()`](https://max578.github.io/masque/reference/apply_recipe.md)
+leaves the original values unchanged because the pipeline is being
+retargeted to the original data.
 
 ### Future: `include_simulator = TRUE`
 

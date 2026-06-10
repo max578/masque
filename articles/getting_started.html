@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">masque</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.4.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -71,11 +71,12 @@
 </h2>
 <p><code>masque</code> turns a single tabular dataset into a
 structurally faithful synthetic clone you can develop a pipeline
-against. It preserves the experimental design, the NA pattern, and the
-global covariance of your outcome and numeric covariates. It does
-<strong>not</strong> anonymise; it produces controlled substitutes with
-a private <code>recipe</code> that round-trips the finished pipeline
-back onto the original data.</p>
+against. It preserves the experimental design, explicitly kept columns,
+the NA pattern, and the global covariance of your outcome and numeric
+covariates. Date/time covariates are retained as date/time vectors and
+row-permuted by default. It does <strong>not</strong> anonymise; it
+produces controlled substitutes with a private <code>recipe</code> that
+round-trips the finished pipeline back onto the original data.</p>
 <div class="section level3">
 <h3 id="read-this-first-threat-model">Read this first: threat model<a class="anchor" aria-label="anchor" href="#read-this-first-threat-model"></a>
 </h3>
@@ -99,15 +100,17 @@ share it alongside the synthetic.</p>
 <tr class="odd">
 <td><code>local</code></td>
 <td>Owner develops on a realistic surrogate locally</td>
-<td>Vocabulary preserved; numeric values may match observed</td>
+<td>Vocabulary preserved; <code>keep</code> columns pass through;
+numeric values may match observed</td>
 </tr>
 <tr class="even">
 <td><code>collaborate</code></td>
 <td>Owner shares synthetic with a collaborator while keeping the recipe
 private</td>
-<td>Opaque aliasing of treatment + categorical-covariate levels; jitter
-on numerics; ignore columns dropped; <code><a href="../reference/audit_mask.html">audit_mask()</a></code>
-auto-runs</td>
+<td>Opaque aliasing of treatment + categorical/logical covariate levels;
+date/time covariates row-permuted; jitter on numerics; <code>keep</code>
+columns pass through; <code>ignore</code> columns dropped;
+<code><a href="../reference/audit_mask.html">audit_mask()</a></code> auto-runs</td>
 </tr>
 </tbody>
 </table>
@@ -147,8 +150,8 @@ small CSV in <code>inst/extdata/</code>.</p>
 </h3>
 <p><code><a href="../reference/propose_roles.html">propose_roles()</a></code> runs a heuristic classification of every
 column into one of
-<code>{design, treatment, outcome, covariate, ignore}</code>. The result
-is a tibble that you inspect and edit.</p>
+<code>{design, keep, treatment, outcome, covariate, ignore}</code>. The
+result is a tibble that you inspect and edit.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">roles</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/propose_roles.html">propose_roles</a></span><span class="op">(</span><span class="va">df</span><span class="op">)</span></span>
 <span><span class="va">roles</span></span>
@@ -167,6 +170,11 @@ is a tibble that you inspect and edit.</p>
 (byte-identical pass-through). <code>gen</code> is detected as a
 treatment factor. <code>yield</code> defaults to <code>covariate</code>
 — we re-role it as <code>outcome</code>.</p>
+<p>Use <code>keep</code> when a non-design column should remain exactly
+as supplied in both modes. Use <code>ignore</code> when a column should
+be dropped before collaboration. Date/time columns are proposed as
+<code>covariate</code> by default: they are row-permuted while retaining
+their class and NA pattern.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">roles</span><span class="op">$</span><span class="va">role</span><span class="op">[</span><span class="va">roles</span><span class="op">$</span><span class="va">col</span> <span class="op">==</span> <span class="st">"yield"</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="st">"outcome"</span></span>
 <span><span class="va">roles</span></span>
@@ -207,10 +215,10 @@ synthetic is not for external sharing.</p>
 <span><span class="co">#&gt; Use `synthetic(m)` to extract data; `recipe(m)` for the recipe.</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">──</span> <span style="font-weight: bold;">masque_recipe</span> <span style="color: #00BBBB;">───────────────────────────────────────────────────────────────────────────────────</span></span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Created: 2026-05-31 11:07:29 UTC</span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Created: 2026-06-10 13:13:34 UTC</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Mode: local</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Seed: present (redacted)</span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> masque version: 0.4.1</span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> masque version: 0.5.0</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Integrity fingerprint: 0cec319ba9e2...</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; ── <span style="font-weight: bold;">Columns (7 total; 0 level-map(s); 0 column-name map(s))</span> ──</span></span>
@@ -249,6 +257,27 @@ are preserved.</p>
 <span><span class="co">#&gt; [1] TRUE</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/levels.html" class="external-link">levels</a></span><span class="op">(</span><span class="va">synth_local</span><span class="op">$</span><span class="va">gen</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/levels.html" class="external-link">levels</a></span><span class="op">(</span><span class="va">df</span><span class="op">$</span><span class="va">gen</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
+<p>For a date/time or explicit-keep column, the intent is visible in the
+role table:</p>
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">demo</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
+<span>  rep <span class="op">=</span> <span class="fl">1</span><span class="op">:</span><span class="fl">6</span>,</span>
+<span>  sample_date <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/as.Date.html" class="external-link">as.Date</a></span><span class="op">(</span><span class="st">"2026-01-01"</span><span class="op">)</span> <span class="op">+</span> <span class="fl">0</span><span class="op">:</span><span class="fl">5</span>,</span>
+<span>  lab_batch <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"A"</span>, <span class="st">"A"</span>, <span class="st">"B"</span>, <span class="st">"B"</span>, <span class="st">"C"</span>, <span class="st">"C"</span><span class="op">)</span>,</span>
+<span>  yield <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">3.1</span>, <span class="fl">2.8</span>, <span class="fl">4.0</span>, <span class="fl">3.7</span>, <span class="fl">5.2</span>, <span class="fl">5.0</span><span class="op">)</span>,</span>
+<span>  stringsAsFactors <span class="op">=</span> <span class="cn">FALSE</span></span>
+<span><span class="op">)</span></span>
+<span><span class="va">demo_roles</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/propose_roles.html">propose_roles</a></span><span class="op">(</span><span class="va">demo</span>, detect <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span><span class="va">demo_roles</span><span class="op">$</span><span class="va">role</span><span class="op">[</span><span class="va">demo_roles</span><span class="op">$</span><span class="va">col</span> <span class="op">==</span> <span class="st">"yield"</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="st">"outcome"</span></span>
+<span><span class="va">demo_roles</span><span class="op">$</span><span class="va">role</span><span class="op">[</span><span class="va">demo_roles</span><span class="op">$</span><span class="va">col</span> <span class="op">==</span> <span class="st">"lab_batch"</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="st">"keep"</span></span>
+<span><span class="va">demo_roles</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"col"</span>, <span class="st">"role"</span>, <span class="st">"kind"</span>, <span class="st">"notes"</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 4 × 4</span></span></span>
+<span><span class="co">#&gt;   col         role      kind      notes                                                             </span></span>
+<span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>       <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>                                                             </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> rep         design    integer   Design-pattern name -&gt; design (byte-identical).                   </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span> sample_date covariate date      Date/time column -&gt; covariate (row-permuted); use keep to leave u…</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span> lab_batch   keep      character Default -&gt; covariate; re-role to outcome if response variable, or…</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span> yield       outcome   numeric   Default -&gt; covariate; re-role to outcome if response variable, or…</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="step-3-mask-in-collaborate-mode">Step 3: mask in collaborate mode<a class="anchor" aria-label="anchor" href="#step-3-mask-in-collaborate-mode"></a>
@@ -259,7 +288,7 @@ covariate vocabularies (<code>G01 -&gt; trt_001</code> etc.), drops
 measurement resolution, and auto-runs <code><a href="../reference/audit_mask.html">audit_mask()</a></code>. The
 synthetic is suitable for handing to a pipeline developer while the
 recipe stays private.</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">m_collab</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/mask.html">mask</a></span><span class="op">(</span><span class="va">df</span>, <span class="va">roles</span>, mode <span class="op">=</span> <span class="st">"collaborate"</span>, seed <span class="op">=</span> <span class="fl">2026</span><span class="op">)</span></span>
 <span><span class="va">synth_collab</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synthetic.html">synthetic</a></span><span class="op">(</span><span class="va">m_collab</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">synth_collab</span><span class="op">)</span></span>
@@ -273,18 +302,18 @@ recipe stays private.</p>
 <span><span class="co">#&gt; <span style="color: #BCBCBC;">5</span>     5 R1    B2    trt_021  4.53     5     1</span></span>
 <span><span class="co">#&gt; <span style="color: #BCBCBC;">6</span>     6 R1    B2    trt_010  3.14     6     1</span></span></code></pre></div>
 <p>Note <code>gen</code> is now <code>trt_NNN</code>:</p>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/levels.html" class="external-link">levels</a></span><span class="op">(</span><span class="va">synth_collab</span><span class="op">$</span><span class="va">gen</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "trt_001" "trt_002" "trt_003" "trt_004" "trt_005" "trt_006"</span></span></code></pre></div>
 <p>Original labels never leak through <code>print(recipe(m))</code>:</p>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/recipe.html">recipe</a></span><span class="op">(</span><span class="va">m_collab</span><span class="op">)</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">──</span> <span style="font-weight: bold;">masque_recipe</span> <span style="color: #00BBBB;">───────────────────────────────────────────────────────────────────────────────────</span></span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Created: 2026-05-31 11:07:29 UTC</span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Created: 2026-06-10 13:13:34 UTC</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Mode: collaborate</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Seed: present (redacted)</span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> masque version: 0.4.1</span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> masque version: 0.5.0</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Integrity fingerprint: 0cec319ba9e2...</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; ── <span style="font-weight: bold;">Columns (7 total; 1 level-map(s); 0 column-name map(s))</span> ──</span></span>
@@ -305,7 +334,7 @@ recipe stays private.</p>
 <h3 id="step-4-round-trip-a-pipeline">Step 4: round-trip a pipeline<a class="anchor" aria-label="anchor" href="#step-4-round-trip-a-pipeline"></a>
 </h3>
 <p>The classic <code>masque</code> workflow:</p>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Train a model against the synthetic namespace</span></span>
 <span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/lm.html" class="external-link">lm</a></span><span class="op">(</span><span class="va">yield</span> <span class="op">~</span> <span class="va">gen</span> <span class="op">+</span> <span class="va">rep</span>, data <span class="op">=</span> <span class="va">synth_collab</span><span class="op">)</span></span>
 <span></span>
@@ -334,7 +363,7 @@ recipe stays private.</p>
 <p>If the pipeline returned factor-valued predictions (e.g., a
 classifier predicting a treatment), <code><a href="../reference/unmask.html">unmask()</a></code> translates
 them back into the original vocabulary:</p>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">pred_factor_synth</span> <span class="op">&lt;-</span> <span class="va">synth_collab</span><span class="op">$</span><span class="va">gen</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">5</span><span class="op">]</span></span>
 <span><span class="va">pred_factor_orig</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/unmask.html">unmask</a></span><span class="op">(</span><span class="va">pred_factor_synth</span>, <span class="fu"><a href="../reference/recipe.html">recipe</a></span><span class="op">(</span><span class="va">m_collab</span><span class="op">)</span>,</span>
 <span>  column <span class="op">=</span> <span class="st">"gen"</span></span>
@@ -356,7 +385,7 @@ them back into the original vocabulary:</p>
 <p><code><a href="../reference/audit_mask.html">audit_mask()</a></code> returns a per-column leakage audit. In
 collaborate mode it runs automatically at <code><a href="../reference/mask.html">mask()</a></code> time and
 is stored on the object.</p>
-<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/audit_mask.html">audit_mask</a></span><span class="op">(</span><span class="va">m_collab</span><span class="op">)</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">──</span> <span style="font-weight: bold;">masque audit (mode = collaborate)</span> <span style="color: #00BBBB;">───────────────────────────────────────────────────────────────</span></span></span>
@@ -374,11 +403,11 @@ is stored on the object.</p>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span>   design    col                               exact-match 100.0% (jitter due step 7)</span></span></code></pre></div>
 <p>The recipe can be persisted alongside the original data (treat as
 sensitive); the synthetic alone is what crosses the trust boundary.</p>
-<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">tmp</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span>fileext <span class="op">=</span> <span class="st">".rds"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/save_recipe.html">save_recipe</a></span><span class="op">(</span><span class="fu"><a href="../reference/recipe.html">recipe</a></span><span class="op">(</span><span class="va">m_collab</span><span class="op">)</span>, <span class="va">tmp</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/file.info.html" class="external-link">file.info</a></span><span class="op">(</span><span class="va">tmp</span><span class="op">)</span><span class="op">$</span><span class="va">size</span></span>
-<span><span class="co">#&gt; [1] 6809</span></span>
+<span><span class="co">#&gt; [1] 6836</span></span>
 <span><span class="va">rec2</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/read_recipe.html">read_recipe</a></span><span class="op">(</span><span class="va">tmp</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical</a></span><span class="op">(</span><span class="va">rec2</span><span class="op">@</span><span class="va">masque_version</span>, <span class="fu"><a href="../reference/recipe.html">recipe</a></span><span class="op">(</span><span class="va">m_collab</span><span class="op">)</span><span class="op">@</span><span class="va">masque_version</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>

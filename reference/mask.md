@@ -2,11 +2,11 @@
 
 Takes one data frame and a user-edited `roles` tibble (from
 [`propose_roles()`](https://max578.github.io/masque/reference/propose_roles.md))
-and produces a synthetic clone whose experimental design and NA pattern
-are preserved, while outcome and numeric-covariate values are
-re-simulated via a Gaussian copula and categorical-covariate values are
-row-permuted. Returns a `masque` S7 object holding the synthetic data
-and a private `masque_recipe`.
+and produces a synthetic clone whose experimental design,
+explicitly-kept columns, and NA pattern are preserved, while outcome and
+numeric-covariate values are re-simulated via a Gaussian copula and
+non-numeric covariate values are row-permuted. Returns a `masque` S7
+object holding the synthetic data and a private `masque_recipe`.
 
 ## Usage
 
@@ -65,10 +65,17 @@ runs automatically.
 
   Byte-identical pass-through.
 
+- `keep`:
+
+  Intentional byte-identical pass-through in both modes.
+
 - `treatment`:
 
   Local: pass-through (optional opt-in seeded permutation via
   `roles$mask_levels = "permute"`). Collaborate: opaque alias `trt_NNN`.
+  Designs with two or more treatment factors (factorial, split-plot) are
+  supported; each factor is aliased independently as `<col>_trt_NNN` so
+  the labels stay distinct.
 
 - `outcome` + numeric `covariate`:
 
@@ -76,10 +83,11 @@ runs automatically.
   covariance. Empirical-quantile marginals (type 1: returns observed
   values).
 
-- categorical `covariate`:
+- non-numeric `covariate`:
 
-  Row-permuted within non-NA positions. Local: vocabulary preserved.
-  Collaborate: opaque alias `<col>_LNN`.
+  Row-permuted within non-NA positions. Date/time classes are preserved.
+  Local: categorical vocabulary preserved. Collaborate: factor /
+  character / logical levels receive opaque aliases `<col>_LNN`.
 
 - `ignore`:
 

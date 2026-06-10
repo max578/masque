@@ -190,6 +190,10 @@ Without detection (v0.2 behaviour), `gen` would have been left as
 `covariate` because its column name does not match any treatment regex.
 The structural detector promotes it.
 
+Detection also respects explicit user intent. Columns already roled as
+`outcome`, `keep`, or `ignore` are excluded from detector candidates, so
+a metadata column marked `keep` will not be promoted into a design hint.
+
 Pass `detect = FALSE` to disable:
 
 ``` r

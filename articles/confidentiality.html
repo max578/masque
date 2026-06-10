@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">masque</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.4.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -108,9 +108,10 @@ original</strong>.</td>
 <tr class="even">
 <td>Synthetic + external side info (e.g., publicly registered
 trial)</td>
-<td>Identity of treatments / sites</td>
-<td>Only the label vocabulary; the design footprint is preserved by
-design and is recognisable. Side info wins.</td>
+<td>Identity of treatments / sites / intentionally kept metadata</td>
+<td>Only the label vocabulary; the design footprint and any
+<code>keep</code> columns are preserved by design and are recognisable.
+Side info wins.</td>
 </tr>
 </tbody>
 </table>
@@ -168,6 +169,17 @@ geolocations).</li>
 <td>Categorical covariate levels</td>
 <td>preserved</td>
 <td>opaque alias (<code>&lt;col&gt;_L001</code>)</td>
+</tr>
+<tr class="odd">
+<td>Date/time covariates</td>
+<td>row-permuted; class preserved</td>
+<td>row-permuted; class preserved</td>
+</tr>
+<tr class="even">
+<td>
+<code>keep</code> columns</td>
+<td>pass-through</td>
+<td>pass-through</td>
 </tr>
 <tr class="odd">
 <td>
@@ -296,6 +308,16 @@ synthetic over.</li>
 <strong>Never override <code>pii_suspected = TRUE</code> without
 thinking.</strong> The heuristic is conservative; if it triggers, decide
 explicitly whether to keep the column.</li>
+<li>
+<strong>Use <code>keep</code> sparingly.</strong> It is there for
+columns your pipeline needs exactly as-is. In collaborate mode it is
+still published exactly as-is.</li>
+<li>
+<strong>Date/time columns carry real operational signal.</strong>
+They are no longer dropped by default; they are row-permuted as
+covariates. Re-role to <code>keep</code> only when exact row alignment
+is required, or to <code>ignore</code> if the schedule itself is
+sensitive.</li>
 <li>
 <strong>Small designs leak.</strong> Cell counts of 1 in any
 categorical column under collaborate mode are HIGH leakage. Aggregate or

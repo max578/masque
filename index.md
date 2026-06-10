@@ -9,7 +9,8 @@ returns a private `recipe` object that round-trips: a pipeline written
 against the synthetic can be re-targeted to the original data with no
 source changes.
 
-Version 0.4.1. Pre-CRAN; tagged releases on the GitHub repository.
+Version 0.5.0.9000 (development). Pre-CRAN; tagged releases on the
+GitHub repository.
 
 ------------------------------------------------------------------------
 

@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">masque</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.4.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -38,6 +38,30 @@
       <small>Source: <a href="https://github.com/max578/masque/blob/main/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.5.0" id="masque-050">masque 0.5.0<a class="anchor" aria-label="anchor" href="#masque-050"></a></h2>
+<p>New feature release: joint-treatment masking plus role-table usability and first-class date handling. <code><a href="../reference/mask.html">mask()</a></code> and <code><a href="../reference/roles_validate.html">roles_validate()</a></code> now accept designs with two or more treatment factors (factorial, split-plot trials).</p>
+<div class="section level3">
+<h3 id="usability-0-5-0">Usability<a class="anchor" aria-label="anchor" href="#usability-0-5-0"></a></h3>
+<ul><li>New <code>keep</code> role: users can now explicitly mark a column for byte-identical pass-through in both local and collaborate mode. This is distinct from <code>design</code>, which remains for experimental-design structure, and from <code>ignore</code>, which is still dropped in collaborate mode.</li>
+<li>
+<code><a href="../reference/propose_roles.html">propose_roles()</a></code> now proposes Date / POSIX / difftime columns as <code>covariate</code> rather than <code>ignore</code>. Date/time covariates are row-permuted, retain their original class, and preserve the cell-level NA mask.</li>
+<li>Unsupported column classes now default to <code>keep</code> with a clear note, avoiding a confusing attempt to synthesize objects masque does not know how to mask.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="masking-and-recipes-0-5-0">Masking and recipes<a class="anchor" aria-label="anchor" href="#masking-and-recipes-0-5-0"></a></h3>
+<ul><li>Collaborate-mode logical covariates now receive opaque level aliases, matching the documented categorical-covariate contract. <code><a href="../reference/apply_recipe.html">apply_recipe()</a></code> and <code><a href="../reference/unmask.html">unmask()</a></code> round-trip those aliases back to logical values.</li>
+<li>
+<code><a href="../reference/detect_design.html">detect_design()</a></code> and its candidate proposer now honour user-supplied <code>keep</code> roles so explicitly-kept columns are not promoted into design hints.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="new-features-0-5-0">New features<a class="anchor" aria-label="anchor" href="#new-features-0-5-0"></a></h3>
+<ul><li>
+<code><a href="../reference/mask.html">mask()</a></code> now masks every column flagged <code>treatment</code>, not just one. Each treatment factor is aliased independently. A single treatment keeps the historical <code>trt_NNN</code> collaborate-mode alias prefix; with two or more, the column name is folded into the prefix (<code>&lt;col&gt;_trt_NNN</code>, e.g. <code>variety_trt_001</code>) so the opaque labels stay distinct and self-documenting, mirroring the categorical-covariate <code>&lt;col&gt;_LNN</code> convention. Aliasing each factor separately (rather than the treatment <em>combination</em>) preserves the per-factor structure that factorial models fit, and keeps each column’s alias namespace — and therefore <code><a href="../reference/audit_mask.html">audit_mask()</a></code>’s leakage accounting — unchanged.</li>
+<li>
+<code><a href="../reference/roles_validate.html">roles_validate()</a></code> no longer errors when more than one column is flagged <code>treatment</code>. The round-trip path (<code><a href="../reference/apply_recipe.html">apply_recipe()</a></code>, <code><a href="../reference/unmask.html">unmask()</a></code>) already inverted multiple per-column level maps, so recovery of every treatment factor works unchanged.</li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.4.1" id="masque-041">masque 0.4.1<a class="anchor" aria-label="anchor" href="#masque-041"></a></h2>
 <p>Maintenance release: contract-sharpening corrections plus the documentation and metadata that were prepared for v0.4.0 but not released. No new public exports. The two behaviour changes below are deliberate fail-closed corrections to existing exports; user code that depended on the silent failure mode will need to be updated.</p>

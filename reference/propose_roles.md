@@ -31,7 +31,7 @@ A tibble with one row per column, containing:
 
 - `col`: column name.
 
-- `role`: one of `design`, `treatment`, `outcome`, `covariate`,
+- `role`: one of `design`, `treatment`, `outcome`, `covariate`, `keep`,
   `ignore`.
 
 - `kind`: storage kind (`numeric`, `integer`, `factor`, `character`,
@@ -53,6 +53,11 @@ Roles are exactly one of:
   Byte-identical pass-through. Trial / site / replicate / block / plot /
   row / column / year etc.
 
+- `keep`:
+
+  Intentional byte-identical pass-through for non-design metadata that
+  should remain exactly as supplied.
+
 - `treatment`:
 
   Same factor cardinality and per-level frequency; optional label
@@ -64,14 +69,15 @@ Roles are exactly one of:
 
 - `covariate`:
 
-  Numeric: Gaussian copula (joint with outcomes). Categorical:
-  row-permuted, levels preserved (local) or aliased (collaborate).
+  Numeric: Gaussian copula (joint with outcomes). Categorical and
+  date/time: row-permuted, with categorical levels preserved (local) or
+  aliased where possible (collaborate).
 
 - `ignore`:
 
   Dropped or passed through depending on
   [`mask()`](https://max578.github.io/masque/reference/mask.md) options;
-  auto-assigned for date/time, free text, and PII-pattern names.
+  auto-assigned for free text and PII-pattern names.
 
 Default classification rules, applied in order:
 
@@ -80,7 +86,7 @@ Default classification rules, applied in order:
     `farmer`, `operator`, etc., case-insensitive substring) -\> `ignore`
     with `pii_suspected = TRUE`.
 
-2.  Date / POSIXct / POSIXlt / difftime columns -\> `ignore`.
+2.  Date / POSIXct / POSIXlt / difftime columns -\> `covariate`.
 
 3.  ID-pattern names (`\\bid\\b`, `_id$`, `^id_`) -\> `ignore`.
 

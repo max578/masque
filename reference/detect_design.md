@@ -27,9 +27,9 @@ detect_design(
 
   Optional roles tibble (as returned by
   [`propose_roles()`](https://max578.github.io/masque/reference/propose_roles.md)).
-  When supplied, columns roled `outcome` / `ignore` are excluded from
-  factor candidates, and any column roled `treatment` is forced as the
-  working treatment.
+  When supplied, columns roled `outcome` / `keep` / `ignore` are
+  excluded from factor candidates, and any column roled `treatment` is
+  forced as the working treatment.
 
 - interactive:
 

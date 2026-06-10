@@ -37,6 +37,9 @@ area each one needs.
   [`audit_mask()`](https://max578.github.io/masque/reference/audit_mask.md);
   [`synthesise_geospatial()`](https://max578.github.io/masque/reference/synthesise_geospatial.md)
   NA-mask source authority.
+- v0.5.0.9000 — development version: explicit `keep` role, date/time
+  covariates proposed and row-permuted by default, logical covariate
+  aliasing, and validation guardrails for unsupported column classes.
 
 ### Deferred — joint structure and shareability
 
@@ -88,16 +91,6 @@ new_synth <- draw_new_synthetic(rec, n = 5000, seed = 99)
 This is useful for cross-validation folds and bootstrap pipelines that
 need many synthetic draws without revealing the original.
 
-#### Joint-treatment masking
-
-[`mask()`](https://max578.github.io/masque/reference/mask.md) currently
-requires at most one treatment column. A future release will accept
-multiple treatment columns and produce joint aliases (factorial trials,
-treatment combinations) with an order-of-magnitude larger alias
-namespace and a corresponding update to
-[`audit_mask()`](https://max578.github.io/masque/reference/audit_mask.md)’s
-leakage thresholds.
-
 ### Deferred — collaboration ergonomics
 
 #### Column-name aliasing in collaborate mode
@@ -112,10 +105,10 @@ already invert column-name maps if present.
 #### Interactive role builder
 
 [`propose_roles()`](https://max578.github.io/masque/reference/propose_roles.md)
-is declarative — the user edits the returned tibble. A thin interactive
-wrapper (using `cli` prompts for ambiguous columns) would lower the
-barrier for one-off use. The declarative core stays unchanged so scripts
-remain reproducible.
+is declarative — the user edits the returned tibble, including explicit
+`keep` / `ignore` choices. A thin interactive wrapper (using `cli`
+prompts for ambiguous columns) would lower the barrier for one-off use.
+The declarative core stays unchanged so scripts remain reproducible.
 
 #### `mask_csv()` convenience verb
 

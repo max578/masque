@@ -1,5 +1,62 @@
 # Changelog
 
+## masque 0.5.0
+
+New feature release: joint-treatment masking plus role-table usability
+and first-class date handling.
+[`mask()`](https://max578.github.io/masque/reference/mask.md) and
+[`roles_validate()`](https://max578.github.io/masque/reference/roles_validate.md)
+now accept designs with two or more treatment factors (factorial,
+split-plot trials).
+
+### Usability
+
+- New `keep` role: users can now explicitly mark a column for
+  byte-identical pass-through in both local and collaborate mode. This
+  is distinct from `design`, which remains for experimental-design
+  structure, and from `ignore`, which is still dropped in collaborate
+  mode.
+- [`propose_roles()`](https://max578.github.io/masque/reference/propose_roles.md)
+  now proposes Date / POSIX / difftime columns as `covariate` rather
+  than `ignore`. Date/time covariates are row-permuted, retain their
+  original class, and preserve the cell-level NA mask.
+- Unsupported column classes now default to `keep` with a clear note,
+  avoiding a confusing attempt to synthesize objects masque does not
+  know how to mask.
+
+### Masking and recipes
+
+- Collaborate-mode logical covariates now receive opaque level aliases,
+  matching the documented categorical-covariate contract.
+  [`apply_recipe()`](https://max578.github.io/masque/reference/apply_recipe.md)
+  and [`unmask()`](https://max578.github.io/masque/reference/unmask.md)
+  round-trip those aliases back to logical values.
+- [`detect_design()`](https://max578.github.io/masque/reference/detect_design.md)
+  and its candidate proposer now honour user-supplied `keep` roles so
+  explicitly-kept columns are not promoted into design hints.
+
+### New features
+
+- [`mask()`](https://max578.github.io/masque/reference/mask.md) now
+  masks every column flagged `treatment`, not just one. Each treatment
+  factor is aliased independently. A single treatment keeps the
+  historical `trt_NNN` collaborate-mode alias prefix; with two or more,
+  the column name is folded into the prefix (`<col>_trt_NNN`,
+  e.g. `variety_trt_001`) so the opaque labels stay distinct and
+  self-documenting, mirroring the categorical-covariate `<col>_LNN`
+  convention. Aliasing each factor separately (rather than the treatment
+  *combination*) preserves the per-factor structure that factorial
+  models fit, and keeps each column’s alias namespace — and therefore
+  [`audit_mask()`](https://max578.github.io/masque/reference/audit_mask.md)’s
+  leakage accounting — unchanged.
+- [`roles_validate()`](https://max578.github.io/masque/reference/roles_validate.md)
+  no longer errors when more than one column is flagged `treatment`. The
+  round-trip path
+  ([`apply_recipe()`](https://max578.github.io/masque/reference/apply_recipe.md),
+  [`unmask()`](https://max578.github.io/masque/reference/unmask.md))
+  already inverted multiple per-column level maps, so recovery of every
+  treatment factor works unchanged.
+
 ## masque 0.4.1
 
 Maintenance release: contract-sharpening corrections plus the

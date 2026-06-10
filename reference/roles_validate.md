@@ -34,15 +34,13 @@ Hard errors:
 - missing required columns (`col`, `role`, `kind`);
 
 - unknown role string (not in
-  `c("design","treatment","outcome","covariate","ignore")`);
+  `c("design","keep","treatment","outcome","covariate","ignore")`);
 
 - any `NA` role;
 
 - zero columns flagged `outcome`;
 
-- more than one column flagged `treatment` (joint-treatment masking is
-  not yet supported by
-  [`mask()`](https://max578.github.io/masque/reference/mask.md));
+- unsupported `other` columns flagged as `covariate`;
 
 - duplicate `col` entries;
 
