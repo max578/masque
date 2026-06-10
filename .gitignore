@@ -21,6 +21,7 @@ coverage.json
 Thumbs.db
 
 # Working notes / private artefacts that must never enter shared history
+CONSTELLATION_MEMBER.md
 aa_notes*
 PROJECT_LOG*.md
 research_*.md
