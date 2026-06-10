@@ -5,12 +5,12 @@
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<title>Confidentiality and threat model • masque</title>
+<title>Confidentiality and the threat model • masque</title>
 <script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <link href="../deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet">
 <script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
-<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Confidentiality and threat model">
+<script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Confidentiality and the threat model">
 </head>
 <body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">masque</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.6.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -34,10 +34,8 @@
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
 <li><a class="dropdown-item" href="../articles/getting_started.html">Getting started with masque</a></li>
-    <li><a class="dropdown-item" href="../articles/confidentiality.html">Confidentiality and threat model</a></li>
-    <li><a class="dropdown-item" href="../articles/design_detection.html">Automatic design detection</a></li>
-    <li><a class="dropdown-item" href="../articles/recipe_anatomy.html">Recipe anatomy</a></li>
-    <li><a class="dropdown-item" href="../articles/roadmap.html">Roadmap</a></li>
+    <li><a class="dropdown-item" href="../articles/confidentiality.html">Confidentiality and the threat model</a></li>
+    <li><a class="dropdown-item" href="../articles/recipe_anatomy.html">Recipe anatomy and the round-trip</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
@@ -57,10 +55,10 @@
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
 
-      <h1>Confidentiality and threat model</h1>
+      <h1>Confidentiality and the threat model</h1>
             
       
-      <small class="dont-index">Source: <a href="https://github.com/max578/masque/blob/v0.5.0/vignettes/confidentiality.Rmd" class="external-link"><code>vignettes/confidentiality.Rmd</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/max578/masque/blob/main/vignettes/confidentiality.Rmd" class="external-link"><code>vignettes/confidentiality.Rmd</code></a></small>
       <div class="d-none name"><code>confidentiality.Rmd</code></div>
     </div>
 
@@ -70,12 +68,13 @@
 <h2 id="what-masque-protects-and-what-it-does-not">What masque protects, and what it does not<a class="anchor" aria-label="anchor" href="#what-masque-protects-and-what-it-does-not"></a>
 </h2>
 <p><code>masque</code> is <strong>not</strong> a privacy-preserving or
-differential-privacy tool. It is a <strong>structurally faithful
-development surrogate</strong>. Read this vignette before sharing any
-<code>masque</code> output beyond your own machine.</p>
-<div class="section level3">
-<h3 id="threat-model">Threat model<a class="anchor" aria-label="anchor" href="#threat-model"></a>
-</h3>
+differential-privacy tool. It is a structurally faithful development
+surrogate. Read this vignette before sharing any <code>masque</code>
+output beyond your own machine.</p>
+<p>The recipe returned by <code><a href="../reference/mask.html">mask()</a></code> is at least as sensitive
+as the original data. The whole design assumes that only the
+<em>synthetic</em> crosses the trust boundary and the recipe stays with
+the custodian.</p>
 <table class="table">
 <colgroup>
 <col width="33%">
@@ -91,63 +90,82 @@ development surrogate</strong>. Read this vignette before sharing any
 <tr class="odd">
 <td>Synthetic only</td>
 <td>Original raw values</td>
-<td>Numeric exact values (collaborate); treatment vocabulary
-(collaborate); column identities (collaborate, optional)</td>
+<td>Aliased treatment / categorical vocabularies; jittered numerics;
+dropped ids and free text; optionally, the column names</td>
 </tr>
 <tr class="even">
 <td>Synthetic + recipe</td>
 <td>Original raw values</td>
-<td>Numeric exact values. The combination is <strong>as sensitive as the
-original</strong>.</td>
+<td>Nothing – the combination is as sensitive as the original</td>
 </tr>
 <tr class="odd">
 <td>Recipe only</td>
 <td>Original raw values</td>
-<td>Nothing useful — recipe is meaningless without synthetic</td>
+<td>Nothing useful – the recipe is meaningless without the
+synthetic</td>
 </tr>
 <tr class="even">
-<td>Synthetic + external side info (e.g., publicly registered
-trial)</td>
-<td>Identity of treatments / sites / intentionally kept metadata</td>
-<td>Only the label vocabulary; the design footprint and any
-<code>keep</code> columns are preserved by design and are recognisable.
-Side info wins.</td>
+<td>Synthetic + external side information</td>
+<td>Identity of treatments / sites</td>
+<td>Only the label vocabulary; a preserved design footprint or a
+<code>keep</code> column is recognisable, and side information wins</td>
 </tr>
 </tbody>
 </table>
-<p><strong>The recipe is private.</strong> Never share the recipe
-alongside the synthetic. The collaborator workflow assumes only the
-synthetic crosses the trust boundary.</p>
+<p>What <code>masque</code> does: it preserves enough structure for
+pipelines to run unchanged, exposes the privacy-versus-fidelity
+trade-off through two explicit modes, records every translation in a
+private recipe that round-trips, and audits its own output before you
+share it.</p>
+<p>What <code>masque</code> does not do: it gives no
+differential-privacy guarantee, it does not make output safe for public
+release, it does not hide rare strata, small designs, or operational
+metadata such as small site-by-year combinations or contact names, and
+it does not rewrite pipeline source code.</p>
 </div>
-<div class="section level3">
-<h3 id="what-masque-does">What <code>masque</code> does<a class="anchor" aria-label="anchor" href="#what-masque-does"></a>
-</h3>
-<ul>
-<li>Preserves enough structure for pipelines to run unchanged.</li>
-<li>Provides two explicit modes (<code>local</code> vs
-<code>collaborate</code>) so the privacy / fidelity trade-off is never
-hidden.</li>
-<li>Records every translation in a private recipe that round-trips a
-finished pipeline back onto the original data.</li>
-<li>Audits its own output via <code><a href="../reference/audit_mask.html">audit_mask()</a></code> and flags
-realistic leakage before sharing.</li>
-</ul>
-</div>
-<div class="section level3">
-<h3 id="what-masque-does-not-do">What <code>masque</code> does not do<a class="anchor" aria-label="anchor" href="#what-masque-does-not-do"></a>
-</h3>
-<ul>
-<li>It does not provide differential-privacy guarantees.</li>
-<li>It does not make outputs safe for public release.</li>
-<li>It does not anonymise rare strata, small designs, or operational
-metadata (small site x year combinations, contact names,
-geolocations).</li>
-<li>It does not rewrite arbitrary pipeline source code.</li>
-</ul>
-</div>
-<div class="section level3">
-<h3 id="mode-comparison">Mode comparison<a class="anchor" aria-label="anchor" href="#mode-comparison"></a>
-</h3>
+<div class="section level2">
+<h2 id="two-axes-of-control-roles-and-actions">Two axes of control: roles and actions<a class="anchor" aria-label="anchor" href="#two-axes-of-control-roles-and-actions"></a>
+</h2>
+<p>Since version 0.6.0, every column carries a <code>role</code> (what
+it is) and an <code>action</code> (how deeply it is masked). The mode
+sets the default action per role; you override any column you like. The
+four actions are the privacy dial:</p>
+<table class="table">
+<colgroup>
+<col width="33%">
+<col width="33%">
+<col width="33%">
+</colgroup>
+<thead><tr class="header">
+<th>Action</th>
+<th>Effect</th>
+<th>Vocabulary visible?</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td><code>keep</code></td>
+<td>byte-identical pass-through</td>
+<td>yes – real values published</td>
+</tr>
+<tr class="even">
+<td><code>scramble</code></td>
+<td>re-simulate numerics; row-permute categoricals / dates</td>
+<td>yes – labels stay, assignment moves</td>
+</tr>
+<tr class="odd">
+<td><code>alias</code></td>
+<td>scramble, then replace labels with opaque codes</td>
+<td>no</td>
+</tr>
+<tr class="even">
+<td><code>drop</code></td>
+<td>column omitted from the synthetic</td>
+<td>n/a</td>
+</tr>
+</tbody>
+</table>
+<p>The mode chooses sensible defaults so the common case is safe without
+per-column work:</p>
 <table class="table">
 <colgroup>
 <col width="33%">
@@ -161,42 +179,40 @@ geolocations).</li>
 </tr></thead>
 <tbody>
 <tr class="odd">
-<td>Treatment levels</td>
-<td>preserved</td>
-<td>opaque alias (<code>trt_001</code>)</td>
+<td>Treatment labels</td>
+<td>kept</td>
+<td>aliased (<code>trt_001</code>)</td>
 </tr>
 <tr class="even">
-<td>Categorical covariate levels</td>
-<td>preserved</td>
-<td>opaque alias (<code>&lt;col&gt;_L001</code>)</td>
+<td>Categorical covariate labels</td>
+<td>kept</td>
+<td>aliased (<code>&lt;col&gt;_L001</code>)</td>
 </tr>
 <tr class="odd">
-<td>Date/time covariates</td>
+<td>Date / time columns</td>
 <td>row-permuted; class preserved</td>
 <td>row-permuted; class preserved</td>
 </tr>
 <tr class="even">
-<td>
-<code>keep</code> columns</td>
-<td>pass-through</td>
-<td>pass-through</td>
+<td>Identifiers (<code>id</code>)</td>
+<td>kept</td>
+<td>dropped</td>
 </tr>
 <tr class="odd">
-<td>
-<code>ignore</code> columns</td>
-<td>pass-through</td>
+<td>Free text (<code>text</code>)</td>
+<td>kept</td>
 <td>dropped</td>
 </tr>
 <tr class="even">
 <td>Numeric synthesis</td>
 <td>empirical-quantile (may emit observed values)</td>
-<td>empirical-quantile + within-resolution jitter; integers
+<td>empirical-quantile plus within-resolution jitter; integers
 stochastically rounded</td>
 </tr>
 <tr class="odd">
 <td>NA mask</td>
 <td>preserved cell-by-cell</td>
-<td>preserved cell-by-cell with explicit warning</td>
+<td>preserved cell-by-cell</td>
 </tr>
 <tr class="even">
 <td><code><a href="../reference/audit_mask.html">audit_mask()</a></code></td>
@@ -205,23 +221,55 @@ stochastically rounded</td>
 </tr>
 <tr class="odd">
 <td><code>print(recipe)</code></td>
-<td>full info</td>
-<td>redacted; explicit <code><a href="../reference/reveal_maps.html">reveal_maps()</a></code> required</td>
+<td>redacted</td>
+<td>redacted; explicit <code><a href="../reference/reveal_maps.html">reveal_maps()</a></code> to inspect</td>
 </tr>
 </tbody>
 </table>
 </div>
-<div class="section level3">
-<h3 id="a-deliberately-leaky-fixture">A deliberately leaky fixture<a class="anchor" aria-label="anchor" href="#a-deliberately-leaky-fixture"></a>
-</h3>
-<p>To see <code><a href="../reference/audit_mask.html">audit_mask()</a></code> fire, build a fixture with patterns
-that trip the heuristics: a PII-pattern column the user keeps (against
-<code><a href="../reference/propose_roles.html">propose_roles()</a></code>’s default), and a categorical covariate
-with a frequency-1 level.</p>
+<div class="section level2">
+<h2 id="depth-controls">Depth controls<a class="anchor" aria-label="anchor" href="#depth-controls"></a>
+</h2>
+<p>Two further controls sharpen the depth where the defaults are not
+enough.</p>
+<p><strong>Hiding column names.</strong> Names themselves can identify a
+column (<code>roseworthy_yield</code>).
+<code>mask(..., alias_names = TRUE)</code> replaces every retained
+column name with an opaque code, which the recipe inverts on the
+round-trip. Pass a character vector to hide only some names.</p>
+<p><strong>Hiding design structure.</strong> Design columns are
+byte-identical by default, which preserves the experimental layout
+exactly – and a publicly registered trial layout is a fingerprint. To
+keep the structure but hide the site or block <em>labels</em>, set a
+design column’s action to <code>alias</code>:</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">0</span><span class="op">)</span></span>
-<span><span class="va">n</span> <span class="op">&lt;-</span> <span class="fl">60</span></span>
-<span><span class="va">df</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
+<code class="sourceCode R"><span><span class="va">df</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
+<span>  site <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Roseworthy"</span>, <span class="st">"Minnipa"</span>, <span class="st">"Turretfield"</span><span class="op">)</span>, each <span class="op">=</span> <span class="fl">6</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  rep <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">3</span>, <span class="fl">6</span><span class="op">)</span>,</span>
+<span>  yield <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">18</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span><span class="va">roles</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/propose_roles.html">propose_roles</a></span><span class="op">(</span><span class="va">df</span>, detect <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span><span class="va">roles</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/set_role.html">set_role</a></span><span class="op">(</span><span class="va">roles</span>, <span class="st">"site"</span>, role <span class="op">=</span> <span class="st">"design"</span>, action <span class="op">=</span> <span class="st">"alias"</span><span class="op">)</span></span>
+<span><span class="va">s</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synthetic.html">synthetic</a></span><span class="op">(</span><span class="fu"><a href="../reference/mask.html">mask</a></span><span class="op">(</span><span class="va">df</span>, <span class="va">roles</span>, mode <span class="op">=</span> <span class="st">"collaborate"</span>, seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="va">s</span><span class="op">$</span><span class="va">site</span><span class="op">)</span><span class="op">)</span>   <span class="co"># real site names gone</span></span>
+<span><span class="co">#&gt; [1] "site_D002" "site_D001" "site_D003"</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="va">s</span><span class="op">$</span><span class="va">site</span><span class="op">)</span>                  <span class="co"># ... but the three-site structure intact</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; site_D001 site_D002 site_D003 </span></span>
+<span><span class="co">#&gt;         6         6         6</span></span></code></pre></div>
+<p>This knowingly breaks byte-identity, so it is never a default – you
+ask for it explicitly.</p>
+</div>
+<div class="section level2">
+<h2 id="the-leakage-audit">The leakage audit<a class="anchor" aria-label="anchor" href="#the-leakage-audit"></a>
+</h2>
+<p><code><a href="../reference/audit_mask.html">audit_mask()</a></code> inspects the synthetic against the original
+and grades the leakage of each column. In collaborate mode it runs
+automatically and warns at <code><a href="../reference/mask.html">mask()</a></code> time. Here is a fixture
+built to trip it: a PII-suspected column the user retains against the
+default, and a categorical covariate with a frequency-one level.</p>
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">df</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
 <span>  rep <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">3</span>, each <span class="op">=</span> <span class="fl">20</span><span class="op">)</span>,</span>
 <span>  variety <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="st">"V"</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">6</span><span class="op">)</span>, <span class="fl">10</span><span class="op">)</span><span class="op">)</span>,</span>
 <span>  contact_email <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"a@x"</span>, <span class="st">"b@y"</span><span class="op">)</span>, <span class="fl">30</span><span class="op">)</span><span class="op">)</span>,</span>
@@ -233,42 +281,27 @@ with a frequency-1 level.</p>
 <span>  stringsAsFactors <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">roles</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/propose_roles.html">propose_roles</a></span><span class="op">(</span><span class="va">df</span><span class="op">)</span></span>
-<span><span class="va">roles</span></span>
-<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 5 × 6</span></span></span>
-<span><span class="co">#&gt;   col            role      kind    freq_or_range      pii_suspected notes                           </span></span>
-<span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>          <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>              <span style="color: #949494; font-style: italic;">&lt;lgl&gt;</span>         <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>                           </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> rep            design    integer [1, 3]             FALSE         Design-pattern name -&gt; design (…</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span> variety        treatment factor  n=6 levels         FALSE         Treatment-pattern name -&gt; treat…</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span> contact_email  ignore    factor  n=2 levels         TRUE          PII pattern in column name -&gt; i…</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span> rare_treatment treatment factor  n=4 levels         FALSE         Treatment-pattern name -&gt; treat…</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">5</span> yield          covariate numeric [3.19504, 7.40162] FALSE         Default -&gt; covariate; re-role t…</span></span></code></pre></div>
+<span><span class="va">roles</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/propose_roles.html">propose_roles</a></span><span class="op">(</span><span class="va">df</span>, mode <span class="op">=</span> <span class="st">"collaborate"</span><span class="op">)</span></span>
+<span><span class="va">roles</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"col"</span>, <span class="st">"role"</span>, <span class="st">"action"</span>, <span class="st">"pii_suspected"</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 5 × 4</span></span></span>
+<span><span class="co">#&gt;   col            role      action   pii_suspected</span></span>
+<span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>          <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;lgl&gt;</span>        </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> rep            design    keep     FALSE        </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span> variety        treatment alias    FALSE        </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span> contact_email  text      drop     TRUE         </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span> rare_treatment treatment alias    FALSE        </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">5</span> yield          covariate scramble FALSE</span></span></code></pre></div>
 <p><code>contact_email</code> was auto-flagged
-<code>pii_suspected = TRUE</code> and assigned to <code>ignore</code>.
-We override that — pretending the user explicitly retains the column —
-to see what the audit flags.</p>
-<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">roles</span><span class="op">$</span><span class="va">role</span><span class="op">[</span><span class="va">roles</span><span class="op">$</span><span class="va">col</span> <span class="op">==</span> <span class="st">"yield"</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="st">"outcome"</span></span>
-<span><span class="va">roles</span><span class="op">$</span><span class="va">role</span><span class="op">[</span><span class="va">roles</span><span class="op">$</span><span class="va">col</span> <span class="op">==</span> <span class="st">"contact_email"</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="st">"covariate"</span></span>
-<span><span class="va">roles</span><span class="op">$</span><span class="va">role</span><span class="op">[</span><span class="va">roles</span><span class="op">$</span><span class="va">col</span> <span class="op">==</span> <span class="st">"rare_treatment"</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="st">"covariate"</span></span>
-<span><span class="va">roles</span></span>
-<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 5 × 6</span></span></span>
-<span><span class="co">#&gt;   col            role      kind    freq_or_range      pii_suspected notes                           </span></span>
-<span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>          <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>              <span style="color: #949494; font-style: italic;">&lt;lgl&gt;</span>         <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>                           </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> rep            design    integer [1, 3]             FALSE         Design-pattern name -&gt; design (…</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span> variety        treatment factor  n=6 levels         FALSE         Treatment-pattern name -&gt; treat…</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span> contact_email  covariate factor  n=2 levels         TRUE          PII pattern in column name -&gt; i…</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span> rare_treatment covariate factor  n=4 levels         FALSE         Treatment-pattern name -&gt; treat…</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">5</span> yield          outcome   numeric [3.19504, 7.40162] FALSE         Default -&gt; covariate; re-role t…</span></span></code></pre></div>
+<code>pii_suspected</code> and set to <code>drop</code>. We override it
+– pretending the custodian insists on keeping it – and make the rare
+column a covariate, then mask:</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">m</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/mask.html">mask</a></span><span class="op">(</span><span class="va">df</span>, <span class="va">roles</span>, mode <span class="op">=</span> <span class="st">"collaborate"</span>, seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Warning: audit_mask() flagged HIGH leakage on column(s): contact_email, rare_treatment</span></span></code></pre></div>
-<p><code><a href="../reference/mask.html">mask()</a></code> printed two warnings: one for the high-leakage
-PII column retained as a covariate, one for the frequency-1 categorical
-level. The audit is stored on <code>m@audit</code> (and accessible via
-<code>audit_mask(m)</code>):</p>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/audit_mask.html">audit_mask</a></span><span class="op">(</span><span class="va">m</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">roles</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/set_role.html">set_role</a></span><span class="op">(</span><span class="va">roles</span>, <span class="st">"yield"</span>, role <span class="op">=</span> <span class="st">"outcome"</span><span class="op">)</span></span>
+<span><span class="va">roles</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/set_role.html">set_role</a></span><span class="op">(</span><span class="va">roles</span>, <span class="st">"contact_email"</span>, role <span class="op">=</span> <span class="st">"covariate"</span>, action <span class="op">=</span> <span class="st">"keep"</span><span class="op">)</span></span>
+<span><span class="va">roles</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/set_role.html">set_role</a></span><span class="op">(</span><span class="va">roles</span>, <span class="st">"rare_treatment"</span>, role <span class="op">=</span> <span class="st">"covariate"</span><span class="op">)</span></span>
+<span><span class="va">m</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/mask.html">mask</a></span><span class="op">(</span><span class="va">df</span>, <span class="va">roles</span>, mode <span class="op">=</span> <span class="st">"collaborate"</span>, seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
+<span><span class="co">#&gt; Warning: audit_mask() flagged HIGH leakage on column(s): contact_email, rare_treatment</span></span>
+<span><span class="fu"><a href="../reference/audit_mask.html">audit_mask</a></span><span class="op">(</span><span class="va">m</span><span class="op">)</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">──</span> <span style="font-weight: bold;">masque audit (mode = collaborate)</span> <span style="color: #00BBBB;">───────────────────────────────────────────────────────────────</span></span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> 2 HIGH, 0 medium, 3 low across 5 columns</span></span>
@@ -276,63 +309,53 @@ level. The audit is stored on <code>m@audit</code> (and accessible via
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; ── <span style="font-weight: bold;">HIGH (2)</span> ──</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; <span style="color: #BB0000;">✖</span>   covariate contact_email                     PII-pattern column name; levels aliased</span></span>
+<span><span class="co">#&gt; <span style="color: #BB0000;">✖</span>   covariate contact_email                     PII-pattern column name; kept as-is - visible to collaborators</span></span>
 <span><span class="co">#&gt; <span style="color: #BB0000;">✖</span>   covariate rare_treatment                    levels aliased; rare level (freq = 1)</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; ── <span style="font-weight: bold;">LOW (3)</span> ──</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span>   design    rep                               exact-match 100.0% (jitter due step 7)</span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span>   design    rep                               exact-match 100.0%</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span>   treatment variety                           levels aliased</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span>   outcome   yield                             ok</span></span></code></pre></div>
-<p>Both <code>contact_email</code> (PII retained) and
-<code>rare_treatment</code> (frequency-1 level) are flagged HIGH. The
-user gets to decide whether to share the synthetic anyway —
-<code>masque</code> records the risks in <code>recipe@warnings</code>,
-warns at construction time, but does not block.</p>
+<p><code>contact_email</code> (real values kept across the trust
+boundary) and <code>rare_treatment</code> (a frequency-one level) are
+flagged. <code>masque</code> records the risks in
+<code>recipe@warnings</code> and warns at construction time, but it does
+not block – the decision to share stays with the custodian.</p>
 </div>
-<div class="section level3">
-<h3 id="operational-guidance">Operational guidance<a class="anchor" aria-label="anchor" href="#operational-guidance"></a>
-</h3>
-<ol style="list-style-type: decimal">
-<li>
-<strong>Default to collaborate mode</strong> when in doubt. Local
-mode is for owner-only development.</li>
-<li>
-<strong>Treat the recipe as you treat the original data.</strong>
-Same security class, same access controls.</li>
-<li>
-<strong>Run <code><a href="../reference/audit_mask.html">audit_mask()</a></code> before any sharing.</strong>
-Even when collaborate mode auto-runs it, re-print before handing the
-synthetic over.</li>
-<li>
-<strong>Never override <code>pii_suspected = TRUE</code> without
-thinking.</strong> The heuristic is conservative; if it triggers, decide
-explicitly whether to keep the column.</li>
-<li>
-<strong>Use <code>keep</code> sparingly.</strong> It is there for
-columns your pipeline needs exactly as-is. In collaborate mode it is
-still published exactly as-is.</li>
-<li>
-<strong>Date/time columns carry real operational signal.</strong>
-They are no longer dropped by default; they are row-permuted as
-covariates. Re-role to <code>keep</code> only when exact row alignment
-is required, or to <code>ignore</code> if the schedule itself is
-sensitive.</li>
-<li>
-<strong>Small designs leak.</strong> Cell counts of 1 in any
-categorical column under collaborate mode are HIGH leakage. Aggregate or
-drop before masking.</li>
-<li>
-<strong>Exact-design preservation is recognisable.</strong> A
-publicly registered trial design (site x year x rep) is a fingerprint.
-The synthetic does not hide that. If exact-design recognisability is a
-concern, roll up to higher-level groupings before calling
-<code><a href="../reference/mask.html">mask()</a></code>.</li>
-</ol>
-<p>For internals of the recipe object — what it stores, what it doesn’t,
-how <code><a href="https://rdrr.io/r/base/print.html" class="external-link">print()</a></code> redacts — see
-<code><a href="../articles/recipe_anatomy.html">vignette("recipe_anatomy")</a></code>.</p>
+<div class="section level2">
+<h2 id="multi-table-sets">Multi-table sets<a class="anchor" aria-label="anchor" href="#multi-table-sets"></a>
+</h2>
+<p>When several tables share a key, <code><a href="../reference/mask_set.html">mask_set()</a></code> aliases that
+key <em>identically across all of them</em> so the synthetic tables
+still join. A linked key is the join surface; it is aliased consistently
+rather than permuted (permuting a key would break the join regardless of
+masking).</p>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">set_dir</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, <span class="st">"met_set"</span>, package <span class="op">=</span> <span class="st">"masque"</span><span class="op">)</span></span>
+<span><span class="va">ms</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/mask_set.html">mask_set</a></span><span class="op">(</span><span class="va">set_dir</span>, mode <span class="op">=</span> <span class="st">"collaborate"</span>, seed <span class="op">=</span> <span class="fl">1</span>, quiet <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="va">ag</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synthetic.html">synthetic</a></span><span class="op">(</span><span class="va">ms</span><span class="op">)</span><span class="op">$</span><span class="va">agronomy</span></span>
+<span><span class="va">qa</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synthetic.html">synthetic</a></span><span class="op">(</span><span class="va">ms</span><span class="op">)</span><span class="op">$</span><span class="va">quality</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/sets.html" class="external-link">setequal</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique</a></span><span class="op">(</span><span class="va">ag</span><span class="op">$</span><span class="va">gen</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique</a></span><span class="op">(</span><span class="va">qa</span><span class="op">$</span><span class="va">gen</span><span class="op">)</span><span class="op">)</span>   <span class="co"># same genotype codes in both</span></span>
+<span><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
+<p>The recipe bundle is private exactly as a single recipe is;
+<code><a href="../reference/write_set.html">write_set()</a></code> never writes it.</p>
 </div>
+<div class="section level2">
+<h2 id="operational-guidance">Operational guidance<a class="anchor" aria-label="anchor" href="#operational-guidance"></a>
+</h2>
+<p>Default to collaborate mode when in doubt; local mode is for
+owner-only development. Treat the recipe as you treat the original data
+– same security class, same access controls. Re-run
+<code><a href="../reference/audit_mask.html">audit_mask()</a></code> before any sharing even though collaborate
+mode runs it for you. Never override a <code>pii_suspected</code> flag
+without deciding deliberately. Remember that date/time columns and a
+preserved design footprint both carry real operational signal; alias or
+roll them up when that signal is sensitive. Small designs leak – a
+categorical cell count of one is high leakage, so aggregate or drop
+before masking.</p>
+<p>For what the recipe stores and how the round-trip works, see
+<em>Recipe anatomy and the round-trip</em>.</p>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>

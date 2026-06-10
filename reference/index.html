@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">masque</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.6.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -19,10 +19,8 @@
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/getting_started.html">Getting started with masque</a></li>
-    <li><a class="dropdown-item" href="../articles/confidentiality.html">Confidentiality and threat model</a></li>
-    <li><a class="dropdown-item" href="../articles/design_detection.html">Automatic design detection</a></li>
-    <li><a class="dropdown-item" href="../articles/recipe_anatomy.html">Recipe anatomy</a></li>
-    <li><a class="dropdown-item" href="../articles/roadmap.html">Roadmap</a></li>
+    <li><a class="dropdown-item" href="../articles/confidentiality.html">Confidentiality and the threat model</a></li>
+    <li><a class="dropdown-item" href="../articles/recipe_anatomy.html">Recipe anatomy and the round-trip</a></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><a class="external-link nav-link" href="https://github.com/max578/masque/" aria-label="GitHub"><span class="fa fab fa-github fa-lg"></span></a></li>
@@ -38,9 +36,25 @@
     </div>
 
     <div class="section level2">
+      <h2 id="guided-masking">Guided masking<a class="anchor" aria-label="anchor" href="#guided-masking"></a></h2>
+
+      <div class="section-desc"><p>The one-call front door for a table, a folder, or a workbook.</p></div>
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="masque.html">masque()</a></code>
+
+        </dt>
+        <dd>Mask a dataset end to end with one guided call</dd>
+      </dl></div><div class="section level2">
       <h2 id="role-discovery">Role discovery<a class="anchor" aria-label="anchor" href="#role-discovery"></a></h2>
 
-      <div class="section-desc"><p>Inspect a data frame and decide what each column is.</p></div>
+      <div class="section-desc"><p>Inspect a data frame and decide what each column is and how to mask it.</p></div>
 
       <dl></dl></div><div class="section level2">
 
@@ -52,14 +66,28 @@
           <code><a href="propose_roles.html">propose_roles()</a></code>
 
         </dt>
-        <dd>Propose role classifications for the columns of a data frame</dd>
+        <dd>Propose role and action classifications for the columns of a data frame</dd>
+
+        <dt>
+
+          <code><a href="set_role.html">set_role()</a></code>
+
+        </dt>
+        <dd>Set the role and action of one or more columns in a roles table</dd>
 
         <dt>
 
           <code><a href="roles_validate.html">roles_validate()</a></code>
 
         </dt>
-        <dd>Validate a roles tibble</dd>
+        <dd>Validate a roles table</dd>
+
+        <dt>
+
+          <code><a href="clean_table.html">clean_table()</a></code>
+
+        </dt>
+        <dd>Tidy a dirty table's column names and category labels before masking</dd>
       </dl></div><div class="section level2">
       <h2 id="design-detection">Design detection<a class="anchor" aria-label="anchor" href="#design-detection"></a></h2>
 
@@ -86,7 +114,7 @@
       </dl></div><div class="section level2">
       <h2 id="masking">Masking<a class="anchor" aria-label="anchor" href="#masking"></a></h2>
 
-      <div class="section-desc"><p>Produce a structurally faithful synthetic clone of one tabular dataset.</p></div>
+      <div class="section-desc"><p>Produce a structurally faithful synthetic clone of one or many tables.</p></div>
 
       <dl></dl></div><div class="section level2">
 
@@ -99,6 +127,27 @@
 
         </dt>
         <dd>Mask a tabular dataset into a structurally faithful development surrogate</dd>
+
+        <dt>
+
+          <code><a href="mask_set.html">mask_set()</a></code>
+
+        </dt>
+        <dd>Mask a multi-table set with cross-table-consistent aliasing</dd>
+
+        <dt>
+
+          <code><a href="read_set.html">read_set()</a></code>
+
+        </dt>
+        <dd>Read a set of tables from a folder, an Excel workbook, or a list</dd>
+
+        <dt>
+
+          <code><a href="write_set.html">write_set()</a></code>
+
+        </dt>
+        <dd>Write a masked set to disk, mirroring the input format</dd>
 
         <dt>
 
@@ -201,7 +250,7 @@
 
       <dl><dt>
 
-          <code><a href="masque-package.html">masque</a></code> <code><a href="masque-package.html">masque-package</a></code>
+          <code><a href="masque-package.html">masque-package</a></code>
 
         </dt>
         <dd>masque: Structurally Faithful Development Surrogates for Tabular Data</dd>

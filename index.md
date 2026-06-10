@@ -2,14 +2,18 @@
 
 > Structurally faithful development surrogates for tabular data.
 
-`masque` turns one tabular dataset into a synthetic clone whose
-experimental design, NA pattern, and global covariance structure are
-close enough to the original that pipeline code runs unchanged. It
-returns a private `recipe` object that round-trips: a pipeline written
-against the synthetic can be re-targeted to the original data with no
+`masque` turns a confidential tabular dataset – a single table, a folder
+of files, or a multi-sheet workbook – into a structurally faithful
+synthetic clone whose experimental design, NA pattern, and global
+covariance are close enough to the original that pipeline code runs
+unchanged. It returns a private `recipe` that round-trips: a pipeline
+written against the synthetic re-targets to the original data with no
 source changes.
 
-Version 0.5.0.9000 (development). Pre-CRAN; tagged releases on the
+The custodian holds the data and the recipe; the analyst gets only the
+synthetic. `masque` bridges that gap.
+
+Version 0.6.0.9000 (development). Pre-CRAN; tagged releases on the
 GitHub repository.
 
 ------------------------------------------------------------------------
@@ -42,34 +46,33 @@ CRAN submission is in preparation.
 
 library(masque)
 
-# 1. Read a small public fixture (alpha-design field trial; John, 1987).
+# Read a small public fixture (alpha-design field trial; John & Williams, 1995).
 f  <- system.file("extdata", "john_alpha.csv", package = "masque")
 df <- read.csv(f, stringsAsFactors = TRUE)
 
-# 2. Heuristic role classification; the user edits before passing to mask().
-roles <- propose_roles(df)
-roles$role[roles$col == "yield"] <- "outcome"
+# One guided call: read -> propose roles -> (review) -> mask -> audit.
+# In an interactive session it pauses to let you review the plan.
+m <- masque(df, mode = "collaborate", seed = 1L)
 
-# 3. Mask in collaborate mode: opaque level aliases, numeric jitter,
-#    ignore columns dropped, audit_mask() auto-run.
-m     <- mask(df, roles, mode = "collaborate", seed = 1L)
-synth <- synthetic(m)
-rec   <- recipe(m)
+synth <- synthetic(m)   # hand this to the analyst
+rec   <- recipe(m)      # keep this private
 
-# 4. Build a pipeline against the synthetic namespace.
+# Analyst builds a pipeline against the synthetic namespace ...
 fit <- lm(yield ~ gen + rep, data = synth)
 
-# 5. Translate the original into the synthetic namespace and predict.
-df_in_synth <- apply_recipe(df, rec)
-preds       <- predict(fit, newdata = df_in_synth)
+# ... and the custodian re-targets it to the original data.
+preds <- predict(fit, newdata = apply_recipe(df, rec))
 ```
+
+A folder of files or a multi-sheet workbook works the same way – pass
+the path to
+[`masque()`](https://max578.github.io/masque/reference/masque.md) and it
+masks every table at once, aliasing shared keys consistently so the
+synthetic tables still join.
 
 See
 [`vignette("getting_started", package = "masque")`](https://max578.github.io/masque/articles/getting_started.md)
-for the full walk-through and
-[`vignette("design_detection", package = "masque")`](https://max578.github.io/masque/articles/design_detection.md)
-for the experimental- design detector that drives
-[`propose_roles()`](https://max578.github.io/masque/reference/propose_roles.md).
+for the full walk-through.
 
 ------------------------------------------------------------------------
 
@@ -99,7 +102,7 @@ before using.
 - It does not provide differential-privacy guarantees.
 - It does not make outputs safe for public release.
 - It does not anonymise rare strata, small designs, or operational
-  metadata (small site x year combinations, contact names,
+  metadata (small site-by-year combinations, contact names,
   geolocations).
 - It does not rewrite arbitrary pipeline source code.
 
@@ -112,16 +115,12 @@ workflow assumes only the synthetic crosses the trust boundary.
 ## Documentation
 
 - [`vignette("getting_started")`](https://max578.github.io/masque/articles/getting_started.md)
-  — five-step worked example on a public fixture.
+  — the one-call path on a public fixture.
 - [`vignette("confidentiality")`](https://max578.github.io/masque/articles/confidentiality.md)
-  — full threat model and mode comparison.
-- [`vignette("design_detection")`](https://max578.github.io/masque/articles/design_detection.md)
-  — the rule-engine design detector.
+  — full threat model, the two modes, and the depth controls.
 - [`vignette("recipe_anatomy")`](https://max578.github.io/masque/articles/recipe_anatomy.md)
-  — what a recipe holds, runtime-minimal vs full, redacted print versus
-  [`reveal_maps()`](https://max578.github.io/masque/reference/reveal_maps.md).
-- [`vignette("roadmap")`](https://max578.github.io/masque/articles/roadmap.md)
-  — what is deferred from v0.4 and why.
+  — what a recipe holds and how the round-trip re-targets a pipeline
+  onto the original.
 
 Reference index: <https://max578.github.io/masque/> — full per-function
 docs + rendered vignettes, deployed from the `gh-pages` branch.

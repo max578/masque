@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">masque</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.6.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -19,10 +19,8 @@
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/getting_started.html">Getting started with masque</a></li>
-    <li><a class="dropdown-item" href="../articles/confidentiality.html">Confidentiality and threat model</a></li>
-    <li><a class="dropdown-item" href="../articles/design_detection.html">Automatic design detection</a></li>
-    <li><a class="dropdown-item" href="../articles/recipe_anatomy.html">Recipe anatomy</a></li>
-    <li><a class="dropdown-item" href="../articles/roadmap.html">Roadmap</a></li>
+    <li><a class="dropdown-item" href="../articles/confidentiality.html">Confidentiality and the threat model</a></li>
+    <li><a class="dropdown-item" href="../articles/recipe_anatomy.html">Recipe anatomy and the round-trip</a></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><a class="external-link nav-link" href="https://github.com/max578/masque/" aria-label="GitHub"><span class="fa fab fa-github fa-lg"></span></a></li>
@@ -35,7 +33,7 @@
   <main id="main" class="col-md-9"><div class="page-header">
 
       <h1>Extract the synthetic data from a masque object</h1>
-      <small class="dont-index">Source: <a href="https://github.com/max578/masque/blob/v0.5.0/R/recipe.R" class="external-link"><code>R/recipe.R</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/max578/masque/blob/main/R/recipe.R" class="external-link"><code>R/recipe.R</code></a></small>
       <div class="d-none name"><code>synthetic.Rd</code></div>
     </div>
 
@@ -53,16 +51,18 @@
 
 
 <dl><dt id="arg-m">m<a class="anchor" aria-label="anchor" href="#arg-m"></a></dt>
-<dd><p>A <code>masque</code> object returned by <code><a href="mask.html">mask()</a></code>.</p></dd>
+<dd><p>A <code>masque</code> object from <code><a href="mask.html">mask()</a></code>, or a <code>masque_set</code> from
+<code><a href="mask_set.html">mask_set()</a></code>.</p></dd>
 
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>A tibble: the synthetic data frame.</p>
+    <p>For a <code>masque</code>, a tibble (the synthetic data frame); for a
+<code>masque_set</code>, a named list of synthetic tables.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
-    <div class="dont-index"><p><code><a href="recipe.html">recipe()</a></code>, <code><a href="mask.html">mask()</a></code>.</p></div>
+    <div class="dont-index"><p><code><a href="recipe.html">recipe()</a></code>, <code><a href="mask.html">mask()</a></code>, <code><a href="mask_set.html">mask_set()</a></code>.</p></div>
     </div>
 
     <div class="section level2">
@@ -74,12 +74,12 @@
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 6 × 5</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   Sepal.Length Sepal.Width Petal.Length Petal.Width Species</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>          <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>       <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>        <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>       <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;fct&gt;</span>  </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span>          5.1         3            1.5         1.2 setosa </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span>          6.2         3            4.7         1.2 setosa </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">3</span>          4.8         3.4          1.6         1.2 setosa </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">4</span>          7.2         3.2          6.4         2.1 setosa </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">5</span>          5.8         3.7          5.1         1.8 setosa </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">6</span>          5           3.7          1.5         1.2 setosa </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span>          5.1         3.2          4           1.5 setosa </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span>          6           3            3.7         0.4 setosa </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">3</span>          5           3            4.6         1.1 setosa </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">4</span>          7.2         2.6          5.8         1.7 setosa </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">5</span>          6.1         2.4          5.8         1.5 setosa </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">6</span>          5           2.7          4.5         1.4 setosa </span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

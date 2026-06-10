@@ -19,7 +19,7 @@ nothing more."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">masque</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.6.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -31,10 +31,8 @@ nothing more."></head><body>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/getting_started.html">Getting started with masque</a></li>
-    <li><a class="dropdown-item" href="../articles/confidentiality.html">Confidentiality and threat model</a></li>
-    <li><a class="dropdown-item" href="../articles/design_detection.html">Automatic design detection</a></li>
-    <li><a class="dropdown-item" href="../articles/recipe_anatomy.html">Recipe anatomy</a></li>
-    <li><a class="dropdown-item" href="../articles/roadmap.html">Roadmap</a></li>
+    <li><a class="dropdown-item" href="../articles/confidentiality.html">Confidentiality and the threat model</a></li>
+    <li><a class="dropdown-item" href="../articles/recipe_anatomy.html">Recipe anatomy and the round-trip</a></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><a class="external-link nav-link" href="https://github.com/max578/masque/" aria-label="GitHub"><span class="fa fab fa-github fa-lg"></span></a></li>
@@ -47,7 +45,7 @@ nothing more."></head><body>
   <main id="main" class="col-md-9"><div class="page-header">
 
       <h1>Re-anchor synthetic geospatial coordinates at plausible-but-fake locations</h1>
-      <small class="dont-index">Source: <a href="https://github.com/max578/masque/blob/v0.5.0/R/synthesise_geospatial.R" class="external-link"><code>R/synthesise_geospatial.R</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/max578/masque/blob/main/R/synthesise_geospatial.R" class="external-link"><code>R/synthesise_geospatial.R</code></a></small>
       <div class="d-none name"><code>synthesise_geospatial.Rd</code></div>
     </div>
 
@@ -173,6 +171,10 @@ synthetic — the NA pattern is preserved cell-by-cell.</p>
 <span class="r-in"><span><span class="va">roles</span><span class="op">$</span><span class="va">role</span><span class="op">[</span><span class="va">roles</span><span class="op">$</span><span class="va">col</span> <span class="op"><a href="https://rdrr.io/r/base/match.html" class="external-link">%in%</a></span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"lat"</span>, <span class="st">"lon"</span><span class="op">)</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="st">"covariate"</span></span></span>
 <span class="r-in"><span><span class="va">roles</span><span class="op">$</span><span class="va">role</span><span class="op">[</span><span class="va">roles</span><span class="op">$</span><span class="va">col</span> <span class="op">==</span> <span class="st">"state"</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="st">"design"</span></span></span>
 <span class="r-in"><span><span class="va">m</span> <span class="op">&lt;-</span> <span class="fu"><a href="mask.html">mask</a></span><span class="op">(</span><span class="va">df</span>, <span class="va">roles</span>, mode <span class="op">=</span> <span class="st">"collaborate"</span>, seed <span class="op">=</span> <span class="fl">1L</span><span class="op">)</span></span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Re-resolved default actions for mode <span style="color: #0000BB;">"collaborate"</span> (explicit edits always win):</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">•</span> state: scramble -&gt; keep</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">•</span> lat: drop -&gt; scramble</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">•</span> lon: drop -&gt; scramble</span>
 <span class="r-wrn co"><span class="r-pr">#&gt;</span> <span class="warning">Warning: </span>audit_mask() flagged HIGH leakage on column(s): lat, lon</span>
 <span class="r-in"><span><span class="va">centroids</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span></span>
 <span class="r-in"><span>  NSW <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>lat <span class="op">=</span> <span class="op">-</span><span class="fl">32.5</span>, lon <span class="op">=</span> <span class="fl">147</span><span class="op">)</span>,</span></span>

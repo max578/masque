@@ -16,18 +16,21 @@ recipe(m)
 
 - m:
 
-  A `masque` object returned by
-  [`mask()`](https://max578.github.io/masque/reference/mask.md).
+  A `masque` object from
+  [`mask()`](https://max578.github.io/masque/reference/mask.md), or a
+  `masque_set` from
+  [`mask_set()`](https://max578.github.io/masque/reference/mask_set.md).
 
 ## Value
 
-A `masque_recipe` S7 object.
+A `masque_recipe`, or for a set a `masque_recipe_set` bundle.
 
 ## See also
 
 [`synthetic()`](https://max578.github.io/masque/reference/synthetic.md),
 [`reveal_maps()`](https://max578.github.io/masque/reference/reveal_maps.md),
-[`mask()`](https://max578.github.io/masque/reference/mask.md).
+[`mask()`](https://max578.github.io/masque/reference/mask.md),
+[`mask_set()`](https://max578.github.io/masque/reference/mask_set.md).
 
 ## Examples
 
@@ -38,19 +41,19 @@ m <- suppressWarnings(mask(iris, r, seed = 1))
 recipe(m)
 #> 
 #> ── masque_recipe ───────────────────────────────────────────────────────────────
-#> • Created: 2026-06-10 13:15:21 UTC
+#> • Created: 2026-06-10 14:21:44 UTC
 #> • Mode: local
 #> • Seed: present (redacted)
-#> • masque version: 0.5.0
+#> • masque version: 0.6.0
 #> • Integrity fingerprint: 62a4affb7e41...
 #> 
 #> ── Columns (5 total; 0 level-map(s); 0 column-name map(s)) ──
 #> 
-#>   = outcome    Sepal.Length                      (numeric)
-#>   = covariate  Sepal.Width                       (numeric)
-#>   = covariate  Petal.Length                      (numeric)
-#>   = covariate  Petal.Width                       (numeric)
-#>   = treatment  Species                           (factor)
+#>   = outcome   scramble  Sepal.Length                  (numeric)
+#>   = covariate scramble  Sepal.Width                   (numeric)
+#>   = covariate scramble  Petal.Length                  (numeric)
+#>   = covariate scramble  Petal.Width                   (numeric)
+#>   = treatment keep      Species                       (factor)
 #> ── Warnings ──
 #> 
 #> ! local mode: synthetic data is for owner development only, not external sharing.

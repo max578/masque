@@ -1,13 +1,32 @@
 # masque: Structurally Faithful Development Surrogates for Tabular Data
 
-`masque` turns a single tabular dataset into a structurally faithful
+`masque` turns a confidential tabular dataset – a single table, a folder
+of files, or a multi-sheet workbook – into a structurally faithful
 synthetic clone suitable for pipeline development. Experimental-design
 columns and the NA pattern are preserved exactly; treatment and
 categorical-covariate level vocabularies are optionally aliased; outcome
 and numeric-covariate values are re-simulated via a Gaussian copula that
-preserves the global covariance structure. A private `recipe` object
+preserves the global covariance structure. A private `recipe`
 round-trips a pipeline written against the synthetic clone onto the
 original data.
+
+## Getting started
+
+[`masque()`](https://max578.github.io/masque/reference/masque.md) is the
+one-call front door: it reads the input, proposes a per-column masking
+plan (a `role` and an `action` for each column; see
+[`propose_roles()`](https://max578.github.io/masque/reference/propose_roles.md)
+and
+[`set_role()`](https://max578.github.io/masque/reference/set_role.md)),
+masks, audits, and optionally writes the result. A single table flows
+through [`mask()`](https://max578.github.io/masque/reference/mask.md); a
+folder, workbook, or named list flows through
+[`mask_set()`](https://max578.github.io/masque/reference/mask_set.md),
+which aliases shared keys identically across tables so the synthetic set
+still joins.
+[`apply_recipe()`](https://max578.github.io/masque/reference/apply_recipe.md)
+and [`unmask()`](https://max578.github.io/masque/reference/unmask.md)
+re-target a finished pipeline onto the original data.
 
 ## Honest claim
 

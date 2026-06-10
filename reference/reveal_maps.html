@@ -13,7 +13,7 @@ built into print() and summary()."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">masque</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.6.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -25,10 +25,8 @@ built into print() and summary()."></head><body>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/getting_started.html">Getting started with masque</a></li>
-    <li><a class="dropdown-item" href="../articles/confidentiality.html">Confidentiality and threat model</a></li>
-    <li><a class="dropdown-item" href="../articles/design_detection.html">Automatic design detection</a></li>
-    <li><a class="dropdown-item" href="../articles/recipe_anatomy.html">Recipe anatomy</a></li>
-    <li><a class="dropdown-item" href="../articles/roadmap.html">Roadmap</a></li>
+    <li><a class="dropdown-item" href="../articles/confidentiality.html">Confidentiality and the threat model</a></li>
+    <li><a class="dropdown-item" href="../articles/recipe_anatomy.html">Recipe anatomy and the round-trip</a></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><a class="external-link nav-link" href="https://github.com/max578/masque/" aria-label="GitHub"><span class="fa fab fa-github fa-lg"></span></a></li>
@@ -41,7 +39,7 @@ built into print() and summary()."></head><body>
   <main id="main" class="col-md-9"><div class="page-header">
 
       <h1>Reveal the level maps held inside a recipe</h1>
-      <small class="dont-index">Source: <a href="https://github.com/max578/masque/blob/v0.5.0/R/recipe_print.R" class="external-link"><code>R/recipe_print.R</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/max578/masque/blob/main/R/recipe_print.R" class="external-link"><code>R/recipe_print.R</code></a></small>
       <div class="d-none name"><code>reveal_maps.Rd</code></div>
     </div>
 
@@ -76,6 +74,8 @@ built into <code><a href="https://rdrr.io/r/base/print.html" class="external-lin
 <span class="r-in"><span><span class="va">r</span><span class="op">$</span><span class="va">role</span><span class="op">[</span><span class="va">r</span><span class="op">$</span><span class="va">col</span> <span class="op">==</span> <span class="st">"Sepal.Length"</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="st">"outcome"</span></span></span>
 <span class="r-in"><span><span class="va">r</span><span class="op">$</span><span class="va">role</span><span class="op">[</span><span class="va">r</span><span class="op">$</span><span class="va">col</span> <span class="op">==</span> <span class="st">"Species"</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="st">"covariate"</span></span></span>
 <span class="r-in"><span><span class="va">m</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/warning.html" class="external-link">suppressWarnings</a></span><span class="op">(</span><span class="fu"><a href="mask.html">mask</a></span><span class="op">(</span><span class="va">iris</span>, <span class="va">r</span>, mode <span class="op">=</span> <span class="st">"collaborate"</span>, seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Re-resolved default actions for mode <span style="color: #0000BB;">"collaborate"</span> (explicit edits always win):</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">•</span> Species: keep -&gt; alias</span>
 <span class="r-in"><span><span class="va">rec</span> <span class="op">&lt;-</span> <span class="fu"><a href="recipe.html">recipe</a></span><span class="op">(</span><span class="va">m</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu">reveal_maps</span><span class="op">(</span><span class="va">rec</span><span class="op">)</span></span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #BBBB00;">!</span> Revealing sensitive level maps. Proceed at your discretion.</span>

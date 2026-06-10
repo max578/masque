@@ -1,5 +1,169 @@
 # Changelog
 
+## masque 0.6.0
+
+A two-axis roles step, a hygiene layer, column-name aliasing, a
+multi-table set layer, and a single guided verb turn masque into an
+end-to-end tool for confidential tabular data.
+
+### Breaking changes
+
+- The roles table is now **two-axis**: a `role` column (what a column
+  is) and a new `action` column (what
+  [`mask()`](https://max578.github.io/masque/reference/mask.md) does to
+  it). The role vocabulary changed – the old `keep` and `ignore` roles
+  become the `keep` and `drop` *actions*, and new roles `date`, `id`,
+  `text`, and `other` join `design` / `treatment` / `outcome` /
+  `covariate`.
+- [`mask()`](https://max578.github.io/masque/reference/mask.md) no
+  longer requires a column roled `outcome`.
+- Roles tables produced by masque 0.5.0 and earlier are upgraded
+  automatically by
+  [`roles_validate()`](https://max578.github.io/masque/reference/roles_validate.md)
+  (and therefore by
+  [`mask()`](https://max578.github.io/masque/reference/mask.md)) with a
+  one-time deprecation warning that preserves the old mode semantics, so
+  existing scripts keep working. Re-run
+  [`propose_roles()`](https://max578.github.io/masque/reference/propose_roles.md)
+  to silence the warning and adopt the new schema.
+
+### The guided verb
+
+- New [`masque()`](https://max578.github.io/masque/reference/masque.md)
+  is the front door: one call reads the input (a data frame, a file, a
+  folder, an Excel workbook, or a named list), proposes column roles,
+  pauses for review in an interactive session, masks, audits, and -
+  given an `out` path - writes the result. It dispatches a single table
+  through [`mask()`](https://max578.github.io/masque/reference/mask.md)
+  and a multi-table input through
+  [`mask_set()`](https://max578.github.io/masque/reference/mask_set.md),
+  and returns the same object the lower-level verbs do, so it stays
+  fully scriptable: pass an edited `roles` table to skip the prompt.
+  (The internal S7 result class previously bound to `masque` is now
+  `masque_obj`; the class name is unchanged.)
+
+### Two-axis roles (breaking, with an upgrade path)
+
+- The roles table now carries two columns instead of one: `role` (what a
+  column *is*) and `action` (what
+  [`mask()`](https://max578.github.io/masque/reference/mask.md) *does*
+  to it). `role` is one of `design`, `treatment`, `outcome`,
+  `covariate`, `date`, `id`, `text`, `other`; `action` is one of `keep`,
+  `scramble`, `alias`, `drop`.
+  [`propose_roles()`](https://max578.github.io/masque/reference/propose_roles.md)
+  resolves a mode-appropriate default action for every column, so the
+  table you review is the masking plan that runs.
+- New roles answer the three gaps the previous vocabulary left open: a
+  first-class `date` role (date/time columns are row-permuted with class
+  and NA pattern preserved), and the explicit “retain untouched” and
+  “skip entirely” choices are now the `keep` and `drop` *actions*,
+  available on any column rather than only the old `keep` / `ignore`
+  roles.
+- [`propose_roles()`](https://max578.github.io/masque/reference/propose_roles.md)
+  gains a `mode` argument. The proposed actions differ between `local`
+  and `collaborate` (for example a treatment is kept locally but aliased
+  for collaboration); the table records the mode it was prepared for.
+- New
+  [`set_role()`](https://max578.github.io/masque/reference/set_role.md)
+  helper edits a roles table ergonomically. Re-assigning a column’s role
+  re-resolves its default action; passing an explicit `action` pins the
+  column so a later mode change leaves it alone. Direct
+  `roles$role[...] <-` edits still work.
+- [`mask()`](https://max578.github.io/masque/reference/mask.md) no
+  longer requires an `outcome` column. With none marked, the Gaussian
+  copula simply re-simulates every scrambled numeric column jointly.
+- `role = "design", action = "alias"` is a new opt-out from
+  byte-identical design preservation: the design *structure* is kept but
+  the site / block labels are hidden behind opaque aliases and restored
+  by [`unmask()`](https://max578.github.io/masque/reference/unmask.md).
+  The default for design columns remains `keep` (byte-identical).
+- [`roles_validate()`](https://max578.github.io/masque/reference/roles_validate.md)
+  validates the (role, action, kind) combination and fails closed on
+  impossible pairings (a scrambled design column, an aliased numeric, a
+  scrambled id). It returns the validated table with any `NA` actions
+  resolved.
+- Roles tables produced by masque \<= 0.5.0 (no `action` column; the
+  `keep` / `ignore` roles; the `mask_levels` column) are upgraded
+  automatically with a one-time deprecation warning, preserving the v1
+  mode semantics exactly.
+
+### Multi-table sets
+
+- New
+  [`mask_set()`](https://max578.github.io/masque/reference/mask_set.md)
+  masks a whole multi-table dataset at once - a folder of CSV / TSV /
+  `.fst` files, a multi-sheet Excel workbook, or a named list of data
+  frames - returning one synthetic table per input table and a single
+  private recipe bundle.
+- **Cross-table-consistent aliasing.** A column that appears in several
+  tables (a site code, a genotype name, a plot id) is detected as a
+  *link* and aliased identically everywhere it occurs, so a join written
+  against the synthetic set still resolves on the masked data. Links are
+  proposed automatically and printed; override with the `links`
+  argument, or set `links = FALSE` to mask each table independently.
+- New
+  [`read_set()`](https://max578.github.io/masque/reference/read_set.md)
+  ingests the folder / workbook / list into a named list of data frames
+  (clean rectangles only - a missing header row or non-rectangular sheet
+  fails with an explanatory error). New
+  [`write_set()`](https://max578.github.io/masque/reference/write_set.md)
+  writes a masked set back out, mirroring the input format (workbook in,
+  workbook out; folder in, folder of CSVs out). The private recipe
+  bundle is never written by
+  [`write_set()`](https://max578.github.io/masque/reference/write_set.md).
+- [`synthetic()`](https://max578.github.io/masque/reference/synthetic.md),
+  [`recipe()`](https://max578.github.io/masque/reference/recipe.md),
+  [`apply_recipe()`](https://max578.github.io/masque/reference/apply_recipe.md),
+  and [`unmask()`](https://max578.github.io/masque/reference/unmask.md)
+  all dispatch on the set:
+  [`synthetic()`](https://max578.github.io/masque/reference/synthetic.md)
+  returns the named list of tables,
+  [`recipe()`](https://max578.github.io/masque/reference/recipe.md) the
+  bundle, and the round-trip verbs operate table by table.
+- `data.table` joins Imports (fast `fread` / `fwrite`); `readxl` and
+  `writexl` are Suggested for the Excel paths.
+
+### Depth controls
+
+- New `alias_names` argument on
+  [`mask()`](https://max578.github.io/masque/reference/mask.md) hides
+  the column names themselves - the last identifying surface a kept or
+  design column exposes. `TRUE` replaces every retained name with an
+  opaque alias (`col_001`, `col_002`, …); a character vector aliases
+  just the named columns. The original-to-alias map lives in the
+  (private) recipe and is inverted by
+  [`apply_recipe()`](https://max578.github.io/masque/reference/apply_recipe.md)
+  and [`unmask()`](https://max578.github.io/masque/reference/unmask.md),
+  so a pipeline written against the aliased synthetic round-trips. This
+  realises the long-reserved `column_name_map` recipe slot.
+  [`reveal_maps()`](https://max578.github.io/masque/reference/reveal_maps.md)
+  now also prints the column-name map.
+
+### Hygiene
+
+- New
+  [`clean_table()`](https://max578.github.io/masque/reference/clean_table.md)
+  verb (and a `clean` argument on
+  [`mask()`](https://max578.github.io/masque/reference/mask.md), default
+  `"auto"`) tidies a dirty table before masking: column names are
+  legalised (valid, unique R names), and leading / trailing whitespace
+  is trimmed from names and from character / factor labels. Both fixes
+  are reported through `cli`, recorded in the recipe, and re-applied by
+  [`apply_recipe()`](https://max578.github.io/masque/reference/apply_recipe.md)
+  so retargeting still lines up.
+- Near-duplicate labels - pairs that differ only in case (`"north"` vs
+  `"North"`) or by a single edit (`"Compass"` vs `"Compas"`) - are
+  *reported, never merged*: deciding whether two similar labels are the
+  same value is a judgement masque leaves to the user. Set
+  `clean = "report"` to preview fixes without applying them, or
+  `clean = "off"` to skip hygiene entirely.
+
+### Internal
+
+- Dropped the `MASS` dependency: the copula now draws latent normals
+  through a Cholesky factor of the regularised covariance, removing a
+  hard import.
+
 ## masque 0.5.0
 
 New feature release: joint-treatment masking plus role-table usability

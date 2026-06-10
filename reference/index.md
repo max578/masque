@@ -1,13 +1,25 @@
 # Package index
 
+## Guided masking
+
+The one-call front door for a table, a folder, or a workbook.
+
+- [`masque()`](https://max578.github.io/masque/reference/masque.md) :
+  Mask a dataset end to end with one guided call
+
 ## Role discovery
 
-Inspect a data frame and decide what each column is.
+Inspect a data frame and decide what each column is and how to mask it.
 
 - [`propose_roles()`](https://max578.github.io/masque/reference/propose_roles.md)
-  : Propose role classifications for the columns of a data frame
+  : Propose role and action classifications for the columns of a data
+  frame
+- [`set_role()`](https://max578.github.io/masque/reference/set_role.md)
+  : Set the role and action of one or more columns in a roles table
 - [`roles_validate()`](https://max578.github.io/masque/reference/roles_validate.md)
-  : Validate a roles tibble
+  : Validate a roles table
+- [`clean_table()`](https://max578.github.io/masque/reference/clean_table.md)
+  : Tidy a dirty table's column names and category labels before masking
 
 ## Design detection
 
@@ -20,10 +32,16 @@ Identify the experimental design and visualise it for sanity.
 
 ## Masking
 
-Produce a structurally faithful synthetic clone of one tabular dataset.
+Produce a structurally faithful synthetic clone of one or many tables.
 
 - [`mask()`](https://max578.github.io/masque/reference/mask.md) : Mask a
   tabular dataset into a structurally faithful development surrogate
+- [`mask_set()`](https://max578.github.io/masque/reference/mask_set.md)
+  : Mask a multi-table set with cross-table-consistent aliasing
+- [`read_set()`](https://max578.github.io/masque/reference/read_set.md)
+  : Read a set of tables from a folder, an Excel workbook, or a list
+- [`write_set()`](https://max578.github.io/masque/reference/write_set.md)
+  : Write a masked set to disk, mirroring the input format
 - [`synthetic()`](https://max578.github.io/masque/reference/synthetic.md)
   : Extract the synthetic data from a masque object
 - [`recipe()`](https://max578.github.io/masque/reference/recipe.md) :
@@ -63,7 +81,6 @@ preserving site-count clustering.
 
 ## Package
 
-- [`masque`](https://max578.github.io/masque/reference/masque-package.md)
-  [`masque-package`](https://max578.github.io/masque/reference/masque-package.md)
+- [`masque-package`](https://max578.github.io/masque/reference/masque-package.md)
   : masque: Structurally Faithful Development Surrogates for Tabular
   Data

@@ -1,17 +1,26 @@
 # Mask a tabular dataset into a structurally faithful development surrogate
 
-Takes one data frame and a user-edited `roles` tibble (from
-[`propose_roles()`](https://max578.github.io/masque/reference/propose_roles.md))
-and produces a synthetic clone whose experimental design,
-explicitly-kept columns, and NA pattern are preserved, while outcome and
-numeric-covariate values are re-simulated via a Gaussian copula and
-non-numeric covariate values are row-permuted. Returns a `masque` S7
-object holding the synthetic data and a private `masque_recipe`.
+Takes one data frame and a user-edited `roles` table (from
+[`propose_roles()`](https://max578.github.io/masque/reference/propose_roles.md),
+possibly adjusted with
+[`set_role()`](https://max578.github.io/masque/reference/set_role.md))
+and produces a synthetic clone according to each column's `action`.
+Returns a `masque` S7 object holding the synthetic data and a private
+`masque_recipe`.
 
 ## Usage
 
 ``` r
-mask(df, roles, mode = c("local", "collaborate"), seed = NULL, ...)
+mask(
+  df,
+  roles,
+  mode = c("local", "collaborate"),
+  seed = NULL,
+  clean = c("auto", "report", "off"),
+  alias_names = FALSE,
+  .shared_maps = list(),
+  ...
+)
 ```
 
 ## Arguments
@@ -22,11 +31,11 @@ mask(df, roles, mode = c("local", "collaborate"), seed = NULL, ...)
 
 - roles:
 
-  A tibble produced by
+  A roles table from
   [`propose_roles()`](https://max578.github.io/masque/reference/propose_roles.md)
-  (possibly edited). May optionally include a `mask_levels` column
-  (`"permute"` enables local-mode seeded permutation on the treatment
-  column).
+  (possibly edited). Tables from masque \<= 0.5.0 are upgraded with a
+  deprecation warning; see
+  [`roles_validate()`](https://max578.github.io/masque/reference/roles_validate.md).
 
 - mode:
 
@@ -35,6 +44,37 @@ mask(df, roles, mode = c("local", "collaborate"), seed = NULL, ...)
 - seed:
 
   Optional integer for reproducibility.
+
+- clean:
+
+  Column-name and label hygiene before masking, passed to
+  [`clean_table()`](https://max578.github.io/masque/reference/clean_table.md):
+  one of `"auto"` (default - legalise names, trim whitespace, report
+  near-duplicates), `"report"`, or `"off"`. When names are legalised,
+  the `roles` table's column references are remapped to match, so a
+  `roles` table built against the dirty names still applies. The fixes
+  are recorded in the recipe and re-applied by
+  [`apply_recipe()`](https://max578.github.io/masque/reference/apply_recipe.md).
+
+- alias_names:
+
+  Hide the column names themselves. `FALSE` (the default) keeps them.
+  `TRUE` replaces every retained column name with an opaque alias
+  (`col_001`, `col_002`, ... in column order). A character vector names
+  just the columns to alias. The original-to-alias map is stored in the
+  recipe and inverted by
+  [`apply_recipe()`](https://max578.github.io/masque/reference/apply_recipe.md)
+  / [`unmask()`](https://max578.github.io/masque/reference/unmask.md),
+  so a pipeline written against the aliased synthetic round-trips.
+  Column names are the last identifying surface a kept or design column
+  exposes; alias them when even the schema is sensitive.
+
+- .shared_maps:
+
+  Internal. A named list of pre-computed `original -> alias` level maps
+  for cross-table linked columns, set by
+  [`mask_set()`](https://max578.github.io/masque/reference/mask_set.md).
+  Not for direct use.
 
 - ...:
 
@@ -49,55 +89,52 @@ extract the components.
 
 ## Details
 
-`mode = "local"` keeps original column / level vocabularies and warns
-that the synthetic is for owner development only. `mode = "collaborate"`
-opaque-aliases treatment and categorical-covariate level vocabularies
-(`trt_001`, `<col>_L01`) and drops `ignore` columns; the resulting
-synthetic can be passed to a collaborator while the recipe stays
-private. In `collaborate` mode, numeric draws are jittered within their
-measurement resolution, integer columns are stochastically rounded, and
+`mode = "local"` warns that the synthetic is for owner development only.
+`mode = "collaborate"` additionally jitters re-simulated numerics within
+their measurement resolution (stochastically rounding integers) and runs
 [`audit_mask()`](https://max578.github.io/masque/reference/audit_mask.md)
-runs automatically.
+automatically; the resulting synthetic can be passed to a collaborator
+while the recipe stays private. Which columns are aliased, kept, or
+dropped is decided by the `action` column of `roles` -
+[`propose_roles()`](https://max578.github.io/masque/reference/propose_roles.md)
+resolves mode-appropriate defaults, so the table you reviewed is the
+plan that runs.
 
-## Behaviour by role
-
-- `design`:
-
-  Byte-identical pass-through.
+## Behaviour by action
 
 - `keep`:
 
-  Intentional byte-identical pass-through in both modes.
+  Byte-identical pass-through, both modes.
 
-- `treatment`:
+- `scramble`:
 
-  Local: pass-through (optional opt-in seeded permutation via
-  `roles$mask_levels = "permute"`). Collaborate: opaque alias `trt_NNN`.
-  Designs with two or more treatment factors (factorial, split-plot) are
-  supported; each factor is aliased independently as `<col>_trt_NNN` so
-  the labels stay distinct.
+  Numeric outcome / covariate columns are re-simulated jointly via a
+  Gaussian copula on the global Pearson covariance, with
+  empirical-quantile marginals. Categorical, date, and text columns are
+  row-permuted within non-NA positions, class preserved. Treatment
+  columns get a seeded label permutation - the assignment structure
+  never moves.
 
-- `outcome` + numeric `covariate`:
+- `alias`:
 
-  Re-simulated jointly via a Gaussian copula on global Pearson
-  covariance. Empirical-quantile marginals (type 1: returns observed
-  values).
+  As `scramble` where applicable, plus opaque label substitution:
+  treatments become `trt_NNN` (`<col>_trt_NNN` when two or more
+  treatment factors are aliased), categorical covariates `<col>_LNNN`,
+  design labels `<col>_DNNN` (in place - structure intact), ids
+  `<col>_INNN` (in place - row linkage intact), text values
+  `<col>_TNNN`.
 
-- non-numeric `covariate`:
+- `drop`:
 
-  Row-permuted within non-NA positions. Date/time classes are preserved.
-  Local: categorical vocabulary preserved. Collaborate: factor /
-  character / logical levels receive opaque aliases `<col>_LNN`.
+  Column excluded from the synthetic, both modes.
 
-- `ignore`:
-
-  Local: passes through. Collaborate: dropped.
-
-RNG state is preserved across the call.
+The NA mask of every retained column is preserved cell-by-cell. RNG
+state is preserved across the call.
 
 ## See also
 
 [`propose_roles()`](https://max578.github.io/masque/reference/propose_roles.md),
+[`set_role()`](https://max578.github.io/masque/reference/set_role.md),
 [`roles_validate()`](https://max578.github.io/masque/reference/roles_validate.md),
 [`synthetic()`](https://max578.github.io/masque/reference/synthetic.md),
 [`recipe()`](https://max578.github.io/masque/reference/recipe.md),
@@ -107,16 +144,16 @@ RNG state is preserved across the call.
 
 ``` r
 r <- propose_roles(iris)
-r$role[r$col == "Sepal.Length"] <- "outcome"
+r <- set_role(r, "Sepal.Length", role = "outcome")
 m <- suppressWarnings(mask(iris, r, seed = 1))
 head(synthetic(m))
 #> # A tibble: 6 × 5
 #>   Sepal.Length Sepal.Width Petal.Length Petal.Width Species
 #>          <dbl>       <dbl>        <dbl>       <dbl> <fct>  
-#> 1          5.1         3            1.5         1.2 setosa 
-#> 2          6.2         3            4.7         1.2 setosa 
-#> 3          4.8         3.4          1.6         1.2 setosa 
-#> 4          7.2         3.2          6.4         2.1 setosa 
-#> 5          5.8         3.7          5.1         1.8 setosa 
-#> 6          5           3.7          1.5         1.2 setosa 
+#> 1          5.1         3.2          4           1.5 setosa 
+#> 2          6           3            3.7         0.4 setosa 
+#> 3          5           3            4.6         1.1 setosa 
+#> 4          7.2         2.6          5.8         1.7 setosa 
+#> 5          6.1         2.4          5.8         1.5 setosa 
+#> 6          5           2.7          4.5         1.4 setosa 
 ```

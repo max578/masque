@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">masque</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.6.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -19,10 +19,8 @@
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/getting_started.html">Getting started with masque</a></li>
-    <li><a class="dropdown-item" href="../articles/confidentiality.html">Confidentiality and threat model</a></li>
-    <li><a class="dropdown-item" href="../articles/design_detection.html">Automatic design detection</a></li>
-    <li><a class="dropdown-item" href="../articles/recipe_anatomy.html">Recipe anatomy</a></li>
-    <li><a class="dropdown-item" href="../articles/roadmap.html">Roadmap</a></li>
+    <li><a class="dropdown-item" href="../articles/confidentiality.html">Confidentiality and the threat model</a></li>
+    <li><a class="dropdown-item" href="../articles/recipe_anatomy.html">Recipe anatomy and the round-trip</a></li>
   </ul></li>
 <li class="active nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><a class="external-link nav-link" href="https://github.com/max578/masque/" aria-label="GitHub"><span class="fa fab fa-github fa-lg"></span></a></li>
@@ -35,9 +33,63 @@
   <main id="main" class="col-md-9"><div class="page-header">
 
       <h1>Changelog</h1>
-      <small>Source: <a href="https://github.com/max578/masque/blob/v0.5.0/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
+      <small>Source: <a href="https://github.com/max578/masque/blob/main/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.6.0" id="masque-060">masque 0.6.0<a class="anchor" aria-label="anchor" href="#masque-060"></a></h2>
+<p>A two-axis roles step, a hygiene layer, column-name aliasing, a multi-table set layer, and a single guided verb turn masque into an end-to-end tool for confidential tabular data.</p>
+<div class="section level3">
+<h3 id="breaking-changes-0-6-0">Breaking changes<a class="anchor" aria-label="anchor" href="#breaking-changes-0-6-0"></a></h3>
+<ul><li>The roles table is now <strong>two-axis</strong>: a <code>role</code> column (what a column is) and a new <code>action</code> column (what <code><a href="../reference/mask.html">mask()</a></code> does to it). The role vocabulary changed – the old <code>keep</code> and <code>ignore</code> roles become the <code>keep</code> and <code>drop</code> <em>actions</em>, and new roles <code>date</code>, <code>id</code>, <code>text</code>, and <code>other</code> join <code>design</code> / <code>treatment</code> / <code>outcome</code> / <code>covariate</code>.</li>
+<li>
+<code><a href="../reference/mask.html">mask()</a></code> no longer requires a column roled <code>outcome</code>.</li>
+<li>Roles tables produced by masque 0.5.0 and earlier are upgraded automatically by <code><a href="../reference/roles_validate.html">roles_validate()</a></code> (and therefore by <code><a href="../reference/mask.html">mask()</a></code>) with a one-time deprecation warning that preserves the old mode semantics, so existing scripts keep working. Re-run <code><a href="../reference/propose_roles.html">propose_roles()</a></code> to silence the warning and adopt the new schema.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="the-guided-verb-0-6-0">The guided verb<a class="anchor" aria-label="anchor" href="#the-guided-verb-0-6-0"></a></h3>
+<ul><li>New <code><a href="../reference/masque.html">masque()</a></code> is the front door: one call reads the input (a data frame, a file, a folder, an Excel workbook, or a named list), proposes column roles, pauses for review in an interactive session, masks, audits, and - given an <code>out</code> path - writes the result. It dispatches a single table through <code><a href="../reference/mask.html">mask()</a></code> and a multi-table input through <code><a href="../reference/mask_set.html">mask_set()</a></code>, and returns the same object the lower-level verbs do, so it stays fully scriptable: pass an edited <code>roles</code> table to skip the prompt. (The internal S7 result class previously bound to <code>masque</code> is now <code>masque_obj</code>; the class name is unchanged.)</li>
+</ul></div>
+<div class="section level3">
+<h3 id="two-axis-roles-breaking-with-an-upgrade-path-0-6-0">Two-axis roles (breaking, with an upgrade path)<a class="anchor" aria-label="anchor" href="#two-axis-roles-breaking-with-an-upgrade-path-0-6-0"></a></h3>
+<ul><li>The roles table now carries two columns instead of one: <code>role</code> (what a column <em>is</em>) and <code>action</code> (what <code><a href="../reference/mask.html">mask()</a></code> <em>does</em> to it). <code>role</code> is one of <code>design</code>, <code>treatment</code>, <code>outcome</code>, <code>covariate</code>, <code>date</code>, <code>id</code>, <code>text</code>, <code>other</code>; <code>action</code> is one of <code>keep</code>, <code>scramble</code>, <code>alias</code>, <code>drop</code>. <code><a href="../reference/propose_roles.html">propose_roles()</a></code> resolves a mode-appropriate default action for every column, so the table you review is the masking plan that runs.</li>
+<li>New roles answer the three gaps the previous vocabulary left open: a first-class <code>date</code> role (date/time columns are row-permuted with class and NA pattern preserved), and the explicit “retain untouched” and “skip entirely” choices are now the <code>keep</code> and <code>drop</code> <em>actions</em>, available on any column rather than only the old <code>keep</code> / <code>ignore</code> roles.</li>
+<li>
+<code><a href="../reference/propose_roles.html">propose_roles()</a></code> gains a <code>mode</code> argument. The proposed actions differ between <code>local</code> and <code>collaborate</code> (for example a treatment is kept locally but aliased for collaboration); the table records the mode it was prepared for.</li>
+<li>New <code><a href="../reference/set_role.html">set_role()</a></code> helper edits a roles table ergonomically. Re-assigning a column’s role re-resolves its default action; passing an explicit <code>action</code> pins the column so a later mode change leaves it alone. Direct <code>roles$role[...] &lt;-</code> edits still work.</li>
+<li>
+<code><a href="../reference/mask.html">mask()</a></code> no longer requires an <code>outcome</code> column. With none marked, the Gaussian copula simply re-simulates every scrambled numeric column jointly.</li>
+<li>
+<code>role = "design", action = "alias"</code> is a new opt-out from byte-identical design preservation: the design <em>structure</em> is kept but the site / block labels are hidden behind opaque aliases and restored by <code><a href="../reference/unmask.html">unmask()</a></code>. The default for design columns remains <code>keep</code> (byte-identical).</li>
+<li>
+<code><a href="../reference/roles_validate.html">roles_validate()</a></code> validates the (role, action, kind) combination and fails closed on impossible pairings (a scrambled design column, an aliased numeric, a scrambled id). It returns the validated table with any <code>NA</code> actions resolved.</li>
+<li>Roles tables produced by masque &lt;= 0.5.0 (no <code>action</code> column; the <code>keep</code> / <code>ignore</code> roles; the <code>mask_levels</code> column) are upgraded automatically with a one-time deprecation warning, preserving the v1 mode semantics exactly.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="multi-table-sets-0-6-0">Multi-table sets<a class="anchor" aria-label="anchor" href="#multi-table-sets-0-6-0"></a></h3>
+<ul><li>New <code><a href="../reference/mask_set.html">mask_set()</a></code> masks a whole multi-table dataset at once - a folder of CSV / TSV / <code>.fst</code> files, a multi-sheet Excel workbook, or a named list of data frames - returning one synthetic table per input table and a single private recipe bundle.</li>
+<li>
+<strong>Cross-table-consistent aliasing.</strong> A column that appears in several tables (a site code, a genotype name, a plot id) is detected as a <em>link</em> and aliased identically everywhere it occurs, so a join written against the synthetic set still resolves on the masked data. Links are proposed automatically and printed; override with the <code>links</code> argument, or set <code>links = FALSE</code> to mask each table independently.</li>
+<li>New <code><a href="../reference/read_set.html">read_set()</a></code> ingests the folder / workbook / list into a named list of data frames (clean rectangles only - a missing header row or non-rectangular sheet fails with an explanatory error). New <code><a href="../reference/write_set.html">write_set()</a></code> writes a masked set back out, mirroring the input format (workbook in, workbook out; folder in, folder of CSVs out). The private recipe bundle is never written by <code><a href="../reference/write_set.html">write_set()</a></code>.</li>
+<li>
+<code><a href="../reference/synthetic.html">synthetic()</a></code>, <code><a href="../reference/recipe.html">recipe()</a></code>, <code><a href="../reference/apply_recipe.html">apply_recipe()</a></code>, and <code><a href="../reference/unmask.html">unmask()</a></code> all dispatch on the set: <code><a href="../reference/synthetic.html">synthetic()</a></code> returns the named list of tables, <code><a href="../reference/recipe.html">recipe()</a></code> the bundle, and the round-trip verbs operate table by table.</li>
+<li>
+<code>data.table</code> joins Imports (fast <code>fread</code> / <code>fwrite</code>); <code>readxl</code> and <code>writexl</code> are Suggested for the Excel paths.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="depth-controls-0-6-0">Depth controls<a class="anchor" aria-label="anchor" href="#depth-controls-0-6-0"></a></h3>
+<ul><li>New <code>alias_names</code> argument on <code><a href="../reference/mask.html">mask()</a></code> hides the column names themselves - the last identifying surface a kept or design column exposes. <code>TRUE</code> replaces every retained name with an opaque alias (<code>col_001</code>, <code>col_002</code>, …); a character vector aliases just the named columns. The original-to-alias map lives in the (private) recipe and is inverted by <code><a href="../reference/apply_recipe.html">apply_recipe()</a></code> and <code><a href="../reference/unmask.html">unmask()</a></code>, so a pipeline written against the aliased synthetic round-trips. This realises the long-reserved <code>column_name_map</code> recipe slot. <code><a href="../reference/reveal_maps.html">reveal_maps()</a></code> now also prints the column-name map.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="hygiene-0-6-0">Hygiene<a class="anchor" aria-label="anchor" href="#hygiene-0-6-0"></a></h3>
+<ul><li>New <code><a href="../reference/clean_table.html">clean_table()</a></code> verb (and a <code>clean</code> argument on <code><a href="../reference/mask.html">mask()</a></code>, default <code>"auto"</code>) tidies a dirty table before masking: column names are legalised (valid, unique R names), and leading / trailing whitespace is trimmed from names and from character / factor labels. Both fixes are reported through <code>cli</code>, recorded in the recipe, and re-applied by <code><a href="../reference/apply_recipe.html">apply_recipe()</a></code> so retargeting still lines up.</li>
+<li>Near-duplicate labels - pairs that differ only in case (<code>"north"</code> vs <code>"North"</code>) or by a single edit (<code>"Compass"</code> vs <code>"Compas"</code>) - are <em>reported, never merged</em>: deciding whether two similar labels are the same value is a judgement masque leaves to the user. Set <code>clean = "report"</code> to preview fixes without applying them, or <code>clean = "off"</code> to skip hygiene entirely.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="internal-0-6-0">Internal<a class="anchor" aria-label="anchor" href="#internal-0-6-0"></a></h3>
+<ul><li>Dropped the <code>MASS</code> dependency: the copula now draws latent normals through a Cholesky factor of the regularised covariance, removing a hard import.</li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.5.0" id="masque-050">masque 0.5.0<a class="anchor" aria-label="anchor" href="#masque-050"></a></h2>
 <p>New feature release: joint-treatment masking plus role-table usability and first-class date handling. <code><a href="../reference/mask.html">mask()</a></code> and <code><a href="../reference/roles_validate.html">roles_validate()</a></code> now accept designs with two or more treatment factors (factorial, split-plot trials).</p>

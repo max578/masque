@@ -17,7 +17,7 @@ information that would leak if the recipe file alone were shared."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">masque</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.6.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -29,10 +29,8 @@ information that would leak if the recipe file alone were shared."></head><body>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/getting_started.html">Getting started with masque</a></li>
-    <li><a class="dropdown-item" href="../articles/confidentiality.html">Confidentiality and threat model</a></li>
-    <li><a class="dropdown-item" href="../articles/design_detection.html">Automatic design detection</a></li>
-    <li><a class="dropdown-item" href="../articles/recipe_anatomy.html">Recipe anatomy</a></li>
-    <li><a class="dropdown-item" href="../articles/roadmap.html">Roadmap</a></li>
+    <li><a class="dropdown-item" href="../articles/confidentiality.html">Confidentiality and the threat model</a></li>
+    <li><a class="dropdown-item" href="../articles/recipe_anatomy.html">Recipe anatomy and the round-trip</a></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><a class="external-link nav-link" href="https://github.com/max578/masque/" aria-label="GitHub"><span class="fa fab fa-github fa-lg"></span></a></li>
@@ -45,7 +43,7 @@ information that would leak if the recipe file alone were shared."></head><body>
   <main id="main" class="col-md-9"><div class="page-header">
 
       <h1>Save a masque recipe to disk</h1>
-      <small class="dont-index">Source: <a href="https://github.com/max578/masque/blob/v0.5.0/R/recipe_io.R" class="external-link"><code>R/recipe_io.R</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/max578/masque/blob/main/R/recipe_io.R" class="external-link"><code>R/recipe_io.R</code></a></small>
       <div class="d-none name"><code>save_recipe.Rd</code></div>
     </div>
 
@@ -89,8 +87,7 @@ Currently a no-op (recipe is always written runtime-minimal).</p></dd>
     <p><code>include_simulator = TRUE</code> is accepted but is currently a no-op: the
 recipe does not carry simulator state. The flag is reserved for a
 future release that will let <code><a href="read_recipe.html">read_recipe()</a></code> regenerate fresh
-synthetic samples without access to the original data (see
-<code><a href="../articles/roadmap.html">vignette("roadmap")</a></code>).</p>
+synthetic samples without access to the original data.</p>
 <p>Recipes are at least as sensitive as the original data. Protect the saved
 file at the same security class as the original.</p>
     </div>
@@ -104,6 +101,8 @@ file at the same security class as the original.</p>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">r</span> <span class="op">&lt;-</span> <span class="fu"><a href="propose_roles.html">propose_roles</a></span><span class="op">(</span><span class="va">iris</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">r</span><span class="op">$</span><span class="va">role</span><span class="op">[</span><span class="va">r</span><span class="op">$</span><span class="va">col</span> <span class="op">==</span> <span class="st">"Sepal.Length"</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="st">"outcome"</span></span></span>
 <span class="r-in"><span><span class="va">m</span> <span class="op">&lt;-</span> <span class="fu"><a href="mask.html">mask</a></span><span class="op">(</span><span class="va">iris</span>, <span class="va">r</span>, mode <span class="op">=</span> <span class="st">"collaborate"</span>, seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span></span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> Re-resolved default actions for mode <span style="color: #0000BB;">"collaborate"</span> (explicit edits always win):</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">•</span> Species: keep -&gt; alias</span>
 <span class="r-in"><span><span class="va">tmp</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span>fileext <span class="op">=</span> <span class="st">".rds"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu">save_recipe</span><span class="op">(</span><span class="fu"><a href="recipe.html">recipe</a></span><span class="op">(</span><span class="va">m</span><span class="op">)</span>, <span class="va">tmp</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">rec2</span> <span class="op">&lt;-</span> <span class="fu"><a href="read_recipe.html">read_recipe</a></span><span class="op">(</span><span class="va">tmp</span><span class="op">)</span></span></span>

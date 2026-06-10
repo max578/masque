@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">masque</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.6.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -34,10 +34,8 @@
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
 <li><a class="dropdown-item" href="../articles/getting_started.html">Getting started with masque</a></li>
-    <li><a class="dropdown-item" href="../articles/confidentiality.html">Confidentiality and threat model</a></li>
-    <li><a class="dropdown-item" href="../articles/design_detection.html">Automatic design detection</a></li>
-    <li><a class="dropdown-item" href="../articles/recipe_anatomy.html">Recipe anatomy</a></li>
-    <li><a class="dropdown-item" href="../articles/roadmap.html">Roadmap</a></li>
+    <li><a class="dropdown-item" href="../articles/confidentiality.html">Confidentiality and the threat model</a></li>
+    <li><a class="dropdown-item" href="../articles/recipe_anatomy.html">Recipe anatomy and the round-trip</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
@@ -60,31 +58,151 @@
       <h1>Getting started with masque</h1>
             
       
-      <small class="dont-index">Source: <a href="https://github.com/max578/masque/blob/v0.5.0/vignettes/getting_started.Rmd" class="external-link"><code>vignettes/getting_started.Rmd</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/max578/masque/blob/main/vignettes/getting_started.Rmd" class="external-link"><code>vignettes/getting_started.Rmd</code></a></small>
       <div class="d-none name"><code>getting_started.Rmd</code></div>
     </div>
 
     
     
 <div class="section level2">
-<h2 id="masque-development-surrogates-for-tabular-data">masque: development surrogates for tabular data<a class="anchor" aria-label="anchor" href="#masque-development-surrogates-for-tabular-data"></a>
+<h2 id="what-masque-is-for">What masque is for<a class="anchor" aria-label="anchor" href="#what-masque-is-for"></a>
 </h2>
-<p><code>masque</code> turns a single tabular dataset into a
-structurally faithful synthetic clone you can develop a pipeline
-against. It preserves the experimental design, explicitly kept columns,
-the NA pattern, and the global covariance of your outcome and numeric
-covariates. Date/time covariates are retained as date/time vectors and
-row-permuted by default. It does <strong>not</strong> anonymise; it
-produces controlled substitutes with a private <code>recipe</code> that
-round-trips the finished pipeline back onto the original data.</p>
-<div class="section level3">
-<h3 id="read-this-first-threat-model">Read this first: threat model<a class="anchor" aria-label="anchor" href="#read-this-first-threat-model"></a>
-</h3>
-<p><code>masque</code> is <em>not</em> a privacy-preserving or
-differential-privacy tool. It is a <strong>structurally faithful
-development surrogate</strong>. The recipe returned by
-<code><a href="../reference/mask.html">mask()</a></code> is at least as sensitive as the original data: never
-share it alongside the synthetic.</p>
+<p><code>masque</code> exists to bridge an expertise gap. A data
+custodian holds a confidential dataset and the legal responsibility for
+it, but often only basic R fluency. An analyst has the modelling
+expertise but cannot lawfully see the raw data. <code>masque</code> lets
+the custodian hand the analyst a structurally faithful
+<em>synthetic</em> clone – close enough that a pipeline developed
+against it runs unchanged on the real data – while the information that
+must stay private never crosses the boundary.</p>
+<p>It turns one tabular dataset (or a folder or workbook of related
+tables) into a synthetic clone whose experimental design, missing-value
+pattern, and global covariance are preserved, alongside a private
+<code>recipe</code> that round-trips: a pipeline written against the
+synthetic re-targets to the original with no code changes.</p>
+<p>It is <strong>not</strong> an anonymiser. The synthetic is a
+development surrogate, not a public-release-safe artefact. The companion
+vignette <em>Confidentiality and the threat model</em> sets out exactly
+what is and is not protected; read it before sharing any output.</p>
+</div>
+<div class="section level2">
+<h2 id="the-one-call-path">The one-call path<a class="anchor" aria-label="anchor" href="#the-one-call-path"></a>
+</h2>
+<p><code><a href="../reference/masque.html">masque()</a></code> is the front door. Point it at your data and it
+reads the table, proposes a masking plan, masks, and – in an interactive
+session – pauses to let you review the plan first. We use the classical
+John &amp; Williams (1995) alpha-design field trial, shipped with the
+package.</p>
+<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/max578/masque" class="external-link">masque</a></span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">f</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, <span class="st">"john_alpha.csv"</span>, package <span class="op">=</span> <span class="st">"masque"</span><span class="op">)</span></span>
+<span><span class="va">df</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.csv</a></span><span class="op">(</span><span class="va">f</span>, stringsAsFactors <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">df</span><span class="op">)</span></span>
+<span><span class="co">#&gt;   plot rep block gen  yield row col</span></span>
+<span><span class="co">#&gt; 1    1  R1    B1 G11 4.1172   1   1</span></span>
+<span><span class="co">#&gt; 2    2  R1    B1 G04 4.4461   2   1</span></span>
+<span><span class="co">#&gt; 3    3  R1    B1 G05 5.8757   3   1</span></span>
+<span><span class="co">#&gt; 4    4  R1    B1 G22 4.5784   4   1</span></span>
+<span><span class="co">#&gt; 5    5  R1    B2 G21 4.6540   5   1</span></span>
+<span><span class="co">#&gt; 6    6  R1    B2 G10 4.1736   6   1</span></span>
+<span></span>
+<span><span class="va">m</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/masque.html">masque</a></span><span class="op">(</span><span class="va">df</span>, mode <span class="op">=</span> <span class="st">"collaborate"</span>, seed <span class="op">=</span> <span class="fl">1</span>, ask <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> Using the proposed masking plan (pass `roles` or set `ask = TRUE` to review).</span></span>
+<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> Masked 7 columns in <span style="color: #0000BB;">"collaborate"</span> mode.</span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> Recipe is private - keep it; share only the synthetic output.</span></span></code></pre></div>
+<p><code>ask = FALSE</code> skips the interactive review, which is what
+we want inside a vignette. In your own console, call
+<code>masque(df)</code> and you will see the proposed plan and a prompt
+to proceed, edit, or stop.</p>
+<p>The result carries the synthetic data and the private recipe:</p>
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">synth</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synthetic.html">synthetic</a></span><span class="op">(</span><span class="va">m</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">synth</span><span class="op">)</span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 6 × 7</span></span></span>
+<span><span class="co">#&gt;    plot rep   block gen     yield   row   col</span></span>
+<span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;fct&gt;</span> <span style="color: #949494; font-style: italic;">&lt;fct&gt;</span> <span style="color: #949494; font-style: italic;">&lt;fct&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;int&gt;</span></span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span>     1 R1    B1    trt_011  4.15     1     1</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span>     2 R1    B1    trt_004  4.25     2     1</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span>     3 R1    B1    trt_005  4.58     3     1</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span>     4 R1    B1    trt_022  5.30     4     1</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">5</span>     5 R1    B2    trt_021  3.99     5     1</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">6</span>     6 R1    B2    trt_010  5.26     6     1</span></span></code></pre></div>
+</div>
+<div class="section level2">
+<h2 id="the-masking-plan-roles-and-actions">The masking plan: roles and actions<a class="anchor" aria-label="anchor" href="#the-masking-plan-roles-and-actions"></a>
+</h2>
+<p>Under the one-call path, <code><a href="../reference/masque.html">masque()</a></code> builds the <em>roles
+table</em> for you. You can build and edit it yourself for full control.
+Every column gets two decisions: a <code>role</code> (what the column
+is) and an <code>action</code> (what masque does to it).</p>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">roles</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/propose_roles.html">propose_roles</a></span><span class="op">(</span><span class="va">df</span>, mode <span class="op">=</span> <span class="st">"collaborate"</span><span class="op">)</span></span>
+<span><span class="va">roles</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"col"</span>, <span class="st">"role"</span>, <span class="st">"action"</span>, <span class="st">"kind"</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 7 × 4</span></span></span>
+<span><span class="co">#&gt;   col   role      action   kind   </span></span>
+<span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>  </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> plot  design    keep     integer</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span> rep   design    keep     factor </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span> block design    keep     factor </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span> gen   treatment alias    factor </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">5</span> yield covariate scramble numeric</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">6</span> row   design    keep     integer</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">7</span> col   design    keep     integer</span></span></code></pre></div>
+<p>The eight roles – <code>design</code>, <code>treatment</code>,
+<code>outcome</code>, <code>covariate</code>, <code>date</code>,
+<code>id</code>, <code>text</code>, <code>other</code> – describe the
+column. The four actions set the depth:</p>
+<ul>
+<li>
+<code>keep</code> – pass the column through byte-for-byte;</li>
+<li>
+<code>scramble</code> – re-simulate numerics through a Gaussian
+copula, or row-permute categoricals, dates, and text (the vocabulary
+stays visible);</li>
+<li>
+<code>alias</code> – scramble and replace the labels with opaque
+codes;</li>
+<li>
+<code>drop</code> – leave the column out of the synthetic
+entirely.</li>
+</ul>
+<p><code><a href="../reference/propose_roles.html">propose_roles()</a></code> fills in a sensible action for each
+column given the mode, so the table you review is the plan that will
+run. Edit it with <code><a href="../reference/set_role.html">set_role()</a></code>:</p>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">roles</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/set_role.html">set_role</a></span><span class="op">(</span><span class="va">roles</span>, <span class="st">"yield"</span>, role <span class="op">=</span> <span class="st">"outcome"</span><span class="op">)</span></span>
+<span><span class="va">roles</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"col"</span>, <span class="st">"role"</span>, <span class="st">"action"</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 7 × 3</span></span></span>
+<span><span class="co">#&gt;   col   role      action  </span></span>
+<span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>   </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> plot  design    keep    </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span> rep   design    keep    </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span> block design    keep    </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span> gen   treatment alias   </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">5</span> yield outcome   scramble</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">6</span> row   design    keep    </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">7</span> col   design    keep</span></span></code></pre></div>
+<p>Re-assigning a role re-resolves the default action; passing an
+explicit <code>action</code> pins the column. There is no requirement to
+name an <code>outcome</code>: with none marked, every scrambled numeric
+is re-simulated jointly.</p>
+<p>Pass the edited table back to <code><a href="../reference/mask.html">mask()</a></code> (or to
+<code>masque(df, roles = roles)</code>):</p>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">m</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/mask.html">mask</a></span><span class="op">(</span><span class="va">df</span>, <span class="va">roles</span>, mode <span class="op">=</span> <span class="st">"collaborate"</span>, seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
+<span><span class="va">synth</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synthetic.html">synthetic</a></span><span class="op">(</span><span class="va">m</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical</a></span><span class="op">(</span><span class="va">synth</span><span class="op">$</span><span class="va">plot</span>, <span class="va">df</span><span class="op">$</span><span class="va">plot</span><span class="op">)</span>               <span class="co"># design column: byte-identical</span></span>
+<span><span class="co">#&gt; [1] TRUE</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/sets.html" class="external-link">setequal</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/levels.html" class="external-link">levels</a></span><span class="op">(</span><span class="va">synth</span><span class="op">$</span><span class="va">gen</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/levels.html" class="external-link">levels</a></span><span class="op">(</span><span class="va">df</span><span class="op">$</span><span class="va">gen</span><span class="op">)</span><span class="op">)</span>  <span class="co"># treatment: aliased away</span></span>
+<span><span class="co">#&gt; [1] FALSE</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/levels.html" class="external-link">levels</a></span><span class="op">(</span><span class="va">synth</span><span class="op">$</span><span class="va">gen</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] "trt_001" "trt_002" "trt_003" "trt_004" "trt_005" "trt_006"</span></span></code></pre></div>
+</div>
+<div class="section level2">
+<h2 id="local-and-collaborate-modes">Local and collaborate modes<a class="anchor" aria-label="anchor" href="#local-and-collaborate-modes"></a>
+</h2>
+<p>The mode sets the safe defaults.</p>
 <table class="table">
 <colgroup>
 <col width="33%">
@@ -100,335 +218,85 @@ share it alongside the synthetic.</p>
 <tr class="odd">
 <td><code>local</code></td>
 <td>Owner develops on a realistic surrogate locally</td>
-<td>Vocabulary preserved; <code>keep</code> columns pass through;
-numeric values may match observed</td>
+<td>Vocabulary preserved; numeric values may match observed</td>
 </tr>
 <tr class="even">
 <td><code>collaborate</code></td>
-<td>Owner shares synthetic with a collaborator while keeping the recipe
-private</td>
-<td>Opaque aliasing of treatment + categorical/logical covariate levels;
-date/time covariates row-permuted; jitter on numerics; <code>keep</code>
-columns pass through; <code>ignore</code> columns dropped;
-<code><a href="../reference/audit_mask.html">audit_mask()</a></code> auto-runs</td>
+<td>Owner shares the synthetic while keeping the recipe private</td>
+<td>Treatment and categorical labels aliased; numerics jittered; ids and
+free text dropped; the leakage audit runs automatically</td>
 </tr>
 </tbody>
 </table>
-<p>For the full threat model and limitations, see
-<code><a href="../articles/confidentiality.html">vignette("confidentiality")</a></code>.</p>
+<p>Per-column <code>action</code> choices override the mode wherever you
+need them.</p>
 </div>
-<div class="section level3">
-<h3 id="a-worked-example-an-alpha-design-field-trial">A worked example: an alpha-design field trial<a class="anchor" aria-label="anchor" href="#a-worked-example-an-alpha-design-field-trial"></a>
-</h3>
-<p>We use the classical John (1987) alpha-design dataset, shipped as a
-small CSV in <code>inst/extdata/</code>.</p>
-<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/max578/masque" class="external-link">masque</a></span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">f</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, <span class="st">"john_alpha.csv"</span>, package <span class="op">=</span> <span class="st">"masque"</span><span class="op">)</span></span>
-<span><span class="va">df</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.csv</a></span><span class="op">(</span><span class="va">f</span>, stringsAsFactors <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/utils/str.html" class="external-link">str</a></span><span class="op">(</span><span class="va">df</span><span class="op">)</span></span>
-<span><span class="co">#&gt; 'data.frame':    72 obs. of  7 variables:</span></span>
-<span><span class="co">#&gt;  $ plot : int  1 2 3 4 5 6 7 8 9 10 ...</span></span>
-<span><span class="co">#&gt;  $ rep  : Factor w/ 3 levels "R1","R2","R3": 1 1 1 1 1 1 1 1 1 1 ...</span></span>
-<span><span class="co">#&gt;  $ block: Factor w/ 6 levels "B1","B2","B3",..: 1 1 1 1 2 2 2 2 3 3 ...</span></span>
-<span><span class="co">#&gt;  $ gen  : Factor w/ 24 levels "G01","G02","G03",..: 11 4 5 22 21 10 20 2 23 14 ...</span></span>
-<span><span class="co">#&gt;  $ yield: num  4.12 4.45 5.88 4.58 4.65 ...</span></span>
-<span><span class="co">#&gt;  $ row  : int  1 2 3 4 5 6 7 8 9 10 ...</span></span>
-<span><span class="co">#&gt;  $ col  : int  1 1 1 1 1 1 1 1 1 1 ...</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">df</span><span class="op">)</span></span>
-<span><span class="co">#&gt;   plot rep block gen  yield row col</span></span>
-<span><span class="co">#&gt; 1    1  R1    B1 G11 4.1172   1   1</span></span>
-<span><span class="co">#&gt; 2    2  R1    B1 G04 4.4461   2   1</span></span>
-<span><span class="co">#&gt; 3    3  R1    B1 G05 5.8757   3   1</span></span>
-<span><span class="co">#&gt; 4    4  R1    B1 G22 4.5784   4   1</span></span>
-<span><span class="co">#&gt; 5    5  R1    B2 G21 4.6540   5   1</span></span>
-<span><span class="co">#&gt; 6    6  R1    B2 G10 4.1736   6   1</span></span></code></pre></div>
+<div class="section level2">
+<h2 id="tidy-dates-and-depth">Tidy, dates, and depth<a class="anchor" aria-label="anchor" href="#tidy-dates-and-depth"></a>
+</h2>
+<p>Real custodian tables are rarely clean. <code><a href="../reference/masque.html">masque()</a></code>
+legalises column names and trims stray whitespace before masking,
+reports near-duplicate labels (likely typos) without merging them, and
+records every fix so the round-trip still lines up. Set
+<code>clean = "report"</code> to preview the fixes, or
+<code>clean = "off"</code> to skip them.</p>
+<p>Date and time columns get the first-class <code>date</code> role:
+they are row-permuted, keep their class, and preserve the NA pattern.
+When even the column <em>names</em> are sensitive,
+<code>alias_names = TRUE</code> hides them behind opaque codes that the
+recipe inverts.</p>
 </div>
-<div class="section level3">
-<h3 id="step-1-propose-roles-edit-validate">Step 1: propose roles, edit, validate<a class="anchor" aria-label="anchor" href="#step-1-propose-roles-edit-validate"></a>
-</h3>
-<p><code><a href="../reference/propose_roles.html">propose_roles()</a></code> runs a heuristic classification of every
-column into one of
-<code>{design, keep, treatment, outcome, covariate, ignore}</code>. The
-result is a tibble that you inspect and edit.</p>
-<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">roles</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/propose_roles.html">propose_roles</a></span><span class="op">(</span><span class="va">df</span><span class="op">)</span></span>
-<span><span class="va">roles</span></span>
-<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 7 × 6</span></span></span>
-<span><span class="co">#&gt;   col   role      kind    freq_or_range    pii_suspected notes                                      </span></span>
-<span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>            <span style="color: #949494; font-style: italic;">&lt;lgl&gt;</span>         <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>                                      </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> plot  design    integer [1, 72]          FALSE         Design-pattern name -&gt; design (byte-identi…</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span> rep   design    factor  n=3 levels       FALSE         Design-pattern name -&gt; design (byte-identi…</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span> block design    factor  n=6 levels       FALSE         Design-pattern name -&gt; design (byte-identi…</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span> gen   treatment factor  n=24 levels      FALSE         detect_design: covariate -&gt; treatment (was…</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">5</span> yield covariate numeric [2.8873, 5.8757] FALSE         Default -&gt; covariate; re-role to outcome i…</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">6</span> row   design    integer [1, 72]          FALSE         Design-pattern name -&gt; design (byte-identi…</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">7</span> col   design    integer [1, 1]           FALSE         Design-pattern name -&gt; design (byte-identi…</span></span></code></pre></div>
-<p><code>plot</code>, <code>rep</code>, <code>block</code>,
-<code>row</code>, and <code>col</code> are detected as design columns
-(byte-identical pass-through). <code>gen</code> is detected as a
-treatment factor. <code>yield</code> defaults to <code>covariate</code>
-— we re-role it as <code>outcome</code>.</p>
-<p>Use <code>keep</code> when a non-design column should remain exactly
-as supplied in both modes. Use <code>ignore</code> when a column should
-be dropped before collaboration. Date/time columns are proposed as
-<code>covariate</code> by default: they are row-permuted while retaining
-their class and NA pattern.</p>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">roles</span><span class="op">$</span><span class="va">role</span><span class="op">[</span><span class="va">roles</span><span class="op">$</span><span class="va">col</span> <span class="op">==</span> <span class="st">"yield"</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="st">"outcome"</span></span>
-<span><span class="va">roles</span></span>
-<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 7 × 6</span></span></span>
-<span><span class="co">#&gt;   col   role      kind    freq_or_range    pii_suspected notes                                      </span></span>
-<span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>            <span style="color: #949494; font-style: italic;">&lt;lgl&gt;</span>         <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>                                      </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> plot  design    integer [1, 72]          FALSE         Design-pattern name -&gt; design (byte-identi…</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span> rep   design    factor  n=3 levels       FALSE         Design-pattern name -&gt; design (byte-identi…</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span> block design    factor  n=6 levels       FALSE         Design-pattern name -&gt; design (byte-identi…</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span> gen   treatment factor  n=24 levels      FALSE         detect_design: covariate -&gt; treatment (was…</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">5</span> yield outcome   numeric [2.8873, 5.8757] FALSE         Default -&gt; covariate; re-role to outcome i…</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">6</span> row   design    integer [1, 72]          FALSE         Design-pattern name -&gt; design (byte-identi…</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">7</span> col   design    integer [1, 1]           FALSE         Design-pattern name -&gt; design (byte-identi…</span></span></code></pre></div>
-<p>Validation is a single call:</p>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/roles_validate.html">roles_validate</a></span><span class="op">(</span><span class="va">roles</span>, <span class="va">df</span><span class="op">)</span></span></code></pre></div>
-</div>
-<div class="section level3">
-<h3 id="step-2-mask-in-local-mode">Step 2: mask in local mode<a class="anchor" aria-label="anchor" href="#step-2-mask-in-local-mode"></a>
-</h3>
-<p>Local mode is the owner’s realistic surrogate: it preserves the
-treatment vocabulary, the design pattern, and the NA mask. The synthetic
-is suitable for pipeline development on the owner’s machine but not for
-external sharing.</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">m_local</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/mask.html">mask</a></span><span class="op">(</span><span class="va">df</span>, <span class="va">roles</span>, mode <span class="op">=</span> <span class="st">"local"</span>, seed <span class="op">=</span> <span class="fl">2026</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Warning: local mode: synthetic data is for owner development only, not external sharing.</span></span></code></pre></div>
-<p>The construction-time warning is part of the contract — local-mode
-synthetic is not for external sharing.</p>
+<div class="section level2">
+<h2 id="more-than-one-table">More than one table<a class="anchor" aria-label="anchor" href="#more-than-one-table"></a>
+</h2>
+<p>A confidential dataset often arrives as several related files or a
+multi-sheet workbook. <code><a href="../reference/masque.html">masque()</a></code> handles those too – point it
+at a folder, an <code>.xlsx</code> file, or a named list of data frames
+and it masks every table at once, aliasing any shared key (a site code,
+a genotype name) <em>identically across tables</em> so a join of the
+synthetic tables still resolves.</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">m_local</span></span>
+<code class="sourceCode R"><span><span class="va">set_dir</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, <span class="st">"met_set"</span>, package <span class="op">=</span> <span class="st">"masque"</span><span class="op">)</span></span>
+<span><span class="va">ms</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/masque.html">masque</a></span><span class="op">(</span><span class="va">set_dir</span>, mode <span class="op">=</span> <span class="st">"collaborate"</span>, seed <span class="op">=</span> <span class="fl">1</span>, ask <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> Using the proposed masking plan for <span style="color: #00BB00;">agronomy</span> (pass `roles` or set `ask = TRUE` to review).</span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> Using the proposed masking plan for <span style="color: #00BB00;">quality</span> (pass `roles` or set `ask = TRUE` to review).</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">──</span> <span style="font-weight: bold;">masque</span> <span style="color: #00BBBB;">──────────────────────────────────────────────────────────────────────────────────────────</span></span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Mode: local</span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Synthetic: 72 row(s) x 7 column(s)</span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Audit: not run (use audit_mask())</span></span>
-<span><span class="co">#&gt; <span style="color: #BBBB00;">!</span> local mode: synthetic data is for owner development only, not external sharing.</span></span>
-<span><span class="co">#&gt; Use `synthetic(m)` to extract data; `recipe(m)` for the recipe.</span></span>
+<span><span class="co">#&gt; ── <span style="font-weight: bold;">Cross-table links (1)</span> ──</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">──</span> <span style="font-weight: bold;">masque_recipe</span> <span style="color: #00BBBB;">───────────────────────────────────────────────────────────────────────────────────</span></span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Created: 2026-06-10 13:15:29 UTC</span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Mode: local</span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Seed: present (redacted)</span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> masque version: 0.5.0</span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Integrity fingerprint: 0cec319ba9e2...</span></span>
+<span><span class="co">#&gt; • <span style="color: #0000BB;">"gen"</span> shared across <span style="color: #0000BB;">"agronomy, quality"</span> - aliased consistently</span></span>
+<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> Masked 2 tables in <span style="color: #0000BB;">"collaborate"</span> mode.</span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> Recipe is private - keep it; share only the synthetic output.</span></span>
+<span><span class="va">ms</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; ── <span style="font-weight: bold;">Columns (7 total; 0 level-map(s); 0 column-name map(s))</span> ──</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt;   = design     plot                              (integer)</span></span>
-<span><span class="co">#&gt;   = design     rep                               (factor)</span></span>
-<span><span class="co">#&gt;   = design     block                             (factor)</span></span>
-<span><span class="co">#&gt;   = treatment  gen                               (factor)</span></span>
-<span><span class="co">#&gt;   = outcome    yield                             (numeric)</span></span>
-<span><span class="co">#&gt;   = design     row                               (integer)</span></span>
-<span><span class="co">#&gt;   = design     col                               (integer)</span></span>
-<span><span class="co">#&gt; ── <span style="font-weight: bold;">Warnings</span> ──</span></span>
-<span><span class="co">#&gt; <span style="color: #BBBB00;">!</span> local mode: synthetic data is for owner development only, not external sharing.</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; <span style="color: #BB0000;">✖</span> PRIVATE - never share this recipe alongside the synthetic.</span></span>
-<span><span class="co">#&gt; Use `reveal_maps(rec)` to inspect level maps explicitly.</span></span></code></pre></div>
-<p>Extract the synthetic data via <code><a href="../reference/synthetic.html">synthetic()</a></code>:</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">synth_local</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synthetic.html">synthetic</a></span><span class="op">(</span><span class="va">m_local</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">synth_local</span><span class="op">)</span></span>
-<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 6 × 7</span></span></span>
-<span><span class="co">#&gt;    plot rep   block gen   yield   row   col</span></span>
-<span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;fct&gt;</span> <span style="color: #949494; font-style: italic;">&lt;fct&gt;</span> <span style="color: #949494; font-style: italic;">&lt;fct&gt;</span> <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;int&gt;</span></span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span>     1 R1    B1    G11    4.79     1     1</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span>     2 R1    B1    G04    4.56     2     1</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span>     3 R1    B1    G05    3.90     3     1</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span>     4 R1    B1    G22    4.17     4     1</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">5</span>     5 R1    B2    G21    4.53     5     1</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">6</span>     6 R1    B2    G10    3.14     6     1</span></span></code></pre></div>
-<p>Design columns are byte-identical to the original; treatment labels
-are preserved.</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical</a></span><span class="op">(</span><span class="va">synth_local</span><span class="op">$</span><span class="va">rep</span>, <span class="va">df</span><span class="op">$</span><span class="va">rep</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] TRUE</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical</a></span><span class="op">(</span><span class="va">synth_local</span><span class="op">$</span><span class="va">block</span>, <span class="va">df</span><span class="op">$</span><span class="va">block</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] TRUE</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/levels.html" class="external-link">levels</a></span><span class="op">(</span><span class="va">synth_local</span><span class="op">$</span><span class="va">gen</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/levels.html" class="external-link">levels</a></span><span class="op">(</span><span class="va">df</span><span class="op">$</span><span class="va">gen</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
-<p>For a date/time or explicit-keep column, the intent is visible in the
-role table:</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">demo</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
-<span>  rep <span class="op">=</span> <span class="fl">1</span><span class="op">:</span><span class="fl">6</span>,</span>
-<span>  sample_date <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/as.Date.html" class="external-link">as.Date</a></span><span class="op">(</span><span class="st">"2026-01-01"</span><span class="op">)</span> <span class="op">+</span> <span class="fl">0</span><span class="op">:</span><span class="fl">5</span>,</span>
-<span>  lab_batch <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"A"</span>, <span class="st">"A"</span>, <span class="st">"B"</span>, <span class="st">"B"</span>, <span class="st">"C"</span>, <span class="st">"C"</span><span class="op">)</span>,</span>
-<span>  yield <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">3.1</span>, <span class="fl">2.8</span>, <span class="fl">4.0</span>, <span class="fl">3.7</span>, <span class="fl">5.2</span>, <span class="fl">5.0</span><span class="op">)</span>,</span>
-<span>  stringsAsFactors <span class="op">=</span> <span class="cn">FALSE</span></span>
-<span><span class="op">)</span></span>
-<span><span class="va">demo_roles</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/propose_roles.html">propose_roles</a></span><span class="op">(</span><span class="va">demo</span>, detect <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
-<span><span class="va">demo_roles</span><span class="op">$</span><span class="va">role</span><span class="op">[</span><span class="va">demo_roles</span><span class="op">$</span><span class="va">col</span> <span class="op">==</span> <span class="st">"yield"</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="st">"outcome"</span></span>
-<span><span class="va">demo_roles</span><span class="op">$</span><span class="va">role</span><span class="op">[</span><span class="va">demo_roles</span><span class="op">$</span><span class="va">col</span> <span class="op">==</span> <span class="st">"lab_batch"</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="st">"keep"</span></span>
-<span><span class="va">demo_roles</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"col"</span>, <span class="st">"role"</span>, <span class="st">"kind"</span>, <span class="st">"notes"</span><span class="op">)</span><span class="op">]</span></span>
-<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 4 × 4</span></span></span>
-<span><span class="co">#&gt;   col         role      kind      notes                                                             </span></span>
-<span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>       <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>                                                             </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> rep         design    integer   Design-pattern name -&gt; design (byte-identical).                   </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span> sample_date covariate date      Date/time column -&gt; covariate (row-permuted); use keep to leave u…</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span> lab_batch   keep      character Default -&gt; covariate; re-role to outcome if response variable, or…</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span> yield       outcome   numeric   Default -&gt; covariate; re-role to outcome if response variable, or…</span></span></code></pre></div>
-</div>
-<div class="section level3">
-<h3 id="step-3-mask-in-collaborate-mode">Step 3: mask in collaborate mode<a class="anchor" aria-label="anchor" href="#step-3-mask-in-collaborate-mode"></a>
-</h3>
-<p>Collaborate mode opaquely aliases the treatment and categorical-
-covariate vocabularies (<code>G01 -&gt; trt_001</code> etc.), drops
-<code>ignore</code> columns, jitters numerics within their observed
-measurement resolution, and auto-runs <code><a href="../reference/audit_mask.html">audit_mask()</a></code>. The
-synthetic is suitable for handing to a pipeline developer while the
-recipe stays private.</p>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">m_collab</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/mask.html">mask</a></span><span class="op">(</span><span class="va">df</span>, <span class="va">roles</span>, mode <span class="op">=</span> <span class="st">"collaborate"</span>, seed <span class="op">=</span> <span class="fl">2026</span><span class="op">)</span></span>
-<span><span class="va">synth_collab</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synthetic.html">synthetic</a></span><span class="op">(</span><span class="va">m_collab</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">synth_collab</span><span class="op">)</span></span>
-<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 6 × 7</span></span></span>
-<span><span class="co">#&gt;    plot rep   block gen     yield   row   col</span></span>
-<span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;fct&gt;</span> <span style="color: #949494; font-style: italic;">&lt;fct&gt;</span> <span style="color: #949494; font-style: italic;">&lt;fct&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;int&gt;</span></span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span>     1 R1    B1    trt_011  4.79     1     1</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span>     2 R1    B1    trt_004  4.56     2     1</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span>     3 R1    B1    trt_005  3.90     3     1</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span>     4 R1    B1    trt_022  4.17     4     1</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">5</span>     5 R1    B2    trt_021  4.53     5     1</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">6</span>     6 R1    B2    trt_010  3.14     6     1</span></span></code></pre></div>
-<p>Note <code>gen</code> is now <code>trt_NNN</code>:</p>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/levels.html" class="external-link">levels</a></span><span class="op">(</span><span class="va">synth_collab</span><span class="op">$</span><span class="va">gen</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "trt_001" "trt_002" "trt_003" "trt_004" "trt_005" "trt_006"</span></span></code></pre></div>
-<p>Original labels never leak through <code>print(recipe(m))</code>:</p>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/recipe.html">recipe</a></span><span class="op">(</span><span class="va">m_collab</span><span class="op">)</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">──</span> <span style="font-weight: bold;">masque_recipe</span> <span style="color: #00BBBB;">───────────────────────────────────────────────────────────────────────────────────</span></span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Created: 2026-06-10 13:15:29 UTC</span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">──</span> <span style="font-weight: bold;">masque_set</span> <span style="color: #00BBBB;">──────────────────────────────────────────────────────────────────────────────────────</span></span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Mode: collaborate</span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Seed: present (redacted)</span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> masque version: 0.5.0</span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Integrity fingerprint: 0cec319ba9e2...</span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Tables: 2</span></span>
+<span><span class="co">#&gt; • <span style="color: #00BB00;">agronomy</span>: 464 row(s) x 7 column(s)</span></span>
+<span><span class="co">#&gt; • <span style="color: #00BB00;">quality</span>: 464 row(s) x 5 column(s)</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; ── <span style="font-weight: bold;">Columns (7 total; 1 level-map(s); 0 column-name map(s))</span> ──</span></span>
+<span><span class="co">#&gt; ── <span style="font-weight: bold;">Cross-table links (1)</span> ──</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt;   = design     plot                              (integer)</span></span>
-<span><span class="co">#&gt;   = design     rep                               (factor)</span></span>
-<span><span class="co">#&gt;   = design     block                             (factor)</span></span>
-<span><span class="co">#&gt;   * treatment  gen                               (factor)</span></span>
-<span><span class="co">#&gt;   = outcome    yield                             (numeric)</span></span>
-<span><span class="co">#&gt;   = design     row                               (integer)</span></span>
-<span><span class="co">#&gt;   = design     col                               (integer)</span></span>
+<span><span class="co">#&gt; • <span style="color: #0000BB;">"gen"</span> shared across <span style="color: #0000BB;">"agronomy, quality"</span></span></span>
+<span><span class="co">#&gt; Use `synthetic(m)` for the tables; `recipe(m)` for the bundle.</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; <span style="color: #BB0000;">✖</span> PRIVATE - never share this recipe alongside the synthetic.</span></span>
-<span><span class="co">#&gt; Use `reveal_maps(rec)` to inspect level maps explicitly.</span></span></code></pre></div>
-<p>To see them you must call <code><a href="../reference/reveal_maps.html">reveal_maps()</a></code> explicitly.</p>
+<span><span class="co">#&gt; <span style="color: #BB0000;">✖</span> The recipe bundle is PRIVATE - never share it with the synthetic set.</span></span></code></pre></div>
+<p>The genotype column <code>gen</code> appears in both tables and is
+masked to the same codes in each, so the field and laboratory tables
+still join. See <em>Confidentiality and the threat model</em> for the
+set-level controls.</p>
 </div>
-<div class="section level3">
-<h3 id="step-4-round-trip-a-pipeline">Step 4: round-trip a pipeline<a class="anchor" aria-label="anchor" href="#step-4-round-trip-a-pipeline"></a>
-</h3>
-<p>The classic <code>masque</code> workflow:</p>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Train a model against the synthetic namespace</span></span>
-<span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/lm.html" class="external-link">lm</a></span><span class="op">(</span><span class="va">yield</span> <span class="op">~</span> <span class="va">gen</span> <span class="op">+</span> <span class="va">rep</span>, data <span class="op">=</span> <span class="va">synth_collab</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Translate the original into the synthetic namespace via the recipe</span></span>
-<span><span class="va">df_in_synth</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/apply_recipe.html">apply_recipe</a></span><span class="op">(</span><span class="va">df</span>, <span class="fu"><a href="../reference/recipe.html">recipe</a></span><span class="op">(</span><span class="va">m_collab</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">df_in_synth</span><span class="op">)</span></span>
-<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 6 × 7</span></span></span>
-<span><span class="co">#&gt;    plot rep   block gen     yield   row   col</span></span>
-<span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;fct&gt;</span> <span style="color: #949494; font-style: italic;">&lt;fct&gt;</span> <span style="color: #949494; font-style: italic;">&lt;fct&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;int&gt;</span></span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span>     1 R1    B1    trt_011  4.12     1     1</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span>     2 R1    B1    trt_004  4.45     2     1</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span>     3 R1    B1    trt_005  5.88     3     1</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span>     4 R1    B1    trt_022  4.58     4     1</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">5</span>     5 R1    B2    trt_021  4.65     5     1</span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">6</span>     6 R1    B2    trt_010  4.17     6     1</span></span>
-<span></span>
-<span><span class="co"># Predict on the translated data</span></span>
-<span><span class="va">preds_synth</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">fit</span>, newdata <span class="op">=</span> <span class="va">df_in_synth</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">preds_synth</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] 72</span></span>
-<span></span>
-<span><span class="co"># Numeric predictions need no inverse map</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">preds_synth</span><span class="op">)</span></span>
-<span><span class="co">#&gt;        1        2        3        4        5        6 </span></span>
-<span><span class="co">#&gt; 3.920561 4.408952 4.010521 3.833775 4.280694 4.027520</span></span></code></pre></div>
-<p>If the pipeline returned factor-valued predictions (e.g., a
-classifier predicting a treatment), <code><a href="../reference/unmask.html">unmask()</a></code> translates
-them back into the original vocabulary:</p>
-<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">pred_factor_synth</span> <span class="op">&lt;-</span> <span class="va">synth_collab</span><span class="op">$</span><span class="va">gen</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">5</span><span class="op">]</span></span>
-<span><span class="va">pred_factor_orig</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/unmask.html">unmask</a></span><span class="op">(</span><span class="va">pred_factor_synth</span>, <span class="fu"><a href="../reference/recipe.html">recipe</a></span><span class="op">(</span><span class="va">m_collab</span><span class="op">)</span>,</span>
-<span>  column <span class="op">=</span> <span class="st">"gen"</span></span>
-<span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
-<span>  synth <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="va">pred_factor_synth</span><span class="op">)</span>,</span>
-<span>  original <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="va">pred_factor_orig</span><span class="op">)</span></span>
-<span><span class="op">)</span></span>
-<span><span class="co">#&gt;     synth original</span></span>
-<span><span class="co">#&gt; 1 trt_011      G11</span></span>
-<span><span class="co">#&gt; 2 trt_004      G04</span></span>
-<span><span class="co">#&gt; 3 trt_005      G05</span></span>
-<span><span class="co">#&gt; 4 trt_022      G22</span></span>
-<span><span class="co">#&gt; 5 trt_021      G21</span></span></code></pre></div>
-</div>
-<div class="section level3">
-<h3 id="step-5-audit-and-ship">Step 5: audit and ship<a class="anchor" aria-label="anchor" href="#step-5-audit-and-ship"></a>
-</h3>
-<p><code><a href="../reference/audit_mask.html">audit_mask()</a></code> returns a per-column leakage audit. In
-collaborate mode it runs automatically at <code><a href="../reference/mask.html">mask()</a></code> time and
-is stored on the object.</p>
-<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/audit_mask.html">audit_mask</a></span><span class="op">(</span><span class="va">m_collab</span><span class="op">)</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">──</span> <span style="font-weight: bold;">masque audit (mode = collaborate)</span> <span style="color: #00BBBB;">───────────────────────────────────────────────────────────────</span></span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> 0 HIGH, 0 medium, 7 low across 7 columns</span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Rows with a globally unique NA pattern: 0.0%</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; ── <span style="font-weight: bold;">LOW (7)</span> ──</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span>   design    plot                              exact-match 100.0% (jitter due step 7)</span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span>   design    rep                               ok</span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span>   design    block                             ok</span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span>   treatment gen                               levels aliased</span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span>   outcome   yield                             ok</span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span>   design    row                               exact-match 100.0% (jitter due step 7)</span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span>   design    col                               exact-match 100.0% (jitter due step 7)</span></span></code></pre></div>
-<p>The recipe can be persisted alongside the original data (treat as
-sensitive); the synthetic alone is what crosses the trust boundary.</p>
-<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">tmp</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span>fileext <span class="op">=</span> <span class="st">".rds"</span><span class="op">)</span></span>
-<span><span class="fu"><a href="../reference/save_recipe.html">save_recipe</a></span><span class="op">(</span><span class="fu"><a href="../reference/recipe.html">recipe</a></span><span class="op">(</span><span class="va">m_collab</span><span class="op">)</span>, <span class="va">tmp</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/file.info.html" class="external-link">file.info</a></span><span class="op">(</span><span class="va">tmp</span><span class="op">)</span><span class="op">$</span><span class="va">size</span></span>
-<span><span class="co">#&gt; [1] 6834</span></span>
-<span><span class="va">rec2</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/read_recipe.html">read_recipe</a></span><span class="op">(</span><span class="va">tmp</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical</a></span><span class="op">(</span><span class="va">rec2</span><span class="op">@</span><span class="va">masque_version</span>, <span class="fu"><a href="../reference/recipe.html">recipe</a></span><span class="op">(</span><span class="va">m_collab</span><span class="op">)</span><span class="op">@</span><span class="va">masque_version</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
-</div>
-<div class="section level3">
-<h3 id="next-steps">Next steps<a class="anchor" aria-label="anchor" href="#next-steps"></a>
-</h3>
+<div class="section level2">
+<h2 id="where-to-go-next">Where to go next<a class="anchor" aria-label="anchor" href="#where-to-go-next"></a>
+</h2>
 <ul>
 <li>
-<code><a href="../articles/confidentiality.html">vignette("confidentiality")</a></code> — the full threat model,
-mode comparison, and <code><a href="../reference/audit_mask.html">audit_mask()</a></code> walk-through with
-deliberately leaky fixtures.</li>
+<em>Confidentiality and the threat model</em> – what is and is not
+protected, the two modes, the depth controls, and the leakage
+audit.</li>
 <li>
-<code><a href="../articles/recipe_anatomy.html">vignette("recipe_anatomy")</a></code> — what’s inside a recipe,
-runtime vs full, <code><a href="https://rdrr.io/r/base/print.html" class="external-link">print()</a></code> vs
-<code><a href="../reference/reveal_maps.html">reveal_maps()</a></code>.</li>
-<li>
-<code><a href="../articles/roadmap.html">vignette("roadmap")</a></code> — features deliberately deferred
-from the current release.</li>
+<em>Recipe anatomy and the round-trip</em> – the analyst’s side: how
+a pipeline built on the synthetic re-targets to the original.</li>
 </ul>
-</div>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>

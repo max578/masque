@@ -21,6 +21,25 @@ far:
 - `0.4.0` — added
   [`synthesise_geospatial()`](https://max578.github.io/masque/reference/synthesise_geospatial.md).
   **No breaking changes.**
+- `0.5.0` — joint-treatment masking; the `keep` role; first-class
+  date/time covariates. **No breaking changes.**
+- `0.6.0` — the **two-axis roles model**: the roles table gains an
+  `action` column and the role vocabulary changes (`keep` / `ignore`
+  become the `keep` / `drop` *actions*; new roles `date` / `id` / `text`
+  / `other`). New exports:
+  [`masque()`](https://max578.github.io/masque/reference/masque.md)
+  (guided verb),
+  [`set_role()`](https://max578.github.io/masque/reference/set_role.md),
+  [`clean_table()`](https://max578.github.io/masque/reference/clean_table.md),
+  [`mask_set()`](https://max578.github.io/masque/reference/mask_set.md),
+  [`read_set()`](https://max578.github.io/masque/reference/read_set.md),
+  [`write_set()`](https://max578.github.io/masque/reference/write_set.md).
+  [`mask()`](https://max578.github.io/masque/reference/mask.md) no
+  longer requires an `outcome`. **This is a breaking change, listed in
+  `NEWS.md`.** Roles tables built by masque \<= 0.5.0 are upgraded
+  automatically with a one-time deprecation warning, so existing scripts
+  keep working; the warning signposts re-running
+  [`propose_roles()`](https://max578.github.io/masque/reference/propose_roles.md).
 
 The policy is “additive-by-intent” rather than “frozen”: pre-1.0
 reserves the right to break an existing signature when a design flaw

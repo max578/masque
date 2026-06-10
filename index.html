@@ -11,8 +11,8 @@
 <script src="deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
 <script src="deps/headroom-0.11.0/headroom.min.js"></script><script src="deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="deps/search-1.0.0/fuse.min.js"></script><script src="deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="pkgdown.js"></script><meta property="og:title" content="Structurally Faithful Development Surrogates for Tabular Data">
-<meta name="description" content="Turns a single tabular dataset into a structurally faithful synthetic clone suitable for pipeline development. Experimental-design columns and the NA pattern are preserved exactly; treatment and categorical-covariate level vocabularies are optionally aliased; outcome and numeric-covariate values are re-simulated via a Gaussian copula that preserves the global covariance structure. A private recipe object round-trips a pipeline written against the synthetic clone onto the original data. Not a differential-privacy or anonymisation tool: outputs are development surrogates, not public-release-safe artefacts.">
-<meta property="og:description" content="Turns a single tabular dataset into a structurally faithful synthetic clone suitable for pipeline development. Experimental-design columns and the NA pattern are preserved exactly; treatment and categorical-covariate level vocabularies are optionally aliased; outcome and numeric-covariate values are re-simulated via a Gaussian copula that preserves the global covariance structure. A private recipe object round-trips a pipeline written against the synthetic clone onto the original data. Not a differential-privacy or anonymisation tool: outputs are development surrogates, not public-release-safe artefacts.">
+<meta name="description" content="Turns a confidential tabular dataset - a single table, a folder of files, or a multi-sheet workbook - into a structurally faithful synthetic clone suitable for pipeline development. Experimental-design columns and the NA pattern are preserved exactly; treatment and categorical-covariate level vocabularies are optionally aliased; outcome and numeric-covariate values are re-simulated via a Gaussian copula that preserves the global covariance structure. Columns shared across tables are aliased consistently so the synthetic tables still join. A private recipe object round-trips a pipeline written against the synthetic clone onto the original data. Not a differential-privacy or anonymisation tool: outputs are development surrogates, not public-release-safe artefacts.">
+<meta property="og:description" content="Turns a confidential tabular dataset - a single table, a folder of files, or a multi-sheet workbook - into a structurally faithful synthetic clone suitable for pipeline development. Experimental-design columns and the NA pattern are preserved exactly; treatment and categorical-covariate level vocabularies are optionally aliased; outcome and numeric-covariate values are re-simulated via a Gaussian copula that preserves the global covariance structure. Columns shared across tables are aliased consistently so the synthetic tables still join. A private recipe object round-trips a pipeline written against the synthetic clone onto the original data. Not a differential-privacy or anonymisation tool: outputs are development surrogates, not public-release-safe artefacts.">
 </head>
 <body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -22,7 +22,7 @@
 
     <a class="navbar-brand me-2" href="index.html">masque</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.6.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -36,10 +36,8 @@
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
 <li><a class="dropdown-item" href="articles/getting_started.html">Getting started with masque</a></li>
-    <li><a class="dropdown-item" href="articles/confidentiality.html">Confidentiality and threat model</a></li>
-    <li><a class="dropdown-item" href="articles/design_detection.html">Automatic design detection</a></li>
-    <li><a class="dropdown-item" href="articles/recipe_anatomy.html">Recipe anatomy</a></li>
-    <li><a class="dropdown-item" href="articles/roadmap.html">Roadmap</a></li>
+    <li><a class="dropdown-item" href="articles/confidentiality.html">Confidentiality and the threat model</a></li>
+    <li><a class="dropdown-item" href="articles/recipe_anatomy.html">Recipe anatomy and the round-trip</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="news/index.html">Changelog</a></li>
@@ -59,8 +57,9 @@
 <blockquote>
 <p>Structurally faithful development surrogates for tabular data.</p>
 </blockquote>
-<p><code>masque</code> turns one tabular dataset into a synthetic clone whose experimental design, NA pattern, and global covariance structure are close enough to the original that pipeline code runs unchanged. It returns a private <code>recipe</code> object that round-trips: a pipeline written against the synthetic can be re-targeted to the original data with no source changes.</p>
-<p>Version 0.5.0.9000 (development). Pre-CRAN; tagged releases on the GitHub repository.</p>
+<p><code>masque</code> turns a confidential tabular dataset – a single table, a folder of files, or a multi-sheet workbook – into a structurally faithful synthetic clone whose experimental design, NA pattern, and global covariance are close enough to the original that pipeline code runs unchanged. It returns a private <code>recipe</code> that round-trips: a pipeline written against the synthetic re-targets to the original data with no source changes.</p>
+<p>The custodian holds the data and the recipe; the analyst gets only the synthetic. <code>masque</code> bridges that gap.</p>
+<p>Version 0.6.0.9000 (development). Pre-CRAN; tagged releases on the GitHub repository.</p>
 <hr>
 <div class="section level2">
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
@@ -81,27 +80,24 @@
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/max578/masque" class="external-link">masque</a></span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># 1. Read a small public fixture (alpha-design field trial; John, 1987).</span></span>
+<span><span class="co"># Read a small public fixture (alpha-design field trial; John &amp; Williams, 1995).</span></span>
 <span><span class="va">f</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, <span class="st">"john_alpha.csv"</span>, package <span class="op">=</span> <span class="st">"masque"</span><span class="op">)</span></span>
 <span><span class="va">df</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.csv</a></span><span class="op">(</span><span class="va">f</span>, stringsAsFactors <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># 2. Heuristic role classification; the user edits before passing to mask().</span></span>
-<span><span class="va">roles</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/propose_roles.html">propose_roles</a></span><span class="op">(</span><span class="va">df</span><span class="op">)</span></span>
-<span><span class="va">roles</span><span class="op">$</span><span class="va">role</span><span class="op">[</span><span class="va">roles</span><span class="op">$</span><span class="va">col</span> <span class="op">==</span> <span class="st">"yield"</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="st">"outcome"</span></span>
+<span><span class="co"># One guided call: read -&gt; propose roles -&gt; (review) -&gt; mask -&gt; audit.</span></span>
+<span><span class="co"># In an interactive session it pauses to let you review the plan.</span></span>
+<span><span class="va">m</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/masque.html">masque</a></span><span class="op">(</span><span class="va">df</span>, mode <span class="op">=</span> <span class="st">"collaborate"</span>, seed <span class="op">=</span> <span class="fl">1L</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># 3. Mask in collaborate mode: opaque level aliases, numeric jitter,</span></span>
-<span><span class="co">#    ignore columns dropped, audit_mask() auto-run.</span></span>
-<span><span class="va">m</span>     <span class="op">&lt;-</span> <span class="fu"><a href="reference/mask.html">mask</a></span><span class="op">(</span><span class="va">df</span>, <span class="va">roles</span>, mode <span class="op">=</span> <span class="st">"collaborate"</span>, seed <span class="op">=</span> <span class="fl">1L</span><span class="op">)</span></span>
-<span><span class="va">synth</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/synthetic.html">synthetic</a></span><span class="op">(</span><span class="va">m</span><span class="op">)</span></span>
-<span><span class="va">rec</span>   <span class="op">&lt;-</span> <span class="fu"><a href="reference/recipe.html">recipe</a></span><span class="op">(</span><span class="va">m</span><span class="op">)</span></span>
+<span><span class="va">synth</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/synthetic.html">synthetic</a></span><span class="op">(</span><span class="va">m</span><span class="op">)</span>   <span class="co"># hand this to the analyst</span></span>
+<span><span class="va">rec</span>   <span class="op">&lt;-</span> <span class="fu"><a href="reference/recipe.html">recipe</a></span><span class="op">(</span><span class="va">m</span><span class="op">)</span>      <span class="co"># keep this private</span></span>
 <span></span>
-<span><span class="co"># 4. Build a pipeline against the synthetic namespace.</span></span>
+<span><span class="co"># Analyst builds a pipeline against the synthetic namespace ...</span></span>
 <span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/lm.html" class="external-link">lm</a></span><span class="op">(</span><span class="va">yield</span> <span class="op">~</span> <span class="va">gen</span> <span class="op">+</span> <span class="va">rep</span>, data <span class="op">=</span> <span class="va">synth</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># 5. Translate the original into the synthetic namespace and predict.</span></span>
-<span><span class="va">df_in_synth</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/apply_recipe.html">apply_recipe</a></span><span class="op">(</span><span class="va">df</span>, <span class="va">rec</span><span class="op">)</span></span>
-<span><span class="va">preds</span>       <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">fit</span>, newdata <span class="op">=</span> <span class="va">df_in_synth</span><span class="op">)</span></span></code></pre></div>
-<p>See <code><a href="articles/getting_started.html">vignette("getting_started", package = "masque")</a></code> for the full walk-through and <code><a href="articles/design_detection.html">vignette("design_detection", package = "masque")</a></code> for the experimental- design detector that drives <code><a href="reference/propose_roles.html">propose_roles()</a></code>.</p>
+<span><span class="co"># ... and the custodian re-targets it to the original data.</span></span>
+<span><span class="va">preds</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">fit</span>, newdata <span class="op">=</span> <span class="fu"><a href="reference/apply_recipe.html">apply_recipe</a></span><span class="op">(</span><span class="va">df</span>, <span class="va">rec</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<p>A folder of files or a multi-sheet workbook works the same way – pass the path to <code><a href="reference/masque.html">masque()</a></code> and it masks every table at once, aliasing shared keys consistently so the synthetic tables still join.</p>
+<p>See <code><a href="articles/getting_started.html">vignette("getting_started", package = "masque")</a></code> for the full walk-through.</p>
 <hr>
 </div>
 <div class="section level2">
@@ -119,7 +115,7 @@
 <ul>
 <li>It does not provide differential-privacy guarantees.</li>
 <li>It does not make outputs safe for public release.</li>
-<li>It does not anonymise rare strata, small designs, or operational metadata (small site x year combinations, contact names, geolocations).</li>
+<li>It does not anonymise rare strata, small designs, or operational metadata (small site-by-year combinations, contact names, geolocations).</li>
 <li>It does not rewrite arbitrary pipeline source code.</li>
 </ul>
 <p><strong>Bottom line.</strong> The recipe is at least as sensitive as the original. Never share the recipe and the synthetic together. The collaborate workflow assumes only the synthetic crosses the trust boundary.</p>
@@ -130,15 +126,11 @@
 </h2>
 <ul>
 <li>
-<code><a href="articles/getting_started.html">vignette("getting_started")</a></code> — five-step worked example on a public fixture.</li>
+<code><a href="articles/getting_started.html">vignette("getting_started")</a></code> — the one-call path on a public fixture.</li>
 <li>
-<code><a href="articles/confidentiality.html">vignette("confidentiality")</a></code> — full threat model and mode comparison.</li>
+<code><a href="articles/confidentiality.html">vignette("confidentiality")</a></code> — full threat model, the two modes, and the depth controls.</li>
 <li>
-<code><a href="articles/design_detection.html">vignette("design_detection")</a></code> — the rule-engine design detector.</li>
-<li>
-<code><a href="articles/recipe_anatomy.html">vignette("recipe_anatomy")</a></code> — what a recipe holds, runtime-minimal vs full, redacted print versus <code><a href="reference/reveal_maps.html">reveal_maps()</a></code>.</li>
-<li>
-<code><a href="articles/roadmap.html">vignette("roadmap")</a></code> — what is deferred from v0.4 and why.</li>
+<code><a href="articles/recipe_anatomy.html">vignette("recipe_anatomy")</a></code> — what a recipe holds and how the round-trip re-targets a pipeline onto the original.</li>
 </ul>
 <p>Reference index: <a href="https://max578.github.io/masque/" class="uri">https://max578.github.io/masque/</a> — full per-function docs + rendered vignettes, deployed from the <code>gh-pages</code> branch.</p>
 <p>API stability policy: see <code>API_STABILITY.md</code>.</p>

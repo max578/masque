@@ -1,37 +1,33 @@
 # Getting started with masque
 
-## masque: development surrogates for tabular data
+## What masque is for
 
-`masque` turns a single tabular dataset into a structurally faithful
-synthetic clone you can develop a pipeline against. It preserves the
-experimental design, explicitly kept columns, the NA pattern, and the
-global covariance of your outcome and numeric covariates. Date/time
-covariates are retained as date/time vectors and row-permuted by
-default. It does **not** anonymise; it produces controlled substitutes
-with a private `recipe` that round-trips the finished pipeline back onto
-the original data.
+`masque` exists to bridge an expertise gap. A data custodian holds a
+confidential dataset and the legal responsibility for it, but often only
+basic R fluency. An analyst has the modelling expertise but cannot
+lawfully see the raw data. `masque` lets the custodian hand the analyst
+a structurally faithful *synthetic* clone – close enough that a pipeline
+developed against it runs unchanged on the real data – while the
+information that must stay private never crosses the boundary.
 
-### Read this first: threat model
+It turns one tabular dataset (or a folder or workbook of related tables)
+into a synthetic clone whose experimental design, missing-value pattern,
+and global covariance are preserved, alongside a private `recipe` that
+round-trips: a pipeline written against the synthetic re-targets to the
+original with no code changes.
 
-`masque` is *not* a privacy-preserving or differential-privacy tool. It
-is a **structurally faithful development surrogate**. The recipe
-returned by
-[`mask()`](https://max578.github.io/masque/reference/mask.md) is at
-least as sensitive as the original data: never share it alongside the
-synthetic.
+It is **not** an anonymiser. The synthetic is a development surrogate,
+not a public-release-safe artefact. The companion vignette
+*Confidentiality and the threat model* sets out exactly what is and is
+not protected; read it before sharing any output.
 
-| Mode | Use case | Defaults |
-|----|----|----|
-| `local` | Owner develops on a realistic surrogate locally | Vocabulary preserved; `keep` columns pass through; numeric values may match observed |
-| `collaborate` | Owner shares synthetic with a collaborator while keeping the recipe private | Opaque aliasing of treatment + categorical/logical covariate levels; date/time covariates row-permuted; jitter on numerics; `keep` columns pass through; `ignore` columns dropped; [`audit_mask()`](https://max578.github.io/masque/reference/audit_mask.md) auto-runs |
+## The one-call path
 
-For the full threat model and limitations, see
-[`vignette("confidentiality")`](https://max578.github.io/masque/articles/confidentiality.md).
-
-### A worked example: an alpha-design field trial
-
-We use the classical John (1987) alpha-design dataset, shipped as a
-small CSV in `inst/extdata/`.
+[`masque()`](https://max578.github.io/masque/reference/masque.md) is the
+front door. Point it at your data and it reads the table, proposes a
+masking plan, masks, and – in an interactive session – pauses to let you
+review the plan first. We use the classical John & Williams (1995)
+alpha-design field trial, shipped with the package.
 
 ``` r
 
@@ -39,15 +35,6 @@ library(masque)
 
 f <- system.file("extdata", "john_alpha.csv", package = "masque")
 df <- read.csv(f, stringsAsFactors = TRUE)
-str(df)
-#> 'data.frame':    72 obs. of  7 variables:
-#>  $ plot : int  1 2 3 4 5 6 7 8 9 10 ...
-#>  $ rep  : Factor w/ 3 levels "R1","R2","R3": 1 1 1 1 1 1 1 1 1 1 ...
-#>  $ block: Factor w/ 6 levels "B1","B2","B3",..: 1 1 1 1 2 2 2 2 3 3 ...
-#>  $ gen  : Factor w/ 24 levels "G01","G02","G03",..: 11 4 5 22 21 10 20 2 23 14 ...
-#>  $ yield: num  4.12 4.45 5.88 4.58 4.65 ...
-#>  $ row  : int  1 2 3 4 5 6 7 8 9 10 ...
-#>  $ col  : int  1 1 1 1 1 1 1 1 1 1 ...
 head(df)
 #>   plot rep block gen  yield row col
 #> 1    1  R1    B1 G11 4.1172   1   1
@@ -56,340 +43,181 @@ head(df)
 #> 4    4  R1    B1 G22 4.5784   4   1
 #> 5    5  R1    B2 G21 4.6540   5   1
 #> 6    6  R1    B2 G10 4.1736   6   1
+
+m <- masque(df, mode = "collaborate", seed = 1, ask = FALSE)
+#> ℹ Using the proposed masking plan (pass `roles` or set `ask = TRUE` to review).
+#> ✔ Masked 7 columns in "collaborate" mode.
+#> ℹ Recipe is private - keep it; share only the synthetic output.
 ```
 
-### Step 1: propose roles, edit, validate
+`ask = FALSE` skips the interactive review, which is what we want inside
+a vignette. In your own console, call `masque(df)` and you will see the
+proposed plan and a prompt to proceed, edit, or stop.
 
-[`propose_roles()`](https://max578.github.io/masque/reference/propose_roles.md)
-runs a heuristic classification of every column into one of
-`{design, keep, treatment, outcome, covariate, ignore}`. The result is a
-tibble that you inspect and edit.
+The result carries the synthetic data and the private recipe:
 
 ``` r
 
-roles <- propose_roles(df)
-roles
-#> # A tibble: 7 × 6
-#>   col   role      kind    freq_or_range    pii_suspected notes                                      
-#>   <chr> <chr>     <chr>   <chr>            <lgl>         <chr>                                      
-#> 1 plot  design    integer [1, 72]          FALSE         Design-pattern name -> design (byte-identi…
-#> 2 rep   design    factor  n=3 levels       FALSE         Design-pattern name -> design (byte-identi…
-#> 3 block design    factor  n=6 levels       FALSE         Design-pattern name -> design (byte-identi…
-#> 4 gen   treatment factor  n=24 levels      FALSE         detect_design: covariate -> treatment (was…
-#> 5 yield covariate numeric [2.8873, 5.8757] FALSE         Default -> covariate; re-role to outcome i…
-#> 6 row   design    integer [1, 72]          FALSE         Design-pattern name -> design (byte-identi…
-#> 7 col   design    integer [1, 1]           FALSE         Design-pattern name -> design (byte-identi…
-```
-
-`plot`, `rep`, `block`, `row`, and `col` are detected as design columns
-(byte-identical pass-through). `gen` is detected as a treatment factor.
-`yield` defaults to `covariate` — we re-role it as `outcome`.
-
-Use `keep` when a non-design column should remain exactly as supplied in
-both modes. Use `ignore` when a column should be dropped before
-collaboration. Date/time columns are proposed as `covariate` by default:
-they are row-permuted while retaining their class and NA pattern.
-
-``` r
-
-roles$role[roles$col == "yield"] <- "outcome"
-roles
-#> # A tibble: 7 × 6
-#>   col   role      kind    freq_or_range    pii_suspected notes                                      
-#>   <chr> <chr>     <chr>   <chr>            <lgl>         <chr>                                      
-#> 1 plot  design    integer [1, 72]          FALSE         Design-pattern name -> design (byte-identi…
-#> 2 rep   design    factor  n=3 levels       FALSE         Design-pattern name -> design (byte-identi…
-#> 3 block design    factor  n=6 levels       FALSE         Design-pattern name -> design (byte-identi…
-#> 4 gen   treatment factor  n=24 levels      FALSE         detect_design: covariate -> treatment (was…
-#> 5 yield outcome   numeric [2.8873, 5.8757] FALSE         Default -> covariate; re-role to outcome i…
-#> 6 row   design    integer [1, 72]          FALSE         Design-pattern name -> design (byte-identi…
-#> 7 col   design    integer [1, 1]           FALSE         Design-pattern name -> design (byte-identi…
-```
-
-Validation is a single call:
-
-``` r
-
-roles_validate(roles, df)
-```
-
-### Step 2: mask in local mode
-
-Local mode is the owner’s realistic surrogate: it preserves the
-treatment vocabulary, the design pattern, and the NA mask. The synthetic
-is suitable for pipeline development on the owner’s machine but not for
-external sharing.
-
-``` r
-
-m_local <- mask(df, roles, mode = "local", seed = 2026)
-#> Warning: local mode: synthetic data is for owner development only, not external sharing.
-```
-
-The construction-time warning is part of the contract — local-mode
-synthetic is not for external sharing.
-
-``` r
-
-m_local
-#> 
-#> ── masque ──────────────────────────────────────────────────────────────────────────────────────────
-#> • Mode: local
-#> • Synthetic: 72 row(s) x 7 column(s)
-#> • Audit: not run (use audit_mask())
-#> ! local mode: synthetic data is for owner development only, not external sharing.
-#> Use `synthetic(m)` to extract data; `recipe(m)` for the recipe.
-#> 
-#> ── masque_recipe ───────────────────────────────────────────────────────────────────────────────────
-#> • Created: 2026-06-10 13:15:29 UTC
-#> • Mode: local
-#> • Seed: present (redacted)
-#> • masque version: 0.5.0
-#> • Integrity fingerprint: 0cec319ba9e2...
-#> 
-#> ── Columns (7 total; 0 level-map(s); 0 column-name map(s)) ──
-#> 
-#>   = design     plot                              (integer)
-#>   = design     rep                               (factor)
-#>   = design     block                             (factor)
-#>   = treatment  gen                               (factor)
-#>   = outcome    yield                             (numeric)
-#>   = design     row                               (integer)
-#>   = design     col                               (integer)
-#> ── Warnings ──
-#> ! local mode: synthetic data is for owner development only, not external sharing.
-#> 
-#> ✖ PRIVATE - never share this recipe alongside the synthetic.
-#> Use `reveal_maps(rec)` to inspect level maps explicitly.
-```
-
-Extract the synthetic data via
-[`synthetic()`](https://max578.github.io/masque/reference/synthetic.md):
-
-``` r
-
-synth_local <- synthetic(m_local)
-head(synth_local)
-#> # A tibble: 6 × 7
-#>    plot rep   block gen   yield   row   col
-#>   <int> <fct> <fct> <fct> <dbl> <int> <int>
-#> 1     1 R1    B1    G11    4.79     1     1
-#> 2     2 R1    B1    G04    4.56     2     1
-#> 3     3 R1    B1    G05    3.90     3     1
-#> 4     4 R1    B1    G22    4.17     4     1
-#> 5     5 R1    B2    G21    4.53     5     1
-#> 6     6 R1    B2    G10    3.14     6     1
-```
-
-Design columns are byte-identical to the original; treatment labels are
-preserved.
-
-``` r
-
-identical(synth_local$rep, df$rep)
-#> [1] TRUE
-identical(synth_local$block, df$block)
-#> [1] TRUE
-identical(levels(synth_local$gen), levels(df$gen))
-#> [1] TRUE
-```
-
-For a date/time or explicit-keep column, the intent is visible in the
-role table:
-
-``` r
-
-demo <- data.frame(
-  rep = 1:6,
-  sample_date = as.Date("2026-01-01") + 0:5,
-  lab_batch = c("A", "A", "B", "B", "C", "C"),
-  yield = c(3.1, 2.8, 4.0, 3.7, 5.2, 5.0),
-  stringsAsFactors = FALSE
-)
-demo_roles <- propose_roles(demo, detect = FALSE)
-demo_roles$role[demo_roles$col == "yield"] <- "outcome"
-demo_roles$role[demo_roles$col == "lab_batch"] <- "keep"
-demo_roles[, c("col", "role", "kind", "notes")]
-#> # A tibble: 4 × 4
-#>   col         role      kind      notes                                                             
-#>   <chr>       <chr>     <chr>     <chr>                                                             
-#> 1 rep         design    integer   Design-pattern name -> design (byte-identical).                   
-#> 2 sample_date covariate date      Date/time column -> covariate (row-permuted); use keep to leave u…
-#> 3 lab_batch   keep      character Default -> covariate; re-role to outcome if response variable, or…
-#> 4 yield       outcome   numeric   Default -> covariate; re-role to outcome if response variable, or…
-```
-
-### Step 3: mask in collaborate mode
-
-Collaborate mode opaquely aliases the treatment and categorical-
-covariate vocabularies (`G01 -> trt_001` etc.), drops `ignore` columns,
-jitters numerics within their observed measurement resolution, and
-auto-runs
-[`audit_mask()`](https://max578.github.io/masque/reference/audit_mask.md).
-The synthetic is suitable for handing to a pipeline developer while the
-recipe stays private.
-
-``` r
-
-m_collab <- mask(df, roles, mode = "collaborate", seed = 2026)
-synth_collab <- synthetic(m_collab)
-head(synth_collab)
+synth <- synthetic(m)
+head(synth)
 #> # A tibble: 6 × 7
 #>    plot rep   block gen     yield   row   col
 #>   <int> <fct> <fct> <fct>   <dbl> <int> <int>
-#> 1     1 R1    B1    trt_011  4.79     1     1
-#> 2     2 R1    B1    trt_004  4.56     2     1
-#> 3     3 R1    B1    trt_005  3.90     3     1
-#> 4     4 R1    B1    trt_022  4.17     4     1
-#> 5     5 R1    B2    trt_021  4.53     5     1
-#> 6     6 R1    B2    trt_010  3.14     6     1
+#> 1     1 R1    B1    trt_011  4.15     1     1
+#> 2     2 R1    B1    trt_004  4.25     2     1
+#> 3     3 R1    B1    trt_005  4.58     3     1
+#> 4     4 R1    B1    trt_022  5.30     4     1
+#> 5     5 R1    B2    trt_021  3.99     5     1
+#> 6     6 R1    B2    trt_010  5.26     6     1
 ```
 
-Note `gen` is now `trt_NNN`:
+## The masking plan: roles and actions
+
+Under the one-call path,
+[`masque()`](https://max578.github.io/masque/reference/masque.md) builds
+the *roles table* for you. You can build and edit it yourself for full
+control. Every column gets two decisions: a `role` (what the column is)
+and an `action` (what masque does to it).
 
 ``` r
 
-head(levels(synth_collab$gen))
+roles <- propose_roles(df, mode = "collaborate")
+roles[, c("col", "role", "action", "kind")]
+#> # A tibble: 7 × 4
+#>   col   role      action   kind   
+#>   <chr> <chr>     <chr>    <chr>  
+#> 1 plot  design    keep     integer
+#> 2 rep   design    keep     factor 
+#> 3 block design    keep     factor 
+#> 4 gen   treatment alias    factor 
+#> 5 yield covariate scramble numeric
+#> 6 row   design    keep     integer
+#> 7 col   design    keep     integer
+```
+
+The eight roles – `design`, `treatment`, `outcome`, `covariate`, `date`,
+`id`, `text`, `other` – describe the column. The four actions set the
+depth:
+
+- `keep` – pass the column through byte-for-byte;
+- `scramble` – re-simulate numerics through a Gaussian copula, or
+  row-permute categoricals, dates, and text (the vocabulary stays
+  visible);
+- `alias` – scramble and replace the labels with opaque codes;
+- `drop` – leave the column out of the synthetic entirely.
+
+[`propose_roles()`](https://max578.github.io/masque/reference/propose_roles.md)
+fills in a sensible action for each column given the mode, so the table
+you review is the plan that will run. Edit it with
+[`set_role()`](https://max578.github.io/masque/reference/set_role.md):
+
+``` r
+
+roles <- set_role(roles, "yield", role = "outcome")
+roles[, c("col", "role", "action")]
+#> # A tibble: 7 × 3
+#>   col   role      action  
+#>   <chr> <chr>     <chr>   
+#> 1 plot  design    keep    
+#> 2 rep   design    keep    
+#> 3 block design    keep    
+#> 4 gen   treatment alias   
+#> 5 yield outcome   scramble
+#> 6 row   design    keep    
+#> 7 col   design    keep
+```
+
+Re-assigning a role re-resolves the default action; passing an explicit
+`action` pins the column. There is no requirement to name an `outcome`:
+with none marked, every scrambled numeric is re-simulated jointly.
+
+Pass the edited table back to
+[`mask()`](https://max578.github.io/masque/reference/mask.md) (or to
+`masque(df, roles = roles)`):
+
+``` r
+
+m <- mask(df, roles, mode = "collaborate", seed = 1)
+synth <- synthetic(m)
+identical(synth$plot, df$plot)               # design column: byte-identical
+#> [1] TRUE
+setequal(levels(synth$gen), levels(df$gen))  # treatment: aliased away
+#> [1] FALSE
+head(levels(synth$gen))
 #> [1] "trt_001" "trt_002" "trt_003" "trt_004" "trt_005" "trt_006"
 ```
 
-Original labels never leak through `print(recipe(m))`:
+## Local and collaborate modes
+
+The mode sets the safe defaults.
+
+| Mode | Use case | Defaults |
+|----|----|----|
+| `local` | Owner develops on a realistic surrogate locally | Vocabulary preserved; numeric values may match observed |
+| `collaborate` | Owner shares the synthetic while keeping the recipe private | Treatment and categorical labels aliased; numerics jittered; ids and free text dropped; the leakage audit runs automatically |
+
+Per-column `action` choices override the mode wherever you need them.
+
+## Tidy, dates, and depth
+
+Real custodian tables are rarely clean.
+[`masque()`](https://max578.github.io/masque/reference/masque.md)
+legalises column names and trims stray whitespace before masking,
+reports near-duplicate labels (likely typos) without merging them, and
+records every fix so the round-trip still lines up. Set
+`clean = "report"` to preview the fixes, or `clean = "off"` to skip
+them.
+
+Date and time columns get the first-class `date` role: they are
+row-permuted, keep their class, and preserve the NA pattern. When even
+the column *names* are sensitive, `alias_names = TRUE` hides them behind
+opaque codes that the recipe inverts.
+
+## More than one table
+
+A confidential dataset often arrives as several related files or a
+multi-sheet workbook.
+[`masque()`](https://max578.github.io/masque/reference/masque.md)
+handles those too – point it at a folder, an `.xlsx` file, or a named
+list of data frames and it masks every table at once, aliasing any
+shared key (a site code, a genotype name) *identically across tables* so
+a join of the synthetic tables still resolves.
 
 ``` r
 
-recipe(m_collab)
+set_dir <- system.file("extdata", "met_set", package = "masque")
+ms <- masque(set_dir, mode = "collaborate", seed = 1, ask = FALSE)
+#> ℹ Using the proposed masking plan for agronomy (pass `roles` or set `ask = TRUE` to review).
+#> ℹ Using the proposed masking plan for quality (pass `roles` or set `ask = TRUE` to review).
 #> 
-#> ── masque_recipe ───────────────────────────────────────────────────────────────────────────────────
-#> • Created: 2026-06-10 13:15:29 UTC
+#> ── Cross-table links (1) ──
+#> 
+#> • "gen" shared across "agronomy, quality" - aliased consistently
+#> ✔ Masked 2 tables in "collaborate" mode.
+#> ℹ Recipe is private - keep it; share only the synthetic output.
+ms
+#> 
+#> ── masque_set ──────────────────────────────────────────────────────────────────────────────────────
 #> • Mode: collaborate
-#> • Seed: present (redacted)
-#> • masque version: 0.5.0
-#> • Integrity fingerprint: 0cec319ba9e2...
+#> • Tables: 2
+#> • agronomy: 464 row(s) x 7 column(s)
+#> • quality: 464 row(s) x 5 column(s)
 #> 
-#> ── Columns (7 total; 1 level-map(s); 0 column-name map(s)) ──
+#> ── Cross-table links (1) ──
 #> 
-#>   = design     plot                              (integer)
-#>   = design     rep                               (factor)
-#>   = design     block                             (factor)
-#>   * treatment  gen                               (factor)
-#>   = outcome    yield                             (numeric)
-#>   = design     row                               (integer)
-#>   = design     col                               (integer)
+#> • "gen" shared across "agronomy, quality"
+#> Use `synthetic(m)` for the tables; `recipe(m)` for the bundle.
 #> 
-#> ✖ PRIVATE - never share this recipe alongside the synthetic.
-#> Use `reveal_maps(rec)` to inspect level maps explicitly.
+#> ✖ The recipe bundle is PRIVATE - never share it with the synthetic set.
 ```
 
-To see them you must call
-[`reveal_maps()`](https://max578.github.io/masque/reference/reveal_maps.md)
-explicitly.
+The genotype column `gen` appears in both tables and is masked to the
+same codes in each, so the field and laboratory tables still join. See
+*Confidentiality and the threat model* for the set-level controls.
 
-### Step 4: round-trip a pipeline
+## Where to go next
 
-The classic `masque` workflow:
-
-``` r
-
-# Train a model against the synthetic namespace
-fit <- lm(yield ~ gen + rep, data = synth_collab)
-
-# Translate the original into the synthetic namespace via the recipe
-df_in_synth <- apply_recipe(df, recipe(m_collab))
-head(df_in_synth)
-#> # A tibble: 6 × 7
-#>    plot rep   block gen     yield   row   col
-#>   <int> <fct> <fct> <fct>   <dbl> <int> <int>
-#> 1     1 R1    B1    trt_011  4.12     1     1
-#> 2     2 R1    B1    trt_004  4.45     2     1
-#> 3     3 R1    B1    trt_005  5.88     3     1
-#> 4     4 R1    B1    trt_022  4.58     4     1
-#> 5     5 R1    B2    trt_021  4.65     5     1
-#> 6     6 R1    B2    trt_010  4.17     6     1
-
-# Predict on the translated data
-preds_synth <- predict(fit, newdata = df_in_synth)
-length(preds_synth)
-#> [1] 72
-
-# Numeric predictions need no inverse map
-head(preds_synth)
-#>        1        2        3        4        5        6 
-#> 3.920561 4.408952 4.010521 3.833775 4.280694 4.027520
-```
-
-If the pipeline returned factor-valued predictions (e.g., a classifier
-predicting a treatment),
-[`unmask()`](https://max578.github.io/masque/reference/unmask.md)
-translates them back into the original vocabulary:
-
-``` r
-
-pred_factor_synth <- synth_collab$gen[1:5]
-pred_factor_orig <- unmask(pred_factor_synth, recipe(m_collab),
-  column = "gen"
-)
-data.frame(
-  synth = as.character(pred_factor_synth),
-  original = as.character(pred_factor_orig)
-)
-#>     synth original
-#> 1 trt_011      G11
-#> 2 trt_004      G04
-#> 3 trt_005      G05
-#> 4 trt_022      G22
-#> 5 trt_021      G21
-```
-
-### Step 5: audit and ship
-
-[`audit_mask()`](https://max578.github.io/masque/reference/audit_mask.md)
-returns a per-column leakage audit. In collaborate mode it runs
-automatically at
-[`mask()`](https://max578.github.io/masque/reference/mask.md) time and
-is stored on the object.
-
-``` r
-
-audit_mask(m_collab)
-#> 
-#> ── masque audit (mode = collaborate) ───────────────────────────────────────────────────────────────
-#> • 0 HIGH, 0 medium, 7 low across 7 columns
-#> • Rows with a globally unique NA pattern: 0.0%
-#> 
-#> ── LOW (7) ──
-#> 
-#> ℹ   design    plot                              exact-match 100.0% (jitter due step 7)
-#> ℹ   design    rep                               ok
-#> ℹ   design    block                             ok
-#> ℹ   treatment gen                               levels aliased
-#> ℹ   outcome   yield                             ok
-#> ℹ   design    row                               exact-match 100.0% (jitter due step 7)
-#> ℹ   design    col                               exact-match 100.0% (jitter due step 7)
-```
-
-The recipe can be persisted alongside the original data (treat as
-sensitive); the synthetic alone is what crosses the trust boundary.
-
-``` r
-
-tmp <- tempfile(fileext = ".rds")
-save_recipe(recipe(m_collab), tmp)
-file.info(tmp)$size
-#> [1] 6834
-rec2 <- read_recipe(tmp)
-identical(rec2@masque_version, recipe(m_collab)@masque_version)
-#> [1] TRUE
-```
-
-### Next steps
-
-- [`vignette("confidentiality")`](https://max578.github.io/masque/articles/confidentiality.md)
-  — the full threat model, mode comparison, and
-  [`audit_mask()`](https://max578.github.io/masque/reference/audit_mask.md)
-  walk-through with deliberately leaky fixtures.
-- [`vignette("recipe_anatomy")`](https://max578.github.io/masque/articles/recipe_anatomy.md)
-  — what’s inside a recipe, runtime vs full,
-  [`print()`](https://rdrr.io/r/base/print.html) vs
-  [`reveal_maps()`](https://max578.github.io/masque/reference/reveal_maps.md).
-- [`vignette("roadmap")`](https://max578.github.io/masque/articles/roadmap.md)
-  — features deliberately deferred from the current release.
+- *Confidentiality and the threat model* – what is and is not protected,
+  the two modes, the depth controls, and the leakage audit.
+- *Recipe anatomy and the round-trip* – the analyst’s side: how a
+  pipeline built on the synthetic re-targets to the original.

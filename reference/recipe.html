@@ -11,7 +11,7 @@ redacts all level maps; use reveal_maps() for an explicit reveal."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">masque</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.5.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.6.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -23,10 +23,8 @@ redacts all level maps; use reveal_maps() for an explicit reveal."></head><body>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/getting_started.html">Getting started with masque</a></li>
-    <li><a class="dropdown-item" href="../articles/confidentiality.html">Confidentiality and threat model</a></li>
-    <li><a class="dropdown-item" href="../articles/design_detection.html">Automatic design detection</a></li>
-    <li><a class="dropdown-item" href="../articles/recipe_anatomy.html">Recipe anatomy</a></li>
-    <li><a class="dropdown-item" href="../articles/roadmap.html">Roadmap</a></li>
+    <li><a class="dropdown-item" href="../articles/confidentiality.html">Confidentiality and the threat model</a></li>
+    <li><a class="dropdown-item" href="../articles/recipe_anatomy.html">Recipe anatomy and the round-trip</a></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><a class="external-link nav-link" href="https://github.com/max578/masque/" aria-label="GitHub"><span class="fa fab fa-github fa-lg"></span></a></li>
@@ -39,7 +37,7 @@ redacts all level maps; use reveal_maps() for an explicit reveal."></head><body>
   <main id="main" class="col-md-9"><div class="page-header">
 
       <h1>Extract the recipe from a masque object</h1>
-      <small class="dont-index">Source: <a href="https://github.com/max578/masque/blob/v0.5.0/R/recipe.R" class="external-link"><code>R/recipe.R</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/max578/masque/blob/main/R/recipe.R" class="external-link"><code>R/recipe.R</code></a></small>
       <div class="d-none name"><code>recipe.Rd</code></div>
     </div>
 
@@ -59,16 +57,17 @@ redacts all level maps; use <code><a href="reveal_maps.html">reveal_maps()</a></
 
 
 <dl><dt id="arg-m">m<a class="anchor" aria-label="anchor" href="#arg-m"></a></dt>
-<dd><p>A <code>masque</code> object returned by <code><a href="mask.html">mask()</a></code>.</p></dd>
+<dd><p>A <code>masque</code> object from <code><a href="mask.html">mask()</a></code>, or a <code>masque_set</code> from
+<code><a href="mask_set.html">mask_set()</a></code>.</p></dd>
 
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>A <code>masque_recipe</code> S7 object.</p>
+    <p>A <code>masque_recipe</code>, or for a set a <code>masque_recipe_set</code> bundle.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
-    <div class="dont-index"><p><code><a href="synthetic.html">synthetic()</a></code>, <code><a href="reveal_maps.html">reveal_maps()</a></code>, <code><a href="mask.html">mask()</a></code>.</p></div>
+    <div class="dont-index"><p><code><a href="synthetic.html">synthetic()</a></code>, <code><a href="reveal_maps.html">reveal_maps()</a></code>, <code><a href="mask.html">mask()</a></code>, <code><a href="mask_set.html">mask_set()</a></code>.</p></div>
     </div>
 
     <div class="section level2">
@@ -79,19 +78,19 @@ redacts all level maps; use <code><a href="reveal_maps.html">reveal_maps()</a></
 <span class="r-in"><span><span class="fu">recipe</span><span class="op">(</span><span class="va">m</span><span class="op">)</span></span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">──</span> <span style="font-weight: bold;">masque_recipe</span> <span style="color: #00BBBB;">───────────────────────────────────────────────────────────────</span></span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">•</span> Created: 2026-06-10 13:15:21 UTC</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">•</span> Created: 2026-06-10 14:21:44 UTC</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">•</span> Mode: local</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">•</span> Seed: present (redacted)</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">•</span> masque version: 0.5.0</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">•</span> masque version: 0.6.0</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">•</span> Integrity fingerprint: 62a4affb7e41...</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> ── <span style="font-weight: bold;">Columns (5 total; 0 level-map(s); 0 column-name map(s))</span> ──</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   = outcome    Sepal.Length                      (numeric)</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   = covariate  Sepal.Width                       (numeric)</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   = covariate  Petal.Length                      (numeric)</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   = covariate  Petal.Width                       (numeric)</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   = treatment  Species                           (factor)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   = outcome   scramble  Sepal.Length                  (numeric)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   = covariate scramble  Sepal.Width                   (numeric)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   = covariate scramble  Petal.Length                  (numeric)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   = covariate scramble  Petal.Width                   (numeric)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   = treatment keep      Species                       (factor)</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> ── <span style="font-weight: bold;">Warnings</span> ──</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #BBBB00;">!</span> local mode: synthetic data is for owner development only, not external sharing.</span>

@@ -12,17 +12,21 @@ synthetic(m)
 
 - m:
 
-  A `masque` object returned by
-  [`mask()`](https://max578.github.io/masque/reference/mask.md).
+  A `masque` object from
+  [`mask()`](https://max578.github.io/masque/reference/mask.md), or a
+  `masque_set` from
+  [`mask_set()`](https://max578.github.io/masque/reference/mask_set.md).
 
 ## Value
 
-A tibble: the synthetic data frame.
+For a `masque`, a tibble (the synthetic data frame); for a `masque_set`,
+a named list of synthetic tables.
 
 ## See also
 
 [`recipe()`](https://max578.github.io/masque/reference/recipe.md),
-[`mask()`](https://max578.github.io/masque/reference/mask.md).
+[`mask()`](https://max578.github.io/masque/reference/mask.md),
+[`mask_set()`](https://max578.github.io/masque/reference/mask_set.md).
 
 ## Examples
 
@@ -34,10 +38,10 @@ head(synthetic(m))
 #> # A tibble: 6 × 5
 #>   Sepal.Length Sepal.Width Petal.Length Petal.Width Species
 #>          <dbl>       <dbl>        <dbl>       <dbl> <fct>  
-#> 1          5.1         3            1.5         1.2 setosa 
-#> 2          6.2         3            4.7         1.2 setosa 
-#> 3          4.8         3.4          1.6         1.2 setosa 
-#> 4          7.2         3.2          6.4         2.1 setosa 
-#> 5          5.8         3.7          5.1         1.8 setosa 
-#> 6          5           3.7          1.5         1.2 setosa 
+#> 1          5.1         3.2          4           1.5 setosa 
+#> 2          6           3            3.7         0.4 setosa 
+#> 3          5           3            4.6         1.1 setosa 
+#> 4          7.2         2.6          5.8         1.7 setosa 
+#> 5          6.1         2.4          5.8         1.5 setosa 
+#> 6          5           2.7          4.5         1.4 setosa 
 ```

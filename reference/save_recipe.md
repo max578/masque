@@ -38,9 +38,7 @@ save_recipe(rec, path, include_simulator = FALSE)
 recipe does not carry simulator state. The flag is reserved for a future
 release that will let
 [`read_recipe()`](https://max578.github.io/masque/reference/read_recipe.md)
-regenerate fresh synthetic samples without access to the original data
-(see
-[`vignette("roadmap")`](https://max578.github.io/masque/articles/roadmap.md)).
+regenerate fresh synthetic samples without access to the original data.
 
 Recipes are at least as sensitive as the original data. Protect the
 saved file at the same security class as the original.
@@ -56,6 +54,8 @@ saved file at the same security class as the original.
 r <- propose_roles(iris)
 r$role[r$col == "Sepal.Length"] <- "outcome"
 m <- mask(iris, r, mode = "collaborate", seed = 1)
+#> Re-resolved default actions for mode "collaborate" (explicit edits always win):
+#> • Species: keep -> alias
 tmp <- tempfile(fileext = ".rds")
 save_recipe(recipe(m), tmp)
 rec2 <- read_recipe(tmp)

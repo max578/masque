@@ -54,9 +54,10 @@ Operations applied (in order):
     `collaborate` mode; or treatment in `local` mode with opt-in
     permutation). Unknown non-NA values fail closed.
 
-5.  **Rename columns** per `recipe@column_name_map` (currently `NULL`;
-    reserved for a future opt-in column-aliasing flag — see
-    [`vignette("roadmap")`](https://max578.github.io/masque/articles/roadmap.md)).
+5.  **Rename columns** per `recipe@column_name_map` when
+    [`mask()`](https://max578.github.io/masque/reference/mask.md) was
+    called with `alias_names` (otherwise `NULL`, and names are
+    unchanged).
 
 Numeric columns are passed through unchanged: the synthetic-namespace
 for numeric columns is the same as the original. NA cells in the input
@@ -74,6 +75,8 @@ r <- propose_roles(iris)
 r$role[r$col == "Sepal.Length"] <- "outcome"
 r$role[r$col == "Species"] <- "covariate"
 m <- mask(iris, r, mode = "collaborate", seed = 1)
+#> Re-resolved default actions for mode "collaborate" (explicit edits always win):
+#> • Species: keep -> alias
 rec <- recipe(m)
 iris_in_synth_space <- apply_recipe(iris, rec)
 head(iris_in_synth_space)
