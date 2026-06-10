@@ -26,9 +26,10 @@ extract the components.
 \description{
 Takes one data frame and a user-edited \code{roles} tibble (from
 \code{\link[=propose_roles]{propose_roles()}}) and produces a synthetic clone whose experimental
-design and NA pattern are preserved, while outcome and numeric-covariate
-values are re-simulated via a Gaussian copula and categorical-covariate
-values are row-permuted. Returns a \code{masque} S7 object holding the
+design, explicitly-kept columns, and NA pattern are preserved, while
+outcome and numeric-covariate values are re-simulated via a Gaussian
+copula and non-numeric covariate values are row-permuted. Returns a
+\code{masque} S7 object holding the
 synthetic data and a private \code{masque_recipe}.
 }
 \details{
@@ -46,6 +47,7 @@ rounded, and \code{\link[=audit_mask]{audit_mask()}} runs automatically.
 
 \describe{
 \item{\code{design}}{Byte-identical pass-through.}
+\item{\code{keep}}{Intentional byte-identical pass-through in both modes.}
 \item{\code{treatment}}{Local: pass-through (optional opt-in seeded
 permutation via \code{roles$mask_levels = "permute"}). Collaborate:
 opaque alias \code{trt_NNN}. Designs with two or more treatment factors
@@ -54,9 +56,10 @@ independently as \verb{<col>_trt_NNN} so the labels stay distinct.}
 \item{\code{outcome} + numeric \code{covariate}}{Re-simulated jointly via a
 Gaussian copula on global Pearson covariance. Empirical-quantile
 marginals (type 1: returns observed values).}
-\item{categorical \code{covariate}}{Row-permuted within non-NA positions.
-Local: vocabulary preserved. Collaborate: opaque alias
-\verb{<col>_LNN}.}
+\item{non-numeric \code{covariate}}{Row-permuted within non-NA positions.
+Date/time classes are preserved. Local: categorical vocabulary
+preserved. Collaborate: factor / character / logical levels receive
+opaque aliases \verb{<col>_LNN}.}
 \item{\code{ignore}}{Local: passes through. Collaborate: dropped.}
 }
 

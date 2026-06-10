@@ -16,9 +16,9 @@ detect_design(
 \item{df}{A data frame.}
 
 \item{roles}{Optional roles tibble (as returned by \code{\link[=propose_roles]{propose_roles()}}).
-When supplied, columns roled \code{outcome} / \code{ignore} are excluded from
-factor candidates, and any column roled \code{treatment} is forced as the
-working treatment.}
+When supplied, columns roled \code{outcome} / \code{keep} / \code{ignore} are excluded
+from factor candidates, and any column roled \code{treatment} is forced as
+the working treatment.}
 
 \item{interactive}{If \code{TRUE}, when the top-2 rule scores are within
 \code{tie_delta} the user is asked to choose between them via a cli

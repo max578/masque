@@ -23,9 +23,9 @@
 #'
 #' @param df A data frame.
 #' @param roles Optional roles tibble (as returned by [propose_roles()]).
-#'   When supplied, columns roled `outcome` / `ignore` are excluded from
-#'   factor candidates, and any column roled `treatment` is forced as the
-#'   working treatment.
+#'   When supplied, columns roled `outcome` / `keep` / `ignore` are excluded
+#'   from factor candidates, and any column roled `treatment` is forced as
+#'   the working treatment.
 #' @param interactive If `TRUE`, when the top-2 rule scores are within
 #'   `tie_delta` the user is asked to choose between them via a cli
 #'   menu. Default `FALSE`.

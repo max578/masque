@@ -41,14 +41,15 @@ test_that("ignore columns pass through in local mode", {
   df <- data.frame(
     Rep = rep(1:4, 5),
     yield = rnorm(20),
-    sowing_date = as.Date("2026-01-01") + 1:20, # auto-ignored
+    notes = paste0("note_", seq_len(20)), # auto-ignored free text
     stringsAsFactors = FALSE
   )
   r <- propose_roles(df)
   r$role[r$col == "yield"] <- "outcome"
 
   m <- suppressWarnings(mask(df, r, seed = 1))
-  expect_identical(synthetic(m)$sowing_date, df$sowing_date)
+  expect_equal(r$role[r$col == "notes"], "ignore")
+  expect_identical(synthetic(m)$notes, df$notes)
 })
 
 test_that("synthetic has the same shape and column order as original", {

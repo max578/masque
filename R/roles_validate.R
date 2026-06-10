@@ -8,9 +8,10 @@
 #' \itemize{
 #'   \item missing required columns (`col`, `role`, `kind`);
 #'   \item unknown role string (not in
-#'     `c("design","treatment","outcome","covariate","ignore")`);
+#'     `c("design","keep","treatment","outcome","covariate","ignore")`);
 #'   \item any `NA` role;
 #'   \item zero columns flagged `outcome`;
+#'   \item unsupported `other` columns flagged as `covariate`;
 #'   \item duplicate `col` entries;
 #'   \item if `df` supplied: any `df` column missing from `roles`, or any
 #'     `roles` column missing from `df`.
@@ -55,7 +56,7 @@ roles_validate <- function(roles, df = NULL) {
     )
   }
 
-  valid <- c("design", "treatment", "outcome", "covariate", "ignore")
+  valid <- c("design", "keep", "treatment", "outcome", "covariate", "ignore")
   bad <- setdiff(unique(roles$role), valid)
   if (length(bad)) {
     cli::cli_abort(c(
@@ -114,6 +115,22 @@ roles_validate <- function(roles, df = NULL) {
           "{.fun mask} currently supports only numeric / integer ",
           "outcomes. Re-role categorical outcomes as {.val covariate} ",
           "or remove."
+        )
+      ))
+    }
+
+    unsupported_covariate <- roles$col[
+      roles$role == "covariate" & roles$kind == "other"
+    ]
+    if (length(unsupported_covariate)) {
+      cli::cli_abort(c(
+        paste0(
+          "Unsupported column class(es) flagged as {.val covariate}: ",
+          "{.field {unsupported_covariate}}."
+        ),
+        i = paste0(
+          "Use {.val keep} to pass these columns through unchanged, ",
+          "or {.val ignore} to drop them in collaborate mode."
         )
       ))
     }

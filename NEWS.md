@@ -1,3 +1,30 @@
+# masque 0.5.0.9000
+
+Development version focused on role-table usability and first-class date
+handling.
+
+## Usability
+
+* New `keep` role: users can now explicitly mark a column for
+  byte-identical pass-through in both local and collaborate mode. This is
+  distinct from `design`, which remains for experimental-design structure,
+  and from `ignore`, which is still dropped in collaborate mode.
+* `propose_roles()` now proposes Date / POSIX / difftime columns as
+  `covariate` rather than `ignore`. Date/time covariates are row-permuted,
+  retain their original class, and preserve the cell-level NA mask.
+* Unsupported column classes now default to `keep` with a clear note,
+  avoiding a confusing attempt to synthesize objects masque does not know
+  how to mask.
+
+## Masking and recipes
+
+* Collaborate-mode logical covariates now receive opaque level aliases,
+  matching the documented categorical-covariate contract. `apply_recipe()`
+  and `unmask()` round-trip those aliases back to logical values.
+* `detect_design()` and its candidate proposer now honour user-supplied
+  `keep` roles so explicitly-kept columns are not promoted into design
+  hints.
+
 # masque 0.5.0
 
 New feature release: joint-treatment masking. `mask()` and

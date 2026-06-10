@@ -2,9 +2,10 @@
 #'
 #' Takes one data frame and a user-edited `roles` tibble (from
 #' [propose_roles()]) and produces a synthetic clone whose experimental
-#' design and NA pattern are preserved, while outcome and numeric-covariate
-#' values are re-simulated via a Gaussian copula and categorical-covariate
-#' values are row-permuted. Returns a `masque` S7 object holding the
+#' design, explicitly-kept columns, and NA pattern are preserved, while
+#' outcome and numeric-covariate values are re-simulated via a Gaussian
+#' copula and non-numeric covariate values are row-permuted. Returns a
+#' `masque` S7 object holding the
 #' synthetic data and a private `masque_recipe`.
 #'
 #' `mode = "local"` keeps original column / level vocabularies and warns
@@ -20,6 +21,7 @@
 #'
 #' \describe{
 #'   \item{`design`}{Byte-identical pass-through.}
+#'   \item{`keep`}{Intentional byte-identical pass-through in both modes.}
 #'   \item{`treatment`}{Local: pass-through (optional opt-in seeded
 #'     permutation via `roles$mask_levels = "permute"`). Collaborate:
 #'     opaque alias `trt_NNN`. Designs with two or more treatment factors
@@ -28,9 +30,10 @@
 #'   \item{`outcome` + numeric `covariate`}{Re-simulated jointly via a
 #'     Gaussian copula on global Pearson covariance. Empirical-quantile
 #'     marginals (type 1: returns observed values).}
-#'   \item{categorical `covariate`}{Row-permuted within non-NA positions.
-#'     Local: vocabulary preserved. Collaborate: opaque alias
-#'     `<col>_LNN`.}
+#'   \item{non-numeric `covariate`}{Row-permuted within non-NA positions.
+#'     Date/time classes are preserved. Local: categorical vocabulary
+#'     preserved. Collaborate: factor / character / logical levels receive
+#'     opaque aliases `<col>_LNN`.}
 #'   \item{`ignore`}{Local: passes through. Collaborate: dropped.}
 #' }
 #'
@@ -194,7 +197,8 @@ mask <- function(df,
     }
   }
 
-  # Categorical covariates: row-permute, then (collaborate) opaque-alias
+  # Non-numeric covariates: row-permute, then (collaborate) opaque-alias
+  # factor / character / logical values.
   cat_idx <- i_covariate[
     !(roles$kind[i_covariate] %in% c("numeric", "integer"))
   ]
@@ -202,7 +206,7 @@ mask <- function(df,
     col <- roles$col[j]
     perm <- synthesise_categorical_local(df[[col]])
     if (isTRUE(opts$alias_covariate_levels) &&
-      (is.factor(perm) || is.character(perm))) {
+      is_aliasable_level_vector(perm)) {
       res <- alias_levels(perm, prefix = paste0(col, "_L"))
       # prefix "cov_cat_L" + width-3 digit -> "cov_cat_L001"
       synth[[col]] <- res$x

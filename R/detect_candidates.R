@@ -8,9 +8,9 @@
 #
 # @param df    A data frame.
 # @param roles Optional roles tibble (as returned by `propose_roles()`).
-#              When provided, columns already roled `outcome` / `ignore` are
-#              excluded from factor / numeric candidates, and any column
-#              roled `treatment` is forced into `trt_user`.
+#              When provided, columns already roled `outcome` / `keep` /
+#              `ignore` are excluded from factor / numeric candidates, and
+#              any column roled `treatment` is forced into `trt_user`.
 #
 # @return Named list with at minimum:
 #   * `n_rows`, `cols`, `kinds`, `cardinality`
@@ -54,14 +54,22 @@
       (kinds %in% c("integer", "numeric") & in_small_range) |
       (kinds == "character" & in_half_range)
 
-  # Honour user roles: outcomes and ignored never become factors here.
+  # Honour user roles: outcomes, explicit keepers, and ignored columns never
+  # become design candidates here.
+  drop_candidates <- character(0L)
   if (!is.null(roles) && "role" %in% names(roles)) {
-    drop_factors <- roles$col[roles$role %in% c("outcome", "ignore")]
-    is_factor_like <- is_factor_like & !(cols %in% drop_factors)
+    drop_candidates <- roles$col[
+      roles$role %in% c("outcome", "keep", "ignore")
+    ]
+    is_factor_like <- is_factor_like & !(cols %in% drop_candidates)
   }
 
   factors <- cols[is_factor_like]
-  numerics <- cols[kinds %in% c("numeric", "integer") & !is_factor_like]
+  numerics <- cols[
+    kinds %in% c("numeric", "integer") &
+      !is_factor_like &
+      !(cols %in% drop_candidates)
+  ]
 
   # Convenience subset: block-sized factors (cardinality <= sqrt(n)).
   block_factors <- cols[is_factor_like & cardinality <= small_card_cap]

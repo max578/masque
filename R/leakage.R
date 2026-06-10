@@ -140,6 +140,13 @@
   if (pii) bits <- c(bits, "PII-pattern column name")
   if (alias_status == "aliased") bits <- c(bits, "levels aliased")
   if (alias_status == "dropped") bits <- c(bits, "dropped under collaborate")
+  if (alias_status == "passthrough" && role == "keep") {
+    bits <- c(bits, "kept as-is")
+  }
+  if (alias_status == "passthrough" && role == "covariate" &&
+    kind %in% c("date", "datetime")) {
+    bits <- c(bits, "date/time row-permuted")
+  }
   if (alias_status == "passthrough" && role == "treatment" &&
     mode == "collaborate") {
     bits <- c(bits, "treatment passthrough in collaborate (unexpected)")

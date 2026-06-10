@@ -1,6 +1,6 @@
 Package: masque
 Title: Structurally Faithful Development Surrogates for Tabular Data
-Version: 0.5.0
+Version: 0.5.0.9000
 Authors@R: c(
     person("Max", "Moldovan",
            email = "max.moldovan@gmail.com",

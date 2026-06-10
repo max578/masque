@@ -27,18 +27,24 @@ test_that(".propose_candidates() excludes unique-per-row columns", {
   expect_true("trt" %in% cands$factors)
 })
 
-test_that(".propose_candidates() respects user-roled outcomes / ignores", {
+test_that(".propose_candidates() respects user-roled outcomes / keeps / ignores", {
   df <- data.frame(
     x = factor(rep(1:5, each = 10)),
     y = rnorm(50),
+    keep_me = factor(rep(c("north", "south"), 25)),
+    num_keep = seq_len(50),
     other = factor(rep(c("a", "b"), 25)),
     stringsAsFactors = FALSE
   )
   roles <- propose_roles(df, detect = FALSE)
   roles$role[roles$col == "x"] <- "outcome"
+  roles$role[roles$col == "keep_me"] <- "keep"
+  roles$role[roles$col == "num_keep"] <- "keep"
   roles$role[roles$col == "other"] <- "ignore"
   cands <- .cands(df, roles = roles)
   expect_false("x" %in% cands$factors)
+  expect_false("keep_me" %in% cands$factors)
+  expect_false("num_keep" %in% cands$numerics)
   expect_false("other" %in% cands$factors)
 })
 

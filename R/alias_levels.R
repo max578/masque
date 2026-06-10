@@ -1,4 +1,4 @@
-#' Collaborate-mode opaque aliasing of factor levels
+#' Collaborate-mode opaque aliasing of categorical levels
 #'
 #' Replaces the level vocabulary with opaque aliases of the form
 #' `<prefix>_001`, `<prefix>_002`, ... in lexicographic order of the
@@ -9,7 +9,7 @@
 #' Used by `mask(mode = "collaborate")` on `treatment` and categorical
 #' `covariate` columns.
 #'
-#' @param x A factor or character vector.
+#' @param x A factor, character, or logical vector.
 #' @param prefix Character scalar used as the alias prefix (e.g., `"trt"`
 #'   for treatment, `"<col>_L"` for covariate level).
 #' @return A list with elements:
@@ -38,8 +38,9 @@ alias_levels <- function(x, prefix) {
     out <- factor(unname(map[as.character(x)]), levels = unname(aliases))
     return(list(x = out, map = map))
   }
-  if (is.character(x)) {
-    uvals <- sort(unique(stats::na.omit(x)))
+  if (is.character(x) || is.logical(x)) {
+    x_chr <- as.character(x)
+    uvals <- sort(unique(stats::na.omit(x_chr)))
     if (length(uvals) == 0L) {
       return(list(x = x, map = stats::setNames(character(), character())))
     }
@@ -49,11 +50,18 @@ alias_levels <- function(x, prefix) {
       cli::cli_abort("Aliasing produced duplicate labels (internal bug).")
     }
     map <- stats::setNames(aliases, uvals)
-    out <- unname(ifelse(is.na(x), NA_character_, map[as.character(x)]))
+    out <- unname(ifelse(is.na(x_chr), NA_character_, map[x_chr]))
     return(list(x = out, map = map))
   }
 
   cli::cli_abort(
-    "alias_levels() supports factor or character; got {.cls {class(x)[1]}}."
+    paste0(
+      "alias_levels() supports factor, character, or logical; ",
+      "got {.cls {class(x)[1]}}."
+    )
   )
+}
+
+is_aliasable_level_vector <- function(x) {
+  is.factor(x) || is.character(x) || is.logical(x)
 }

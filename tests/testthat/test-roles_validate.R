@@ -59,10 +59,28 @@ test_that("roles_validate accepts multiple treatment columns", {
   expect_invisible(roles_validate(r, iris))
 })
 
+test_that("roles_validate accepts explicit keep columns", {
+  r <- make_valid_roles()
+  r$role[r$col == "Species"] <- "keep"
+  expect_invisible(roles_validate(r))
+  expect_invisible(roles_validate(r, iris))
+})
+
 test_that("roles_validate errors on duplicate col entries", {
   r <- make_valid_roles()
   r <- rbind(r, r[1, ])
   expect_error(roles_validate(r), "Duplicate")
+})
+
+test_that("roles_validate errors when unsupported columns are covariates", {
+  df <- data.frame(
+    payload = I(list(list(a = 1), list(a = 2), list(a = 3))),
+    yield = c(1.0, 2.0, 3.0)
+  )
+  r <- propose_roles(df, detect = FALSE)
+  r$role[r$col == "yield"] <- "outcome"
+  r$role[r$col == "payload"] <- "covariate"
+  expect_error(roles_validate(r, df), "Unsupported")
 })
 
 test_that("roles_validate cross-checks df columns when df supplied", {
