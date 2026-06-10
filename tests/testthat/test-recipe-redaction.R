@@ -40,7 +40,7 @@ test_that("print(recipe) shows level-map markers but not contents", {
   m <- mask(df, r, mode = "collaborate", seed = 1)
   joined <- capture_full(print(recipe(m)))
 
-  expect_match(joined, "\\* +treatment\\s+Genotype")
+  expect_match(joined, "\\* +treatment\\s+\\w+\\s+Genotype")
 })
 
 test_that("reveal_maps(recipe) prints the original labels (audited reveal)", {

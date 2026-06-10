@@ -80,9 +80,7 @@ test_that("a single treatment keeps the historical trt_ prefix", {
 
 test_that("local mode permutes each treatment factor independently", {
   f <- make_factorial_fixture()
-  r <- f$roles
-  r$mask_levels <- "off"
-  r$mask_levels[r$col %in% c("variety", "nitrogen")] <- "permute"
+  r <- set_role(f$roles, c("variety", "nitrogen"), action = "scramble")
 
   m <- suppressWarnings(mask(f$df, r, mode = "local", seed = 1))
   rec <- recipe(m)

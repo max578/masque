@@ -9,9 +9,9 @@ mask(df, roles, mode = c("local", "collaborate"), seed = NULL, ...)
 \arguments{
 \item{df}{A data frame.}
 
-\item{roles}{A tibble produced by \code{\link[=propose_roles]{propose_roles()}} (possibly edited).
-May optionally include a \code{mask_levels} column (\code{"permute"} enables
-local-mode seeded permutation on the treatment column).}
+\item{roles}{A roles table from \code{\link[=propose_roles]{propose_roles()}} (possibly edited).
+Tables from masque <= 0.5.0 are upgraded with a deprecation
+warning; see \code{\link[=roles_validate]{roles_validate()}}.}
 
 \item{mode}{Either \code{"local"} (default) or \code{"collaborate"}.}
 
@@ -24,56 +24,55 @@ A \code{masque} S7 object. Use \code{\link[=synthetic]{synthetic()}} and \code{\
 extract the components.
 }
 \description{
-Takes one data frame and a user-edited \code{roles} tibble (from
-\code{\link[=propose_roles]{propose_roles()}}) and produces a synthetic clone whose experimental
-design, explicitly-kept columns, and NA pattern are preserved, while
-outcome and numeric-covariate values are re-simulated via a Gaussian
-copula and non-numeric covariate values are row-permuted. Returns a
-\code{masque} S7 object holding the
-synthetic data and a private \code{masque_recipe}.
+Takes one data frame and a user-edited \code{roles} table (from
+\code{\link[=propose_roles]{propose_roles()}}, possibly adjusted with \code{\link[=set_role]{set_role()}}) and produces
+a synthetic clone according to each column's \code{action}. Returns a
+\code{masque} S7 object holding the synthetic data and a private
+\code{masque_recipe}.
 }
 \details{
-\code{mode = "local"} keeps original column / level vocabularies and warns
-that the synthetic is for owner development only. \code{mode = "collaborate"}
-opaque-aliases treatment and categorical-covariate level vocabularies
-(\code{trt_001}, \verb{<col>_L01}) and drops \code{ignore} columns; the resulting
+\code{mode = "local"} warns that the synthetic is for owner development
+only. \code{mode = "collaborate"} additionally jitters re-simulated
+numerics within their measurement resolution (stochastically rounding
+integers) and runs \code{\link[=audit_mask]{audit_mask()}} automatically; the resulting
 synthetic can be passed to a collaborator while the recipe stays
-private. In \code{collaborate} mode, numeric draws are jittered within
-their measurement resolution, integer columns are stochastically
-rounded, and \code{\link[=audit_mask]{audit_mask()}} runs automatically.
+private. Which columns are aliased, kept, or dropped is decided by
+the \code{action} column of \code{roles} - \code{\link[=propose_roles]{propose_roles()}} resolves
+mode-appropriate defaults, so the table you reviewed is the plan that
+runs.
 }
-\section{Behaviour by role}{
+\section{Behaviour by action}{
 
 
 \describe{
-\item{\code{design}}{Byte-identical pass-through.}
-\item{\code{keep}}{Intentional byte-identical pass-through in both modes.}
-\item{\code{treatment}}{Local: pass-through (optional opt-in seeded
-permutation via \code{roles$mask_levels = "permute"}). Collaborate:
-opaque alias \code{trt_NNN}. Designs with two or more treatment factors
-(factorial, split-plot) are supported; each factor is aliased
-independently as \verb{<col>_trt_NNN} so the labels stay distinct.}
-\item{\code{outcome} + numeric \code{covariate}}{Re-simulated jointly via a
-Gaussian copula on global Pearson covariance. Empirical-quantile
-marginals (type 1: returns observed values).}
-\item{non-numeric \code{covariate}}{Row-permuted within non-NA positions.
-Date/time classes are preserved. Local: categorical vocabulary
-preserved. Collaborate: factor / character / logical levels receive
-opaque aliases \verb{<col>_LNN}.}
-\item{\code{ignore}}{Local: passes through. Collaborate: dropped.}
+\item{\code{keep}}{Byte-identical pass-through, both modes.}
+\item{\code{scramble}}{Numeric outcome / covariate columns are
+re-simulated jointly via a Gaussian copula on the global Pearson
+covariance, with empirical-quantile marginals. Categorical, date,
+and text columns are row-permuted within non-NA positions, class
+preserved. Treatment columns get a seeded label permutation -
+the assignment structure never moves.}
+\item{\code{alias}}{As \code{scramble} where applicable, plus opaque label
+substitution: treatments become \code{trt_NNN} (\verb{<col>_trt_NNN} when
+two or more treatment factors are aliased), categorical
+covariates \verb{<col>_LNNN}, design labels \verb{<col>_DNNN} (in place -
+structure intact), ids \verb{<col>_INNN} (in place - row linkage
+intact), text values \verb{<col>_TNNN}.}
+\item{\code{drop}}{Column excluded from the synthetic, both modes.}
 }
 
-RNG state is preserved across the call.
+The NA mask of every retained column is preserved cell-by-cell. RNG
+state is preserved across the call.
 }
 
 \examples{
 r <- propose_roles(iris)
-r$role[r$col == "Sepal.Length"] <- "outcome"
+r <- set_role(r, "Sepal.Length", role = "outcome")
 m <- suppressWarnings(mask(iris, r, seed = 1))
 head(synthetic(m))
 
 }
 \seealso{
-\code{\link[=propose_roles]{propose_roles()}}, \code{\link[=roles_validate]{roles_validate()}}, \code{\link[=synthetic]{synthetic()}},
-\code{\link[=recipe]{recipe()}}, \code{\link[=reveal_maps]{reveal_maps()}}.
+\code{\link[=propose_roles]{propose_roles()}}, \code{\link[=set_role]{set_role()}}, \code{\link[=roles_validate]{roles_validate()}},
+\code{\link[=synthetic]{synthetic()}}, \code{\link[=recipe]{recipe()}}, \code{\link[=reveal_maps]{reveal_maps()}}.
 }

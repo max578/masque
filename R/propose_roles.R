@@ -1,96 +1,133 @@
-#' Propose role classifications for the columns of a data frame
+#' Propose role and action classifications for the columns of a data frame
 #'
-#' Generates a heuristic role tibble for every column of `df`. The user is
-#' expected to inspect this tibble and edit it before passing it to `mask()`.
+#' Generates a heuristic two-axis classification for every column of
+#' `df`: a `role` (what the column *is*) and an `action` (what [mask()]
+#' will *do* to it). The user is expected to inspect this table and edit
+#' it - directly or via [set_role()] - before passing it to [mask()].
 #' Heuristics are seeds, not law.
 #'
-#' Roles are exactly one of:
+#' @section The two axes:
+#'
+#' `role` describes the column and determines the *mechanics* of any
+#' synthesis:
 #'
 #' \describe{
-#'   \item{`design`}{Byte-identical pass-through. Trial / site / replicate /
-#'     block / plot / row / column / year etc.}
-#'   \item{`keep`}{Intentional byte-identical pass-through for non-design
-#'     metadata that should remain exactly as supplied.}
-#'   \item{`treatment`}{Same factor cardinality and per-level frequency;
-#'     optional label aliasing or seeded permutation.}
-#'   \item{`outcome`}{Re-simulated via Gaussian copula. Multiple allowed.}
-#'   \item{`covariate`}{Numeric: Gaussian copula (joint with outcomes).
-#'     Categorical and date/time: row-permuted, with categorical levels
-#'     preserved (local) or aliased where possible (collaborate).}
-#'   \item{`ignore`}{Dropped or passed through depending on `mask()` options;
-#'     auto-assigned for free text and PII-pattern names.}
+#'   \item{`design`}{Experimental / structural columns (site, block,
+#'     rep, plot, year). Mechanics of `alias`: labels are substituted in
+#'     place, structure intact.}
+#'   \item{`treatment`}{Assignment columns (variety, genotype, dose).
+#'     Labels are remapped in place - the assignment structure never
+#'     moves. `scramble` = seeded label permutation; `alias` = opaque
+#'     labels (`trt_001`).}
+#'   \item{`outcome`}{Numeric response columns. `scramble` re-simulates
+#'     via the Gaussian copula, jointly with scrambled numeric
+#'     covariates. Multiple outcomes are supported.}
+#'   \item{`covariate`}{Everything measured alongside. Numeric:
+#'     copula re-simulation. Categorical: row permutation, plus opaque
+#'     label aliasing under `alias`.}
+#'   \item{`date`}{Date / POSIX / difftime columns. `scramble` row-
+#'     permutes within the observed values; class and NA pattern are
+#'     preserved.}
+#'   \item{`id`}{Identifier columns. Never scrambled (that would break
+#'     row linkage); `alias` substitutes opaque per-value labels in
+#'     place, preserving linkage.}
+#'   \item{`text`}{Free-text columns. `scramble` row-permutes; `alias`
+#'     tokenises each distinct string.}
+#'   \item{`other`}{Classes masque cannot synthesise (list columns,
+#'     exotic S4, ...). Keep or drop only.}
 #' }
 #'
-#' Default classification rules, applied in order:
+#' `action` sets the masking depth per column:
+#'
+#' \describe{
+#'   \item{`keep`}{Byte-identical pass-through, both modes.}
+#'   \item{`scramble`}{Re-simulate (numeric) or row-permute
+#'     (categorical / date / text); original label vocabulary remains
+#'     visible.}
+#'   \item{`alias`}{Scramble where applicable, plus opaque label
+#'     substitution - the vocabulary itself is hidden.}
+#'   \item{`drop`}{Column excluded from the synthetic, both modes.}
+#' }
+#'
+#' The proposed `action` column is resolved for `mode`, so the table you
+#' edit shows the actual masking plan. Re-assigning a column's role
+#' with [set_role()] re-resolves its default action; a direct
+#' `roles$role[...] <- ...` edit leaves `action` untouched (set it to
+#' `NA` to have [mask()] re-resolve the default).
+#'
+#' @section Default classification rules, applied in order:
 #'
 #' 1. PII-pattern column names (`contact`, `email`, `phone`, `gps`,
-#'    `latitude`/`longitude`, `postcode`, `ssn`, `password`, `owner`,
-#'    `farmer`, `operator`, etc., case-insensitive substring) -> `ignore`
-#'    with `pii_suspected = TRUE`.
-#' 2. Date / POSIXct / POSIXlt / difftime columns -> `covariate`.
-#' 3. ID-pattern names (`\\bid\\b`, `_id$`, `^id_`) -> `ignore`.
-#' 4. Design-pattern names (`rep`, `block`, `row`, `col(umn)?`, `range`,
-#'    `plot(no)?`, `site`, `env(ironment)?`, `trial`, `year`, `season`,
-#'    `colrep`, `tos`) -> `design`.
+#'    `latitude` / `longitude`, `postcode`, `ssn`, `password`, `owner`,
+#'    `farmer`, `operator`, etc., case-insensitive substring) ->
+#'    `pii_suspected = TRUE` and action `drop` in **both** modes.
+#'    Re-role deliberately if the column must survive.
+#' 2. Date / POSIXct / POSIXlt / difftime columns -> role `date`,
+#'    action `scramble` (row permutation).
+#' 3. ID-pattern names (`\\bid\\b`, `_id$`, `^id_`) -> role `id`; kept
+#'    in local mode, dropped in collaborate mode.
+#' 4. Design-pattern names (`rep`, `block`, `row`, `col(umn)?`,
+#'    `range`, `plot(no)?`, `site`, `env(ironment)?`, `trial`, `year`,
+#'    `season`, `colrep`, `tos`) -> role `design`, action `keep`.
 #' 5. Treatment-pattern names (`treatment`, `variety`, `cultivar`,
-#'    `genotype`, `^trt`, `^dose`) -> `treatment`.
-#' 6. Character columns with > 50% unique values on non-NA -> `ignore`
-#'    (likely free text).
-#' 7. Everything else -> `covariate`. The user re-classifies one or more
-#'    columns as `outcome`.
+#'    `genotype`, `^trt`, `^dose`) -> role `treatment`; kept in local
+#'    mode, aliased in collaborate mode.
+#' 6. Character columns with > 50% unique values on non-NA -> role
+#'    `text`; kept in local mode, dropped in collaborate mode.
+#' 7. Unsupported classes -> role `other`, action `keep`, with a note.
+#' 8. Everything else -> role `covariate`, action `scramble`. Re-role
+#'    response variables as `outcome`.
 #'
-#' Failing to designate at least one `outcome` is a hard error at `mask()`
-#' time (via [roles_validate()]).
+#' No outcome is required: with no column roled `outcome`, the copula
+#' simply re-simulates all scrambled numeric columns jointly.
 #'
 #' Since masque 0.3.0, [propose_roles()] also calls [detect_design()] by
 #' default (`detect = TRUE`) and applies the detected design's
-#' `recommended_roles` on top of the name-based heuristic. This promotes
-#' structurally-identified block / treatment columns even when the
-#' column names do not match the design / treatment regexes. The
-#' resulting design summary is stashed as `attr(roles, "design")` so the
-#' user can [plot()] it or inspect alternates. Pass `detect = FALSE` to
-#' recover the v0.2.x name-only behaviour byte-for-byte.
+#' `recommended_roles` on top of the name-based heuristic, re-resolving
+#' the default action for any promoted column. The design summary is
+#' stashed as `attr(roles, "design")`. Pass `detect = FALSE` for the
+#' name-only heuristic.
 #'
 #' @param df A data frame. Must have at least one column.
+#' @param mode The masking mode the table is being prepared for:
+#'   `"local"` (default) or `"collaborate"`. Stored as
+#'   `attr(roles, "mode")` and used to resolve default actions.
 #' @param detect Logical scalar (default `TRUE`). When `TRUE`, run
-#'   [detect_design()] and overlay its recommended role hints on the
-#'   name-based heuristic. Stash the `design_summary` as `attr(roles,
-#'   "design")`. When `FALSE`, only the v0.2.x name-based heuristic
-#'   runs.
+#'   [detect_design()] and overlay its recommended role hints.
 #'
-#' @return A tibble with one row per column, containing:
-#'   \itemize{
-#'     \item `col`: column name.
-#'     \item `role`: one of `design`, `treatment`, `outcome`, `covariate`,
-#'       `keep`, `ignore`.
-#'     \item `kind`: storage kind (`numeric`, `integer`, `factor`,
-#'       `character`, `logical`, `date`, `datetime`, `other`).
-#'     \item `freq_or_range`: brief summary string (range for numeric,
-#'       level count for factor, etc.).
-#'     \item `pii_suspected`: `TRUE` if column name matches a PII pattern.
-#'     \item `notes`: short explanation of the auto-classification.
-#'   }
+#' @return A tibble with one row per column: `col`, `role`, `action`,
+#'   `kind` (storage kind: `numeric`, `integer`, `factor`, `character`,
+#'   `logical`, `date`, `datetime`, `other`), `freq_or_range`,
+#'   `pii_suspected`, and `notes`. The target mode is stored as
+#'   `attr(roles, "mode")`.
 #'
 #' @examples
 #' propose_roles(iris)
+#' propose_roles(iris, mode = "collaborate")
 #'
-#' @seealso [roles_validate()] for the fail-closed validation applied at
-#'   `mask()` time.
+#' @seealso [set_role()] to edit; [roles_validate()] for the fail-closed
+#'   validation applied at `mask()` time.
 #'
 #' @export
-propose_roles <- function(df, detect = TRUE) {
+propose_roles <- function(df, mode = c("local", "collaborate"),
+                          detect = TRUE) {
   if (!is.data.frame(df)) {
     cli::cli_abort("`df` must be a data frame; got {.cls {class(df)[1]}}.")
   }
   if (ncol(df) == 0L) {
     cli::cli_abort("`df` has no columns.")
   }
+  mode <- match.arg(mode)
 
-  rows <- lapply(names(df), function(nm) classify_one_column(nm, df[[nm]]))
+  rows <- lapply(names(df), function(nm) {
+    classify_one_column(nm, df[[nm]], mode)
+  })
   roles <- tibble::as_tibble(do.call(
     rbind.data.frame,
     c(rows, list(stringsAsFactors = FALSE))
   ))
+  attr(roles, "mode") <- mode
+  attr(roles, "proposed_actions") <- stats::setNames(roles$action, roles$col)
 
   if (!isTRUE(detect)) {
     return(roles)
@@ -104,16 +141,16 @@ propose_roles <- function(df, detect = TRUE) {
 
   ds <- detect_design(df, roles = roles)
   if (ds@class_label != "none" && nrow(ds@recommended_roles) > 0L) {
-    roles <- .overlay_recommended_roles(roles, ds@recommended_roles)
+    roles <- .overlay_recommended_roles(roles, ds@recommended_roles, mode)
   }
   attr(roles, "design") <- ds
   roles
 }
 
 # Apply detect_design()'s recommended_roles on top of the name-based
-# tibble. Override role + extend the notes string. Never introduces or
-# drops rows.
-.overlay_recommended_roles <- function(roles, rec) {
+# tibble. Overrides role, re-resolves the default action for the new
+# role, and extends the notes string. Never introduces or drops rows.
+.overlay_recommended_roles <- function(roles, rec, mode) {
   for (i in seq_len(nrow(rec))) {
     col_i <- rec$col[i]
     role_i <- rec$role[i]
@@ -122,6 +159,14 @@ propose_roles <- function(df, detect = TRUE) {
     if (identical(roles$role[row_idx], role_i)) next
     old_role <- roles$role[row_idx]
     roles$role[row_idx] <- role_i
+    roles$action[row_idx] <- .default_action(
+      role_i, roles$kind[row_idx], mode
+    )
+    pa <- attr(roles, "proposed_actions")
+    if (!is.null(pa)) {
+      pa[[col_i]] <- roles$action[row_idx]
+      attr(roles, "proposed_actions") <- pa
+    }
     roles$notes[row_idx] <- sprintf(
       "detect_design: %s -> %s (was: %s)",
       old_role, role_i, roles$notes[row_idx]
@@ -131,45 +176,78 @@ propose_roles <- function(df, detect = TRUE) {
 }
 
 # Internal: classify a single column and return a single-row data.frame.
-classify_one_column <- function(nm, x) {
+classify_one_column <- function(nm, x, mode = "local") {
   kind <- col_kind(x)
   is_pii <- matches_pattern(nm, PII_PATTERN)
+  collab <- identical(mode, "collaborate")
 
   if (is_pii) {
-    role <- "ignore"
-    notes <- "PII pattern in column name -> ignore (flagged)."
-  } else if (kind %in% c("date", "datetime")) {
-    role <- "covariate"
+    role <- if (kind %in% c("character", "factor")) {
+      "text"
+    } else if (kind %in% .date_kinds()) {
+      "date"
+    } else if (kind == "other") {
+      "other"
+    } else {
+      "covariate"
+    }
+    action <- "drop"
     notes <- paste0(
-      "Date/time column -> covariate (row-permuted); ",
-      "use keep to leave unchanged."
+      "PII pattern in column name -> drop in both modes (flagged); ",
+      "re-role deliberately to retain."
+    )
+  } else if (kind %in% .date_kinds()) {
+    role <- "date"
+    action <- .default_action(role, kind, mode)
+    notes <- paste0(
+      "Date/time column -> row-permuted; class and NA pattern ",
+      "preserved. Use keep to leave untouched."
     )
   } else if (matches_pattern(nm, ID_PATTERN)) {
-    role <- "ignore"
-    notes <- "ID-pattern name -> ignore."
+    role <- "id"
+    action <- .default_action(role, kind, mode)
+    notes <- if (collab) {
+      "ID-pattern name -> dropped in collaborate; alias to keep linkage."
+    } else {
+      "ID-pattern name -> kept in local mode; alias to hide values."
+    }
   } else if (matches_pattern(nm, DESIGN_PATTERN)) {
     role <- "design"
+    action <- "keep"
     notes <- "Design-pattern name -> design (byte-identical)."
   } else if (matches_pattern(nm, TREATMENT_PATTERN)) {
     role <- "treatment"
-    notes <- "Treatment-pattern name -> treatment."
+    action <- .default_action(role, kind, mode)
+    notes <- if (collab) {
+      "Treatment-pattern name -> labels aliased in collaborate mode."
+    } else {
+      "Treatment-pattern name -> passes through in local mode."
+    }
   } else if (kind == "character" && is_free_text(x)) {
-    role <- "ignore"
-    notes <- "High-cardinality character (likely free text) -> ignore."
+    role <- "text"
+    action <- .default_action(role, kind, mode)
+    notes <- if (collab) {
+      "High-cardinality character (likely free text) -> dropped."
+    } else {
+      "High-cardinality character (likely free text) -> kept in local."
+    }
   } else if (kind == "other") {
-    role <- "keep"
-    notes <- "Unsupported class -> keep as-is; re-role to ignore to drop."
+    role <- "other"
+    action <- "keep"
+    notes <- "Unsupported class -> kept as-is; set action drop to remove."
   } else {
     role <- "covariate"
+    action <- .default_action(role, kind, mode)
     notes <- paste0(
       "Default -> covariate; re-role to outcome if response variable, ",
-      "or keep to leave unchanged."
+      "or set action keep to leave untouched."
     )
   }
 
   data.frame(
     col = nm,
     role = role,
+    action = action,
     kind = kind,
     freq_or_range = summarise_kind(x, kind),
     pii_suspected = is_pii,

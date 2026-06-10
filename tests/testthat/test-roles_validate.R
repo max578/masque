@@ -45,23 +45,25 @@ test_that("roles_validate errors on unknown role string", {
   expect_error(roles_validate(r), "Unknown role")
 })
 
-test_that("roles_validate errors when no outcome flagged", {
-  r <- propose_roles(iris) # propose_roles never picks outcome
-  expect_error(roles_validate(r), "outcome")
+test_that("roles_validate accepts a table with no outcome", {
+  # Two-axis model: no outcome is required; numeric covariates scramble.
+  r <- propose_roles(iris)
+  expect_true(all(r$role != "outcome"))
+  expect_invisible(roles_validate(r))
 })
 
 test_that("roles_validate accepts multiple treatment columns", {
   # Joint-treatment masking (factorial / split-plot designs) is supported:
   # two or more treatment factors must validate cleanly.
   r <- make_valid_roles()
-  r$role[r$col %in% c("Sepal.Width", "Petal.Width")] <- "treatment"
+  r <- set_role(r, c("Sepal.Width", "Petal.Width"), role = "treatment")
   expect_invisible(roles_validate(r))
   expect_invisible(roles_validate(r, iris))
 })
 
-test_that("roles_validate accepts explicit keep columns", {
+test_that("roles_validate accepts explicit keep actions", {
   r <- make_valid_roles()
-  r$role[r$col == "Species"] <- "keep"
+  r <- set_role(r, "Species", action = "keep")
   expect_invisible(roles_validate(r))
   expect_invisible(roles_validate(r, iris))
 })
@@ -79,8 +81,8 @@ test_that("roles_validate errors when unsupported columns are covariates", {
   )
   r <- propose_roles(df, detect = FALSE)
   r$role[r$col == "yield"] <- "outcome"
-  r$role[r$col == "payload"] <- "covariate"
-  expect_error(roles_validate(r, df), "Unsupported")
+  r <- set_role(r, "payload", role = "covariate", action = "scramble")
+  expect_error(roles_validate(r, df), "unsupported|cannot")
 })
 
 test_that("roles_validate cross-checks df columns when df supplied", {
@@ -90,9 +92,9 @@ test_that("roles_validate cross-checks df columns when df supplied", {
   # Add a row -> roles has a column not in df
   r_extra <- r
   r_extra <- rbind(r_extra, data.frame(
-    col = "ghost", role = "covariate", kind = "numeric",
-    freq_or_range = "[0, 1]", pii_suspected = FALSE, notes = "test",
-    stringsAsFactors = FALSE
+    col = "ghost", role = "covariate", action = "scramble",
+    kind = "numeric", freq_or_range = "[0, 1]", pii_suspected = FALSE,
+    notes = "test", stringsAsFactors = FALSE
   ))
   expect_error(roles_validate(r_extra, iris), "not in.*df")
 })

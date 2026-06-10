@@ -1,3 +1,56 @@
+# masque 0.6.0.9000
+
+Development version. The roles step becomes two-axis and a set of new
+roles arrives; this is the foundation for the v0.6.0 set layer and
+guided verb.
+
+## Two-axis roles (breaking, with an upgrade path)
+
+* The roles table now carries two columns instead of one: `role` (what
+  a column *is*) and `action` (what `mask()` *does* to it). `role` is
+  one of `design`, `treatment`, `outcome`, `covariate`, `date`, `id`,
+  `text`, `other`; `action` is one of `keep`, `scramble`, `alias`,
+  `drop`. `propose_roles()` resolves a mode-appropriate default action
+  for every column, so the table you review is the masking plan that
+  runs.
+* New roles answer the three gaps the previous vocabulary left open: a
+  first-class `date` role (date/time columns are row-permuted with
+  class and NA pattern preserved), and the explicit "retain untouched"
+  and "skip entirely" choices are now the `keep` and `drop` *actions*,
+  available on any column rather than only the old `keep` / `ignore`
+  roles.
+* `propose_roles()` gains a `mode` argument. The proposed actions
+  differ between `local` and `collaborate` (for example a treatment is
+  kept locally but aliased for collaboration); the table records the
+  mode it was prepared for.
+* New `set_role()` helper edits a roles table ergonomically.
+  Re-assigning a column's role re-resolves its default action; passing
+  an explicit `action`
+  pins the column so a later mode change leaves it alone. Direct
+  `roles$role[...] <-` edits still work.
+* `mask()` no longer requires an `outcome` column. With none marked,
+  the Gaussian copula simply re-simulates every scrambled numeric
+  column jointly.
+* `role = "design", action = "alias"` is a new opt-out from
+  byte-identical design preservation: the design *structure* is kept
+  but the site / block labels are hidden behind opaque aliases and
+  restored by `unmask()`. The default for design columns remains
+  `keep` (byte-identical).
+* `roles_validate()` validates the (role, action, kind) combination and
+  fails closed on impossible pairings (a scrambled design column, an
+  aliased numeric, a scrambled id). It returns the validated table with
+  any `NA` actions resolved.
+* Roles tables produced by masque <= 0.5.0 (no `action` column; the
+  `keep` / `ignore` roles; the `mask_levels` column) are upgraded
+  automatically with a one-time deprecation warning, preserving the v1
+  mode semantics exactly.
+
+## Internal
+
+* Dropped the `MASS` dependency: the copula now draws latent normals
+  through a Cholesky factor of the regularised covariance, removing a
+  hard import.
+
 # masque 0.5.0
 
 New feature release: joint-treatment masking plus role-table usability

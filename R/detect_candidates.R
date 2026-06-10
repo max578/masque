@@ -54,13 +54,21 @@
       (kinds %in% c("integer", "numeric") & in_small_range) |
       (kinds == "character" & in_half_range)
 
-  # Honour user roles: outcomes, explicit keepers, and ignored columns never
-  # become design candidates here.
+  # Honour user roles: outcomes, ids, free text, unsupported classes,
+  # and columns the user is dropping never become design candidates.
+  # The v1 vocabulary (keep / ignore) is honoured for tables produced
+  # by masque <= 0.5.0.
   drop_candidates <- character(0L)
   if (!is.null(roles) && "role" %in% names(roles)) {
     drop_candidates <- roles$col[
-      roles$role %in% c("outcome", "keep", "ignore")
+      roles$role %in% c("outcome", "id", "text", "other", "keep", "ignore")
     ]
+    if ("action" %in% names(roles)) {
+      drop_candidates <- union(
+        drop_candidates,
+        roles$col[!is.na(roles$action) & roles$action == "drop"]
+      )
+    }
     is_factor_like <- is_factor_like & !(cols %in% drop_candidates)
   }
 

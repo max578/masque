@@ -103,7 +103,7 @@ test_that("Explicit keep columns pass through collaborate mode unchanged", {
   )
   r <- propose_roles(df, detect = FALSE)
   r$role[r$col == "yield"] <- "outcome"
-  r$role[r$col == "site_label"] <- "keep"
+  r <- set_role(r, "site_label", action = "keep")
 
   m <- mask(df, r, mode = "collaborate", seed = 1)
   s <- synthetic(m)
@@ -112,9 +112,13 @@ test_that("Explicit keep columns pass through collaborate mode unchanged", {
 
   expect_identical(s$site_label, df$site_label)
   expect_identical(fwd$site_label, df$site_label)
-  expect_equal(
+  expect_match(
     m@audit$notes[m@audit$col == "site_label"],
     "kept as-is"
+  )
+  expect_equal(
+    m@audit$leakage_class[m@audit$col == "site_label"],
+    "medium"
   )
 })
 
@@ -130,15 +134,20 @@ test_that("mask() errors on non-data-frame input", {
   expect_error(mask(list(), r), "must be a data frame")
 })
 
-test_that("mask() errors propagated from roles_validate (no outcome)", {
+test_that("mask() no longer requires an outcome column", {
   r <- propose_roles(iris)
-  expect_error(mask(iris, r), "outcome")
+  expect_true(all(r$role != "outcome"))
+  m <- suppressWarnings(mask(iris, r, seed = 1))
+  s <- synthetic(m)
+  expect_equal(dim(s), dim(iris))
+  # All four numerics are covariates: still re-simulated jointly.
+  expect_false(identical(s$Sepal.Width, iris$Sepal.Width))
 })
 
-test_that("roles_validate errors on non-numeric outcome (semantic check)", {
+test_that("roles_validate errors on non-numeric scrambled outcome", {
   r <- propose_roles(iris)
-  r$role[r$col == "Species"] <- "outcome"
-  expect_error(roles_validate(r), "Non-numeric")
+  r <- set_role(r, "Species", role = "outcome", action = "scramble")
+  expect_error(roles_validate(r), "outcomes can be scrambled")
 })
 
 # Real MET fixture smoke test (skipped under R CMD check) --------------------
@@ -167,7 +176,11 @@ test_that("mask() runs end-to-end on MET tab_04 (skip if fixture absent)", {
 
   expect_true(inherits(m, "masque::masque"))
   expect_equal(nrow(s), nrow(df))
-  expect_equal(ncol(s), ncol(df))
+  # PII-suspected columns are dropped in both modes since the two-axis
+  # roles model; everything else survives.
+  dropped <- r$col[r$action == "drop"]
+  expect_equal(ncol(s), ncol(df) - length(dropped))
+  expect_true(all(setdiff(names(df), dropped) %in% names(s)))
   expect_identical(s$Rep, df$Rep)
   expect_identical(s$Row, df$Row)
   expect_identical(s$Column, df$Column)

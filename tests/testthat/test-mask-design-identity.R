@@ -36,19 +36,20 @@ test_that("treatment column passes through step 3 (levels handled step 4)", {
   expect_identical(synthetic(m)$Genotype, df$Genotype)
 })
 
-test_that("ignore columns pass through in local mode", {
+test_that("free-text columns pass through in local mode", {
   set.seed(0)
   df <- data.frame(
     Rep = rep(1:4, 5),
     yield = rnorm(20),
-    notes = paste0("note_", seq_len(20)), # auto-ignored free text
+    notes = paste0("note_", seq_len(20)), # auto-detected free text
     stringsAsFactors = FALSE
   )
   r <- propose_roles(df)
   r$role[r$col == "yield"] <- "outcome"
 
   m <- suppressWarnings(mask(df, r, seed = 1))
-  expect_equal(r$role[r$col == "notes"], "ignore")
+  expect_equal(r$role[r$col == "notes"], "text")
+  expect_equal(r$action[r$col == "notes"], "keep")
   expect_identical(synthetic(m)$notes, df$notes)
 })
 

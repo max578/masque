@@ -36,9 +36,14 @@ S7::method(print, masque_recipe) <- function(x, ...) {
   ))
 
   marker <- ifelse(x@roles$col %in% names(x@level_maps), "*", "=")
+  action <- if ("action" %in% names(x@roles)) {
+    x@roles$action
+  } else {
+    rep("", nrow(x@roles))
+  }
   body <- sprintf(
-    "  %s %-9s  %-32s  (%s)",
-    marker, x@roles$role, x@roles$col, x@roles$kind
+    "  %s %-9s %-8s  %-28s  (%s)",
+    marker, x@roles$role, action, x@roles$col, x@roles$kind
   )
   cat(body, sep = "\n")
 
