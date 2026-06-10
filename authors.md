@@ -9,7 +9,7 @@
 ## Citation
 
 Source:
-[`inst/CITATION`](https://github.com/max578/masque/blob/main/inst/CITATION)
+[`inst/CITATION`](https://github.com/max578/masque/blob/v0.6.0/inst/CITATION)
 
 Moldovan M (2026). *masque: Structurally Faithful Development Surrogates
 for Tabular Data*. R package version 0.4.0,

@@ -53,7 +53,7 @@ vocabularies themselves:
 rec
 #> 
 #> ── masque_recipe ───────────────────────────────────────────────────────────────────────────────────
-#> • Created: 2026-06-10 14:21:52 UTC
+#> • Created: 2026-06-10 14:23:39 UTC
 #> • Mode: collaborate
 #> • Seed: present (redacted)
 #> • masque version: 0.6.0
