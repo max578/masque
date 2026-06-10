@@ -26,7 +26,7 @@ vignette before sharing any `masque` output beyond your own machine.
 | Synthetic only | Original raw values | Numeric exact values (collaborate); treatment vocabulary (collaborate); column identities (collaborate, optional) |
 | Synthetic + recipe | Original raw values | Numeric exact values. The combination is **as sensitive as the original**. |
 | Recipe only | Original raw values | Nothing useful — recipe is meaningless without synthetic |
-| Synthetic + external side info (e.g., publicly registered trial) | Identity of treatments / sites | Only the label vocabulary; the design footprint is preserved by design and is recognisable. Side info wins. |
+| Synthetic + external side info (e.g., publicly registered trial) | Identity of treatments / sites / intentionally kept metadata | Only the label vocabulary; the design footprint and any `keep` columns are preserved by design and are recognisable. Side info wins. |
 
 **The recipe is private.** Never share the recipe alongside the
 synthetic. The collaborator workflow assumes only the synthetic crosses
@@ -56,6 +56,8 @@ the trust boundary.
 |---|---|---|
 | Treatment levels | preserved | opaque alias (`trt_001`) |
 | Categorical covariate levels | preserved | opaque alias (`<col>_L001`) |
+| Date/time covariates | row-permuted; class preserved | row-permuted; class preserved |
+| `keep` columns | pass-through | pass-through |
 | `ignore` columns | pass-through | dropped |
 | Numeric synthesis | empirical-quantile (may emit observed values) | empirical-quantile + within-resolution jitter; integers stochastically rounded |
 | NA mask | preserved cell-by-cell | preserved cell-by-cell with explicit warning |
@@ -127,10 +129,16 @@ warns at construction time, but does not block.
 4. **Never override `pii_suspected = TRUE` without thinking.** The
    heuristic is conservative; if it triggers, decide explicitly whether
    to keep the column.
-5. **Small designs leak.** Cell counts of 1 in any categorical column
+5. **Use `keep` sparingly.** It is there for columns your pipeline needs
+   exactly as-is. In collaborate mode it is still published exactly as-is.
+6. **Date/time columns carry real operational signal.** They are no
+   longer dropped by default; they are row-permuted as covariates. Re-role
+   to `keep` only when exact row alignment is required, or to `ignore` if
+   the schedule itself is sensitive.
+7. **Small designs leak.** Cell counts of 1 in any categorical column
    under collaborate mode are HIGH leakage. Aggregate or drop before
    masking.
-6. **Exact-design preservation is recognisable.** A publicly registered
+8. **Exact-design preservation is recognisable.** A publicly registered
    trial design (site x year x rep) is a fingerprint. The synthetic
    does not hide that. If exact-design recognisability is a concern,
    roll up to higher-level groupings before calling `mask()`.
