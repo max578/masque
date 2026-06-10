@@ -15,6 +15,18 @@ breaking existing signatures. The track record so far:
   as a new default with `detect = FALSE` recovering v0.2.x behaviour
   byte-for-byte. **No breaking changes.**
 - `0.4.0` — added `synthesise_geospatial()`. **No breaking changes.**
+- `0.5.0` — joint-treatment masking; the `keep` role; first-class
+  date/time covariates. **No breaking changes.**
+- `0.6.0` — the **two-axis roles model**: the roles table gains an
+  `action` column and the role vocabulary changes (`keep` / `ignore`
+  become the `keep` / `drop` *actions*; new roles `date` / `id` /
+  `text` / `other`). New exports: `masque()` (guided verb),
+  `set_role()`, `clean_table()`, `mask_set()`, `read_set()`,
+  `write_set()`. `mask()` no longer requires an `outcome`.
+  **This is a breaking change, listed in `NEWS.md`.** Roles tables
+  built by masque <= 0.5.0 are upgraded automatically with a one-time
+  deprecation warning, so existing scripts keep working; the warning
+  signposts re-running `propose_roles()`.
 
 The policy is "additive-by-intent" rather than "frozen": pre-1.0 reserves the
 right to break an existing signature when a design flaw surfaces, but every

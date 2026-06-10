@@ -10,223 +10,154 @@ vignette: >
 ```{r setup, include = FALSE}
 knitr::opts_chunk$set(
   collapse = TRUE,
-  comment = "#>",
-  fig.width = 6,
-  fig.height = 4
+  comment = "#>"
 )
 options(width = 100)
+set.seed(1)
 ```
 
-# masque: development surrogates for tabular data
+## What masque is for
 
-`masque` turns a single tabular dataset into a structurally faithful
-synthetic clone you can develop a pipeline against. It preserves the
-experimental design, explicitly kept columns, the NA pattern, and the
-global covariance of your outcome and numeric covariates. Date/time
-covariates are retained as date/time vectors and row-permuted by
-default. It does **not** anonymise; it produces controlled substitutes
-with a private `recipe` that round-trips the finished pipeline back onto
-the original data.
+`masque` exists to bridge an expertise gap. A data custodian holds a
+confidential dataset and the legal responsibility for it, but often only
+basic R fluency. An analyst has the modelling expertise but cannot
+lawfully see the raw data. `masque` lets the custodian hand the analyst a
+structurally faithful *synthetic* clone -- close enough that a pipeline
+developed against it runs unchanged on the real data -- while the
+information that must stay private never crosses the boundary.
 
-## Read this first: threat model
+It turns one tabular dataset (or a folder or workbook of related tables)
+into a synthetic clone whose experimental design, missing-value pattern,
+and global covariance are preserved, alongside a private `recipe` that
+round-trips: a pipeline written against the synthetic re-targets to the
+original with no code changes.
 
-`masque` is *not* a privacy-preserving or differential-privacy tool.
-It is a **structurally faithful development surrogate**. The recipe
-returned by `mask()` is at least as sensitive as the original data:
-never share it alongside the synthetic.
+It is **not** an anonymiser. The synthetic is a development surrogate,
+not a public-release-safe artefact. The companion vignette
+*Confidentiality and the threat model* sets out exactly what is and is
+not protected; read it before sharing any output.
 
-| Mode | Use case | Defaults |
-|---|---|---|
-| `local` | Owner develops on a realistic surrogate locally | Vocabulary preserved; `keep` columns pass through; numeric values may match observed |
-| `collaborate` | Owner shares synthetic with a collaborator while keeping the recipe private | Opaque aliasing of treatment + categorical/logical covariate levels; date/time covariates row-permuted; jitter on numerics; `keep` columns pass through; `ignore` columns dropped; `audit_mask()` auto-runs |
+## The one-call path
 
-For the full threat model and limitations, see
-`vignette("confidentiality")`.
+`masque()` is the front door. Point it at your data and it reads the
+table, proposes a masking plan, masks, and -- in an interactive session
+-- pauses to let you review the plan first. We use the classical John &
+Williams (1995) alpha-design field trial, shipped with the package.
 
-## A worked example: an alpha-design field trial
-
-We use the classical John (1987) alpha-design dataset, shipped as a
-small CSV in `inst/extdata/`.
-
-```{r load-fixture}
+```{r one-call}
 library(masque)
 
 f <- system.file("extdata", "john_alpha.csv", package = "masque")
 df <- read.csv(f, stringsAsFactors = TRUE)
-str(df)
 head(df)
+
+m <- masque(df, mode = "collaborate", seed = 1, ask = FALSE)
 ```
 
-## Step 1: propose roles, edit, validate
+`ask = FALSE` skips the interactive review, which is what we want inside
+a vignette. In your own console, call `masque(df)` and you will see the
+proposed plan and a prompt to proceed, edit, or stop.
 
-`propose_roles()` runs a heuristic classification of every column into
-one of `{design, keep, treatment, outcome, covariate, ignore}`. The
-result is a tibble that you inspect and edit.
+The result carries the synthetic data and the private recipe:
 
-```{r propose-roles}
-roles <- propose_roles(df)
-roles
+```{r one-call-extract}
+synth <- synthetic(m)
+head(synth)
 ```
 
-`plot`, `rep`, `block`, `row`, and `col` are detected as design columns
-(byte-identical pass-through). `gen` is detected as a treatment factor.
-`yield` defaults to `covariate` — we re-role it as `outcome`.
+## The masking plan: roles and actions
 
-Use `keep` when a non-design column should remain exactly as supplied
-in both modes. Use `ignore` when a column should be dropped before
-collaboration. Date/time columns are proposed as `covariate` by default:
-they are row-permuted while retaining their class and NA pattern.
+Under the one-call path, `masque()` builds the *roles table* for you. You
+can build and edit it yourself for full control. Every column gets two
+decisions: a `role` (what the column is) and an `action` (what masque
+does to it).
 
-```{r edit-roles}
-roles$role[roles$col == "yield"] <- "outcome"
-roles
+```{r roles}
+roles <- propose_roles(df, mode = "collaborate")
+roles[, c("col", "role", "action", "kind")]
 ```
 
-Validation is a single call:
+The eight roles -- `design`, `treatment`, `outcome`, `covariate`,
+`date`, `id`, `text`, `other` -- describe the column. The four actions
+set the depth:
 
-```{r validate-roles}
-roles_validate(roles, df)
+- `keep` -- pass the column through byte-for-byte;
+- `scramble` -- re-simulate numerics through a Gaussian copula, or
+  row-permute categoricals, dates, and text (the vocabulary stays
+  visible);
+- `alias` -- scramble and replace the labels with opaque codes;
+- `drop` -- leave the column out of the synthetic entirely.
+
+`propose_roles()` fills in a sensible action for each column given the
+mode, so the table you review is the plan that will run. Edit it with
+`set_role()`:
+
+```{r set-role}
+roles <- set_role(roles, "yield", role = "outcome")
+roles[, c("col", "role", "action")]
 ```
 
-## Step 2: mask in local mode
+Re-assigning a role re-resolves the default action; passing an explicit
+`action` pins the column. There is no requirement to name an `outcome`:
+with none marked, every scrambled numeric is re-simulated jointly.
 
-Local mode is the owner's realistic surrogate: it preserves the
-treatment vocabulary, the design pattern, and the NA mask. The
-synthetic is suitable for pipeline development on the owner's machine
-but not for external sharing.
+Pass the edited table back to `mask()` (or to `masque(df, roles =
+roles)`):
 
-```{r mask-local}
-m_local <- mask(df, roles, mode = "local", seed = 2026)
+```{r mask}
+m <- mask(df, roles, mode = "collaborate", seed = 1)
+synth <- synthetic(m)
+identical(synth$plot, df$plot)               # design column: byte-identical
+setequal(levels(synth$gen), levels(df$gen))  # treatment: aliased away
+head(levels(synth$gen))
 ```
 
-The construction-time warning is part of the contract — local-mode
-synthetic is not for external sharing.
+## Local and collaborate modes
 
-```{r local-summary}
-m_local
+The mode sets the safe defaults.
+
+| Mode | Use case | Defaults |
+|---|---|---|
+| `local` | Owner develops on a realistic surrogate locally | Vocabulary preserved; numeric values may match observed |
+| `collaborate` | Owner shares the synthetic while keeping the recipe private | Treatment and categorical labels aliased; numerics jittered; ids and free text dropped; the leakage audit runs automatically |
+
+Per-column `action` choices override the mode wherever you need them.
+
+## Tidy, dates, and depth
+
+Real custodian tables are rarely clean. `masque()` legalises column
+names and trims stray whitespace before masking, reports near-duplicate
+labels (likely typos) without merging them, and records every fix so the
+round-trip still lines up. Set `clean = "report"` to preview the fixes,
+or `clean = "off"` to skip them.
+
+Date and time columns get the first-class `date` role: they are
+row-permuted, keep their class, and preserve the NA pattern. When even
+the column *names* are sensitive, `alias_names = TRUE` hides them behind
+opaque codes that the recipe inverts.
+
+## More than one table
+
+A confidential dataset often arrives as several related files or a
+multi-sheet workbook. `masque()` handles those too -- point it at a
+folder, an `.xlsx` file, or a named list of data frames and it masks
+every table at once, aliasing any shared key (a site code, a genotype
+name) *identically across tables* so a join of the synthetic tables still
+resolves.
+
+```{r set}
+set_dir <- system.file("extdata", "met_set", package = "masque")
+ms <- masque(set_dir, mode = "collaborate", seed = 1, ask = FALSE)
+ms
 ```
 
-Extract the synthetic data via `synthetic()`:
+The genotype column `gen` appears in both tables and is masked to the
+same codes in each, so the field and laboratory tables still join. See
+*Confidentiality and the threat model* for the set-level controls.
 
-```{r local-synthetic}
-synth_local <- synthetic(m_local)
-head(synth_local)
-```
+## Where to go next
 
-Design columns are byte-identical to the original; treatment labels
-are preserved.
-
-```{r local-checks}
-identical(synth_local$rep, df$rep)
-identical(synth_local$block, df$block)
-identical(levels(synth_local$gen), levels(df$gen))
-```
-
-For a date/time or explicit-keep column, the intent is visible in the
-role table:
-
-```{r dates-and-keep}
-demo <- data.frame(
-  rep = 1:6,
-  sample_date = as.Date("2026-01-01") + 0:5,
-  lab_batch = c("A", "A", "B", "B", "C", "C"),
-  yield = c(3.1, 2.8, 4.0, 3.7, 5.2, 5.0),
-  stringsAsFactors = FALSE
-)
-demo_roles <- propose_roles(demo, detect = FALSE)
-demo_roles$role[demo_roles$col == "yield"] <- "outcome"
-demo_roles$role[demo_roles$col == "lab_batch"] <- "keep"
-demo_roles[, c("col", "role", "kind", "notes")]
-```
-
-## Step 3: mask in collaborate mode
-
-Collaborate mode opaquely aliases the treatment and categorical-
-covariate vocabularies (`G01 -> trt_001` etc.), drops `ignore`
-columns, jitters numerics within their observed measurement
-resolution, and auto-runs `audit_mask()`. The synthetic is suitable
-for handing to a pipeline developer while the recipe stays private.
-
-```{r mask-collab}
-m_collab <- mask(df, roles, mode = "collaborate", seed = 2026)
-synth_collab <- synthetic(m_collab)
-head(synth_collab)
-```
-
-Note `gen` is now `trt_NNN`:
-
-```{r collab-gen}
-head(levels(synth_collab$gen))
-```
-
-Original labels never leak through `print(recipe(m))`:
-
-```{r collab-recipe}
-recipe(m_collab)
-```
-
-To see them you must call `reveal_maps()` explicitly.
-
-## Step 4: round-trip a pipeline
-
-The classic `masque` workflow:
-
-```{r roundtrip}
-# Train a model against the synthetic namespace
-fit <- lm(yield ~ gen + rep, data = synth_collab)
-
-# Translate the original into the synthetic namespace via the recipe
-df_in_synth <- apply_recipe(df, recipe(m_collab))
-head(df_in_synth)
-
-# Predict on the translated data
-preds_synth <- predict(fit, newdata = df_in_synth)
-length(preds_synth)
-
-# Numeric predictions need no inverse map
-head(preds_synth)
-```
-
-If the pipeline returned factor-valued predictions (e.g., a classifier
-predicting a treatment), `unmask()` translates them back into the
-original vocabulary:
-
-```{r unmask-atomic}
-pred_factor_synth <- synth_collab$gen[1:5]
-pred_factor_orig <- unmask(pred_factor_synth, recipe(m_collab),
-  column = "gen"
-)
-data.frame(
-  synth = as.character(pred_factor_synth),
-  original = as.character(pred_factor_orig)
-)
-```
-
-## Step 5: audit and ship
-
-`audit_mask()` returns a per-column leakage audit. In collaborate mode
-it runs automatically at `mask()` time and is stored on the object.
-
-```{r audit}
-audit_mask(m_collab)
-```
-
-The recipe can be persisted alongside the original data (treat as
-sensitive); the synthetic alone is what crosses the trust boundary.
-
-```{r persist}
-tmp <- tempfile(fileext = ".rds")
-save_recipe(recipe(m_collab), tmp)
-file.info(tmp)$size
-rec2 <- read_recipe(tmp)
-identical(rec2@masque_version, recipe(m_collab)@masque_version)
-```
-
-## Next steps
-
-- `vignette("confidentiality")` — the full threat model, mode comparison,
-  and `audit_mask()` walk-through with deliberately leaky fixtures.
-- `vignette("recipe_anatomy")` — what's inside a recipe, runtime vs full,
-  `print()` vs `reveal_maps()`.
-- `vignette("roadmap")` — features deliberately deferred from the
-  current release.
+- *Confidentiality and the threat model* -- what is and is not protected,
+  the two modes, the depth controls, and the leakage audit.
+- *Recipe anatomy and the round-trip* -- the analyst's side: how a
+  pipeline built on the synthetic re-targets to the original.

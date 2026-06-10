@@ -36,9 +36,23 @@ S7::method(print, masque_recipe) <- function(x, ...) {
   ))
 
   marker <- ifelse(x@roles$col %in% names(x@level_maps), "*", "=")
+  action <- if ("action" %in% names(x@roles)) {
+    x@roles$action
+  } else {
+    rep("", nrow(x@roles))
+  }
+  # When column names are aliased, show the opaque alias (the real name
+  # stays redacted, like the level maps).
+  shown_col <- x@roles$col
+  if (!is.null(x@column_name_map)) {
+    hits <- shown_col %in% names(x@column_name_map)
+    shown_col[hits] <- paste0(
+      unname(unlist(x@column_name_map[shown_col[hits]])), " (aliased)"
+    )
+  }
   body <- sprintf(
-    "  %s %-9s  %-32s  (%s)",
-    marker, x@roles$role, x@roles$col, x@roles$kind
+    "  %s %-9s %-8s  %-28s  (%s)",
+    marker, x@roles$role, action, shown_col, x@roles$kind
   )
   cat(body, sep = "\n")
 
@@ -65,7 +79,7 @@ S7::method(format, masque_recipe) <- function(x, ...) {
   )
 }
 
-S7::method(print, masque) <- function(x, ...) {
+S7::method(print, masque_obj) <- function(x, ...) {
   cli::cli_h1("masque")
   cli::cli_bullets(c(
     "*" = sprintf("Mode: %s", x@mode),
@@ -133,8 +147,19 @@ reveal_maps <- function(rec) {
   )
   cli::cli_text("")
 
+  if (!is.null(rec@column_name_map) && length(rec@column_name_map)) {
+    cli::cli_h3("column names (original -> alias)")
+    cmap <- rec@column_name_map
+    lines <- sprintf(
+      "  %s  ->  %s", names(cmap), unname(unlist(cmap))
+    )
+    cat(lines, sep = "\n")
+  }
+
   if (length(rec@level_maps) == 0L) {
-    cli::cli_alert_info("No level maps held in this recipe.")
+    if (is.null(rec@column_name_map) || !length(rec@column_name_map)) {
+      cli::cli_alert_info("No level maps held in this recipe.")
+    }
     return(invisible(rec))
   }
 

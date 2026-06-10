@@ -1,8 +1,8 @@
 ---
-title: "Recipe anatomy"
+title: "Recipe anatomy and the round-trip"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Recipe anatomy}
+  %\VignetteIndexEntry{Recipe anatomy and the round-trip}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -11,22 +11,25 @@ vignette: >
 knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 options(width = 100)
 library(masque)
+set.seed(1)
 
 f <- system.file("extdata", "john_alpha.csv", package = "masque")
 df <- read.csv(f, stringsAsFactors = TRUE)
-roles <- propose_roles(df)
-roles$role[roles$col == "yield"] <- "outcome"
+roles <- propose_roles(df, mode = "collaborate")
+roles <- set_role(roles, "yield", role = "outcome")
 ```
 
-# What is a recipe?
+## Why the recipe matters
 
-The `masque_recipe` is the only artefact that *must* remain confidential
-alongside the original data. It is what makes the round-trip work:
-without the recipe you cannot translate a pipeline trained on the
-synthetic back onto the original.
+This vignette is written for the analyst's side of the workflow. The
+custodian masks the data and keeps the recipe; you receive only the
+synthetic. But the recipe is what makes a pipeline you write against the
+synthetic re-target to the real data, so it is worth understanding what
+it carries and how the round-trip works.
 
-A recipe is an S7 object, but users do not need to know that. The two
-exported accessors hide the class details:
+The `masque_recipe` is the only artefact that *must* stay confidential
+alongside the original. It is an S7 object, but you never touch the class
+directly -- two accessors hide it:
 
 ```{r accessors}
 m <- mask(df, roles, mode = "collaborate", seed = 1)
@@ -34,114 +37,113 @@ rec <- recipe(m)
 class(rec)
 ```
 
-## Anatomy
+## What a recipe holds
 
-A recipe holds **runtime-minimal** state by default:
+A recipe is runtime-minimal by default:
 
-- `masque_version` — the package version that built the recipe.
-- `created_at` — wall-clock timestamp at construction.
-- `mode` — `"local"` or `"collaborate"`.
-- `seed` — the seed passed to `mask()`, or `NULL` if not given.
-- `roles` — the per-column role tibble (`design`, `keep`, `treatment`,
-  `outcome`, `covariate`, or `ignore`).
-- `column_name_map` — original-to-synthetic column-name map (currently
-  `NULL`; reserved for a future opt-in column-aliasing flag — see
-  `vignette("roadmap")`).
-- `level_maps` — per-column factor / character / logical maps. The
-  sensitive bit.
-- `storage_classes` — per-column R class of the original.
-- `factor_meta` — per-factor levels and `ordered` status.
-- `warnings` — text of any warnings raised at construction.
-- `integrity_fp` — SHA-256 of `is.na(original)`. An **integrity
-  fingerprint**, not a privacy guarantee.
+- `masque_version`, `created_at`, `mode`, `seed` -- provenance.
+- `roles` -- the two-axis role and action table.
+- `level_maps` -- the per-column original-to-alias maps. The sensitive
+  part.
+- `column_name_map` -- the column-name aliases, when `alias_names` was
+  used (otherwise `NULL`).
+- `cleaning` -- the hygiene record (name legalisation, whitespace trims)
+  so `apply_recipe()` re-applies the identical tidying.
+- `storage_classes`, `factor_meta` -- the original column classes and
+  factor metadata, for faithful reconstruction.
+- `integrity_fp` -- a SHA-256 of `is.na(original)`: an integrity
+  fingerprint, not a privacy guarantee.
 
-What it deliberately does **not** hold:
+It deliberately does not hold the copula covariance, the raw observed
+values, or any file paths or usernames.
 
-- Simulator state (the copula covariance matrix, the raw observed
-  margins). Reserved for a future opt-in via
-  `save_recipe(..., include_simulator = TRUE)`; currently a no-op.
-- Raw observed values.
-- Source file paths, machine usernames, or absolute paths.
+## Printing is redacted
 
-## `print(recipe)` is redacted
-
-The default print method shows the per-column role table and a marker
-indicating whether a level map exists for each column (`*` = mapped,
-`=` = no map), but **never** the actual level vocabularies.
+The print method shows the role and action table with a marker for which
+columns hold a level map (`*` mapped, `=` not), but never the
+vocabularies themselves:
 
 ```{r print-redacted}
 rec
 ```
 
-If you need to inspect the maps — typically the data owner reviewing
-the recipe before saving — call `reveal_maps()` explicitly:
+The custodian -- and only the custodian -- can reveal the maps with an
+explicit, warning-gated call:
 
 ```{r reveal, results = "hide"}
 reveal_maps(rec)
 ```
 
-`reveal_maps()` prints a warning banner ("Revealing sensitive level
-maps. Proceed at your discretion.") and then dumps every map and the
-seed value. Save its output sparingly.
+## The round-trip
 
-## Saving and loading
+The recipe is a bidirectional translator. `apply_recipe()` carries the
+original *into* the synthetic namespace; `unmask()` carries results
+*back*. The usual pattern is to fit on the synthetic, then score the
+original:
 
-`save_recipe()` writes a single `.rds` file. The default is
-runtime-minimal — small, safe to store next to the original data with
-the same security class.
+```{r roundtrip-pipeline}
+# Analyst trains on the synthetic clone.
+fit <- lm(yield ~ gen, data = synthetic(m))
 
-```{r save}
-tmp <- tempfile(fileext = ".rds")
-save_recipe(rec, tmp)
-file.info(tmp)$size
+# Custodian re-targets the same pipeline onto the real data.
+orig_in_synth_space <- apply_recipe(df, rec)
+preds <- predict(fit, newdata = orig_in_synth_space)
+length(preds) == nrow(df)
 ```
 
-`read_recipe()` validates the file and informs (does not error) when
-the recorded `masque_version` differs from the currently installed
-package version.
+Recovering original-namespace labels is symmetric:
 
-```{r read}
-rec2 <- read_recipe(tmp)
-identical(rec@integrity_fp, rec2@integrity_fp)
-```
-
-## The integrity fingerprint
-
-`integrity_fp` is `digest::digest(is.na(original), algo = "sha256")`.
-It lets a downstream consumer check that a recipe corresponds to the
-expected missingness pattern, without exposing any other information
-about the original data.
-
-```{r integrity}
-digest::digest(is.na(df), algo = "sha256") == rec@integrity_fp
-```
-
-It is **not** a privacy mechanism. The hash tells you whether two
-data frames share the same NA mask; it does not hide the underlying
-mask or its risks.
-
-## Round-trip the maps directly
-
-The recipe is the bidirectional translator. `apply_recipe()` and
-`unmask()` both operate on it:
-
-```{r roundtrip}
+```{r roundtrip-labels}
 fwd <- apply_recipe(df, rec)
 back <- unmask(fwd, rec)
 identical(as.character(back$gen), as.character(df$gen))
 ```
 
-Columns roled `keep` are intentionally not translated: they pass through
-`mask()`, `apply_recipe()`, and `unmask()` unchanged. Date/time covariates
-are different: `mask()` row-permutes them in the synthetic, while
-`apply_recipe()` leaves the original values unchanged because the pipeline
-is being retargeted to the original data.
+Columns whose action is `keep` pass through all three verbs unchanged.
+Numeric columns are passed through `apply_recipe()` and `unmask()`
+without an inverse map -- the synthetic and original namespaces coincide
+for them -- so `unmask()` on a numeric prediction vector is a safe no-op.
 
-## Future: `include_simulator = TRUE`
+## Fail-closed translation
 
-`save_recipe(rec, path, include_simulator = TRUE)` is accepted today
-but is currently a no-op (no simulator state is stored on the recipe).
-A future release will use this flag to persist enough state that
-`draw_new_synthetic(rec, n)` can produce fresh synthetic samples
-without access to the original. See `vignette("roadmap")` for the
-deferred items.
+If the data drifts -- a new treatment level the recipe has never seen --
+`apply_recipe()` errors rather than silently coercing the unknown value
+to `NA`. Schema drift should fail loudly, not poison a model matrix.
+
+```{r fail-closed, error = TRUE}
+drifted <- df
+levels(drifted$gen) <- c(levels(df$gen), "BRAND_NEW")
+drifted$gen[1] <- "BRAND_NEW"
+apply_recipe(drifted, rec)
+```
+
+## Saving the recipe
+
+`save_recipe()` writes a single runtime-minimal `.rds` -- small, and safe
+to store next to the original at the same security class. `read_recipe()`
+validates the file and notes a version mismatch without raising an error.
+
+```{r save}
+tmp <- tempfile(fileext = ".rds")
+save_recipe(rec, tmp)
+rec2 <- read_recipe(tmp)
+identical(rec@integrity_fp, rec2@integrity_fp)
+```
+
+## Multi-table bundles
+
+A `mask_set()` result carries a recipe *bundle* -- one recipe per table
+plus the shared cross-table link maps. The same `apply_recipe()` and
+`unmask()` verbs dispatch on it, operating table by table over a named
+list:
+
+```{r set-bundle}
+set_dir <- system.file("extdata", "met_set", package = "masque")
+ms <- mask_set(set_dir, mode = "collaborate", seed = 1, quiet = TRUE)
+originals <- read_set(set_dir)
+fwd_set <- apply_recipe(originals, recipe(ms))
+names(fwd_set)
+```
+
+Because the shared keys were aliased consistently at masking time, the
+re-targeted tables join on the same keys the synthetic tables do.

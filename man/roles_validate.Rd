@@ -2,46 +2,74 @@
 % Please edit documentation in R/roles_validate.R
 \name{roles_validate}
 \alias{roles_validate}
-\title{Validate a roles tibble}
+\title{Validate a roles table}
 \usage{
-roles_validate(roles, df = NULL)
+roles_validate(roles, df = NULL, mode = NULL)
 }
 \arguments{
-\item{roles}{A tibble produced by \code{\link[=propose_roles]{propose_roles()}} (possibly edited).}
+\item{roles}{A roles table from \code{\link[=propose_roles]{propose_roles()}} (possibly edited),
+or a v1 roles tibble (deprecated, upgraded with a warning).}
 
 \item{df}{Optional data frame. If supplied, \code{roles} is checked for
 one-to-one column-name correspondence with \code{df}.}
+
+\item{mode}{Optional mode (\code{"local"} or \code{"collaborate"}) used to
+resolve \code{NA} actions and to upgrade v1 tables. Defaults to
+\code{attr(roles, "mode")}, falling back to \code{"local"}.}
 }
 \value{
-\code{roles}, invisibly.
+The validated (and possibly upgraded / resolved) roles
+table, invisibly.
 }
 \description{
-Fail-closed validation of a \code{roles} tibble before \code{mask()} consumes it.
-Errors are raised for every misuse the v0.2 spec calls out.
+Fail-closed validation of a two-axis \code{roles} table before \code{\link[=mask]{mask()}}
+consumes it. Returns the validated table - with any \code{NA} actions
+resolved to their (role, kind, mode) defaults - so callers can use
+the return value directly.
 }
 \details{
+Tables produced by masque 0.5.0 and earlier (no \code{action} column;
+v1 vocabulary with \code{keep} / \code{ignore} roles and the optional
+\code{mask_levels} column) are upgraded in place with a deprecation
+warning. The upgrade preserves the v1 semantics exactly: v1 \code{keep}
+becomes action \code{keep}; v1 \code{ignore} becomes role \code{id} / \code{text} /
+\code{other} with action \code{keep} in local mode and \code{drop} in collaborate
+mode; v1 treatment \code{mask_levels = "permute"} becomes action
+\code{scramble}.
+
 Hard errors:
 
 \itemize{
-\item missing required columns (\code{col}, \code{role}, \code{kind});
-\item unknown role string (not in
-\code{c("design","keep","treatment","outcome","covariate","ignore")});
-\item any \code{NA} role;
-\item zero columns flagged \code{outcome};
-\item unsupported \code{other} columns flagged as \code{covariate};
+\item missing required columns (\code{col}, \code{role}, \code{action}, \code{kind});
+\item unknown role (not in \code{design}, \code{treatment}, \code{outcome},
+\code{covariate}, \code{date}, \code{id}, \code{text}, \code{other}) or unknown action
+(not in \code{keep}, \code{scramble}, \code{alias}, \code{drop});
+\item any \code{NA} role (an \code{NA} \emph{action} is allowed - it resolves to
+the default for the row's role and kind);
+\item an incompatible (role, action, kind) combination, e.g.
+\code{design} + \code{scramble}, numeric + \code{alias}, \code{id} + \code{scramble},
+\code{other} + anything but keep / drop;
 \item duplicate \code{col} entries;
-\item if \code{df} supplied: any \code{df} column missing from \code{roles}, or any
-\code{roles} column missing from \code{df}.
+\item if \code{df} supplied: any \code{df} column missing from \code{roles}, or
+any \code{roles} column missing from \code{df}.
 }
 
-Returns the validated \code{roles} invisibly (mirrors \code{stopifnot}-style use).
+Loud advisories (warnings, not errors):
+
+\itemize{
+\item every action is \code{keep} - the "synthetic" would equal the
+original byte-for-byte;
+\item the table was proposed for one mode but is being validated
+for another (actions are taken as-is; defaults are not
+re-resolved).
+}
 }
 \examples{
 r <- propose_roles(iris)
-r$role[r$col == "Sepal.Length"] <- "outcome"
+r <- set_role(r, "Sepal.Length", role = "outcome")
 roles_validate(r, iris)
 
 }
 \seealso{
-\code{\link[=propose_roles]{propose_roles()}}.
+\code{\link[=propose_roles]{propose_roles()}}, \code{\link[=set_role]{set_role()}}.
 }

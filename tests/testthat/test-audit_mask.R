@@ -25,7 +25,7 @@ test_that("audit_mask returns a tibble with the spec'd schema", {
 
   expect_s3_class(out, "tbl_df")
   expect_named(out, c(
-    "col", "role", "kind", "leakage_class",
+    "col", "role", "action", "kind", "leakage_class",
     "n_unique_levels", "freq_min", "exact_match_pct",
     "comparable_n",
     "na_pct", "na_pattern_uniqueness",

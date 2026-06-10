@@ -7,10 +7,12 @@
 synthetic(m)
 }
 \arguments{
-\item{m}{A \code{masque} object returned by \code{\link[=mask]{mask()}}.}
+\item{m}{A \code{masque} object from \code{\link[=mask]{mask()}}, or a \code{masque_set} from
+\code{\link[=mask_set]{mask_set()}}.}
 }
 \value{
-A tibble: the synthetic data frame.
+For a \code{masque}, a tibble (the synthetic data frame); for a
+\code{masque_set}, a named list of synthetic tables.
 }
 \description{
 Extract the synthetic data from a masque object
@@ -22,5 +24,5 @@ m <- suppressWarnings(mask(iris, r, seed = 1))
 head(synthetic(m))
 }
 \seealso{
-\code{\link[=recipe]{recipe()}}, \code{\link[=mask]{mask()}}.
+\code{\link[=recipe]{recipe()}}, \code{\link[=mask]{mask()}}, \code{\link[=mask_set]{mask_set()}}.
 }

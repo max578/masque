@@ -94,8 +94,7 @@ test_that("Local-mode optional permute via roles$mask_levels = 'permute'", {
   )
   r <- propose_roles(df)
   r$role[r$col == "yield"] <- "outcome"
-  r$mask_levels <- "off"
-  r$mask_levels[r$col == "Genotype"] <- "permute"
+  r <- set_role(r, "Genotype", action = "scramble")
 
   m <- suppressWarnings(mask(df, r, mode = "local", seed = 1))
   rec <- recipe(m)

@@ -17,9 +17,9 @@
 #'    held by the recipe (i.e., treatment and categorical covariates in
 #'    `collaborate` mode; or treatment in `local` mode with opt-in
 #'    permutation). Unknown non-NA values fail closed.
-#' 5. **Rename columns** per `recipe@column_name_map` (currently `NULL`;
-#'    reserved for a future opt-in column-aliasing flag — see
-#'    `vignette("roadmap")`).
+#' 5. **Rename columns** per `recipe@column_name_map` when `mask()` was
+#'    called with `alias_names` (otherwise `NULL`, and names are
+#'    unchanged).
 #'
 #' Numeric columns are passed through unchanged: the synthetic-namespace
 #' for numeric columns is the same as the original. NA cells in the input
@@ -47,6 +47,9 @@
 #' @seealso [unmask()], [mask()].
 #' @export
 apply_recipe <- function(original, rec, check_integrity = TRUE) {
+  if (S7::S7_inherits(rec, masque_recipe_set)) {
+    return(.apply_recipe_set(original, rec, check_integrity))
+  }
   if (!is.data.frame(original)) {
     cli::cli_abort(
       "`original` must be a data frame; got {.cls {class(original)[1]}}."
@@ -61,11 +64,12 @@ apply_recipe <- function(original, rec, check_integrity = TRUE) {
     cli::cli_abort("`check_integrity` must be a single logical.")
   }
 
-  dropped <- if (identical(rec@mode, "collaborate")) {
-    rec@roles$col[rec@roles$role == "ignore"]
-  } else {
-    character()
-  }
+  # Re-apply the recipe's hygiene (name legalisation + whitespace trim) so
+  # a pipeline written against the cleaned synthetic lines up with the
+  # original. Idempotent if the caller already passed a clean frame.
+  original <- .apply_cleaning_forward(original, rec@cleaning)
+
+  dropped <- .recipe_dropped_cols(rec)
   retained <- setdiff(rec@roles$col, dropped)
 
   missing_in_orig <- setdiff(retained, names(original))
@@ -140,6 +144,9 @@ apply_recipe <- function(original, rec, check_integrity = TRUE) {
 #' @seealso [apply_recipe()], [mask()].
 #' @export
 unmask <- function(x, rec, column = NULL) {
+  if (S7::S7_inherits(rec, masque_recipe_set)) {
+    return(.unmask_set(x, rec))
+  }
   if (!S7::S7_inherits(rec, masque_recipe)) {
     cli::cli_abort(
       "`rec` must be a {.cls masque_recipe} object; got {.cls {class(rec)[1]}}."
@@ -228,6 +235,55 @@ unmask <- function(x, rec, column = NULL) {
   )
 }
 
+# Internal: apply a recipe bundle to a named list of original tables.
+# Shared link maps live on the per-table recipes already (they were
+# injected at mask time), so each table retargets with its own recipe.
+.apply_recipe_set <- function(original, rec, check_integrity) {
+  if (!is.list(original) || is.data.frame(original)) {
+    cli::cli_abort(
+      "`original` must be a named list of tables for a recipe bundle."
+    )
+  }
+  missing <- setdiff(names(rec@recipes), names(original))
+  if (length(missing)) {
+    cli::cli_abort(c(
+      "`original` is missing table(s) the bundle expects: {.val {missing}}.",
+      i = "Bundle tables: {.val {names(rec@recipes)}}."
+    ))
+  }
+  out <- lapply(names(rec@recipes), function(nm) {
+    apply_recipe(original[[nm]], rec@recipes[[nm]], check_integrity)
+  })
+  stats::setNames(out, names(rec@recipes))
+}
+
+# Internal: unmask a named list of synthetic-namespace tables back to the
+# original namespace via a recipe bundle.
+.unmask_set <- function(x, rec) {
+  if (!is.list(x) || is.data.frame(x)) {
+    cli::cli_abort(
+      "`x` must be a named list of tables for a recipe bundle."
+    )
+  }
+  shared <- intersect(names(x), names(rec@recipes))
+  out <- lapply(shared, function(nm) unmask(x[[nm]], rec@recipes[[nm]]))
+  stats::setNames(out, shared)
+}
+
+# Internal: which columns did mask() drop? Two-axis recipes record the
+# user's explicit action; recipes written by masque <= 0.5.0 carry the
+# v1 semantics (ignore columns dropped under collaborate only).
+.recipe_dropped_cols <- function(rec) {
+  roles <- rec@roles
+  if ("action" %in% names(roles)) {
+    return(roles$col[roles$action == "drop"])
+  }
+  if (identical(rec@mode, "collaborate")) {
+    return(roles$col[roles$role == "ignore"])
+  }
+  character()
+}
+
 # Internal: maps an original-label to its synthetic-label.
 # Fail-closed: unmapped non-NA values raise an error rather than coerce to NA.
 .apply_level_map_forward <- function(val, map, col = NULL) {
@@ -269,6 +325,15 @@ unmask <- function(x, rec, column = NULL) {
     if (is_logical_class(target_class)) {
       return(as_logical_labels(new_chr))
     }
+    if (is_numeric_class(target_class)) {
+      # A numeric id / column aliased in place was stringified at mask
+      # time; restore the original storage class on the way back.
+      num <- suppressWarnings(as.numeric(new_chr))
+      if ("integer" %in% target_class) {
+        return(as.integer(round(num)))
+      }
+      return(num)
+    }
     if (is.factor(val)) {
       factor(new_chr, levels = unname(inv))
     } else {
@@ -281,6 +346,10 @@ unmask <- function(x, rec, column = NULL) {
 
 is_logical_class <- function(x) {
   is.character(x) && "logical" %in% x
+}
+
+is_numeric_class <- function(x) {
+  is.character(x) && any(c("numeric", "integer") %in% x)
 }
 
 as_logical_labels <- function(x) {

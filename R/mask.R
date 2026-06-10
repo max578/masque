@@ -1,50 +1,68 @@
 #' Mask a tabular dataset into a structurally faithful development surrogate
 #'
-#' Takes one data frame and a user-edited `roles` tibble (from
-#' [propose_roles()]) and produces a synthetic clone whose experimental
-#' design, explicitly-kept columns, and NA pattern are preserved, while
-#' outcome and numeric-covariate values are re-simulated via a Gaussian
-#' copula and non-numeric covariate values are row-permuted. Returns a
-#' `masque` S7 object holding the
-#' synthetic data and a private `masque_recipe`.
+#' Takes one data frame and a user-edited `roles` table (from
+#' [propose_roles()], possibly adjusted with [set_role()]) and produces
+#' a synthetic clone according to each column's `action`. Returns a
+#' `masque` S7 object holding the synthetic data and a private
+#' `masque_recipe`.
 #'
-#' `mode = "local"` keeps original column / level vocabularies and warns
-#' that the synthetic is for owner development only. `mode = "collaborate"`
-#' opaque-aliases treatment and categorical-covariate level vocabularies
-#' (`trt_001`, `<col>_L01`) and drops `ignore` columns; the resulting
+#' `mode = "local"` warns that the synthetic is for owner development
+#' only. `mode = "collaborate"` additionally jitters re-simulated
+#' numerics within their measurement resolution (stochastically rounding
+#' integers) and runs [audit_mask()] automatically; the resulting
 #' synthetic can be passed to a collaborator while the recipe stays
-#' private. In `collaborate` mode, numeric draws are jittered within
-#' their measurement resolution, integer columns are stochastically
-#' rounded, and [audit_mask()] runs automatically.
+#' private. Which columns are aliased, kept, or dropped is decided by
+#' the `action` column of `roles` - [propose_roles()] resolves
+#' mode-appropriate defaults, so the table you reviewed is the plan that
+#' runs.
 #'
-#' @section Behaviour by role:
+#' @section Behaviour by action:
 #'
 #' \describe{
-#'   \item{`design`}{Byte-identical pass-through.}
-#'   \item{`keep`}{Intentional byte-identical pass-through in both modes.}
-#'   \item{`treatment`}{Local: pass-through (optional opt-in seeded
-#'     permutation via `roles$mask_levels = "permute"`). Collaborate:
-#'     opaque alias `trt_NNN`. Designs with two or more treatment factors
-#'     (factorial, split-plot) are supported; each factor is aliased
-#'     independently as `<col>_trt_NNN` so the labels stay distinct.}
-#'   \item{`outcome` + numeric `covariate`}{Re-simulated jointly via a
-#'     Gaussian copula on global Pearson covariance. Empirical-quantile
-#'     marginals (type 1: returns observed values).}
-#'   \item{non-numeric `covariate`}{Row-permuted within non-NA positions.
-#'     Date/time classes are preserved. Local: categorical vocabulary
-#'     preserved. Collaborate: factor / character / logical levels receive
-#'     opaque aliases `<col>_LNN`.}
-#'   \item{`ignore`}{Local: passes through. Collaborate: dropped.}
+#'   \item{`keep`}{Byte-identical pass-through, both modes.}
+#'   \item{`scramble`}{Numeric outcome / covariate columns are
+#'     re-simulated jointly via a Gaussian copula on the global Pearson
+#'     covariance, with empirical-quantile marginals. Categorical, date,
+#'     and text columns are row-permuted within non-NA positions, class
+#'     preserved. Treatment columns get a seeded label permutation -
+#'     the assignment structure never moves.}
+#'   \item{`alias`}{As `scramble` where applicable, plus opaque label
+#'     substitution: treatments become `trt_NNN` (`<col>_trt_NNN` when
+#'     two or more treatment factors are aliased), categorical
+#'     covariates `<col>_LNNN`, design labels `<col>_DNNN` (in place -
+#'     structure intact), ids `<col>_INNN` (in place - row linkage
+#'     intact), text values `<col>_TNNN`.}
+#'   \item{`drop`}{Column excluded from the synthetic, both modes.}
 #' }
 #'
-#' RNG state is preserved across the call.
+#' The NA mask of every retained column is preserved cell-by-cell. RNG
+#' state is preserved across the call.
 #'
 #' @param df A data frame.
-#' @param roles A tibble produced by [propose_roles()] (possibly edited).
-#'   May optionally include a `mask_levels` column (`"permute"` enables
-#'   local-mode seeded permutation on the treatment column).
+#' @param roles A roles table from [propose_roles()] (possibly edited).
+#'   Tables from masque <= 0.5.0 are upgraded with a deprecation
+#'   warning; see [roles_validate()].
 #' @param mode Either `"local"` (default) or `"collaborate"`.
 #' @param seed Optional integer for reproducibility.
+#' @param clean Column-name and label hygiene before masking, passed to
+#'   [clean_table()]: one of `"auto"` (default - legalise names, trim
+#'   whitespace, report near-duplicates), `"report"`, or `"off"`. When
+#'   names are legalised, the `roles` table's column references are
+#'   remapped to match, so a `roles` table built against the dirty names
+#'   still applies. The fixes are recorded in the recipe and re-applied
+#'   by [apply_recipe()].
+#' @param alias_names Hide the column names themselves. `FALSE` (the
+#'   default) keeps them. `TRUE` replaces every retained column name with
+#'   an opaque alias (`col_001`, `col_002`, ... in column order). A
+#'   character vector names just the columns to alias. The
+#'   original-to-alias map is stored in the recipe and inverted by
+#'   [apply_recipe()] / [unmask()], so a pipeline written against the
+#'   aliased synthetic round-trips. Column names are the last identifying
+#'   surface a kept or design column exposes; alias them when even the
+#'   schema is sensitive.
+#' @param .shared_maps Internal. A named list of pre-computed
+#'   `original -> alias` level maps for cross-table linked columns, set
+#'   by [mask_set()]. Not for direct use.
 #' @param ... Currently ignored.
 #'
 #' @return A `masque` S7 object. Use [synthetic()] and [recipe()] to
@@ -52,18 +70,21 @@
 #'
 #' @examples
 #' r <- propose_roles(iris)
-#' r$role[r$col == "Sepal.Length"] <- "outcome"
+#' r <- set_role(r, "Sepal.Length", role = "outcome")
 #' m <- suppressWarnings(mask(iris, r, seed = 1))
 #' head(synthetic(m))
 #'
-#' @seealso [propose_roles()], [roles_validate()], [synthetic()],
-#'   [recipe()], [reveal_maps()].
+#' @seealso [propose_roles()], [set_role()], [roles_validate()],
+#'   [synthetic()], [recipe()], [reveal_maps()].
 #'
 #' @export
 mask <- function(df,
                  roles,
                  mode = c("local", "collaborate"),
                  seed = NULL,
+                 clean = c("auto", "report", "off"),
+                 alias_names = FALSE,
+                 .shared_maps = list(),
                  ...) {
   # Belt-and-braces RNG hygiene: any RNG perturbation inside mask() is
   # rolled back when the function exits, regardless of which path produced
@@ -74,12 +95,32 @@ mask <- function(df,
     cli::cli_abort("`df` must be a data frame; got {.cls {class(df)[1]}}.")
   }
   mode <- match.arg(mode)
-  roles_validate(roles, df)
+  clean <- match.arg(clean)
+
+  # Hygiene first: legalise names + trim whitespace, then remap the roles
+  # table's column references so a roles table built against the dirty
+  # names still applies. `report` / `off` leave df and roles untouched.
+  cl <- clean_table(df, clean = clean, quiet = TRUE)
+  cleaning_rec <- NULL
+  if (identical(clean, "auto") &&
+    (length(cl$name_map) || length(cl$level_fixes))) {
+    df <- cl$data
+    roles <- .remap_roles_cols(roles, cl$name_map)
+    cleaning_rec <- .cleaning_record(cl)
+  } else if (nrow(cl$near_duplicates) || length(cl$name_map) ||
+    length(cl$level_fixes)) {
+    # report mode (or auto with nothing applied): still note what was seen.
+    cleaning_rec <- .cleaning_record(cl)
+  }
+
+  roles <- roles_validate(roles, df, mode = mode)
   roles <- roles[match(names(df), roles$col), , drop = FALSE]
 
   opts <- mode_defaults(mode)
 
-  result <- with_rng_state(seed, .mask_orchestrate(df, roles, mode, opts))
+  result <- with_rng_state(
+    seed, .mask_orchestrate(df, roles, mode, opts, .shared_maps)
+  )
   synth <- result$synth
   level_maps <- result$level_maps
   warnings_acc <- result$warnings
@@ -132,6 +173,17 @@ mask <- function(df,
     }
   }
 
+  # Column-name aliasing (after the audit, which is keyed on the real
+  # column names). Renames the synthetic's columns to opaque aliases and
+  # records the map so apply_recipe() / unmask() invert it.
+  column_name_map <- .build_column_name_map(names(synth), alias_names)
+  if (!is.null(column_name_map)) {
+    nm <- names(synth)
+    hits <- nm %in% names(column_name_map)
+    nm[hits] <- unname(unlist(column_name_map[nm[hits]]))
+    names(synth) <- nm
+  }
+
   # Build the recipe.
   storage_classes <- lapply(df, function(col) class(col))
 
@@ -151,15 +203,16 @@ mask <- function(df,
     mode            = mode,
     seed            = if (is.null(seed)) NULL else as.integer(seed),
     roles           = as.data.frame(roles),
-    column_name_map = NULL,
+    column_name_map = column_name_map,
     level_maps      = level_maps,
     storage_classes = storage_classes,
     factor_meta     = factor_meta,
+    cleaning        = cleaning_rec,
     warnings        = warnings_acc,
     integrity_fp    = digest::digest(is.na(df), algo = "sha256")
   )
 
-  masque(
+  masque_obj(
     synthetic = tibble::as_tibble(synth),
     recipe    = rec,
     mode      = mode,
@@ -167,19 +220,70 @@ mask <- function(df,
   )
 }
 
-# Internal: orchestrate the per-role synthesis with the RNG state already set.
-.mask_orchestrate <- function(df, roles, mode, opts) {
+# Internal: resolve the alias_names argument to an original -> alias
+# named list (or NULL when no columns are aliased). Aliases are
+# `col_001`, `col_002`, ... in the order the columns appear in `cols`.
+.build_column_name_map <- function(cols, alias_names) {
+  target <- if (isTRUE(alias_names)) {
+    cols
+  } else if (is.character(alias_names)) {
+    unknown <- setdiff(alias_names, cols)
+    if (length(unknown)) {
+      cli::cli_abort(c(
+        "`alias_names` names column(s) not in the synthetic output: ",
+        x = "{.field {unknown}}",
+        i = paste0(
+          "Dropped columns cannot be aliased. Available: ",
+          "{.val {cols}}."
+        )
+      ))
+    }
+    alias_names
+  } else if (isFALSE(alias_names)) {
+    return(NULL)
+  } else {
+    cli::cli_abort(
+      "`alias_names` must be a single logical or a character vector."
+    )
+  }
+  if (!length(target)) {
+    return(NULL)
+  }
+
+  width <- max(3L, nchar(as.character(length(cols))))
+  idx <- match(target, cols)
+  aliases <- sprintf(paste0("col_%0", width, "d"), idx)
+  as.list(stats::setNames(aliases, target))
+}
+
+# Internal: orchestrate the per-action synthesis with the RNG state
+# already set. The action column is the authority; mode only modulates
+# the numeric-jitter layer (via opts) and downstream audit behaviour.
+.mask_orchestrate <- function(df, roles, mode, opts, shared_maps = list()) {
   synth <- df
   level_maps <- list()
   warnings <- character()
 
-  i_treatment <- which(roles$role == "treatment")
-  i_outcome <- which(roles$role == "outcome")
-  i_covariate <- which(roles$role == "covariate")
+  action <- roles$action
+  role <- roles$role
+  kind <- roles$kind
 
-  # Numeric block: outcome + numeric covariates jointly via Gaussian copula
-  num_idx <- c(i_outcome, i_covariate)
-  num_idx <- num_idx[roles$kind[num_idx] %in% c("numeric", "integer")]
+  # Cross-table linked columns carry a pre-computed alias map (shared
+  # across every table in the set so joins survive). Apply it in place
+  # and exclude these columns from the per-table alias / permute blocks.
+  shared_cols <- intersect(roles$col, names(shared_maps))
+  for (col in shared_cols) {
+    res <- .relabel_with_map(df[[col]], shared_maps[[col]])
+    synth[[col]] <- res
+    level_maps[[col]] <- shared_maps[[col]]
+  }
+  is_shared <- roles$col %in% shared_cols
+
+  # Numeric block: every scrambled numeric column jointly via the
+  # Gaussian copula. No outcome is required - role only orders the
+  # audit's expectations, not the simulation.
+  num_idx <- which(action == "scramble" & kind %in% .numeric_kinds() &
+    !is_shared)
   if (length(num_idx) >= 1L) {
     x_num <- df[, num_idx, drop = FALSE]
     x_num_new <- synthesise_numeric_local(x_num)
@@ -197,68 +301,103 @@ mask <- function(df,
     }
   }
 
-  # Non-numeric covariates: row-permute, then (collaborate) opaque-alias
-  # factor / character / logical values.
-  cat_idx <- i_covariate[
-    !(roles$kind[i_covariate] %in% c("numeric", "integer"))
-  ]
-  for (j in cat_idx) {
+  # Row-permutation block: scrambled categorical / date / text columns
+  # (treatment label permutation is handled separately - treatment
+  # values never move rows).
+  perm_idx <- which(
+    action == "scramble" &
+      kind %in% c(.categorical_kinds(), .date_kinds()) &
+      role != "treatment" & !is_shared
+  )
+  for (j in perm_idx) {
+    col <- roles$col[j]
+    synth[[col]] <- synthesise_categorical_local(df[[col]])
+  }
+
+  # Treatment scramble: seeded label permutation in place.
+  trt_perm_idx <- which(role == "treatment" & action == "scramble" &
+    !is_shared)
+  for (j in trt_perm_idx) {
+    col <- roles$col[j]
+    res <- permute_levels(df[[col]])
+    synth[[col]] <- res$x
+    level_maps[[col]] <- res$map
+  }
+
+  # Alias block. Treatments and design / id / text columns are aliased
+  # in place (assignment, structure, and row linkage never move);
+  # categorical covariates are row-permuted first, then aliased.
+  #
+  # Treatment prefix convention: a single aliased treatment keeps the
+  # historical `trt_NNN` prefix for recipe stability; with two or more,
+  # the column name is folded in (`<col>_trt_NNN`) so the opaque labels
+  # stay distinct and self-documenting.
+  trt_alias_idx <- which(role == "treatment" & action == "alias" &
+    !is_shared)
+  n_trt_alias <- length(trt_alias_idx)
+  for (j in trt_alias_idx) {
+    col <- roles$col[j]
+    prefix <- if (n_trt_alias == 1L) "trt_" else paste0(col, "_trt_")
+    res <- alias_levels(df[[col]], prefix = prefix)
+    synth[[col]] <- res$x
+    level_maps[[col]] <- res$map
+  }
+
+  inplace_alias_idx <- which(role %in% c("design", "id", "text") &
+    action == "alias" & !is_shared)
+  for (j in inplace_alias_idx) {
+    col <- roles$col[j]
+    tag <- c(design = "_D", id = "_I", text = "_T")[[role[j]]]
+    x <- df[[col]]
+    if (is.numeric(x)) {
+      # Integer-like ids are aliased through their character form; the
+      # map records original numerals so unmask() restores them.
+      x <- as.character(x)
+    }
+    res <- alias_levels(x, prefix = paste0(col, tag))
+    synth[[col]] <- res$x
+    level_maps[[col]] <- res$map
+  }
+
+  cov_alias_idx <- which(role == "covariate" & action == "alias" &
+    !is_shared)
+  for (j in cov_alias_idx) {
     col <- roles$col[j]
     perm <- synthesise_categorical_local(df[[col]])
-    if (isTRUE(opts$alias_covariate_levels) &&
-      is_aliasable_level_vector(perm)) {
-      res <- alias_levels(perm, prefix = paste0(col, "_L"))
-      # prefix "cov_cat_L" + width-3 digit -> "cov_cat_L001"
-      synth[[col]] <- res$x
-      level_maps[[col]] <- res$map
-    } else {
-      synth[[col]] <- perm
-    }
+    res <- alias_levels(perm, prefix = paste0(col, "_L"))
+    synth[[col]] <- res$x
+    level_maps[[col]] <- res$map
   }
 
-  # Treatment columns: optional local permutation OR collaborate aliasing.
-  # Each treatment factor (factorial / split-plot designs carry several) is
-  # masked independently. A single treatment keeps the historical `trt_NNN`
-  # alias prefix for recipe stability; with two or more, the column name is
-  # folded into the prefix (`<col>_trt_NNN`) so the opaque labels stay
-  # distinct and self-documenting, mirroring the categorical-covariate
-  # convention. Level maps are keyed by column, so each inverts on its own.
-  n_treatment <- length(i_treatment)
-  for (j in i_treatment) {
-    treat_col <- roles$col[j]
-    treat_val <- df[[treat_col]]
-    do_alias <- isTRUE(opts$alias_treatment_levels)
-    do_perm <- (!do_alias) &&
-      "mask_levels" %in% names(roles) &&
-      isTRUE(roles$mask_levels[j] == "permute")
-    if (do_alias && (is.factor(treat_val) || is.character(treat_val))) {
-      prefix <- if (n_treatment == 1L) "trt_" else paste0(treat_col, "_trt_")
-      res <- alias_levels(treat_val, prefix = prefix)
-      synth[[treat_col]] <- res$x
-      level_maps[[treat_col]] <- res$map
-    } else if (do_perm && (is.factor(treat_val) || is.character(treat_val))) {
-      res <- permute_levels(treat_val)
-      synth[[treat_col]] <- res$x
-      level_maps[[treat_col]] <- res$map
-    }
-    # else: pass through (local default)
-  }
-
-  # Ignore columns: drop in collaborate; pass-through in local
-  if (isTRUE(opts$drop_ignore)) {
-    i_ignore <- which(roles$role == "ignore")
-    if (length(i_ignore)) {
-      dropped <- roles$col[i_ignore]
-      synth <- synth[, setdiff(names(synth), dropped), drop = FALSE]
-      warnings <- c(
-        warnings,
-        sprintf(
-          "Dropped %d ignore column(s) under collaborate mode: %s",
-          length(dropped), paste(dropped, collapse = ", ")
-        )
+  # Drop block: explicit user intent, honoured in both modes. A linked
+  # column (shared across the set) is never dropped here - it was already
+  # aliased in place by the shared block so joins survive.
+  drop_idx <- which(action == "drop" & !is_shared)
+  if (length(drop_idx)) {
+    dropped <- roles$col[drop_idx]
+    synth <- synth[, setdiff(names(synth), dropped), drop = FALSE]
+    warnings <- c(
+      warnings,
+      sprintf(
+        "Dropped %d column(s) with action \"drop\": %s",
+        length(dropped), paste(dropped, collapse = ", ")
       )
-    }
+    )
   }
 
   list(synth = synth, level_maps = level_maps, warnings = warnings)
+}
+
+# Internal: relabel a vector through an explicit `original -> alias` map,
+# preserving factor / character / logical type. Used for cross-table
+# linked columns, where the map is shared rather than freshly generated.
+# Numeric columns are stringified (their original numerals are the map
+# keys), matching the in-place id-alias convention.
+.relabel_with_map <- function(x, map) {
+  if (is.factor(x)) {
+    new_chr <- unname(map[as.character(x)])
+    return(factor(new_chr, levels = unname(map)))
+  }
+  x_chr <- if (is.numeric(x)) as.character(x) else as.character(x)
+  ifelse(is.na(x_chr), NA_character_, unname(map[x_chr]))
 }

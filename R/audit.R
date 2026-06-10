@@ -58,7 +58,7 @@
 #' @seealso [mask()].
 #' @export
 audit_mask <- function(m, original = NULL, print = TRUE) {
-  if (!S7::S7_inherits(m, masque)) {
+  if (!S7::S7_inherits(m, masque_obj)) {
     cli::cli_abort(
       "`m` must be a {.cls masque} object; got {.cls {class(m)[1]}}."
     )

@@ -99,8 +99,7 @@ synthesise_numeric_local <- function(
     }
   }
 
-  Z_new <- MASS::mvrnorm(n = n, mu = rep(0, p), Sigma = sigma)
-  if (n == 1L) Z_new <- matrix(Z_new, nrow = 1L)
+  Z_new <- matrix(stats::rnorm(n * p), nrow = n) %*% .chol_safe(sigma)
   U_new <- stats::pnorm(Z_new)
 
   # Empirical-quantile inverse (type = 1: discontinuous step; returns
@@ -131,4 +130,17 @@ synthesise_numeric_local <- function(
   }
 
   out
+}
+
+# Cholesky factor with a ridge fallback: nearPD() upstream guarantees
+# positive semi-definiteness, but a numerically singular Sigma can still
+# defeat chol(); a tiny diagonal inflation restores it without visibly
+# moving the correlation structure.
+.chol_safe <- function(sigma) {
+  ch <- tryCatch(chol(sigma), error = function(e) NULL)
+  if (is.null(ch)) {
+    ridge <- sqrt(.Machine$double.eps) * mean(diag(sigma))
+    ch <- chol(sigma + diag(ridge, nrow(sigma)))
+  }
+  ch
 }

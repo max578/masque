@@ -2,91 +2,127 @@
 % Please edit documentation in R/propose_roles.R
 \name{propose_roles}
 \alias{propose_roles}
-\title{Propose role classifications for the columns of a data frame}
+\title{Propose role and action classifications for the columns of a data frame}
 \usage{
-propose_roles(df, detect = TRUE)
+propose_roles(df, mode = c("local", "collaborate"), detect = TRUE)
 }
 \arguments{
 \item{df}{A data frame. Must have at least one column.}
 
+\item{mode}{The masking mode the table is being prepared for:
+\code{"local"} (default) or \code{"collaborate"}. Stored as
+\code{attr(roles, "mode")} and used to resolve default actions.}
+
 \item{detect}{Logical scalar (default \code{TRUE}). When \code{TRUE}, run
-\code{\link[=detect_design]{detect_design()}} and overlay its recommended role hints on the
-name-based heuristic. Stash the \code{design_summary} as \code{attr(roles, "design")}. When \code{FALSE}, only the v0.2.x name-based heuristic
-runs.}
+\code{\link[=detect_design]{detect_design()}} and overlay its recommended role hints.}
 }
 \value{
-A tibble with one row per column, containing:
-\itemize{
-\item \code{col}: column name.
-\item \code{role}: one of \code{design}, \code{treatment}, \code{outcome}, \code{covariate},
-\code{keep}, \code{ignore}.
-\item \code{kind}: storage kind (\code{numeric}, \code{integer}, \code{factor},
-\code{character}, \code{logical}, \code{date}, \code{datetime}, \code{other}).
-\item \code{freq_or_range}: brief summary string (range for numeric,
-level count for factor, etc.).
-\item \code{pii_suspected}: \code{TRUE} if column name matches a PII pattern.
-\item \code{notes}: short explanation of the auto-classification.
-}
+A tibble with one row per column: \code{col}, \code{role}, \code{action},
+\code{kind} (storage kind: \code{numeric}, \code{integer}, \code{factor}, \code{character},
+\code{logical}, \code{date}, \code{datetime}, \code{other}), \code{freq_or_range},
+\code{pii_suspected}, and \code{notes}. The target mode is stored as
+\code{attr(roles, "mode")}.
 }
 \description{
-Generates a heuristic role tibble for every column of \code{df}. The user is
-expected to inspect this tibble and edit it before passing it to \code{mask()}.
+Generates a heuristic two-axis classification for every column of
+\code{df}: a \code{role} (what the column \emph{is}) and an \code{action} (what \code{\link[=mask]{mask()}}
+will \emph{do} to it). The user is expected to inspect this table and edit
+it - directly or via \code{\link[=set_role]{set_role()}} - before passing it to \code{\link[=mask]{mask()}}.
 Heuristics are seeds, not law.
 }
-\details{
-Roles are exactly one of:
+\section{The two axes}{
+
+
+\code{role} describes the column and determines the \emph{mechanics} of any
+synthesis:
 
 \describe{
-\item{\code{design}}{Byte-identical pass-through. Trial / site / replicate /
-block / plot / row / column / year etc.}
-\item{\code{keep}}{Intentional byte-identical pass-through for non-design
-metadata that should remain exactly as supplied.}
-\item{\code{treatment}}{Same factor cardinality and per-level frequency;
-optional label aliasing or seeded permutation.}
-\item{\code{outcome}}{Re-simulated via Gaussian copula. Multiple allowed.}
-\item{\code{covariate}}{Numeric: Gaussian copula (joint with outcomes).
-Categorical and date/time: row-permuted, with categorical levels
-preserved (local) or aliased where possible (collaborate).}
-\item{\code{ignore}}{Dropped or passed through depending on \code{mask()} options;
-auto-assigned for free text and PII-pattern names.}
+\item{\code{design}}{Experimental / structural columns (site, block,
+rep, plot, year). Mechanics of \code{alias}: labels are substituted in
+place, structure intact.}
+\item{\code{treatment}}{Assignment columns (variety, genotype, dose).
+Labels are remapped in place - the assignment structure never
+moves. \code{scramble} = seeded label permutation; \code{alias} = opaque
+labels (\code{trt_001}).}
+\item{\code{outcome}}{Numeric response columns. \code{scramble} re-simulates
+via the Gaussian copula, jointly with scrambled numeric
+covariates. Multiple outcomes are supported.}
+\item{\code{covariate}}{Everything measured alongside. Numeric:
+copula re-simulation. Categorical: row permutation, plus opaque
+label aliasing under \code{alias}.}
+\item{\code{date}}{Date / POSIX / difftime columns. \code{scramble} row-
+permutes within the observed values; class and NA pattern are
+preserved.}
+\item{\code{id}}{Identifier columns. Never scrambled (that would break
+row linkage); \code{alias} substitutes opaque per-value labels in
+place, preserving linkage.}
+\item{\code{text}}{Free-text columns. \code{scramble} row-permutes; \code{alias}
+tokenises each distinct string.}
+\item{\code{other}}{Classes masque cannot synthesise (list columns,
+exotic S4, ...). Keep or drop only.}
 }
 
-Default classification rules, applied in order:
+\code{action} sets the masking depth per column:
+
+\describe{
+\item{\code{keep}}{Byte-identical pass-through, both modes.}
+\item{\code{scramble}}{Re-simulate (numeric) or row-permute
+(categorical / date / text); original label vocabulary remains
+visible.}
+\item{\code{alias}}{Scramble where applicable, plus opaque label
+substitution - the vocabulary itself is hidden.}
+\item{\code{drop}}{Column excluded from the synthetic, both modes.}
+}
+
+The proposed \code{action} column is resolved for \code{mode}, so the table you
+edit shows the actual masking plan. Re-assigning a column's role
+with \code{\link[=set_role]{set_role()}} re-resolves its default action; a direct
+\code{roles$role[...] <- ...} edit leaves \code{action} untouched (set it to
+\code{NA} to have \code{\link[=mask]{mask()}} re-resolve the default).
+}
+
+\section{Default classification rules, applied in order}{
+
 \enumerate{
 \item PII-pattern column names (\code{contact}, \code{email}, \code{phone}, \code{gps},
-\code{latitude}/\code{longitude}, \code{postcode}, \code{ssn}, \code{password}, \code{owner},
-\code{farmer}, \code{operator}, etc., case-insensitive substring) -> \code{ignore}
-with \code{pii_suspected = TRUE}.
-\item Date / POSIXct / POSIXlt / difftime columns -> \code{covariate}.
-\item ID-pattern names (\verb{\\\\bid\\\\b}, \verb{_id$}, \verb{^id_}) -> \code{ignore}.
-\item Design-pattern names (\code{rep}, \code{block}, \code{row}, \verb{col(umn)?}, \code{range},
-\verb{plot(no)?}, \code{site}, \verb{env(ironment)?}, \code{trial}, \code{year}, \code{season},
-\code{colrep}, \code{tos}) -> \code{design}.
+\code{latitude} / \code{longitude}, \code{postcode}, \code{ssn}, \code{password}, \code{owner},
+\code{farmer}, \code{operator}, etc., case-insensitive substring) ->
+\code{pii_suspected = TRUE} and action \code{drop} in \strong{both} modes.
+Re-role deliberately if the column must survive.
+\item Date / POSIXct / POSIXlt / difftime columns -> role \code{date},
+action \code{scramble} (row permutation).
+\item ID-pattern names (\verb{\\\\bid\\\\b}, \verb{_id$}, \verb{^id_}) -> role \code{id}; kept
+in local mode, dropped in collaborate mode.
+\item Design-pattern names (\code{rep}, \code{block}, \code{row}, \verb{col(umn)?},
+\code{range}, \verb{plot(no)?}, \code{site}, \verb{env(ironment)?}, \code{trial}, \code{year},
+\code{season}, \code{colrep}, \code{tos}) -> role \code{design}, action \code{keep}.
 \item Treatment-pattern names (\code{treatment}, \code{variety}, \code{cultivar},
-\code{genotype}, \verb{^trt}, \verb{^dose}) -> \code{treatment}.
-\item Character columns with > 50\% unique values on non-NA -> \code{ignore}
-(likely free text).
-\item Everything else -> \code{covariate}. The user re-classifies one or more
-columns as \code{outcome}.
+\code{genotype}, \verb{^trt}, \verb{^dose}) -> role \code{treatment}; kept in local
+mode, aliased in collaborate mode.
+\item Character columns with > 50\% unique values on non-NA -> role
+\code{text}; kept in local mode, dropped in collaborate mode.
+\item Unsupported classes -> role \code{other}, action \code{keep}, with a note.
+\item Everything else -> role \code{covariate}, action \code{scramble}. Re-role
+response variables as \code{outcome}.
 }
 
-Failing to designate at least one \code{outcome} is a hard error at \code{mask()}
-time (via \code{\link[=roles_validate]{roles_validate()}}).
+No outcome is required: with no column roled \code{outcome}, the copula
+simply re-simulates all scrambled numeric columns jointly.
 
 Since masque 0.3.0, \code{\link[=propose_roles]{propose_roles()}} also calls \code{\link[=detect_design]{detect_design()}} by
 default (\code{detect = TRUE}) and applies the detected design's
-\code{recommended_roles} on top of the name-based heuristic. This promotes
-structurally-identified block / treatment columns even when the
-column names do not match the design / treatment regexes. The
-resulting design summary is stashed as \code{attr(roles, "design")} so the
-user can \code{\link[=plot]{plot()}} it or inspect alternates. Pass \code{detect = FALSE} to
-recover the v0.2.x name-only behaviour byte-for-byte.
+\code{recommended_roles} on top of the name-based heuristic, re-resolving
+the default action for any promoted column. The design summary is
+stashed as \code{attr(roles, "design")}. Pass \code{detect = FALSE} for the
+name-only heuristic.
 }
+
 \examples{
 propose_roles(iris)
+propose_roles(iris, mode = "collaborate")
 
 }
 \seealso{
-\code{\link[=roles_validate]{roles_validate()}} for the fail-closed validation applied at
-\code{mask()} time.
+\code{\link[=set_role]{set_role()}} to edit; \code{\link[=roles_validate]{roles_validate()}} for the fail-closed
+validation applied at \code{mask()} time.
 }

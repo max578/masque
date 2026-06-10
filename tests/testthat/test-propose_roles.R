@@ -2,15 +2,19 @@ test_that("propose_roles returns a tibble with the expected schema", {
   r <- propose_roles(iris)
   expect_s3_class(r, "tbl_df")
   expect_named(r, c(
-    "col", "role", "kind", "freq_or_range", "pii_suspected", "notes"
+    "col", "role", "action", "kind", "freq_or_range", "pii_suspected",
+    "notes"
   ))
   expect_equal(nrow(r), ncol(iris))
   expect_equal(r$col, names(iris))
   expect_true(all(
     r$role %in% c(
-      "design", "keep", "treatment", "outcome", "covariate", "ignore"
+      "design", "treatment", "outcome", "covariate", "date", "id",
+      "text", "other"
     )
   ))
+  expect_true(all(r$action %in% c("keep", "scramble", "alias", "drop")))
+  expect_equal(attr(r, "mode"), "local")
 })
 
 test_that("propose_roles(detect = FALSE) classifies iris by name (v0.2)", {
@@ -55,7 +59,7 @@ test_that("propose_roles errors on zero-column data frame", {
 
 # Pattern-matching coverage --------------------------------------------------
 
-test_that("PII patterns flag obvious cases and set role = ignore", {
+test_that("PII patterns flag obvious cases and set action = drop", {
   df <- data.frame(
     contact_name = c("a", "b"),
     email_addr = c("x@y", "z@w"),
@@ -69,7 +73,7 @@ test_that("PII patterns flag obvious cases and set role = ignore", {
   expect_setequal(
     pii_cols, c("contact_name", "email_addr", "gps_lat", "farmer")
   )
-  expect_true(all(r$role[r$pii_suspected] == "ignore"))
+  expect_true(all(r$action[r$pii_suspected] == "drop"))
   expect_equal(r$role[r$col == "yield"], "covariate")
 })
 
@@ -111,7 +115,7 @@ test_that("Treatment patterns assign role = treatment", {
   expect_setequal(treat_cols, c("Genotype", "variety", "cultivar", "trt_code"))
 })
 
-test_that("ID patterns assign role = ignore", {
+test_that("ID patterns assign role = id", {
   df <- data.frame(
     id = 1:5,
     plot_id = 1:5,
@@ -121,14 +125,18 @@ test_that("ID patterns assign role = ignore", {
     stringsAsFactors = FALSE
   )
   r <- propose_roles(df)
-  expect_equal(r$role[r$col == "id"], "ignore")
-  expect_equal(r$role[r$col == "plot_id"], "ignore")
-  expect_equal(r$role[r$col == "id_local"], "ignore")
+  expect_equal(r$role[r$col == "id"], "id")
+  expect_equal(r$role[r$col == "plot_id"], "id")
+  expect_equal(r$role[r$col == "id_local"], "id")
+  # Local default: ids are kept; collaborate default drops them.
+  expect_true(all(r$action[r$role == "id"] == "keep"))
+  rc <- propose_roles(df, mode = "collaborate")
+  expect_true(all(rc$action[rc$role == "id"] == "drop"))
   # `something` is numeric -> covariate; `yield` is covariate too
   expect_equal(r$role[r$col == "something"], "covariate")
 })
 
-test_that("Date and POSIXct columns default to covariate", {
+test_that("Date and POSIXct columns get the date role, scrambled", {
   df <- data.frame(
     sowing_date = as.Date(c("2026-01-01", "2026-01-02", "2026-01-03")),
     measured_at = as.POSIXct(c(
@@ -138,25 +146,27 @@ test_that("Date and POSIXct columns default to covariate", {
     stringsAsFactors = FALSE
   )
   r <- propose_roles(df)
-  expect_equal(r$role[r$col == "sowing_date"], "covariate")
-  expect_equal(r$role[r$col == "measured_at"], "covariate")
+  expect_equal(r$role[r$col == "sowing_date"], "date")
+  expect_equal(r$role[r$col == "measured_at"], "date")
+  expect_equal(r$action[r$col == "sowing_date"], "scramble")
   expect_equal(r$kind[r$col == "sowing_date"], "date")
   expect_equal(r$kind[r$col == "measured_at"], "datetime")
-  expect_match(r$notes[r$col == "sowing_date"], "use keep")
+  expect_match(r$notes[r$col == "sowing_date"], "keep to leave untouched")
 })
 
-test_that("Unsupported column classes default to explicit keep", {
+test_that("Unsupported column classes default to role other, kept", {
   df <- data.frame(
     payload = I(list(list(a = 1), list(a = 2), list(a = 3))),
     yield = c(1.0, 2.0, 3.0)
   )
   r <- propose_roles(df, detect = FALSE)
   expect_equal(r$kind[r$col == "payload"], "other")
-  expect_equal(r$role[r$col == "payload"], "keep")
-  expect_match(r$notes[r$col == "payload"], "keep as-is")
+  expect_equal(r$role[r$col == "payload"], "other")
+  expect_equal(r$action[r$col == "payload"], "keep")
+  expect_match(r$notes[r$col == "payload"], "kept as-is")
 })
 
-test_that("Free-text character columns default to ignore", {
+test_that("Free-text character columns get the text role", {
   df <- data.frame(
     notes = paste0("note_", 1:50), # 50 unique values in 50 rows -> 100% unique
     # low cardinality, so a covariate
@@ -167,7 +177,8 @@ test_that("Free-text character columns default to ignore", {
   # detect = FALSE: this test exercises the free-text ignore logic, not
   # structural detection (which might pick `region` as a treatment).
   r <- propose_roles(df, detect = FALSE)
-  expect_equal(r$role[r$col == "notes"], "ignore")
+  expect_equal(r$role[r$col == "notes"], "text")
+  expect_equal(r$action[r$col == "notes"], "keep")
   expect_equal(r$role[r$col == "region"], "covariate")
 })
 
@@ -210,11 +221,11 @@ test_that("propose_roles handles MET tab_04 (skip if .fst fixture absent)", {
   expect_true("design" %in% r$role)
   expect_true("treatment" %in% r$role)
   expect_true(any(r$pii_suspected))
-  expect_equal(r$role[r$col == "M_CONTACT"], "ignore")
+  expect_equal(r$action[r$col == "M_CONTACT"], "drop")
   expect_true(r$pii_suspected[r$col == "M_CONTACT"])
-  expect_equal(r$role[r$col == "M_GPS_S"], "ignore")
+  expect_equal(r$action[r$col == "M_GPS_S"], "drop")
   expect_true(r$pii_suspected[r$col == "M_GPS_S"])
-  expect_equal(r$role[r$col == "Sowing_Date"], "covariate")
+  expect_equal(r$role[r$col == "Sowing_Date"], "date")
   expect_equal(r$role[r$col == "Rep"], "design")
   expect_equal(r$role[r$col == "Row"], "design")
   expect_equal(r$role[r$col == "Genotype"], "treatment")
