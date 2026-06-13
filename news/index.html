@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">masque</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.7.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.7.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -36,6 +36,13 @@
       <small>Source: <a href="https://github.com/max578/masque/blob/main/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.7.1" id="masque-071">masque 0.7.1<a class="anchor" aria-label="anchor" href="#masque-071"></a></h2>
+<div class="section level3">
+<h3 id="minor-improvements-and-fixes-0-7-1">Minor improvements and fixes<a class="anchor" aria-label="anchor" href="#minor-improvements-and-fixes-0-7-1"></a></h3>
+<ul><li>The <code>masque_recipe</code> no longer carries the <code><a href="../reference/detect_design.html">detect_design()</a></code> artefact that <code><a href="../reference/propose_roles.html">propose_roles()</a></code> stashes on the roles table (<code>attr(roles, "design")</code>, plus the <code>proposed_actions</code> / <code>mode</code> provenance). The recipe is contractually runtime-minimal, and the design object is not part of its contract; it inflated the saved recipe and, because its serialised size varies across R versions, could push <code><a href="../reference/save_recipe.html">save_recipe()</a></code> output past the documented small-file budget on R-devel. Saved recipes are now smaller and deterministic across toolchains. No public API or round-trip behaviour changes – <code>recipe(m)@roles</code> keeps every role and action assignment.</li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.7.0" id="masque-070">masque 0.7.0<a class="anchor" aria-label="anchor" href="#masque-070"></a></h2>
 <p>A conditional clone mode that preserves the treatment-to-outcome relationship, so a causal model fitted on the synthetic recovers the real treatment effect – not just the marginal distribution.</p>

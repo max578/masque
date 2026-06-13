@@ -41,11 +41,11 @@ m <- suppressWarnings(mask(iris, r, seed = 1))
 recipe(m)
 #> 
 #> ── masque_recipe ───────────────────────────────────────────────────────────────
-#> • Created: 2026-06-13 23:10:51 UTC
+#> • Created: 2026-06-13 23:20:16 UTC
 #> • Mode: local
 #> • Clone fidelity: marginal / structural (global copula)
 #> • Seed: present (redacted)
-#> • masque version: 0.7.0
+#> • masque version: 0.7.1
 #> • Integrity fingerprint: 62a4affb7e41...
 #> 
 #> ── Columns (5 total; 0 level-map(s); 0 column-name map(s)) ──
