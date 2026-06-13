@@ -114,6 +114,20 @@ set_role <- function(roles, cols, role = NULL, action = NULL) {
 .numeric_kinds <- function() c("numeric", "integer")
 .date_kinds <- function() c("date", "datetime")
 
+# Strip the heavy provenance attributes a roles table accumulates during
+# proposal (the full detect_design() S7 object under "design", plus the
+# "proposed_actions" and "mode" provenance) before it is stored on a
+# recipe. The recipe contract is runtime-minimal: it needs the role and
+# action assignment per column, not the design-detection artefact, which
+# can be large and whose serialised size varies across R versions. The
+# returned data.frame keeps only the base data-frame attributes.
+.strip_roles_provenance <- function(roles) {
+  for (a in c("design", "proposed_actions", "mode")) {
+    attr(roles, a) <- NULL
+  }
+  roles
+}
+
 # Columns that define a conditioning stratum for the conditional clone
 # (mask(conditional = TRUE)). The treatment columns carry the assignment
 # whose effect must survive the clone; retained design columns (blocks,

@@ -1,3 +1,18 @@
+# masque 0.7.1
+
+## Minor improvements and fixes
+
+* The `masque_recipe` no longer carries the `detect_design()` artefact
+  that `propose_roles()` stashes on the roles table (`attr(roles,
+  "design")`, plus the `proposed_actions` / `mode` provenance). The
+  recipe is contractually runtime-minimal, and the design object is not
+  part of its contract; it inflated the saved recipe and, because its
+  serialised size varies across R versions, could push `save_recipe()`
+  output past the documented small-file budget on R-devel. Saved recipes
+  are now smaller and deterministic across toolchains. No public API or
+  round-trip behaviour changes -- `recipe(m)@roles` keeps every role and
+  action assignment.
+
 # masque 0.7.0
 
 A conditional clone mode that preserves the treatment-to-outcome
