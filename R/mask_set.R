@@ -36,6 +36,11 @@
 #' @param alias_names Hide column names. `FALSE` (default) keeps them;
 #'   `TRUE` aliases every non-link column (linked join keys keep their
 #'   names so the synthetic set stays joinable).
+#' @param conditional Logical scalar (default `FALSE`). Passed through to
+#'   each per-table [mask()] call: when `TRUE`, every table's numeric
+#'   block is re-simulated within its own treatment-by-design strata so
+#'   the treatment-to-outcome relationship survives the clone. See
+#'   [mask()] for the full account.
 #' @param quiet Logical; suppress the link / hygiene report.
 #'
 #' @return A `masque_set` S7 object. Use [synthetic()] for the named list
@@ -66,6 +71,7 @@ mask_set <- function(input,
                      seed = NULL,
                      clean = c("auto", "report", "off"),
                      alias_names = FALSE,
+                     conditional = FALSE,
                      quiet = FALSE) {
   withr::local_preserve_seed()
   mode <- match.arg(mode)
@@ -117,6 +123,7 @@ mask_set <- function(input,
       seed = seed,
       clean = "off", # already cleaned at set level
       alias_names = aln,
+      conditional = conditional,
       .shared_maps = shared_by_table[[nm]]
     ))
     synth_tables[[nm]] <- synthetic(m)

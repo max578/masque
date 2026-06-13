@@ -11,6 +11,7 @@ mask(
   seed = NULL,
   clean = c("auto", "report", "off"),
   alias_names = FALSE,
+  conditional = FALSE,
   .shared_maps = list(),
   ...
 )
@@ -43,6 +44,22 @@ original-to-alias map is stored in the recipe and inverted by
 aliased synthetic round-trips. Column names are the last identifying
 surface a kept or design column exposes; alias them when even the
 schema is sensitive.}
+
+\item{conditional}{Logical scalar (default \code{FALSE}). The
+\emph{collaborate-grade conditional clone}. When \code{FALSE}, scrambled
+numeric columns are re-simulated from one global Gaussian copula -
+marginals and global covariance survive, but the treatment-to-outcome
+relationship does not, so a causal model fitted on the clone recovers
+a null effect. When \code{TRUE}, the numeric block is re-simulated \emph{within
+each treatment-by-design stratum}, so a row's synthetic outcome
+inherits the location of the treatment that row carries. A causal
+model fitted on the conditional clone recovers the real treatment
+effect within sampling tolerance - the data-side analogue of
+preserving a conditional mean embedding rather than a pooled
+marginal. The conditioning columns (treatment plus retained design)
+are recorded on the recipe. With no treatment or design column to
+condition on, the path degrades cleanly to the global copula and a
+note is emitted.}
 
 \item{.shared_maps}{Internal. A named list of pre-computed
 \code{original -> alias} level maps for cross-table linked columns, set

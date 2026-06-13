@@ -43,6 +43,11 @@
 #' @param clean Hygiene mode passed to [clean_table()] (`"auto"`,
 #'   `"report"`, `"off"`).
 #' @param alias_names Hide column names; see [mask()] / [mask_set()].
+#' @param conditional Logical scalar (default `FALSE`). The conditional
+#'   clone mode passed through to [mask()] / [mask_set()]: when `TRUE`,
+#'   numeric columns are re-simulated within each treatment-by-design
+#'   stratum so the treatment-to-outcome relationship survives the clone.
+#'   See [mask()] for the full account.
 #' @param ask Whether to pause for interactive review when `roles` is not
 #'   supplied. Defaults to [interactive()]. Set `FALSE` to proceed with
 #'   the proposed plan without prompting.
@@ -69,6 +74,7 @@ masque <- function(input,
                    seed = NULL,
                    clean = c("auto", "report", "off"),
                    alias_names = FALSE,
+                   conditional = FALSE,
                    ask = interactive(),
                    overwrite = FALSE,
                    quiet = FALSE) {
@@ -79,11 +85,11 @@ masque <- function(input,
 
   if (is_set) {
     m <- .masque_guided_set(
-      input, roles, mode, seed, clean, alias_names, ask, quiet
+      input, roles, mode, seed, clean, alias_names, conditional, ask, quiet
     )
   } else {
     m <- .masque_guided_one(
-      input, roles, mode, seed, clean, alias_names, ask, quiet
+      input, roles, mode, seed, clean, alias_names, conditional, ask, quiet
     )
   }
 
@@ -119,12 +125,12 @@ masque <- function(input,
 }
 
 .masque_guided_one <- function(input, roles, mode, seed, clean,
-                               alias_names, ask, quiet) {
+                               alias_names, conditional, ask, quiet) {
   df <- if (is.data.frame(input)) input else .read_one_file(input)
   if (!is.null(roles)) {
     return(suppressWarnings(mask(
       df, roles, mode = mode, seed = seed, clean = clean,
-      alias_names = alias_names
+      alias_names = alias_names, conditional = conditional
     )))
   }
 
@@ -132,16 +138,16 @@ masque <- function(input,
   proposed <- .masque_review(proposed, ask, quiet, label = NULL)
   suppressWarnings(mask(
     df, proposed, mode = mode, seed = seed, clean = clean,
-    alias_names = alias_names
+    alias_names = alias_names, conditional = conditional
   ))
 }
 
 .masque_guided_set <- function(input, roles, mode, seed, clean,
-                               alias_names, ask, quiet) {
+                               alias_names, conditional, ask, quiet) {
   if (!is.null(roles)) {
     return(mask_set(
       input, roles = roles, mode = mode, seed = seed, clean = clean,
-      alias_names = alias_names, quiet = quiet
+      alias_names = alias_names, conditional = conditional, quiet = quiet
     ))
   }
 
@@ -154,7 +160,7 @@ masque <- function(input,
 
   mask_set(
     tables, roles = proposed, mode = mode, seed = seed, clean = clean,
-    alias_names = alias_names, quiet = quiet
+    alias_names = alias_names, conditional = conditional, quiet = quiet
   )
 }
 

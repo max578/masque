@@ -1,3 +1,43 @@
+# masque 0.7.0
+
+A conditional clone mode that preserves the treatment-to-outcome
+relationship, so a causal model fitted on the synthetic recovers the
+real treatment effect -- not just the marginal distribution.
+
+## New features
+
+* `mask()`, `mask_set()`, and `masque()` gain a `conditional` argument
+  (default `FALSE`). With `conditional = TRUE`, the numeric block is
+  re-simulated *within each treatment-by-design stratum* rather than from
+  one global Gaussian copula, so a row's synthetic outcome inherits the
+  location of the treatment that row carries. The treatment-to-outcome
+  map -- the quantity a causal model reads -- survives the clone, within
+  sampling tolerance. The default `conditional = FALSE` preserves the
+  exact 0.6.0 behaviour (global copula, marginal and structural fidelity
+  only), so existing scripts are byte-identical.
+
+  The motivation: structural and marginal fidelity alone are *not*
+  sufficient for causal inference. A clone that matches every marginal
+  and the global covariance can still sever the relationship between an
+  arm and its response, because the outcomes are drawn from the pooled
+  distribution and the treatment labels are relabelled independently. A
+  model fitted on such a clone returns a null effect. Conditional cloning
+  is the data-side analogue of preserving a conditional mean embedding
+  rather than a pooled marginal.
+
+## Minor improvements and fixes
+
+* The `masque_recipe` records two new fields, `conditional` (logical)
+  and `conditioning_cols` (the treatment and retained design columns the
+  clone stratified on), and `print(recipe(m))` now reports the clone
+  fidelity (marginal / structural versus conditional). Recipes written
+  by masque 0.6.0 and earlier read back with the back-compatible
+  defaults (`conditional = FALSE`, no conditioning columns).
+* Strata too small to fit a stratum-local copula are pooled into a
+  graceful global fallback, so a conditional clone never fails on a
+  sparse design cell; with no treatment or design column to condition
+  on, the path degrades cleanly to the global copula with a note.
+
 # masque 0.6.0
 
 A two-axis roles step, a hygiene layer, column-name aliasing, a

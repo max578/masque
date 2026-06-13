@@ -114,6 +114,19 @@ set_role <- function(roles, cols, role = NULL, action = NULL) {
 .numeric_kinds <- function() c("numeric", "integer")
 .date_kinds <- function() c("date", "datetime")
 
+# Columns that define a conditioning stratum for the conditional clone
+# (mask(conditional = TRUE)). The treatment columns carry the assignment
+# whose effect must survive the clone; retained design columns (blocks,
+# sites, years) are the structural strata a MET model conditions on. Both
+# are preserved in place by mask(), so the stratum a row sits in is the
+# same before and after relabelling. Dropped columns are excluded - they
+# do not appear in the synthetic, so they cannot index it.
+.conditioning_cols <- function(roles) {
+  keep <- roles$role %in% c("treatment", "design") &
+    roles$action != "drop"
+  roles$col[keep]
+}
+
 # Per-mode default action for a (role, kind) pair. This is the single
 # source of truth that propose_roles(), set_role(), the v1 upgrade, and
 # NA-action resolution all consult.

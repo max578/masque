@@ -7,7 +7,7 @@ bibentry(
                    email = "max.moldovan@gmail.com",
                    comment = c(ORCID = "0000-0001-9680-8474")),
   year    = "2026",
-  note    = "R package version 0.4.0",
+  note    = "R package version 0.7.0",
   url     = "https://github.com/max578/masque"
 )
 

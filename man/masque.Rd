@@ -12,6 +12,7 @@ masque(
   seed = NULL,
   clean = c("auto", "report", "off"),
   alias_names = FALSE,
+  conditional = FALSE,
   ask = interactive(),
   overwrite = FALSE,
   quiet = FALSE
@@ -38,6 +39,12 @@ an \code{.xlsx} workbook. When \code{NULL} (default) nothing is written.}
 \code{"report"}, \code{"off"}).}
 
 \item{alias_names}{Hide column names; see \code{\link[=mask]{mask()}} / \code{\link[=mask_set]{mask_set()}}.}
+
+\item{conditional}{Logical scalar (default \code{FALSE}). The conditional
+clone mode passed through to \code{\link[=mask]{mask()}} / \code{\link[=mask_set]{mask_set()}}: when \code{TRUE},
+numeric columns are re-simulated within each treatment-by-design
+stratum so the treatment-to-outcome relationship survives the clone.
+See \code{\link[=mask]{mask()}} for the full account.}
 
 \item{ask}{Whether to pause for interactive review when \code{roles} is not
 supplied. Defaults to \code{\link[=interactive]{interactive()}}. Set \code{FALSE} to proceed with

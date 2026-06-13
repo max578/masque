@@ -60,6 +60,21 @@
 #'   aliased synthetic round-trips. Column names are the last identifying
 #'   surface a kept or design column exposes; alias them when even the
 #'   schema is sensitive.
+#' @param conditional Logical scalar (default `FALSE`). The
+#'   *collaborate-grade conditional clone*. When `FALSE`, scrambled
+#'   numeric columns are re-simulated from one global Gaussian copula -
+#'   marginals and global covariance survive, but the treatment-to-outcome
+#'   relationship does not, so a causal model fitted on the clone recovers
+#'   a null effect. When `TRUE`, the numeric block is re-simulated *within
+#'   each treatment-by-design stratum*, so a row's synthetic outcome
+#'   inherits the location of the treatment that row carries. A causal
+#'   model fitted on the conditional clone recovers the real treatment
+#'   effect within sampling tolerance - the data-side analogue of
+#'   preserving a conditional mean embedding rather than a pooled
+#'   marginal. The conditioning columns (treatment plus retained design)
+#'   are recorded on the recipe. With no treatment or design column to
+#'   condition on, the path degrades cleanly to the global copula and a
+#'   note is emitted.
 #' @param .shared_maps Internal. A named list of pre-computed
 #'   `original -> alias` level maps for cross-table linked columns, set
 #'   by [mask_set()]. Not for direct use.
@@ -84,6 +99,7 @@ mask <- function(df,
                  seed = NULL,
                  clean = c("auto", "report", "off"),
                  alias_names = FALSE,
+                 conditional = FALSE,
                  .shared_maps = list(),
                  ...) {
   # Belt-and-braces RNG hygiene: any RNG perturbation inside mask() is
@@ -93,6 +109,10 @@ mask <- function(df,
 
   if (!is.data.frame(df)) {
     cli::cli_abort("`df` must be a data frame; got {.cls {class(df)[1]}}.")
+  }
+  if (!is.logical(conditional) || length(conditional) != 1L ||
+    is.na(conditional)) {
+    cli::cli_abort("`conditional` must be a single `TRUE` or `FALSE`.")
   }
   mode <- match.arg(mode)
   clean <- match.arg(clean)
@@ -118,12 +138,32 @@ mask <- function(df,
 
   opts <- mode_defaults(mode)
 
+  # Conditional clone bookkeeping: resolve the conditioning columns once
+  # so they can be recorded on the recipe, and warn early if a conditional
+  # clone was requested but nothing is available to condition on (it then
+  # degrades to the global copula, which is the non-conditional default).
+  conditioning_cols <- if (isTRUE(conditional)) {
+    .conditioning_cols(roles)
+  } else {
+    character()
+  }
+  warnings_acc <- character()
+  if (isTRUE(conditional) && !length(conditioning_cols)) {
+    msg <- paste0(
+      "conditional = TRUE but no treatment or design column survives to ",
+      "condition on; numeric synthesis falls back to the global copula."
+    )
+    cli::cli_warn(msg)
+    warnings_acc <- c(warnings_acc, msg)
+  }
+
   result <- with_rng_state(
-    seed, .mask_orchestrate(df, roles, mode, opts, .shared_maps)
+    seed,
+    .mask_orchestrate(df, roles, mode, opts, .shared_maps, conditional)
   )
   synth <- result$synth
   level_maps <- result$level_maps
-  warnings_acc <- result$warnings
+  warnings_acc <- c(warnings_acc, result$warnings)
 
   # NA-mask preservation cell-by-cell (only over columns retained)
   retained <- intersect(names(df), names(synth))
@@ -198,18 +238,20 @@ mask <- function(df,
   }
 
   rec <- masque_recipe(
-    masque_version  = as.character(utils::packageVersion("masque")),
-    created_at      = Sys.time(),
-    mode            = mode,
-    seed            = if (is.null(seed)) NULL else as.integer(seed),
-    roles           = as.data.frame(roles),
-    column_name_map = column_name_map,
-    level_maps      = level_maps,
-    storage_classes = storage_classes,
-    factor_meta     = factor_meta,
-    cleaning        = cleaning_rec,
-    warnings        = warnings_acc,
-    integrity_fp    = digest::digest(is.na(df), algo = "sha256")
+    masque_version    = as.character(utils::packageVersion("masque")),
+    created_at        = Sys.time(),
+    mode              = mode,
+    seed              = if (is.null(seed)) NULL else as.integer(seed),
+    roles             = as.data.frame(roles),
+    conditional       = conditional,
+    conditioning_cols = conditioning_cols,
+    column_name_map   = column_name_map,
+    level_maps        = level_maps,
+    storage_classes   = storage_classes,
+    factor_meta       = factor_meta,
+    cleaning          = cleaning_rec,
+    warnings          = warnings_acc,
+    integrity_fp      = digest::digest(is.na(df), algo = "sha256")
   )
 
   masque_obj(
@@ -259,7 +301,10 @@ mask <- function(df,
 # Internal: orchestrate the per-action synthesis with the RNG state
 # already set. The action column is the authority; mode only modulates
 # the numeric-jitter layer (via opts) and downstream audit behaviour.
-.mask_orchestrate <- function(df, roles, mode, opts, shared_maps = list()) {
+# `conditional = TRUE` re-routes the numeric block through the stratified
+# synthesiser so the treatment -> outcome map survives the clone.
+.mask_orchestrate <- function(df, roles, mode, opts, shared_maps = list(),
+                              conditional = FALSE) {
   synth <- df
   level_maps <- list()
   warnings <- character()
@@ -282,11 +327,24 @@ mask <- function(df,
   # Numeric block: every scrambled numeric column jointly via the
   # Gaussian copula. No outcome is required - role only orders the
   # audit's expectations, not the simulation.
+  #
+  # Conditional clone: when `conditional = TRUE`, fit and sample the
+  # copula within each treatment x design stratum instead of pooling.
+  # The synthetic outcomes then inherit each stratum's own location, so
+  # the treatment -> outcome relationship a causal model reads survives
+  # the clone. Plain (pooled) synthesis still runs when no conditioning
+  # column is present, so the path degrades cleanly to the global copula.
   num_idx <- which(action == "scramble" & kind %in% .numeric_kinds() &
     !is_shared)
   if (length(num_idx) >= 1L) {
     x_num <- df[, num_idx, drop = FALSE]
-    x_num_new <- synthesise_numeric_local(x_num)
+    if (isTRUE(conditional)) {
+      cond_cols <- .conditioning_cols(roles)
+      groups <- .conditioning_groups(df, cond_cols)
+      x_num_new <- synthesise_numeric_conditional(x_num, groups)
+    } else {
+      x_num_new <- synthesise_numeric_local(x_num)
+    }
     # Collaborate mode: layer on within-resolution jitter + integer rounding
     if (isTRUE(opts$jitter_numeric)) {
       for (col in names(x_num_new)) {
