@@ -23,6 +23,12 @@ masque_recipe <- S7::new_class(
       default = NULL
     ),
     roles = S7::class_data.frame,
+    conditional = S7::new_property(
+      class   = S7::class_logical, default = FALSE
+    ),
+    conditioning_cols = S7::new_property(
+      class = S7::class_character, default = character()
+    ),
     column_name_map = S7::new_property(
       class   = S7::new_union(S7::class_list, NULL),
       default = NULL

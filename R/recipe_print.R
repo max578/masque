@@ -14,9 +14,22 @@ NULL
 
 S7::method(print, masque_recipe) <- function(x, ...) {
   cli::cli_h1("masque_recipe")
+  fidelity <- if (isTRUE(x@conditional)) {
+    if (length(x@conditioning_cols)) {
+      sprintf(
+        "conditional (treatment -> outcome preserved; strata: %s)",
+        paste(x@conditioning_cols, collapse = ", ")
+      )
+    } else {
+      "conditional requested (no conditioning column; pooled fallback)"
+    }
+  } else {
+    "marginal / structural (global copula)"
+  }
   cli::cli_bullets(c(
     "*" = sprintf("Created: %s", format(x@created_at, "%Y-%m-%d %H:%M:%S %Z")),
     "*" = sprintf("Mode: %s", x@mode),
+    "*" = sprintf("Clone fidelity: %s", fidelity),
     "*" = sprintf(
       "Seed: %s",
       if (length(x@seed) == 0L) "NULL" else "present (redacted)"

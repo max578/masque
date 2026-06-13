@@ -12,6 +12,7 @@ mask_set(
   seed = NULL,
   clean = c("auto", "report", "off"),
   alias_names = FALSE,
+  conditional = FALSE,
   quiet = FALSE
 )
 }
@@ -39,6 +40,12 @@ linking entirely (each table masked independently). When \code{NULL}
 \item{alias_names}{Hide column names. \code{FALSE} (default) keeps them;
 \code{TRUE} aliases every non-link column (linked join keys keep their
 names so the synthetic set stays joinable).}
+
+\item{conditional}{Logical scalar (default \code{FALSE}). Passed through to
+each per-table \code{\link[=mask]{mask()}} call: when \code{TRUE}, every table's numeric
+block is re-simulated within its own treatment-by-design strata so
+the treatment-to-outcome relationship survives the clone. See
+\code{\link[=mask]{mask()}} for the full account.}
 
 \item{quiet}{Logical; suppress the link / hygiene report.}
 }
