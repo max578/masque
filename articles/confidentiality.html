@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">masque</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.6.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.7.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -58,7 +58,7 @@
       <h1>Confidentiality and the threat model</h1>
             
       
-      <small class="dont-index">Source: <a href="https://github.com/max578/masque/blob/v0.6.0/vignettes/confidentiality.Rmd" class="external-link"><code>vignettes/confidentiality.Rmd</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/max578/masque/blob/main/vignettes/confidentiality.Rmd" class="external-link"><code>vignettes/confidentiality.Rmd</code></a></small>
       <div class="d-none name"><code>confidentiality.Rmd</code></div>
     </div>
 
@@ -261,6 +261,100 @@ design column’s action to <code>alias</code>:</p>
 ask for it explicitly.</p>
 </div>
 <div class="section level2">
+<h2 id="the-conditional-clone-preserving-the-treatment-effect">The conditional clone: preserving the treatment effect<a class="anchor" aria-label="anchor" href="#the-conditional-clone-preserving-the-treatment-effect"></a>
+</h2>
+<p>The default numeric synthesis re-simulates every scrambled numeric
+column from a single global Gaussian copula. That preserves each
+column’s marginal distribution and the global covariance, which is
+enough to develop most pipelines – but it severs the relationship
+between treatment and outcome. The synthetic outcomes are drawn from the
+pooled distribution and the treatment labels are relabelled
+independently, so a causal model fitted on the clone sees no association
+between an arm and its response. A pipeline whose whole purpose is to
+estimate a treatment effect would silently give the wrong answer on such
+a clone.</p>
+<p>The <code>conditional = TRUE</code> argument fixes this. It fits and
+samples the copula <em>within each treatment-by-design stratum</em>
+rather than pooling, so a row’s synthetic outcome inherits the location
+of the treatment that row carries. The treatment-to-outcome map – the
+quantity a causal model reads – survives the clone, within sampling
+tolerance. This is the data-side analogue of preserving a conditional
+mean embedding rather than a pooled marginal.</p>
+<p>The contrast is easiest to see on a two-arm trial with a known
+effect:</p>
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">42</span><span class="op">)</span></span>
+<span><span class="va">n</span> <span class="op">&lt;-</span> <span class="fl">600</span></span>
+<span><span class="va">arm</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"ctrl"</span>, <span class="st">"treat"</span><span class="op">)</span>, each <span class="op">=</span> <span class="va">n</span> <span class="op">/</span> <span class="fl">2</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co"># A real +5-unit effect of the treated arm on yield.</span></span>
+<span><span class="va">yield</span> <span class="op">&lt;-</span> <span class="fl">10</span> <span class="op">+</span> <span class="fl">5</span> <span class="op">*</span> <span class="op">(</span><span class="va">arm</span> <span class="op">==</span> <span class="st">"treat"</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">n</span>, sd <span class="op">=</span> <span class="fl">2</span><span class="op">)</span></span>
+<span><span class="va">trial</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>genotype <span class="op">=</span> <span class="va">arm</span>, yield <span class="op">=</span> <span class="va">yield</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">roles</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/propose_roles.html">propose_roles</a></span><span class="op">(</span><span class="va">trial</span>, detect <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span><span class="va">roles</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/set_role.html">set_role</a></span><span class="op">(</span><span class="va">roles</span>, <span class="st">"genotype"</span>, role <span class="op">=</span> <span class="st">"treatment"</span>, action <span class="op">=</span> <span class="st">"scramble"</span><span class="op">)</span></span>
+<span><span class="va">roles</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/set_role.html">set_role</a></span><span class="op">(</span><span class="va">roles</span>, <span class="st">"yield"</span>, role <span class="op">=</span> <span class="st">"outcome"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">true_effect</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/lm.html" class="external-link">lm</a></span><span class="op">(</span><span class="va">yield</span> <span class="op">~</span> <span class="va">genotype</span>, <span class="va">trial</span><span class="op">)</span><span class="op">)</span><span class="op">[[</span><span class="st">"genotypetreat"</span><span class="op">]</span><span class="op">]</span></span>
+<span><span class="va">true_effect</span></span>
+<span><span class="co">#&gt; [1] 4.988538</span></span></code></pre></div>
+<p>Cloning both ways from the same seed, then re-estimating the effect
+on each clone:</p>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">marg</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/warning.html" class="external-link">suppressWarnings</a></span><span class="op">(</span></span>
+<span>  <span class="fu"><a href="../reference/mask.html">mask</a></span><span class="op">(</span><span class="va">trial</span>, <span class="va">roles</span>, mode <span class="op">=</span> <span class="st">"local"</span>, seed <span class="op">=</span> <span class="fl">1</span>, conditional <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span><span class="va">cond</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/warning.html" class="external-link">suppressWarnings</a></span><span class="op">(</span></span>
+<span>  <span class="fu"><a href="../reference/mask.html">mask</a></span><span class="op">(</span><span class="va">trial</span>, <span class="va">roles</span>, mode <span class="op">=</span> <span class="st">"local"</span>, seed <span class="op">=</span> <span class="fl">1</span>, conditional <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">effect_of</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">m</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/lm.html" class="external-link">lm</a></span><span class="op">(</span><span class="va">yield</span> <span class="op">~</span> <span class="va">genotype</span>, <span class="fu"><a href="../reference/synthetic.html">synthetic</a></span><span class="op">(</span><span class="va">m</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">[[</span><span class="st">"genotypetreat"</span><span class="op">]</span><span class="op">]</span></span>
+<span><span class="op">}</span></span>
+<span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
+<span>  clone <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"marginal (default)"</span>, <span class="st">"conditional"</span><span class="op">)</span>,</span>
+<span>  estimated_effect <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fu">effect_of</span><span class="op">(</span><span class="va">marg</span><span class="op">)</span>, <span class="fu">effect_of</span><span class="op">(</span><span class="va">cond</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  true_effect <span class="op">=</span> <span class="va">true_effect</span></span>
+<span><span class="op">)</span></span>
+<span><span class="co">#&gt;                clone estimated_effect true_effect</span></span>
+<span><span class="co">#&gt; 1 marginal (default)        0.2486581    4.988538</span></span>
+<span><span class="co">#&gt; 2        conditional        5.1382869    4.988538</span></span></code></pre></div>
+<p>The marginal clone collapses the effect toward zero; the conditional
+clone recovers it. Both clones still match the pooled marginal of the
+outcome:</p>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
+<span>  source <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"original"</span>, <span class="st">"marginal clone"</span>, <span class="st">"conditional clone"</span><span class="op">)</span>,</span>
+<span>  mean_yield <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="va">trial</span><span class="op">$</span><span class="va">yield</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="fu"><a href="../reference/synthetic.html">synthetic</a></span><span class="op">(</span><span class="va">marg</span><span class="op">)</span><span class="op">$</span><span class="va">yield</span><span class="op">)</span>,</span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="fu"><a href="../reference/synthetic.html">synthetic</a></span><span class="op">(</span><span class="va">cond</span><span class="op">)</span><span class="op">$</span><span class="va">yield</span><span class="op">)</span></span>
+<span>  <span class="op">)</span>,</span>
+<span>  sd_yield <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/stats/sd.html" class="external-link">sd</a></span><span class="op">(</span><span class="va">trial</span><span class="op">$</span><span class="va">yield</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/stats/sd.html" class="external-link">sd</a></span><span class="op">(</span><span class="fu"><a href="../reference/synthetic.html">synthetic</a></span><span class="op">(</span><span class="va">marg</span><span class="op">)</span><span class="op">$</span><span class="va">yield</span><span class="op">)</span>,</span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/stats/sd.html" class="external-link">sd</a></span><span class="op">(</span><span class="fu"><a href="../reference/synthetic.html">synthetic</a></span><span class="op">(</span><span class="va">cond</span><span class="op">)</span><span class="op">$</span><span class="va">yield</span><span class="op">)</span></span>
+<span>  <span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span><span class="co">#&gt;              source mean_yield sd_yield</span></span>
+<span><span class="co">#&gt; 1          original   12.45071 3.182635</span></span>
+<span><span class="co">#&gt; 2    marginal clone   12.49563 3.082971</span></span>
+<span><span class="co">#&gt; 3 conditional clone   12.49687 3.199323</span></span></code></pre></div>
+<p>The conditioning columns – the treatment plus any retained design
+columns – are recorded on the recipe, so the choice is auditable:</p>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/recipe.html">recipe</a></span><span class="op">(</span><span class="va">cond</span><span class="op">)</span><span class="op">@</span><span class="va">conditional</span></span>
+<span><span class="co">#&gt; [1] TRUE</span></span>
+<span><span class="fu"><a href="../reference/recipe.html">recipe</a></span><span class="op">(</span><span class="va">cond</span><span class="op">)</span><span class="op">@</span><span class="va">conditioning_cols</span></span>
+<span><span class="co">#&gt; [1] "genotype"</span></span></code></pre></div>
+<p>Conditional cloning composes with both modes and with
+<code><a href="../reference/mask_set.html">mask_set()</a></code> (each table is stratified by its own treatment
+and design columns). It needs enough rows per stratum to fit a
+stratum-local copula; cells smaller than a handful of rows are pooled
+into a graceful global fallback rather than failing, and with no
+treatment or design column to condition on the path degrades cleanly to
+the global copula with a note. Reach for it whenever the development
+pipeline estimates an effect, not just a distribution.</p>
+</div>
+<div class="section level2">
 <h2 id="the-leakage-audit">The leakage audit<a class="anchor" aria-label="anchor" href="#the-leakage-audit"></a>
 </h2>
 <p><code><a href="../reference/audit_mask.html">audit_mask()</a></code> inspects the synthetic against the original
@@ -268,7 +362,7 @@ and grades the leakage of each column. In collaborate mode it runs
 automatically and warns at <code><a href="../reference/mask.html">mask()</a></code> time. Here is a fixture
 built to trip it: a PII-suspected column the user retains against the
 default, and a categorical covariate with a frequency-one level.</p>
-<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">df</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
 <span>  rep <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">3</span>, each <span class="op">=</span> <span class="fl">20</span><span class="op">)</span>,</span>
 <span>  variety <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="st">"V"</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">6</span><span class="op">)</span>, <span class="fl">10</span><span class="op">)</span><span class="op">)</span>,</span>
@@ -295,7 +389,7 @@ default, and a categorical covariate with a frequency-one level.</p>
 <code>pii_suspected</code> and set to <code>drop</code>. We override it
 – pretending the custodian insists on keeping it – and make the rare
 column a covariate, then mask:</p>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">roles</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/set_role.html">set_role</a></span><span class="op">(</span><span class="va">roles</span>, <span class="st">"yield"</span>, role <span class="op">=</span> <span class="st">"outcome"</span><span class="op">)</span></span>
 <span><span class="va">roles</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/set_role.html">set_role</a></span><span class="op">(</span><span class="va">roles</span>, <span class="st">"contact_email"</span>, role <span class="op">=</span> <span class="st">"covariate"</span>, action <span class="op">=</span> <span class="st">"keep"</span><span class="op">)</span></span>
 <span><span class="va">roles</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/set_role.html">set_role</a></span><span class="op">(</span><span class="va">roles</span>, <span class="st">"rare_treatment"</span>, role <span class="op">=</span> <span class="st">"covariate"</span><span class="op">)</span></span>
@@ -331,7 +425,7 @@ key <em>identically across all of them</em> so the synthetic tables
 still join. A linked key is the join surface; it is aliased consistently
 rather than permuted (permuting a key would break the join regardless of
 masking).</p>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">set_dir</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, <span class="st">"met_set"</span>, package <span class="op">=</span> <span class="st">"masque"</span><span class="op">)</span></span>
 <span><span class="va">ms</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/mask_set.html">mask_set</a></span><span class="op">(</span><span class="va">set_dir</span>, mode <span class="op">=</span> <span class="st">"collaborate"</span>, seed <span class="op">=</span> <span class="fl">1</span>, quiet <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span><span class="va">ag</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synthetic.html">synthetic</a></span><span class="op">(</span><span class="va">ms</span><span class="op">)</span><span class="op">$</span><span class="va">agronomy</span></span>

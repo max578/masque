@@ -96,6 +96,117 @@ table(s$site)                  # ... but the three-site structure intact
 This knowingly breaks byte-identity, so it is never a default – you ask
 for it explicitly.
 
+## The conditional clone: preserving the treatment effect
+
+The default numeric synthesis re-simulates every scrambled numeric
+column from a single global Gaussian copula. That preserves each
+column’s marginal distribution and the global covariance, which is
+enough to develop most pipelines – but it severs the relationship
+between treatment and outcome. The synthetic outcomes are drawn from the
+pooled distribution and the treatment labels are relabelled
+independently, so a causal model fitted on the clone sees no association
+between an arm and its response. A pipeline whose whole purpose is to
+estimate a treatment effect would silently give the wrong answer on such
+a clone.
+
+The `conditional = TRUE` argument fixes this. It fits and samples the
+copula *within each treatment-by-design stratum* rather than pooling, so
+a row’s synthetic outcome inherits the location of the treatment that
+row carries. The treatment-to-outcome map – the quantity a causal model
+reads – survives the clone, within sampling tolerance. This is the
+data-side analogue of preserving a conditional mean embedding rather
+than a pooled marginal.
+
+The contrast is easiest to see on a two-arm trial with a known effect:
+
+``` r
+
+set.seed(42)
+n <- 600
+arm <- factor(rep(c("ctrl", "treat"), each = n / 2))
+# A real +5-unit effect of the treated arm on yield.
+yield <- 10 + 5 * (arm == "treat") + rnorm(n, sd = 2)
+trial <- data.frame(genotype = arm, yield = yield)
+
+roles <- propose_roles(trial, detect = FALSE)
+roles <- set_role(roles, "genotype", role = "treatment", action = "scramble")
+roles <- set_role(roles, "yield", role = "outcome")
+
+true_effect <- coef(lm(yield ~ genotype, trial))[["genotypetreat"]]
+true_effect
+#> [1] 4.988538
+```
+
+Cloning both ways from the same seed, then re-estimating the effect on
+each clone:
+
+``` r
+
+marg <- suppressWarnings(
+  mask(trial, roles, mode = "local", seed = 1, conditional = FALSE)
+)
+cond <- suppressWarnings(
+  mask(trial, roles, mode = "local", seed = 1, conditional = TRUE)
+)
+
+effect_of <- function(m) {
+  coef(lm(yield ~ genotype, synthetic(m)))[["genotypetreat"]]
+}
+
+data.frame(
+  clone = c("marginal (default)", "conditional"),
+  estimated_effect = c(effect_of(marg), effect_of(cond)),
+  true_effect = true_effect
+)
+#>                clone estimated_effect true_effect
+#> 1 marginal (default)        0.2486581    4.988538
+#> 2        conditional        5.1382869    4.988538
+```
+
+The marginal clone collapses the effect toward zero; the conditional
+clone recovers it. Both clones still match the pooled marginal of the
+outcome:
+
+``` r
+
+data.frame(
+  source = c("original", "marginal clone", "conditional clone"),
+  mean_yield = c(
+    mean(trial$yield), mean(synthetic(marg)$yield),
+    mean(synthetic(cond)$yield)
+  ),
+  sd_yield = c(
+    sd(trial$yield), sd(synthetic(marg)$yield),
+    sd(synthetic(cond)$yield)
+  )
+)
+#>              source mean_yield sd_yield
+#> 1          original   12.45071 3.182635
+#> 2    marginal clone   12.49563 3.082971
+#> 3 conditional clone   12.49687 3.199323
+```
+
+The conditioning columns – the treatment plus any retained design
+columns – are recorded on the recipe, so the choice is auditable:
+
+``` r
+
+recipe(cond)@conditional
+#> [1] TRUE
+recipe(cond)@conditioning_cols
+#> [1] "genotype"
+```
+
+Conditional cloning composes with both modes and with
+[`mask_set()`](https://max578.github.io/masque/reference/mask_set.md)
+(each table is stratified by its own treatment and design columns). It
+needs enough rows per stratum to fit a stratum-local copula; cells
+smaller than a handful of rows are pooled into a graceful global
+fallback rather than failing, and with no treatment or design column to
+condition on the path degrades cleanly to the global copula with a note.
+Reach for it whenever the development pipeline estimates an effect, not
+just a distribution.
+
 ## The leakage audit
 
 [`audit_mask()`](https://max578.github.io/masque/reference/audit_mask.md)

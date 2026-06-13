@@ -20,6 +20,7 @@ masque(
   seed = NULL,
   clean = c("auto", "report", "off"),
   alias_names = FALSE,
+  conditional = FALSE,
   ask = interactive(),
   overwrite = FALSE,
   quiet = FALSE
@@ -64,6 +65,18 @@ masque(
   Hide column names; see
   [`mask()`](https://max578.github.io/masque/reference/mask.md) /
   [`mask_set()`](https://max578.github.io/masque/reference/mask_set.md).
+
+- conditional:
+
+  Logical scalar (default `FALSE`). The conditional clone mode passed
+  through to
+  [`mask()`](https://max578.github.io/masque/reference/mask.md) /
+  [`mask_set()`](https://max578.github.io/masque/reference/mask_set.md):
+  when `TRUE`, numeric columns are re-simulated within each
+  treatment-by-design stratum so the treatment-to-outcome relationship
+  survives the clone. See
+  [`mask()`](https://max578.github.io/masque/reference/mask.md) for the
+  full account.
 
 - ask:
 

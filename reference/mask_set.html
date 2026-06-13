@@ -19,7 +19,7 @@ synthetic set still resolves on the masked data."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">masque</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.6.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.7.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -45,7 +45,7 @@ synthetic set still resolves on the masked data."></head><body>
   <main id="main" class="col-md-9"><div class="page-header">
 
       <h1>Mask a multi-table set with cross-table-consistent aliasing</h1>
-      <small class="dont-index">Source: <a href="https://github.com/max578/masque/blob/v0.6.0/R/mask_set.R" class="external-link"><code>R/mask_set.R</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/max578/masque/blob/main/R/mask_set.R" class="external-link"><code>R/mask_set.R</code></a></small>
       <div class="d-none name"><code>mask_set.Rd</code></div>
     </div>
 
@@ -69,6 +69,7 @@ synthetic set still resolves on the masked data.</p>
 <span>  seed <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  clean <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"auto"</span>, <span class="st">"report"</span>, <span class="st">"off"</span><span class="op">)</span>,</span>
 <span>  alias_names <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  conditional <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  quiet <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
@@ -113,6 +114,14 @@ linking entirely (each table masked independently). When <code>NULL</code>
 <dd><p>Hide column names. <code>FALSE</code> (default) keeps them;
 <code>TRUE</code> aliases every non-link column (linked join keys keep their
 names so the synthetic set stays joinable).</p></dd>
+
+
+<dt id="arg-conditional">conditional<a class="anchor" aria-label="anchor" href="#arg-conditional"></a></dt>
+<dd><p>Logical scalar (default <code>FALSE</code>). Passed through to
+each per-table <code><a href="mask.html">mask()</a></code> call: when <code>TRUE</code>, every table's numeric
+block is re-simulated within its own treatment-by-design strata so
+the treatment-to-outcome relationship survives the clone. See
+<code><a href="mask.html">mask()</a></code> for the full account.</p></dd>
 
 
 <dt id="arg-quiet">quiet<a class="anchor" aria-label="anchor" href="#arg-quiet"></a></dt>

@@ -90,6 +90,9 @@ before using.
 - Provides two explicit modes: `local` for owner-only realistic
   surrogates, and `collaborate` for controlled sharing with opaque
   aliasing, numeric jitter, and an automatic leakage audit.
+- Preserves the treatment-to-outcome relationship on request
+  (`conditional = TRUE`), so a causal model fitted on the clone recovers
+  the real treatment effect, not just the marginal distribution.
 - Records every translation (column names, factor levels) in a private
   `recipe` object that is, at minimum, as sensitive as the original
   data.

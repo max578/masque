@@ -20,6 +20,7 @@ mask_set(
   seed = NULL,
   clean = c("auto", "report", "off"),
   alias_names = FALSE,
+  conditional = FALSE,
   quiet = FALSE
 )
 ```
@@ -67,6 +68,16 @@ mask_set(
   Hide column names. `FALSE` (default) keeps them; `TRUE` aliases every
   non-link column (linked join keys keep their names so the synthetic
   set stays joinable).
+
+- conditional:
+
+  Logical scalar (default `FALSE`). Passed through to each per-table
+  [`mask()`](https://max578.github.io/masque/reference/mask.md) call:
+  when `TRUE`, every table's numeric block is re-simulated within its
+  own treatment-by-design strata so the treatment-to-outcome
+  relationship survives the clone. See
+  [`mask()`](https://max578.github.io/masque/reference/mask.md) for the
+  full account.
 
 - quiet:
 

@@ -22,7 +22,7 @@
 
     <a class="navbar-brand me-2" href="index.html">masque</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.6.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.7.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -108,6 +108,7 @@
 <ul>
 <li>Preserves enough structure for pipelines to run unchanged.</li>
 <li>Provides two explicit modes: <code>local</code> for owner-only realistic surrogates, and <code>collaborate</code> for controlled sharing with opaque aliasing, numeric jitter, and an automatic leakage audit.</li>
+<li>Preserves the treatment-to-outcome relationship on request (<code>conditional = TRUE</code>), so a causal model fitted on the clone recovers the real treatment effect, not just the marginal distribution.</li>
 <li>Records every translation (column names, factor levels) in a private <code>recipe</code> object that is, at minimum, as sensitive as the original data.</li>
 <li>Audits its own output (<code><a href="reference/audit_mask.html">audit_mask()</a></code>) and flags realistic leakage risks before sharing.</li>
 </ul>

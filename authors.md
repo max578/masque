@@ -9,16 +9,16 @@
 ## Citation
 
 Source:
-[`inst/CITATION`](https://github.com/max578/masque/blob/v0.6.0/inst/CITATION)
+[`inst/CITATION`](https://github.com/max578/masque/blob/main/inst/CITATION)
 
 Moldovan M (2026). *masque: Structurally Faithful Development Surrogates
-for Tabular Data*. R package version 0.4.0,
+for Tabular Data*. R package version 0.7.0,
 <https://github.com/max578/masque>.
 
     @Manual{,
       title = {{masque}: Structurally Faithful Development Surrogates for Tabular Data},
       author = {Max Moldovan},
       year = {2026},
-      note = {R package version 0.4.0},
+      note = {R package version 0.7.0},
       url = {https://github.com/max578/masque},
     }

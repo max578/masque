@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">masque</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.6.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.7.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -33,9 +33,25 @@
   <main id="main" class="col-md-9"><div class="page-header">
 
       <h1>Changelog</h1>
-      <small>Source: <a href="https://github.com/max578/masque/blob/v0.6.0/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
+      <small>Source: <a href="https://github.com/max578/masque/blob/main/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.7.0" id="masque-070">masque 0.7.0<a class="anchor" aria-label="anchor" href="#masque-070"></a></h2>
+<p>A conditional clone mode that preserves the treatment-to-outcome relationship, so a causal model fitted on the synthetic recovers the real treatment effect – not just the marginal distribution.</p>
+<div class="section level3">
+<h3 id="new-features-0-7-0">New features<a class="anchor" aria-label="anchor" href="#new-features-0-7-0"></a></h3>
+<ul><li>
+<p><code><a href="../reference/mask.html">mask()</a></code>, <code><a href="../reference/mask_set.html">mask_set()</a></code>, and <code><a href="../reference/masque.html">masque()</a></code> gain a <code>conditional</code> argument (default <code>FALSE</code>). With <code>conditional = TRUE</code>, the numeric block is re-simulated <em>within each treatment-by-design stratum</em> rather than from one global Gaussian copula, so a row’s synthetic outcome inherits the location of the treatment that row carries. The treatment-to-outcome map – the quantity a causal model reads – survives the clone, within sampling tolerance. The default <code>conditional = FALSE</code> preserves the exact 0.6.0 behaviour (global copula, marginal and structural fidelity only), so existing scripts are byte-identical.</p>
+<p>The motivation: structural and marginal fidelity alone are <em>not</em> sufficient for causal inference. A clone that matches every marginal and the global covariance can still sever the relationship between an arm and its response, because the outcomes are drawn from the pooled distribution and the treatment labels are relabelled independently. A model fitted on such a clone returns a null effect. Conditional cloning is the data-side analogue of preserving a conditional mean embedding rather than a pooled marginal.</p>
+</li>
+</ul></div>
+<div class="section level3">
+<h3 id="minor-improvements-and-fixes-0-7-0">Minor improvements and fixes<a class="anchor" aria-label="anchor" href="#minor-improvements-and-fixes-0-7-0"></a></h3>
+<ul><li>The <code>masque_recipe</code> records two new fields, <code>conditional</code> (logical) and <code>conditioning_cols</code> (the treatment and retained design columns the clone stratified on), and <code>print(recipe(m))</code> now reports the clone fidelity (marginal / structural versus conditional). Recipes written by masque 0.6.0 and earlier read back with the back-compatible defaults (<code>conditional = FALSE</code>, no conditioning columns).</li>
+<li>Strata too small to fit a stratum-local copula are pooled into a graceful global fallback, so a conditional clone never fails on a sparse design cell; with no treatment or design column to condition on, the path degrades cleanly to the global copula with a note.</li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.6.0" id="masque-060">masque 0.6.0<a class="anchor" aria-label="anchor" href="#masque-060"></a></h2>
 <p>A two-axis roles step, a hygiene layer, column-name aliasing, a multi-table set layer, and a single guided verb turn masque into an end-to-end tool for confidential tabular data.</p>

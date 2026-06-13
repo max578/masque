@@ -18,6 +18,7 @@ mask(
   seed = NULL,
   clean = c("auto", "report", "off"),
   alias_names = FALSE,
+  conditional = FALSE,
   .shared_maps = list(),
   ...
 )
@@ -68,6 +69,23 @@ mask(
   so a pipeline written against the aliased synthetic round-trips.
   Column names are the last identifying surface a kept or design column
   exposes; alias them when even the schema is sensitive.
+
+- conditional:
+
+  Logical scalar (default `FALSE`). The *collaborate-grade conditional
+  clone*. When `FALSE`, scrambled numeric columns are re-simulated from
+  one global Gaussian copula - marginals and global covariance survive,
+  but the treatment-to-outcome relationship does not, so a causal model
+  fitted on the clone recovers a null effect. When `TRUE`, the numeric
+  block is re-simulated *within each treatment-by-design stratum*, so a
+  row's synthetic outcome inherits the location of the treatment that
+  row carries. A causal model fitted on the conditional clone recovers
+  the real treatment effect within sampling tolerance - the data-side
+  analogue of preserving a conditional mean embedding rather than a
+  pooled marginal. The conditioning columns (treatment plus retained
+  design) are recorded on the recipe. With no treatment or design column
+  to condition on, the path degrades cleanly to the global copula and a
+  note is emitted.
 
 - .shared_maps:
 
