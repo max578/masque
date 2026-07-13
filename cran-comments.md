@@ -2,12 +2,15 @@
 
 ## Submission notes
 
-`masque` 0.6.0 is the first submission to CRAN. It supersedes the
-locally-tagged 0.4.x / 0.5.0 development line and adds the end-to-end
-surface: a two-axis roles model (a `role` and an `action` per column),
-a hygiene layer, opt-in column-name aliasing, a multi-table set layer
-with cross-table-consistent key aliasing, and a single guided `masque()`
-verb. See `NEWS.md` for the full change list.
+`masque` 0.8.0 is the first submission to CRAN. It carries the full
+end-to-end surface built over the 0.2-0.7 development line - a two-axis
+roles model (a `role` and an `action` per column), a hygiene layer,
+opt-in column-name aliasing, a multi-table set layer with
+cross-table-consistent key aliasing, a conditional clone mode, and a
+single guided `masque()` verb - plus the 0.8.0 safety correction: HIGH
+leakage findings are raised as classed warnings that the guided flow
+never silences, and package-managed writers refuse to write while a
+HIGH finding stands. See `NEWS.md` for the full change list.
 
 ## R CMD check results
 
