@@ -4,7 +4,7 @@
 \alias{write_set}
 \title{Write a masked set to disk, mirroring the input format}
 \usage{
-write_set(m, path, overwrite = FALSE)
+write_set(m, path, overwrite = FALSE, allow_high = FALSE)
 }
 \arguments{
 \item{m}{A \code{masque_set} object from \code{\link[=mask_set]{mask_set()}}.}
@@ -16,6 +16,10 @@ treated as a folder, created if necessary, and receives one
 
 \item{overwrite}{Logical. When \code{FALSE} (default), writing over an
 existing file or a non-empty folder errors.}
+
+\item{allow_high}{Logical (default \code{FALSE}). Override the HIGH-leakage
+write refusal after your own review; the override is raised as a
+\code{masque_high_override} warning.}
 }
 \value{
 \code{path}, invisibly.
@@ -27,6 +31,13 @@ workbook with one sheet per table; a folder path produces one \code{.csv}
 per table. The private recipe bundle is \strong{never} written by this
 function - persist it separately with \code{\link[=save_recipe]{save_recipe()}} and protect it
 at the same security class as the original data.
+}
+\details{
+In collaborate mode the mask-time audit gates the write: unresolved
+HIGH leakage findings refuse the write (nothing is written) until the
+flagged columns are re-roled, aliased, or dropped - or the refusal is
+explicitly overridden with \code{allow_high = TRUE}, which raises a
+\code{masque_high_override} warning so the exception stays visible.
 }
 \examples{
 tables <- list(

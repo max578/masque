@@ -122,10 +122,12 @@ test_that("Explicit keep columns pass through collaborate mode unchanged", {
   )
 })
 
-test_that("mask(mode = 'local') prints the not-for-sharing warning", {
+test_that("mask(mode = 'local') emits no advisory warning (channel separation)", {
   r <- propose_roles(iris)
   r$role[r$col == "Sepal.Length"] <- "outcome"
-  expect_warning(mask(iris, r), "local mode")
+  expect_no_warning(m <- mask(iris, r, seed = 1))
+  # The reminder is recorded on the recipe, not signalled as a warning.
+  expect_true(any(grepl("local mode", recipe(m)@warnings)))
 })
 
 test_that("mask() errors on non-data-frame input", {

@@ -105,7 +105,14 @@ S7::method(print, masque_obj) <- function(x, ...) {
       if (is.null(x@audit)) {
         "not run (use audit_mask())"
       } else {
-        sprintf("%d row(s)", nrow(x@audit))
+        tally <- .audit_tally(x)
+        paste0(
+          sprintf(
+            "%d HIGH, %d medium, %d low",
+            tally[["high"]], tally[["medium"]], tally[["low"]]
+          ),
+          if (tally[["high"]] > 0L) " - package-managed writing blocked" else ""
+        )
       }
     )
   ))
@@ -144,7 +151,7 @@ S7::method(print, masque_obj) <- function(x, ...) {
 #' r <- propose_roles(iris)
 #' r$role[r$col == "Sepal.Length"] <- "outcome"
 #' r$role[r$col == "Species"] <- "covariate"
-#' m <- suppressWarnings(mask(iris, r, mode = "collaborate", seed = 1))
+#' m <- mask(iris, r, mode = "collaborate", seed = 1)
 #' rec <- recipe(m)
 #' reveal_maps(rec)
 #' @export

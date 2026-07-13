@@ -116,7 +116,7 @@ mask_set <- function(input,
 
   for (nm in table_names) {
     aln <- .table_alias_names(alias_names, names(tables[[nm]]), linked_cols)
-    m <- suppressWarnings(mask(
+    m <- mask(
       tables[[nm]],
       roles = roles[[nm]],
       mode = mode,
@@ -125,7 +125,7 @@ mask_set <- function(input,
       alias_names = aln,
       conditional = conditional,
       .shared_maps = shared_by_table[[nm]]
-    ))
+    )
     synth_tables[[nm]] <- synthetic(m)
     recipes[[nm]] <- recipe(m)
     audits[[nm]] <- m@audit

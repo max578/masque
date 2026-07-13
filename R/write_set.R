@@ -7,6 +7,12 @@
 #' function - persist it separately with [save_recipe()] and protect it
 #' at the same security class as the original data.
 #'
+#' In collaborate mode the mask-time audit gates the write: unresolved
+#' HIGH leakage findings refuse the write (nothing is written) until the
+#' flagged columns are re-roled, aliased, or dropped - or the refusal is
+#' explicitly overridden with `allow_high = TRUE`, which raises a
+#' `masque_high_override` warning so the exception stays visible.
+#'
 #' @param m A `masque_set` object from [mask_set()].
 #' @param path Output location. A path ending in `.xlsx` writes a
 #'   workbook (needs the Suggested `writexl` package); any other path is
@@ -14,6 +20,9 @@
 #'   `<table>.csv` per table.
 #' @param overwrite Logical. When `FALSE` (default), writing over an
 #'   existing file or a non-empty folder errors.
+#' @param allow_high Logical (default `FALSE`). Override the HIGH-leakage
+#'   write refusal after your own review; the override is raised as a
+#'   `masque_high_override` warning.
 #'
 #' @return `path`, invisibly.
 #'
@@ -29,7 +38,7 @@
 #'
 #' @seealso [mask_set()], [read_set()], [save_recipe()].
 #' @export
-write_set <- function(m, path, overwrite = FALSE) {
+write_set <- function(m, path, overwrite = FALSE, allow_high = FALSE) {
   if (!S7::S7_inherits(m, masque_set)) {
     cli::cli_abort(
       "`m` must be a {.cls masque_set} object; got {.cls {class(m)[1]}}."
@@ -38,14 +47,19 @@ write_set <- function(m, path, overwrite = FALSE) {
   if (!is.character(path) || length(path) != 1L || !nzchar(path)) {
     cli::cli_abort("`path` must be a single non-empty string.")
   }
-  tables <- m@synthetic
+  .gate_release(m, allow_high)
+  .write_set_dispatch(m@synthetic, path, overwrite)
+  invisible(path)
+}
 
+# Format dispatch shared with the guided writer (which runs its own
+# gate before calling this).
+.write_set_dispatch <- function(tables, path, overwrite) {
   if (grepl("\\.xlsx$", path, ignore.case = TRUE)) {
     .write_set_excel(tables, path, overwrite)
   } else {
     .write_set_folder(tables, path, overwrite)
   }
-  invisible(path)
 }
 
 .write_set_excel <- function(tables, path, overwrite) {

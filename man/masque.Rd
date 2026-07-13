@@ -15,7 +15,8 @@ masque(
   conditional = FALSE,
   ask = interactive(),
   overwrite = FALSE,
-  quiet = FALSE
+  quiet = FALSE,
+  allow_high = FALSE
 )
 }
 \arguments{
@@ -52,7 +53,14 @@ the proposed plan without prompting.}
 
 \item{overwrite}{Passed to the writer when \code{out} is set.}
 
-\item{quiet}{Suppress progress messages.}
+\item{quiet}{Suppress progress messages. Warnings - including the
+HIGH-leakage finding - are never suppressed.}
+
+\item{allow_high}{Logical (default \code{FALSE}). When \code{out} is set and
+the collaborate-mode audit flagged HIGH leakage, the write is
+refused. Pass \code{TRUE} to write anyway after your own review; the
+override raises a \code{masque_high_override} warning and is recorded in
+the recipe's warnings, so the exception stays auditable.}
 }
 \value{
 A \code{masque} object (single-table input) or a \code{masque_set}
@@ -85,10 +93,16 @@ stop. Editing opens the roles table in \code{\link[utils:edit]{utils::edit()}}. 
 plan is used as-is, with a note.
 \item \strong{Mask} the data in the chosen \code{mode}.
 \item \strong{Audit} - in \code{collaborate} mode the leakage audit runs and its
-headline is printed.
+headline is printed. A HIGH finding surfaces as a classed warning
+(\code{masque_high_leakage}) - it is never silenced by the guided flow.
 \item \strong{Write} - if \code{out} is set, the masked data is written there
-(mirroring the input format). The private recipe is never written
-automatically; persist it yourself with \code{\link[=save_recipe]{save_recipe()}}.
+(mirroring the input format), \emph{unless} the audit left unresolved
+HIGH findings: then the write is refused (nothing is written) and
+the flagged columns are listed. Resolve them and mask again, or
+pass \code{allow_high = TRUE} after your own review - the override is
+warned (\code{masque_high_override}) and recorded on the recipe. The
+private recipe is never written automatically; persist it yourself
+with \code{\link[=save_recipe]{save_recipe()}}.
 }
 }
 

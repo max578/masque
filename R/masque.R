@@ -24,10 +24,16 @@
 #'    plan is used as-is, with a note.
 #' 4. **Mask** the data in the chosen `mode`.
 #' 5. **Audit** - in `collaborate` mode the leakage audit runs and its
-#'    headline is printed.
+#'    headline is printed. A HIGH finding surfaces as a classed warning
+#'    (`masque_high_leakage`) - it is never silenced by the guided flow.
 #' 6. **Write** - if `out` is set, the masked data is written there
-#'    (mirroring the input format). The private recipe is never written
-#'    automatically; persist it yourself with [save_recipe()].
+#'    (mirroring the input format), *unless* the audit left unresolved
+#'    HIGH findings: then the write is refused (nothing is written) and
+#'    the flagged columns are listed. Resolve them and mask again, or
+#'    pass `allow_high = TRUE` after your own review - the override is
+#'    warned (`masque_high_override`) and recorded on the recipe. The
+#'    private recipe is never written automatically; persist it yourself
+#'    with [save_recipe()].
 #'
 #' @param input A data frame, a single tabular file (`.csv` / `.tsv` /
 #'   `.fst`), a folder of such files, an Excel workbook, or a named list
@@ -52,7 +58,13 @@
 #'   supplied. Defaults to [interactive()]. Set `FALSE` to proceed with
 #'   the proposed plan without prompting.
 #' @param overwrite Passed to the writer when `out` is set.
-#' @param quiet Suppress progress messages.
+#' @param quiet Suppress progress messages. Warnings - including the
+#'   HIGH-leakage finding - are never suppressed.
+#' @param allow_high Logical (default `FALSE`). When `out` is set and
+#'   the collaborate-mode audit flagged HIGH leakage, the write is
+#'   refused. Pass `TRUE` to write anyway after your own review; the
+#'   override raises a `masque_high_override` warning and is recorded in
+#'   the recipe's warnings, so the exception stays auditable.
 #'
 #' @return A `masque` object (single-table input) or a `masque_set`
 #'   object (set input), invisibly. Use [synthetic()] and [recipe()].
@@ -77,7 +89,8 @@ masque <- function(input,
                    conditional = FALSE,
                    ask = interactive(),
                    overwrite = FALSE,
-                   quiet = FALSE) {
+                   quiet = FALSE,
+                   allow_high = FALSE) {
   mode <- match.arg(mode)
   clean <- match.arg(clean)
 
@@ -94,7 +107,7 @@ masque <- function(input,
   }
 
   if (!is.null(out)) {
-    .masque_write(m, out, overwrite, quiet)
+    m <- .masque_write(m, out, overwrite, quiet, allow_high)
   }
   if (!quiet) .masque_summary(m)
   invisible(m)
@@ -128,18 +141,18 @@ masque <- function(input,
                                alias_names, conditional, ask, quiet) {
   df <- if (is.data.frame(input)) input else .read_one_file(input)
   if (!is.null(roles)) {
-    return(suppressWarnings(mask(
+    return(mask(
       df, roles, mode = mode, seed = seed, clean = clean,
       alias_names = alias_names, conditional = conditional
-    )))
+    ))
   }
 
   proposed <- propose_roles(df, mode = mode)
   proposed <- .masque_review(proposed, ask, quiet, label = NULL)
-  suppressWarnings(mask(
+  mask(
     df, proposed, mode = mode, seed = seed, clean = clean,
     alias_names = alias_names, conditional = conditional
-  ))
+  )
 }
 
 .masque_guided_set <- function(input, roles, mode, seed, clean,
@@ -219,13 +232,19 @@ masque <- function(input,
   tibble::as_tibble(edited)
 }
 
-.masque_write <- function(m, out, overwrite, quiet) {
+.masque_write <- function(m, out, overwrite, quiet, allow_high = FALSE) {
+  # Safety gate first: aborts on unresolved HIGH findings (nothing
+  # written); with allow_high = TRUE the override is warned and recorded
+  # on the recipe so the exception survives with the private artefact.
+  overridden <- .gate_release(m, allow_high)
+  m <- .record_override(m, overridden)
   if (S7::S7_inherits(m, masque_set)) {
-    write_set(m, out, overwrite = overwrite)
+    .write_set_dispatch(m@synthetic, out, overwrite)
   } else {
     .write_one(synthetic(m), out, overwrite)
   }
   if (!quiet) cli::cli_alert_success("Wrote masked output to {.file {out}}.")
+  m
 }
 
 # Single-table writer: .xlsx via writexl, otherwise a CSV via fwrite.
@@ -249,17 +268,46 @@ masque <- function(input,
 .masque_summary <- function(m) {
   if (S7::S7_inherits(m, masque_set)) {
     n <- length(m@synthetic)
-    cli::cli_alert_success(
-      "Masked {n} table{?s} in {.val {m@mode}} mode."
-    )
+    headline <- "Masked {n} table{?s} in {.val {m@mode}} mode"
   } else {
-    cli::cli_alert_success(
-      "Masked {ncol(synthetic(m))} column{?s} in {.val {m@mode}} mode."
-    )
+    headline <- "Masked {ncol(synthetic(m))} column{?s} in {.val {m@mode}} mode"
   }
-  if (identical(m@mode, "collaborate")) {
+
+  status <- .release_status(m)
+  tally <- .audit_tally(m)
+  if (!is.null(tally)) {
+    cli::cli_alert_success(paste0(
+      headline,
+      sprintf(
+        " - audit: %d HIGH, %d medium, %d low.",
+        tally[["high"]], tally[["medium"]], tally[["low"]]
+      )
+    ))
+  } else {
+    cli::cli_alert_success(paste0(headline, "."))
+  }
+
+  if (identical(status, "blocked")) {
+    flagged <- paste(.audit_high_cols(m), collapse = ", ")
+    cli::cli_alert_danger(
+      "BLOCKED: unresolved HIGH leakage on {flagged}."
+    )
     cli::cli_alert_info(
-      "Recipe is private - keep it; share only the synthetic output."
+      "Next: re-role, alias, or drop the flagged column(s), then mask again."
+    )
+    return(invisible(m))
+  }
+
+  if (identical(m@mode, "collaborate")) {
+    cli::cli_alert_info(paste0(
+      "Recipe is private - keep it. Review {.code audit_mask(m)} before ",
+      "any release decision; masque informs that decision, it does not ",
+      "make it."
+    ))
+  } else {
+    cli::cli_alert_info(
+      "Local development copy - owner use only, not for external sharing."
     )
   }
+  invisible(m)
 }

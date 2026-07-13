@@ -6,15 +6,23 @@
 #' `masque` S7 object holding the synthetic data and a private
 #' `masque_recipe`.
 #'
-#' `mode = "local"` warns that the synthetic is for owner development
-#' only. `mode = "collaborate"` additionally jitters re-simulated
-#' numerics within their measurement resolution (stochastically rounding
-#' integers) and runs [audit_mask()] automatically; the resulting
-#' synthetic can be passed to a collaborator while the recipe stays
-#' private. Which columns are aliased, kept, or dropped is decided by
-#' the `action` column of `roles` - [propose_roles()] resolves
-#' mode-appropriate defaults, so the table you reviewed is the plan that
-#' runs.
+#' `mode = "local"` marks the synthetic for owner development only; the
+#' reminder is recorded on the recipe and shown when the object prints.
+#' `mode = "collaborate"` additionally jitters re-simulated numerics
+#' within their measurement resolution (stochastically rounding
+#' integers) and runs [audit_mask()] automatically; a HIGH finding is
+#' raised as a classed warning (`masque_high_leakage`) and blocks the
+#' package-managed writers ([masque()]'s `out`, [write_set()]) until it
+#' is resolved or explicitly overridden. Which columns are aliased,
+#' kept, or dropped is decided by the `action` column of `roles` -
+#' [propose_roles()] resolves mode-appropriate defaults, so the table
+#' you reviewed is the plan that runs.
+#'
+#' Collaborate mode adjusts the transformations and runs the audit; it
+#' does not model where the output will go. Whether a synthetic table is
+#' appropriate for a given collaborator, environment, or jurisdiction is
+#' a release decision that stays with the data custodian - masque
+#' informs that decision, it does not make it.
 #'
 #' @section Behaviour by action:
 #'
@@ -78,7 +86,8 @@
 #' @param .shared_maps Internal. A named list of pre-computed
 #'   `original -> alias` level maps for cross-table linked columns, set
 #'   by [mask_set()]. Not for direct use.
-#' @param ... Currently ignored.
+#' @param ... Must be empty. An unused argument (for example a
+#'   misspelled name) errors rather than being silently ignored.
 #'
 #' @return A `masque` S7 object. Use [synthetic()] and [recipe()] to
 #'   extract the components.
@@ -86,7 +95,7 @@
 #' @examples
 #' r <- propose_roles(iris)
 #' r <- set_role(r, "Sepal.Length", role = "outcome")
-#' m <- suppressWarnings(mask(iris, r, seed = 1))
+#' m <- mask(iris, r, seed = 1)
 #' head(synthetic(m))
 #'
 #' @seealso [propose_roles()], [set_role()], [roles_validate()],
@@ -102,6 +111,23 @@ mask <- function(df,
                  conditional = FALSE,
                  .shared_maps = list(),
                  ...) {
+  # A misspelled argument silently swallowed by `...` looks like success;
+  # error on anything unused.
+  if (...length() > 0L) {
+    dot_names <- names(list(...))
+    dot_names <- dot_names[nzchar(dot_names)]
+    unused <- if (length(dot_names)) {
+      paste0(" ", paste0("`", dot_names, "`", collapse = ", "))
+    } else {
+      ""
+    }
+    label <- if (...length() == 1L) "argument" else "arguments"
+    cli::cli_abort(c(
+      paste0("Unused ", label, unused, " passed to `mask()`."),
+      i = "Check for misspelled argument names."
+    ))
+  }
+
   # Belt-and-braces RNG hygiene: any RNG perturbation inside mask() is
   # rolled back when the function exits, regardless of which path produced
   # it. The inner with_rng_state still controls per-step reproducibility.
@@ -174,13 +200,16 @@ mask <- function(df,
     }
   }
 
+  # Local mode: the owner-development reminder is recorded on the recipe
+  # and shown when the object prints / summarises. It is deliberately NOT
+  # a warning() - an unconditional advisory on every call trains callers
+  # to blanket-suppress, which then also swallows the genuine
+  # HIGH-leakage warning below (the v0.7.x guided-flow defect).
   if (identical(mode, "local")) {
-    msg <- paste0(
+    warnings_acc <- c(warnings_acc, paste0(
       "local mode: synthetic data is for owner development only, ",
       "not external sharing."
-    )
-    warning(msg, call. = FALSE)
-    warnings_acc <- c(warnings_acc, msg)
+    ))
   }
 
   # Collaborate mode: auto-run audit and propagate high-leakage warnings
@@ -208,7 +237,9 @@ mask <- function(df,
         "audit_mask() flagged HIGH leakage on column(s): %s",
         paste(high_leaks, collapse = ", ")
       )
-      warning(msg, call. = FALSE)
+      # Classed so callers can handle it programmatically; safety
+      # findings are never suppressed by package code.
+      warning(warningCondition(msg, class = "masque_high_leakage"))
       warnings_acc <- c(warnings_acc, msg)
     }
   }

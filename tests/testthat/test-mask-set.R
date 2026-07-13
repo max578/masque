@@ -125,9 +125,12 @@ test_that("write_set mirrors folder format and never writes the recipe", {
 
 test_that("write_set refuses to overwrite without overwrite = TRUE", {
   tables <- make_set()
-  m <- mask_set(tables, roles = trt_roles(tables),
+  # trt_roles() keeps every non-treatment column, so mask() legitimately
+  # warns that nothing will be masked; the warning is not this test's
+  # subject.
+  m <- suppressWarnings(mask_set(tables, roles = trt_roles(tables),
     mode = "local", seed = 1, quiet = TRUE
-  )
+  ))
   d <- withr::local_tempdir()
   write_set(m, d)
   expect_error(write_set(m, d), "already contains")

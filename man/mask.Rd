@@ -65,7 +65,8 @@ note is emitted.}
 \code{original -> alias} level maps for cross-table linked columns, set
 by \code{\link[=mask_set]{mask_set()}}. Not for direct use.}
 
-\item{...}{Currently ignored.}
+\item{...}{Must be empty. An unused argument (for example a
+misspelled name) errors rather than being silently ignored.}
 }
 \value{
 A \code{masque} S7 object. Use \code{\link[=synthetic]{synthetic()}} and \code{\link[=recipe]{recipe()}} to
@@ -79,15 +80,23 @@ a synthetic clone according to each column's \code{action}. Returns a
 \code{masque_recipe}.
 }
 \details{
-\code{mode = "local"} warns that the synthetic is for owner development
-only. \code{mode = "collaborate"} additionally jitters re-simulated
-numerics within their measurement resolution (stochastically rounding
-integers) and runs \code{\link[=audit_mask]{audit_mask()}} automatically; the resulting
-synthetic can be passed to a collaborator while the recipe stays
-private. Which columns are aliased, kept, or dropped is decided by
-the \code{action} column of \code{roles} - \code{\link[=propose_roles]{propose_roles()}} resolves
-mode-appropriate defaults, so the table you reviewed is the plan that
-runs.
+\code{mode = "local"} marks the synthetic for owner development only; the
+reminder is recorded on the recipe and shown when the object prints.
+\code{mode = "collaborate"} additionally jitters re-simulated numerics
+within their measurement resolution (stochastically rounding
+integers) and runs \code{\link[=audit_mask]{audit_mask()}} automatically; a HIGH finding is
+raised as a classed warning (\code{masque_high_leakage}) and blocks the
+package-managed writers (\code{\link[=masque]{masque()}}'s \code{out}, \code{\link[=write_set]{write_set()}}) until it
+is resolved or explicitly overridden. Which columns are aliased,
+kept, or dropped is decided by the \code{action} column of \code{roles} -
+\code{\link[=propose_roles]{propose_roles()}} resolves mode-appropriate defaults, so the table
+you reviewed is the plan that runs.
+
+Collaborate mode adjusts the transformations and runs the audit; it
+does not model where the output will go. Whether a synthetic table is
+appropriate for a given collaborator, environment, or jurisdiction is
+a release decision that stays with the data custodian - masque
+informs that decision, it does not make it.
 }
 \section{Behaviour by action}{
 
@@ -116,7 +125,7 @@ state is preserved across the call.
 \examples{
 r <- propose_roles(iris)
 r <- set_role(r, "Sepal.Length", role = "outcome")
-m <- suppressWarnings(mask(iris, r, seed = 1))
+m <- mask(iris, r, seed = 1)
 head(synthetic(m))
 
 }
