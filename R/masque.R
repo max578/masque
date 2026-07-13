@@ -19,9 +19,14 @@
 #' 2. **Propose roles** for every column (skipped if you pass `roles`).
 #' 3. **Review** - in an interactive session with no `roles` supplied,
 #'    the proposed plan is printed and you are asked to proceed, edit, or
-#'    stop. Editing opens the roles table in [utils::edit()]. With
-#'    `ask = FALSE` (the default in non-interactive use) the proposed
-#'    plan is used as-is, with a note.
+#'    stop. Editing opens the roles table in the spreadsheet editor
+#'    ([utils::edit()]) where the platform provides one; when it cannot
+#'    start (for example macOS without XQuartz, or a headless session), a
+#'    console editor takes over - pick a column, then a role and an
+#'    action from numbered menus, with every change applied through
+#'    [set_role()] so default actions re-resolve exactly as on the
+#'    scriptable path. With `ask = FALSE` (the default in
+#'    non-interactive use) the proposed plan is used as-is, with a note.
 #' 4. **Mask** the data in the chosen `mode`.
 #' 5. **Audit** - in `collaborate` mode the leakage audit runs and its
 #'    headline is printed. A HIGH finding surfaces as a classed warning
@@ -205,6 +210,8 @@ masque <- function(input,
     ans <- tolower(trimws(readline(
       "Proceed [p], edit roles [e], or quit [q]? "
     )))
+    # Accept "[e]" for "e" - the bracketed prompt notation invites it.
+    ans <- gsub("^\\[|\\]$", "", ans)
     if (ans %in% c("", "p", "proceed", "y", "yes")) {
       return(roles)
     }
@@ -223,13 +230,117 @@ masque <- function(input,
   }
 }
 
+# The spreadsheet editor when the platform provides one, else a console
+# fallback. utils::edit() on a data frame needs the X11 dataentry widget
+# on macOS terminal R (XQuartz) and is unavailable on headless systems;
+# an editor failure must return the user to the review loop with their
+# proposal intact, never destroy the guided session.
 .masque_edit <- function(roles) {
-  edited <- utils::edit(as.data.frame(roles))
+  edited <- tryCatch(.masque_edit_gui(roles), error = function(e) e)
+  if (inherits(edited, "error")) {
+    cli::cli_alert_warning(
+      "The spreadsheet editor is unavailable: {conditionMessage(edited)}"
+    )
+    cli::cli_alert_info("Switching to the console editor.")
+    return(.masque_edit_console(roles))
+  }
   # Preserve the provenance attributes utils::edit() drops.
   for (a in c("mode", "proposed_actions", "design")) {
     if (is.null(attr(edited, a))) attr(edited, a) <- attr(roles, a)
   }
   tibble::as_tibble(edited)
+}
+
+# Thin indirection so tests can simulate editor failure and edits.
+.masque_edit_gui <- function(roles) {
+  utils::edit(as.data.frame(roles))
+}
+
+# Dependency-free console editor: pick a column, then a role and an
+# action from numbered menus. Every change flows through set_role(), so
+# validation, vocabulary, and default-action re-resolution match the
+# scriptable path exactly (a re-roled column never carries a stale
+# action). Blank input finishes; attributes survive because set_role()
+# never drops them.
+.masque_edit_console <- function(roles) {
+  repeat {
+    shown <- roles[, intersect(c("col", "role", "action", "kind"),
+      names(roles)
+    )]
+    print(shown)
+    ans <- trimws(.masque_readline(
+      "Column to edit (name or row number; blank when done): "
+    ))
+    if (!nzchar(ans)) {
+      return(roles)
+    }
+    col <- .masque_resolve_col(ans, roles$col)
+    if (is.null(col)) {
+      cli::cli_alert_warning(
+        "No column {.val {ans}} - enter a listed name or its row number."
+      )
+      next
+    }
+    i <- match(col, roles$col)
+    cur_action <- if ("action" %in% names(roles)) roles$action[i] else NA
+    role <- .masque_pick("role", roles$role[i], .roles_vocab())
+    action <- .masque_pick("action", cur_action, .actions_vocab())
+    if (is.null(role) && is.null(action)) {
+      cli::cli_alert_info("{.field {col}} unchanged.")
+      next
+    }
+    args <- list(roles = roles, cols = col)
+    if (!is.null(role)) args$role <- role
+    if (!is.null(action)) args$action <- action
+    roles <- do.call(set_role, args)
+    cli::cli_alert_success("{.field {col}} updated.")
+  }
+}
+
+# A column reference typed at the console: a row number or an exact name.
+.masque_resolve_col <- function(ans, cols) {
+  n <- suppressWarnings(as.integer(ans))
+  if (!is.na(n)) {
+    if (n >= 1L && n <= length(cols)) {
+      return(cols[[n]])
+    }
+    return(NULL)
+  }
+  if (ans %in% cols) {
+    return(ans)
+  }
+  NULL
+}
+
+# Numbered single-choice prompt; blank (or an invalid entry) keeps the
+# current value and returns NULL.
+.masque_pick <- function(what, current, vocab) {
+  cat(sprintf(
+    "  %s: %s\n", what,
+    paste(sprintf("[%d] %s", seq_along(vocab), vocab), collapse = "  ")
+  ))
+  ans <- trimws(.masque_readline(sprintf(
+    "New %s (number or name; blank keeps \"%s\"): ", what, current
+  )))
+  if (!nzchar(ans)) {
+    return(NULL)
+  }
+  n <- suppressWarnings(as.integer(ans))
+  if (!is.na(n) && n >= 1L && n <= length(vocab)) {
+    return(vocab[[n]])
+  }
+  if (ans %in% vocab) {
+    return(ans)
+  }
+  cli::cli_alert_warning(
+    "{.val {ans}} is not a valid {what}; keeping {.val {current}}."
+  )
+  NULL
+}
+
+# readline() indirection so the console editor is testable.
+.masque_readline <- function(prompt) {
+  readline(prompt)
 }
 
 .masque_write <- function(m, out, overwrite, quiet, allow_high = FALSE) {

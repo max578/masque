@@ -88,9 +88,14 @@ anything you can do with those you can do with the result here.
 \item \strong{Propose roles} for every column (skipped if you pass \code{roles}).
 \item \strong{Review} - in an interactive session with no \code{roles} supplied,
 the proposed plan is printed and you are asked to proceed, edit, or
-stop. Editing opens the roles table in \code{\link[utils:edit]{utils::edit()}}. With
-\code{ask = FALSE} (the default in non-interactive use) the proposed
-plan is used as-is, with a note.
+stop. Editing opens the roles table in the spreadsheet editor
+(\code{\link[utils:edit]{utils::edit()}}) where the platform provides one; when it cannot
+start (for example macOS without XQuartz, or a headless session), a
+console editor takes over - pick a column, then a role and an
+action from numbered menus, with every change applied through
+\code{\link[=set_role]{set_role()}} so default actions re-resolve exactly as on the
+scriptable path. With \code{ask = FALSE} (the default in
+non-interactive use) the proposed plan is used as-is, with a note.
 \item \strong{Mask} the data in the chosen \code{mode}.
 \item \strong{Audit} - in \code{collaborate} mode the leakage audit runs and its
 headline is printed. A HIGH finding surfaces as a classed warning
