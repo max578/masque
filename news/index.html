@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">masque</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.8.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.8.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -36,6 +36,14 @@
       <small>Source: <a href="https://github.com/max578/masque/blob/main/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.8.1" id="masque-081">masque 0.8.1<a class="anchor" aria-label="anchor" href="#masque-081"></a></h2>
+<div class="section level3">
+<h3 id="bug-fixes-0-8-1">Bug fixes<a class="anchor" aria-label="anchor" href="#bug-fixes-0-8-1"></a></h3>
+<ul><li>The guided review’s edit option (<code>e</code>) no longer destroys the session when the spreadsheet editor cannot start. <code><a href="https://rdrr.io/r/utils/edit.html" class="external-link">utils::edit()</a></code> on a data frame requires the X11 dataentry widget - missing on macOS without XQuartz and on headless systems - and its error previously propagated out of <code><a href="../reference/masque.html">masque()</a></code>, losing the proposal and the user’s place. The editor call is now guarded: on failure a dependency-free console editor takes over (pick a column, then a role and an action from numbered menus). Every console edit is applied through <code><a href="../reference/set_role.html">set_role()</a></code>, so vocabulary validation and default-action re-resolution match the scriptable path exactly, and the roles table’s provenance attributes survive.</li>
+<li>The review prompt now accepts the bracketed forms it advertises (<code>[e]</code> is read as <code>e</code>).</li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.8.0" id="masque-080">masque 0.8.0<a class="anchor" aria-label="anchor" href="#masque-080"></a></h2>
 <div class="section level3">

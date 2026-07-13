@@ -126,10 +126,16 @@ can do with those you can do with the result here.
 
 3.  **Review** - in an interactive session with no `roles` supplied, the
     proposed plan is printed and you are asked to proceed, edit, or
-    stop. Editing opens the roles table in
-    [`utils::edit()`](https://rdrr.io/r/utils/edit.html). With
-    `ask = FALSE` (the default in non-interactive use) the proposed plan
-    is used as-is, with a note.
+    stop. Editing opens the roles table in the spreadsheet editor
+    ([`utils::edit()`](https://rdrr.io/r/utils/edit.html)) where the
+    platform provides one; when it cannot start (for example macOS
+    without XQuartz, or a headless session), a console editor takes
+    over - pick a column, then a role and an action from numbered menus,
+    with every change applied through
+    [`set_role()`](https://max578.github.io/masque/reference/set_role.md)
+    so default actions re-resolve exactly as on the scriptable path.
+    With `ask = FALSE` (the default in non-interactive use) the proposed
+    plan is used as-is, with a note.
 
 4.  **Mask** the data in the chosen `mode`.
 

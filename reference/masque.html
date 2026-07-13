@@ -17,7 +17,7 @@ tables goes through mask_set()."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">masque</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.8.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.8.1</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -165,9 +165,14 @@ anything you can do with those you can do with the result here.</p>
 <li><p><strong>Propose roles</strong> for every column (skipped if you pass <code>roles</code>).</p></li>
 <li><p><strong>Review</strong> - in an interactive session with no <code>roles</code> supplied,
 the proposed plan is printed and you are asked to proceed, edit, or
-stop. Editing opens the roles table in <code><a href="https://rdrr.io/r/utils/edit.html" class="external-link">utils::edit()</a></code>. With
-<code>ask = FALSE</code> (the default in non-interactive use) the proposed
-plan is used as-is, with a note.</p></li>
+stop. Editing opens the roles table in the spreadsheet editor
+(<code><a href="https://rdrr.io/r/utils/edit.html" class="external-link">utils::edit()</a></code>) where the platform provides one; when it cannot
+start (for example macOS without XQuartz, or a headless session), a
+console editor takes over - pick a column, then a role and an
+action from numbered menus, with every change applied through
+<code><a href="set_role.html">set_role()</a></code> so default actions re-resolve exactly as on the
+scriptable path. With <code>ask = FALSE</code> (the default in
+non-interactive use) the proposed plan is used as-is, with a note.</p></li>
 <li><p><strong>Mask</strong> the data in the chosen <code>mode</code>.</p></li>
 <li><p><strong>Audit</strong> - in <code>collaborate</code> mode the leakage audit runs and its
 headline is printed. A HIGH finding surfaces as a classed warning
