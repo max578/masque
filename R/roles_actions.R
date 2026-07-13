@@ -114,6 +114,15 @@ set_role <- function(roles, cols, role = NULL, action = NULL) {
 .numeric_kinds <- function() c("numeric", "integer")
 .date_kinds <- function() c("date", "datetime")
 
+# The full storage-kind vocabulary col_kind() can assign. role_options()
+# renders the option grid against it.
+.kinds_vocab <- function() {
+  c(
+    "numeric", "integer", "factor", "character",
+    "logical", "date", "datetime", "other"
+  )
+}
+
 # Strip the heavy provenance attributes a roles table accumulates during
 # proposal (the full detect_design() S7 object under "design", plus the
 # "proposed_actions" and "mode" provenance) before it is stored on a
