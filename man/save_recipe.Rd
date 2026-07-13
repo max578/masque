@@ -32,7 +32,11 @@ future release that will let \code{\link[=read_recipe]{read_recipe()}} regenerat
 synthetic samples without access to the original data.
 
 Recipes are at least as sensitive as the original data. Protect the saved
-file at the same security class as the original.
+file at the same security class as the original. Note that
+\code{save_recipe()} writes plain R serialisation - it does not encrypt.
+The saved recipe is a re-identification key: store it under your
+organisation's access controls and key-management practice, not
+alongside the synthetic output.
 }
 \examples{
 r <- propose_roles(iris)

@@ -80,7 +80,7 @@ masque_obj <- S7::new_class(
 #' @examples
 #' r <- propose_roles(iris)
 #' r$role[r$col == "Sepal.Length"] <- "outcome"
-#' m <- suppressWarnings(mask(iris, r, seed = 1))
+#' m <- mask(iris, r, seed = 1)
 #' head(synthetic(m))
 #' @seealso [recipe()], [mask()], [mask_set()].
 #' @export
@@ -109,7 +109,7 @@ synthetic <- function(m) {
 #' @examples
 #' r <- propose_roles(iris)
 #' r$role[r$col == "Sepal.Length"] <- "outcome"
-#' m <- suppressWarnings(mask(iris, r, seed = 1))
+#' m <- mask(iris, r, seed = 1)
 #' recipe(m)
 #' @seealso [synthetic()], [reveal_maps()], [mask()], [mask_set()].
 #' @export

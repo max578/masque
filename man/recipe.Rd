@@ -21,7 +21,7 @@ redacts all level maps; use \code{\link[=reveal_maps]{reveal_maps()}} for an exp
 \examples{
 r <- propose_roles(iris)
 r$role[r$col == "Sepal.Length"] <- "outcome"
-m <- suppressWarnings(mask(iris, r, seed = 1))
+m <- mask(iris, r, seed = 1)
 recipe(m)
 }
 \seealso{

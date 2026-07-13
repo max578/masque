@@ -20,7 +20,7 @@ Extract the synthetic data from a masque object
 \examples{
 r <- propose_roles(iris)
 r$role[r$col == "Sepal.Length"] <- "outcome"
-m <- suppressWarnings(mask(iris, r, seed = 1))
+m <- mask(iris, r, seed = 1)
 head(synthetic(m))
 }
 \seealso{

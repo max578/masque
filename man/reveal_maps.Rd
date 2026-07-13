@@ -22,7 +22,7 @@ built into \code{\link[=print]{print()}} and \code{\link[=summary]{summary()}}.
 r <- propose_roles(iris)
 r$role[r$col == "Sepal.Length"] <- "outcome"
 r$role[r$col == "Species"] <- "covariate"
-m <- suppressWarnings(mask(iris, r, mode = "collaborate", seed = 1))
+m <- mask(iris, r, mode = "collaborate", seed = 1)
 rec <- recipe(m)
 reveal_maps(rec)
 }
