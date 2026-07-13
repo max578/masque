@@ -6,6 +6,7 @@ Cholesky
 cli
 CRD
 CSVs
+dataentry
 de
 difftime
 errored
@@ -47,3 +48,4 @@ underreport
 walkthrough
 workbook
 xlsx
+XQuartz
