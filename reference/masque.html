@@ -17,7 +17,7 @@ tables goes through mask_set()."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">masque</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.7.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.8.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -69,7 +69,8 @@ tables goes through <code><a href="mask_set.html">mask_set()</a></code>.</p>
 <span>  conditional <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  ask <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/interactive.html" class="external-link">interactive</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  overwrite <span class="op">=</span> <span class="cn">FALSE</span>,</span>
-<span>  quiet <span class="op">=</span> <span class="cn">FALSE</span></span>
+<span>  quiet <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  allow_high <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -131,7 +132,16 @@ the proposed plan without prompting.</p></dd>
 
 
 <dt id="arg-quiet">quiet<a class="anchor" aria-label="anchor" href="#arg-quiet"></a></dt>
-<dd><p>Suppress progress messages.</p></dd>
+<dd><p>Suppress progress messages. Warnings - including the
+HIGH-leakage finding - are never suppressed.</p></dd>
+
+
+<dt id="arg-allow-high">allow_high<a class="anchor" aria-label="anchor" href="#arg-allow-high"></a></dt>
+<dd><p>Logical (default <code>FALSE</code>). When <code>out</code> is set and
+the collaborate-mode audit flagged HIGH leakage, the write is
+refused. Pass <code>TRUE</code> to write anyway after your own review; the
+override raises a <code>masque_high_override</code> warning and is recorded in
+the recipe's warnings, so the exception stays auditable.</p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -160,10 +170,16 @@ stop. Editing opens the roles table in <code><a href="https://rdrr.io/r/utils/ed
 plan is used as-is, with a note.</p></li>
 <li><p><strong>Mask</strong> the data in the chosen <code>mode</code>.</p></li>
 <li><p><strong>Audit</strong> - in <code>collaborate</code> mode the leakage audit runs and its
-headline is printed.</p></li>
+headline is printed. A HIGH finding surfaces as a classed warning
+(<code>masque_high_leakage</code>) - it is never silenced by the guided flow.</p></li>
 <li><p><strong>Write</strong> - if <code>out</code> is set, the masked data is written there
-(mirroring the input format). The private recipe is never written
-automatically; persist it yourself with <code><a href="save_recipe.html">save_recipe()</a></code>.</p></li>
+(mirroring the input format), <em>unless</em> the audit left unresolved
+HIGH findings: then the write is refused (nothing is written) and
+the flagged columns are listed. Resolve them and mask again, or
+pass <code>allow_high = TRUE</code> after your own review - the override is
+warned (<code>masque_high_override</code>) and recorded on the recipe. The
+private recipe is never written automatically; persist it yourself
+with <code><a href="save_recipe.html">save_recipe()</a></code>.</p></li>
 </ol></div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
@@ -199,7 +215,7 @@ automatically; persist it yourself with <code><a href="save_recipe.html">save_re
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
 </div>
 
     </footer></div>

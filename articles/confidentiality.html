@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">masque</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.7.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.8.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -413,9 +413,23 @@ column a covariate, then mask:</p>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span>   outcome   yield                             ok</span></span></code></pre></div>
 <p><code>contact_email</code> (real values kept across the trust
 boundary) and <code>rare_treatment</code> (a frequency-one level) are
-flagged. <code>masque</code> records the risks in
-<code>recipe@warnings</code> and warns at construction time, but it does
-not block – the decision to share stays with the custodian.</p>
+flagged. <code>masque</code> responds on two channels. At construction
+time, <code><a href="../reference/mask.html">mask()</a></code> raises a classed warning
+(<code>masque_high_leakage</code>) and records the findings in
+<code>recipe@warnings</code> and on the object’s audit – the guided
+<code><a href="../reference/masque.html">masque()</a></code> flow never silences it. At write time, the
+package-managed writers (<code><a href="../reference/masque.html">masque()</a></code>’s <code>out</code> and
+<code><a href="../reference/write_set.html">write_set()</a></code>) refuse to write while a HIGH finding stands:
+nothing is written, and the flagged columns are listed with the remedy
+(re-role, alias, or drop, then mask again). A custodian who has reviewed
+the findings can pass <code>allow_high = TRUE</code> to write anyway;
+the override is raised as a <code>masque_high_override</code> warning
+and recorded in the recipe’s warnings, so the exception stays
+auditable.</p>
+<p>Beyond that gate the release decision stays with the custodian –
+whether a synthetic table is appropriate for a given collaborator,
+environment, or jurisdiction depends on context the package cannot see.
+<code>masque</code> informs that decision; it does not make it.</p>
 </div>
 <div class="section level2">
 <h2 id="multi-table-sets">Multi-table sets<a class="anchor" aria-label="anchor" href="#multi-table-sets"></a>
@@ -462,7 +476,7 @@ before masking.</p>
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
 </div>
 
     </footer>

@@ -22,7 +22,7 @@
 
     <a class="navbar-brand me-2" href="index.html">masque</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.7.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.8.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -59,7 +59,7 @@
 </blockquote>
 <p><code>masque</code> turns a confidential tabular dataset – a single table, a folder of files, or a multi-sheet workbook – into a structurally faithful synthetic clone whose experimental design, NA pattern, and global covariance are close enough to the original that pipeline code runs unchanged. It returns a private <code>recipe</code> that round-trips: a pipeline written against the synthetic re-targets to the original data with no source changes.</p>
 <p>The custodian holds the data and the recipe; the analyst gets only the synthetic. <code>masque</code> bridges that gap.</p>
-<p>Version 0.6.0.9000 (development). Pre-CRAN; tagged releases on the GitHub repository.</p>
+<p>Version 0.8.0 (development). Pre-CRAN; tagged releases on the GitHub repository.</p>
 <hr>
 <div class="section level2">
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
@@ -110,16 +110,17 @@
 <li>Provides two explicit modes: <code>local</code> for owner-only realistic surrogates, and <code>collaborate</code> for controlled sharing with opaque aliasing, numeric jitter, and an automatic leakage audit.</li>
 <li>Preserves the treatment-to-outcome relationship on request (<code>conditional = TRUE</code>), so a causal model fitted on the clone recovers the real treatment effect, not just the marginal distribution.</li>
 <li>Records every translation (column names, factor levels) in a private <code>recipe</code> object that is, at minimum, as sensitive as the original data.</li>
-<li>Audits its own output (<code><a href="reference/audit_mask.html">audit_mask()</a></code>) and flags realistic leakage risks before sharing.</li>
+<li>Audits its own output (<code><a href="reference/audit_mask.html">audit_mask()</a></code>), raises HIGH findings as classed warnings the guided flow never silences, and refuses package-managed writes while a HIGH finding stands (an explicit <code>allow_high = TRUE</code> override is available, warned and recorded in the recipe).</li>
 </ul>
 <p><strong>What <code>masque</code> does not do</strong></p>
 <ul>
-<li>It does not provide differential-privacy guarantees.</li>
+<li>It is not a universal anonymiser, and it does not provide differential-privacy guarantees.</li>
 <li>It does not make outputs safe for public release.</li>
 <li>It does not anonymise rare strata, small designs, or operational metadata (small site-by-year combinations, contact names, geolocations).</li>
+<li>It does not certify compliance with any privacy, health, banking, or research-governance obligation. It can contribute evidence to such a decision; the decision itself is organisational and legal.</li>
 <li>It does not rewrite arbitrary pipeline source code.</li>
 </ul>
-<p><strong>Bottom line.</strong> The recipe is at least as sensitive as the original. Never share the recipe and the synthetic together. The collaborate workflow assumes only the synthetic crosses the trust boundary.</p>
+<p><strong>Bottom line.</strong> Generating a synthetic table is not a release decision. In Five Safes terms, <code>masque</code> contributes to <em>Safe Data</em> and <em>Safe Outputs</em>; Safe People, Safe Projects, and Safe Settings are governance questions no package can answer. The recipe is at least as sensitive as the original. Never share the recipe and the synthetic together. The collaborate workflow assumes only the synthetic crosses the trust boundary.</p>
 <hr>
 </div>
 <div class="section level2">
@@ -201,7 +202,7 @@
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
 </div>
 
     </footer>

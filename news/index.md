@@ -1,5 +1,61 @@
 # Changelog
 
+## masque 0.8.0
+
+### Safety fix: HIGH leakage findings are never silenced (breaking behaviour)
+
+This release corrects a safety-contract defect in the guided workflow.
+In 0.5.0 through 0.7.1,
+[`masque()`](https://max578.github.io/masque/reference/masque.md) and
+[`mask_set()`](https://max578.github.io/masque/reference/mask_set.md)
+wrapped their internal
+[`mask()`](https://max578.github.io/masque/reference/mask.md) calls in
+[`suppressWarnings()`](https://rdrr.io/r/base/warning.html), so the
+HIGH-leakage warning raised by the collaborate-mode audit never reached
+the caller - and the guided summary could then print sharing language
+for output the audit had flagged. Generation must never imply release;
+the behaviour now matches the documentation.
+
+- [`masque()`](https://max578.github.io/masque/reference/masque.md) and
+  [`mask_set()`](https://max578.github.io/masque/reference/mask_set.md)
+  no longer suppress warnings from
+  [`mask()`](https://max578.github.io/masque/reference/mask.md). The
+  HIGH-leakage finding is raised as a classed warning
+  (`masque_high_leakage`) so callers can handle it programmatically.
+- The package-managed writers -
+  [`masque()`](https://max578.github.io/masque/reference/masque.md)’s
+  `out` and
+  [`write_set()`](https://max578.github.io/masque/reference/write_set.md) -
+  now **refuse to write** while a HIGH finding stands: nothing is
+  written, and the flagged columns are listed with the remedy. A new
+  `allow_high` argument (default `FALSE`) overrides the refusal after
+  the custodian’s own review; the override raises a
+  `masque_high_override` warning and is recorded in the recipe’s
+  warnings, so the exception stays auditable. Local mode is never gated.
+- The guided completion summary is status-first: it reports the audit
+  tally (HIGH / medium / low), prints a `BLOCKED` block with the next
+  corrective action when HIGH findings stand, and no longer prints
+  “share only the synthetic output”.
+  [`print()`](https://rdrr.io/r/base/print.html) on a masque object
+  shows the same tally.
+- The unconditional local-mode advisory is no longer a
+  [`warning()`](https://rdrr.io/r/base/warning.html). It forced callers
+  (and this package’s own examples) to blanket-suppress, which is
+  exactly how the HIGH warning was lost - an alarm-fatigue defect. The
+  reminder is recorded on the recipe and shown by
+  [`print()`](https://rdrr.io/r/base/print.html) and the guided summary
+  instead. Genuine findings keep the warning channel to themselves.
+- [`mask()`](https://max578.github.io/masque/reference/mask.md) now
+  errors on unused `...` arguments instead of silently ignoring them, so
+  a misspelled argument (e.g. `sedd = 1`) can no longer look like
+  success.
+- Documentation: README and the *Confidentiality model* vignette now
+  describe the write gate, state plainly that
+  [`save_recipe()`](https://max578.github.io/masque/reference/save_recipe.md)
+  does not encrypt, that generating a synthetic table is not a release
+  decision, and that `masque` contributes evidence to Safe Data / Safe
+  Outputs while the remaining Five Safes are organisational.
+
 ## masque 0.7.1
 
 ### Minor improvements and fixes

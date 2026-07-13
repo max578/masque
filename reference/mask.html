@@ -15,7 +15,7 @@ masque_recipe."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">masque</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.7.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.8.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -137,7 +137,8 @@ by <code><a href="mask_set.html">mask_set()</a></code>. Not for direct use.</p><
 
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
-<dd><p>Currently ignored.</p></dd>
+<dd><p>Must be empty. An unused argument (for example a
+misspelled name) errors rather than being silently ignored.</p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -147,15 +148,22 @@ extract the components.</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
-    <p><code>mode = "local"</code> warns that the synthetic is for owner development
-only. <code>mode = "collaborate"</code> additionally jitters re-simulated
-numerics within their measurement resolution (stochastically rounding
-integers) and runs <code><a href="audit_mask.html">audit_mask()</a></code> automatically; the resulting
-synthetic can be passed to a collaborator while the recipe stays
-private. Which columns are aliased, kept, or dropped is decided by
-the <code>action</code> column of <code>roles</code> - <code><a href="propose_roles.html">propose_roles()</a></code> resolves
-mode-appropriate defaults, so the table you reviewed is the plan that
-runs.</p>
+    <p><code>mode = "local"</code> marks the synthetic for owner development only; the
+reminder is recorded on the recipe and shown when the object prints.
+<code>mode = "collaborate"</code> additionally jitters re-simulated numerics
+within their measurement resolution (stochastically rounding
+integers) and runs <code><a href="audit_mask.html">audit_mask()</a></code> automatically; a HIGH finding is
+raised as a classed warning (<code>masque_high_leakage</code>) and blocks the
+package-managed writers (<code><a href="masque.html">masque()</a></code>'s <code>out</code>, <code><a href="write_set.html">write_set()</a></code>) until it
+is resolved or explicitly overridden. Which columns are aliased,
+kept, or dropped is decided by the <code>action</code> column of <code>roles</code> -
+<code><a href="propose_roles.html">propose_roles()</a></code> resolves mode-appropriate defaults, so the table
+you reviewed is the plan that runs.</p>
+<p>Collaborate mode adjusts the transformations and runs the audit; it
+does not model where the output will go. Whether a synthetic table is
+appropriate for a given collaborator, environment, or jurisdiction is
+a release decision that stays with the data custodian - masque
+informs that decision, it does not make it.</p>
     </div>
     <div class="section level2">
     <h2 id="behaviour-by-action">Behaviour by action<a class="anchor" aria-label="anchor" href="#behaviour-by-action"></a></h2>
@@ -198,7 +206,7 @@ state is preserved across the call.</p>
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">r</span> <span class="op">&lt;-</span> <span class="fu"><a href="propose_roles.html">propose_roles</a></span><span class="op">(</span><span class="va">iris</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">r</span> <span class="op">&lt;-</span> <span class="fu"><a href="set_role.html">set_role</a></span><span class="op">(</span><span class="va">r</span>, <span class="st">"Sepal.Length"</span>, role <span class="op">=</span> <span class="st">"outcome"</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="va">m</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/warning.html" class="external-link">suppressWarnings</a></span><span class="op">(</span><span class="fu">mask</span><span class="op">(</span><span class="va">iris</span>, <span class="va">r</span>, seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">m</span> <span class="op">&lt;-</span> <span class="fu">mask</span><span class="op">(</span><span class="va">iris</span>, <span class="va">r</span>, seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu"><a href="synthetic.html">synthetic</a></span><span class="op">(</span><span class="va">m</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 6 × 5</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   Sepal.Length Sepal.Width Petal.Length Petal.Width Species</span>
@@ -221,7 +229,7 @@ state is preserved across the call.</p>
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
 </div>
 
     </footer></div>

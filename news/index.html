@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">masque</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.7.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.8.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -36,6 +36,21 @@
       <small>Source: <a href="https://github.com/max578/masque/blob/main/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.8.0" id="masque-080">masque 0.8.0<a class="anchor" aria-label="anchor" href="#masque-080"></a></h2>
+<div class="section level3">
+<h3 id="safety-fix-high-leakage-findings-are-never-silenced-breaking-behaviour-0-8-0">Safety fix: HIGH leakage findings are never silenced (breaking behaviour)<a class="anchor" aria-label="anchor" href="#safety-fix-high-leakage-findings-are-never-silenced-breaking-behaviour-0-8-0"></a></h3>
+<p>This release corrects a safety-contract defect in the guided workflow. In 0.5.0 through 0.7.1, <code><a href="../reference/masque.html">masque()</a></code> and <code><a href="../reference/mask_set.html">mask_set()</a></code> wrapped their internal <code><a href="../reference/mask.html">mask()</a></code> calls in <code><a href="https://rdrr.io/r/base/warning.html" class="external-link">suppressWarnings()</a></code>, so the HIGH-leakage warning raised by the collaborate-mode audit never reached the caller - and the guided summary could then print sharing language for output the audit had flagged. Generation must never imply release; the behaviour now matches the documentation.</p>
+<ul><li>
+<code><a href="../reference/masque.html">masque()</a></code> and <code><a href="../reference/mask_set.html">mask_set()</a></code> no longer suppress warnings from <code><a href="../reference/mask.html">mask()</a></code>. The HIGH-leakage finding is raised as a classed warning (<code>masque_high_leakage</code>) so callers can handle it programmatically.</li>
+<li>The package-managed writers - <code><a href="../reference/masque.html">masque()</a></code>’s <code>out</code> and <code><a href="../reference/write_set.html">write_set()</a></code> - now <strong>refuse to write</strong> while a HIGH finding stands: nothing is written, and the flagged columns are listed with the remedy. A new <code>allow_high</code> argument (default <code>FALSE</code>) overrides the refusal after the custodian’s own review; the override raises a <code>masque_high_override</code> warning and is recorded in the recipe’s warnings, so the exception stays auditable. Local mode is never gated.</li>
+<li>The guided completion summary is status-first: it reports the audit tally (HIGH / medium / low), prints a <code>BLOCKED</code> block with the next corrective action when HIGH findings stand, and no longer prints “share only the synthetic output”. <code><a href="https://rdrr.io/r/base/print.html" class="external-link">print()</a></code> on a masque object shows the same tally.</li>
+<li>The unconditional local-mode advisory is no longer a <code><a href="https://rdrr.io/r/base/warning.html" class="external-link">warning()</a></code>. It forced callers (and this package’s own examples) to blanket-suppress, which is exactly how the HIGH warning was lost - an alarm-fatigue defect. The reminder is recorded on the recipe and shown by <code><a href="https://rdrr.io/r/base/print.html" class="external-link">print()</a></code> and the guided summary instead. Genuine findings keep the warning channel to themselves.</li>
+<li>
+<code><a href="../reference/mask.html">mask()</a></code> now errors on unused <code>...</code> arguments instead of silently ignoring them, so a misspelled argument (e.g. <code>sedd = 1</code>) can no longer look like success.</li>
+<li>Documentation: README and the <em>Confidentiality model</em> vignette now describe the write gate, state plainly that <code><a href="../reference/save_recipe.html">save_recipe()</a></code> does not encrypt, that generating a synthetic table is not a release decision, and that <code>masque</code> contributes evidence to Safe Data / Safe Outputs while the remaining Five Safes are organisational.</li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.7.1" id="masque-071">masque 0.7.1<a class="anchor" aria-label="anchor" href="#masque-071"></a></h2>
 <div class="section level3">
@@ -309,7 +324,7 @@
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
 </div>
 
     </footer></div>

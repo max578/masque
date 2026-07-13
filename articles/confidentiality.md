@@ -273,9 +273,27 @@ audit_mask(m)
 ```
 
 `contact_email` (real values kept across the trust boundary) and
-`rare_treatment` (a frequency-one level) are flagged. `masque` records
-the risks in `recipe@warnings` and warns at construction time, but it
-does not block – the decision to share stays with the custodian.
+`rare_treatment` (a frequency-one level) are flagged. `masque` responds
+on two channels. At construction time,
+[`mask()`](https://max578.github.io/masque/reference/mask.md) raises a
+classed warning (`masque_high_leakage`) and records the findings in
+`recipe@warnings` and on the object’s audit – the guided
+[`masque()`](https://max578.github.io/masque/reference/masque.md) flow
+never silences it. At write time, the package-managed writers
+([`masque()`](https://max578.github.io/masque/reference/masque.md)’s
+`out` and
+[`write_set()`](https://max578.github.io/masque/reference/write_set.md))
+refuse to write while a HIGH finding stands: nothing is written, and the
+flagged columns are listed with the remedy (re-role, alias, or drop,
+then mask again). A custodian who has reviewed the findings can pass
+`allow_high = TRUE` to write anyway; the override is raised as a
+`masque_high_override` warning and recorded in the recipe’s warnings, so
+the exception stays auditable.
+
+Beyond that gate the release decision stays with the custodian – whether
+a synthetic table is appropriate for a given collaborator, environment,
+or jurisdiction depends on context the package cannot see. `masque`
+informs that decision; it does not make it.
 
 ## Multi-table sets
 

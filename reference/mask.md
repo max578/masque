@@ -96,7 +96,8 @@ mask(
 
 - ...:
 
-  Currently ignored.
+  Must be empty. An unused argument (for example a misspelled name)
+  errors rather than being silently ignored.
 
 ## Value
 
@@ -107,16 +108,27 @@ extract the components.
 
 ## Details
 
-`mode = "local"` warns that the synthetic is for owner development only.
+`mode = "local"` marks the synthetic for owner development only; the
+reminder is recorded on the recipe and shown when the object prints.
 `mode = "collaborate"` additionally jitters re-simulated numerics within
 their measurement resolution (stochastically rounding integers) and runs
 [`audit_mask()`](https://max578.github.io/masque/reference/audit_mask.md)
-automatically; the resulting synthetic can be passed to a collaborator
-while the recipe stays private. Which columns are aliased, kept, or
-dropped is decided by the `action` column of `roles` -
+automatically; a HIGH finding is raised as a classed warning
+(`masque_high_leakage`) and blocks the package-managed writers
+([`masque()`](https://max578.github.io/masque/reference/masque.md)'s
+`out`,
+[`write_set()`](https://max578.github.io/masque/reference/write_set.md))
+until it is resolved or explicitly overridden. Which columns are
+aliased, kept, or dropped is decided by the `action` column of `roles` -
 [`propose_roles()`](https://max578.github.io/masque/reference/propose_roles.md)
 resolves mode-appropriate defaults, so the table you reviewed is the
 plan that runs.
+
+Collaborate mode adjusts the transformations and runs the audit; it does
+not model where the output will go. Whether a synthetic table is
+appropriate for a given collaborator, environment, or jurisdiction is a
+release decision that stays with the data custodian - masque informs
+that decision, it does not make it.
 
 ## Behaviour by action
 
@@ -163,7 +175,7 @@ state is preserved across the call.
 ``` r
 r <- propose_roles(iris)
 r <- set_role(r, "Sepal.Length", role = "outcome")
-m <- suppressWarnings(mask(iris, r, seed = 1))
+m <- mask(iris, r, seed = 1)
 head(synthetic(m))
 #> # A tibble: 6 × 5
 #>   Sepal.Length Sepal.Width Petal.Length Petal.Width Species

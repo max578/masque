@@ -33,7 +33,7 @@ a named list of synthetic tables.
 ``` r
 r <- propose_roles(iris)
 r$role[r$col == "Sepal.Length"] <- "outcome"
-m <- suppressWarnings(mask(iris, r, seed = 1))
+m <- mask(iris, r, seed = 1)
 head(synthetic(m))
 #> # A tibble: 6 × 5
 #>   Sepal.Length Sepal.Width Petal.Length Petal.Width Species

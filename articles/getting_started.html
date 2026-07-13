@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">masque</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.7.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.8.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -109,8 +109,8 @@ package.</p>
 <span></span>
 <span><span class="va">m</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/masque.html">masque</a></span><span class="op">(</span><span class="va">df</span>, mode <span class="op">=</span> <span class="st">"collaborate"</span>, seed <span class="op">=</span> <span class="fl">1</span>, ask <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> Using the proposed masking plan (pass `roles` or set `ask = TRUE` to review).</span></span>
-<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> Masked 7 columns in <span style="color: #0000BB;">"collaborate"</span> mode.</span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> Recipe is private - keep it; share only the synthetic output.</span></span></code></pre></div>
+<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> Masked 7 columns in <span style="color: #0000BB;">"collaborate"</span> mode - audit: 0 HIGH, 0 medium, 7 low.</span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> Recipe is private - keep it. Review `audit_mask(m)` before any release decision; masque informs that decision, it does not make it.</span></span></code></pre></div>
 <p><code>ask = FALSE</code> skips the interactive review, which is what
 we want inside a vignette. In your own console, call
 <code>masque(df)</code> and you will see the proposed plan and a prompt
@@ -264,8 +264,8 @@ synthetic tables still resolves.</p>
 <span><span class="co">#&gt; ── <span style="font-weight: bold;">Cross-table links (1)</span> ──</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; • <span style="color: #0000BB;">"gen"</span> shared across <span style="color: #0000BB;">"agronomy, quality"</span> - aliased consistently</span></span>
-<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> Masked 2 tables in <span style="color: #0000BB;">"collaborate"</span> mode.</span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> Recipe is private - keep it; share only the synthetic output.</span></span>
+<span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> Masked 2 tables in <span style="color: #0000BB;">"collaborate"</span> mode - audit: 0 HIGH, 0 medium, 12 low.</span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> Recipe is private - keep it. Review `audit_mask(m)` before any release decision; masque informs that decision, it does not make it.</span></span>
 <span><span class="va">ms</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">──</span> <span style="font-weight: bold;">masque_set</span> <span style="color: #00BBBB;">──────────────────────────────────────────────────────────────────────────────────────</span></span></span>
@@ -309,7 +309,7 @@ a pipeline built on the synthetic re-targets to the original.</li>
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
 </div>
 
     </footer>

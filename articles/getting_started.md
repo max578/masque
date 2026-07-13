@@ -46,8 +46,8 @@ head(df)
 
 m <- masque(df, mode = "collaborate", seed = 1, ask = FALSE)
 #> ℹ Using the proposed masking plan (pass `roles` or set `ask = TRUE` to review).
-#> ✔ Masked 7 columns in "collaborate" mode.
-#> ℹ Recipe is private - keep it; share only the synthetic output.
+#> ✔ Masked 7 columns in "collaborate" mode - audit: 0 HIGH, 0 medium, 7 low.
+#> ℹ Recipe is private - keep it. Review `audit_mask(m)` before any release decision; masque informs that decision, it does not make it.
 ```
 
 `ask = FALSE` skips the interactive review, which is what we want inside
@@ -193,8 +193,8 @@ ms <- masque(set_dir, mode = "collaborate", seed = 1, ask = FALSE)
 #> ── Cross-table links (1) ──
 #> 
 #> • "gen" shared across "agronomy, quality" - aliased consistently
-#> ✔ Masked 2 tables in "collaborate" mode.
-#> ℹ Recipe is private - keep it; share only the synthetic output.
+#> ✔ Masked 2 tables in "collaborate" mode - audit: 0 HIGH, 0 medium, 12 low.
+#> ℹ Recipe is private - keep it. Review `audit_mask(m)` before any release decision; masque informs that decision, it does not make it.
 ms
 #> 
 #> ── masque_set ──────────────────────────────────────────────────────────────────────────────────────

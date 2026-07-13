@@ -23,7 +23,8 @@ masque(
   conditional = FALSE,
   ask = interactive(),
   overwrite = FALSE,
-  quiet = FALSE
+  quiet = FALSE,
+  allow_high = FALSE
 )
 ```
 
@@ -91,7 +92,16 @@ masque(
 
 - quiet:
 
-  Suppress progress messages.
+  Suppress progress messages. Warnings - including the HIGH-leakage
+  finding - are never suppressed.
+
+- allow_high:
+
+  Logical (default `FALSE`). When `out` is set and the collaborate-mode
+  audit flagged HIGH leakage, the write is refused. Pass `TRUE` to write
+  anyway after your own review; the override raises a
+  `masque_high_override` warning and is recorded in the recipe's
+  warnings, so the exception stays auditable.
 
 ## Value
 
@@ -124,11 +134,16 @@ can do with those you can do with the result here.
 4.  **Mask** the data in the chosen `mode`.
 
 5.  **Audit** - in `collaborate` mode the leakage audit runs and its
-    headline is printed.
+    headline is printed. A HIGH finding surfaces as a classed warning
+    (`masque_high_leakage`) - it is never silenced by the guided flow.
 
 6.  **Write** - if `out` is set, the masked data is written there
-    (mirroring the input format). The private recipe is never written
-    automatically; persist it yourself with
+    (mirroring the input format), *unless* the audit left unresolved
+    HIGH findings: then the write is refused (nothing is written) and
+    the flagged columns are listed. Resolve them and mask again, or pass
+    `allow_high = TRUE` after your own review - the override is warned
+    (`masque_high_override`) and recorded on the recipe. The private
+    recipe is never written automatically; persist it yourself with
     [`save_recipe()`](https://max578.github.io/masque/reference/save_recipe.md).
 
 ## See also

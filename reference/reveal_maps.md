@@ -28,7 +28,7 @@ reveal_maps(rec)
 r <- propose_roles(iris)
 r$role[r$col == "Sepal.Length"] <- "outcome"
 r$role[r$col == "Species"] <- "covariate"
-m <- suppressWarnings(mask(iris, r, mode = "collaborate", seed = 1))
+m <- mask(iris, r, mode = "collaborate", seed = 1)
 #> Re-resolved default actions for mode "collaborate" (explicit edits always win):
 #> • Species: keep -> alias
 rec <- recipe(m)

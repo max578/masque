@@ -53,11 +53,11 @@ vocabularies themselves:
 rec
 #> 
 #> ── masque_recipe ───────────────────────────────────────────────────────────────────────────────────
-#> • Created: 2026-06-13 23:20:24 UTC
+#> • Created: 2026-07-13 00:33:06 UTC
 #> • Mode: collaborate
 #> • Clone fidelity: marginal / structural (global copula)
 #> • Seed: present (redacted)
-#> • masque version: 0.7.1
+#> • masque version: 0.8.0
 #> • Integrity fingerprint: 0cec319ba9e2...
 #> 
 #> ── Columns (7 total; 1 level-map(s); 0 column-name map(s)) ──

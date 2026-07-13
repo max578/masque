@@ -13,8 +13,8 @@ source changes.
 The custodian holds the data and the recipe; the analyst gets only the
 synthetic. `masque` bridges that gap.
 
-Version 0.6.0.9000 (development). Pre-CRAN; tagged releases on the
-GitHub repository.
+Version 0.8.0 (development). Pre-CRAN; tagged releases on the GitHub
+repository.
 
 ------------------------------------------------------------------------
 
@@ -97,21 +97,32 @@ before using.
   `recipe` object that is, at minimum, as sensitive as the original
   data.
 - Audits its own output
-  ([`audit_mask()`](https://max578.github.io/masque/reference/audit_mask.md))
-  and flags realistic leakage risks before sharing.
+  ([`audit_mask()`](https://max578.github.io/masque/reference/audit_mask.md)),
+  raises HIGH findings as classed warnings the guided flow never
+  silences, and refuses package-managed writes while a HIGH finding
+  stands (an explicit `allow_high = TRUE` override is available, warned
+  and recorded in the recipe).
 
 **What `masque` does not do**
 
-- It does not provide differential-privacy guarantees.
+- It is not a universal anonymiser, and it does not provide
+  differential-privacy guarantees.
 - It does not make outputs safe for public release.
 - It does not anonymise rare strata, small designs, or operational
   metadata (small site-by-year combinations, contact names,
   geolocations).
+- It does not certify compliance with any privacy, health, banking, or
+  research-governance obligation. It can contribute evidence to such a
+  decision; the decision itself is organisational and legal.
 - It does not rewrite arbitrary pipeline source code.
 
-**Bottom line.** The recipe is at least as sensitive as the original.
-Never share the recipe and the synthetic together. The collaborate
-workflow assumes only the synthetic crosses the trust boundary.
+**Bottom line.** Generating a synthetic table is not a release decision.
+In Five Safes terms, `masque` contributes to *Safe Data* and *Safe
+Outputs*; Safe People, Safe Projects, and Safe Settings are governance
+questions no package can answer. The recipe is at least as sensitive as
+the original. Never share the recipe and the synthetic together. The
+collaborate workflow assumes only the synthetic crosses the trust
+boundary.
 
 ------------------------------------------------------------------------
 

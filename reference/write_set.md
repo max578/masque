@@ -12,7 +12,7 @@ and protect it at the same security class as the original data.
 ## Usage
 
 ``` r
-write_set(m, path, overwrite = FALSE)
+write_set(m, path, overwrite = FALSE, allow_high = FALSE)
 ```
 
 ## Arguments
@@ -33,9 +33,23 @@ write_set(m, path, overwrite = FALSE)
   Logical. When `FALSE` (default), writing over an existing file or a
   non-empty folder errors.
 
+- allow_high:
+
+  Logical (default `FALSE`). Override the HIGH-leakage write refusal
+  after your own review; the override is raised as a
+  `masque_high_override` warning.
+
 ## Value
 
 `path`, invisibly.
+
+## Details
+
+In collaborate mode the mask-time audit gates the write: unresolved HIGH
+leakage findings refuse the write (nothing is written) until the flagged
+columns are re-roled, aliased, or dropped - or the refusal is explicitly
+overridden with `allow_high = TRUE`, which raises a
+`masque_high_override` warning so the exception stays visible.
 
 ## See also
 

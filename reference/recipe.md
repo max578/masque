@@ -37,15 +37,15 @@ A `masque_recipe`, or for a set a `masque_recipe_set` bundle.
 ``` r
 r <- propose_roles(iris)
 r$role[r$col == "Sepal.Length"] <- "outcome"
-m <- suppressWarnings(mask(iris, r, seed = 1))
+m <- mask(iris, r, seed = 1)
 recipe(m)
 #> 
 #> ── masque_recipe ───────────────────────────────────────────────────────────────
-#> • Created: 2026-06-13 23:20:16 UTC
+#> • Created: 2026-07-13 00:32:57 UTC
 #> • Mode: local
 #> • Clone fidelity: marginal / structural (global copula)
 #> • Seed: present (redacted)
-#> • masque version: 0.7.1
+#> • masque version: 0.8.0
 #> • Integrity fingerprint: 62a4affb7e41...
 #> 
 #> ── Columns (5 total; 0 level-map(s); 0 column-name map(s)) ──
