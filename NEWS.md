@@ -1,3 +1,21 @@
+# masque 0.8.1
+
+## Bug fixes
+
+* The guided review's edit option (`e`) no longer destroys the session
+  when the spreadsheet editor cannot start. `utils::edit()` on a data
+  frame requires the X11 dataentry widget - missing on macOS without
+  XQuartz and on headless systems - and its error previously propagated
+  out of `masque()`, losing the proposal and the user's place. The
+  editor call is now guarded: on failure a dependency-free console
+  editor takes over (pick a column, then a role and an action from
+  numbered menus). Every console edit is applied through `set_role()`,
+  so vocabulary validation and default-action re-resolution match the
+  scriptable path exactly, and the roles table's provenance attributes
+  survive.
+* The review prompt now accepts the bracketed forms it advertises
+  (`[e]` is read as `e`).
+
 # masque 0.8.0
 
 ## Safety fix: HIGH leakage findings are never silenced (breaking behaviour)
