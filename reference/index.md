@@ -16,6 +16,8 @@ Inspect a data frame and decide what each column is and how to mask it.
   frame
 - [`set_role()`](https://max578.github.io/masque/reference/set_role.md)
   : Set the role and action of one or more columns in a roles table
+- [`role_options()`](https://max578.github.io/masque/reference/role_options.md)
+  : List every role and action combination masque accepts
 - [`roles_validate()`](https://max578.github.io/masque/reference/roles_validate.md)
   : Validate a roles table
 - [`clean_table()`](https://max578.github.io/masque/reference/clean_table.md)

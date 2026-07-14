@@ -13,7 +13,7 @@ source changes.
 The custodian holds the data and the recipe; the analyst gets only the
 synthetic. `masque` bridges that gap.
 
-Version 0.8.0 (development). Pre-CRAN; tagged releases on the GitHub
+Version 0.8.2 (development). Pre-CRAN; tagged releases on the GitHub
 repository.
 
 ------------------------------------------------------------------------
@@ -177,6 +177,8 @@ Inspect a data frame and decide what each column is and how to mask it.
   frame
 - [`set_role()`](https://max578.github.io/masque/reference/set_role.md)
   : Set the role and action of one or more columns in a roles table
+- [`role_options()`](https://max578.github.io/masque/reference/role_options.md)
+  : List every role and action combination masque accepts
 - [`roles_validate()`](https://max578.github.io/masque/reference/roles_validate.md)
   : Validate a roles table
 - [`clean_table()`](https://max578.github.io/masque/reference/clean_table.md)

@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">masque</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.8.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.8.2</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -187,9 +187,68 @@ run. Edit it with <code><a href="../reference/set_role.html">set_role()</a></cod
 explicit <code>action</code> pins the column. There is no requirement to
 name an <code>outcome</code>: with none marked, every scrambled numeric
 is re-simulated jointly.</p>
+<div class="section level3">
+<h3 id="editing-the-plan-as-code">Editing the plan as code<a class="anchor" aria-label="anchor" href="#editing-the-plan-as-code"></a>
+</h3>
+<p>The printed table – and the spreadsheet the guided prompt opens when
+you choose <code>e</code> – is an ordinary data frame, so anything the
+editor can do, a script can do reproducibly. <code><a href="../reference/set_role.html">set_role()</a></code> is
+vectorised over columns:</p>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">r2</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/set_role.html">set_role</a></span><span class="op">(</span><span class="va">roles</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"row"</span>, <span class="st">"col"</span><span class="op">)</span>, action <span class="op">=</span> <span class="st">"drop"</span><span class="op">)</span></span></code></pre></div>
+<p>Direct edits work too. A direct <code>role</code> edit leaves
+<code>action</code> untouched, so set the action to <code>NA</code> when
+you want <code><a href="../reference/mask.html">mask()</a></code> to re-resolve the default for the new
+role:</p>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">r2</span><span class="op">$</span><span class="va">role</span><span class="op">[</span><span class="va">r2</span><span class="op">$</span><span class="va">col</span> <span class="op">==</span> <span class="st">"rep"</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="st">"covariate"</span></span>
+<span><span class="va">r2</span><span class="op">$</span><span class="va">action</span><span class="op">[</span><span class="va">r2</span><span class="op">$</span><span class="va">col</span> <span class="op">==</span> <span class="st">"rep"</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="cn">NA</span></span>
+<span><span class="va">r2</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"col"</span>, <span class="st">"role"</span>, <span class="st">"action"</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 7 × 3</span></span></span>
+<span><span class="co">#&gt;   col   role      action  </span></span>
+<span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>   </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> plot  design    keep    </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span> rep   covariate <span style="color: #BB0000;">NA</span>      </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span> block design    keep    </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span> gen   treatment alias   </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">5</span> yield outcome   scramble</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">6</span> row   design    drop    </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">7</span> col   design    drop</span></span></code></pre></div>
+<p>The <code>kind</code> column is derived from the column’s class,
+never chosen, and editing it changes nothing. Convert the column in the
+data and re-propose if the kind is wrong.</p>
+<p>Not every role and action pair makes sense – a design column cannot
+be scrambled, an outcome has no labels to alias.
+<code><a href="../reference/role_options.html">role_options()</a></code> renders the full grid the validator accepts,
+and its <code>kind</code> argument filters it to what is available for
+one column’s storage kind:</p>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/role_options.html">role_options</a></span><span class="op">(</span>kind <span class="op">=</span> <span class="st">"factor"</span><span class="op">)</span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 24 × 4</span></span></span>
+<span><span class="co">#&gt;    role      action   kinds                      notes                                              </span></span>
+<span><span class="co">#&gt;    <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>                      <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>                                              </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 1</span> design    keep     all                        <span style="color: #949494;">""</span>                                                 </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 2</span> design    alias    factor, character, logical <span style="color: #949494;">"</span>design label aliasing requires a factor / charact…</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 3</span> design    drop     all                        <span style="color: #949494;">""</span>                                                 </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 4</span> treatment keep     all                        <span style="color: #949494;">""</span>                                                 </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 5</span> treatment scramble factor, character, logical <span style="color: #949494;">"</span>treatment scramble / alias requires a factor / ch…</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 6</span> treatment alias    factor, character, logical <span style="color: #949494;">"</span>treatment scramble / alias requires a factor / ch…</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 7</span> treatment drop     all                        <span style="color: #949494;">""</span>                                                 </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 8</span> outcome   keep     all                        <span style="color: #949494;">""</span>                                                 </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;"> 9</span> outcome   drop     all                        <span style="color: #949494;">""</span>                                                 </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">10</span> covariate keep     all                        <span style="color: #949494;">""</span>                                                 </span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># ℹ 14 more rows</span></span></span></code></pre></div>
+<p>Finally, <code>pii_suspected</code>. <code><a href="../reference/propose_roles.html">propose_roles()</a></code>
+sets it from the column <em>name</em> (<code>email</code>,
+<code>phone</code>, <code>owner</code>, …), and the leakage audit treats
+a flagged column that survives into the synthetic as a HIGH finding. The
+scan reads names, not content, so when a harmlessly named column holds
+sensitive values, flag it yourself and the audit honours the flag:</p>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">roles</span><span class="op">$</span><span class="va">pii_suspected</span><span class="op">[</span><span class="va">roles</span><span class="op">$</span><span class="va">col</span> <span class="op">==</span> <span class="st">"comments"</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="cn">TRUE</span></span></code></pre></div>
 <p>Pass the edited table back to <code><a href="../reference/mask.html">mask()</a></code> (or to
 <code>masque(df, roles = roles)</code>):</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">m</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/mask.html">mask</a></span><span class="op">(</span><span class="va">df</span>, <span class="va">roles</span>, mode <span class="op">=</span> <span class="st">"collaborate"</span>, seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
 <span><span class="va">synth</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synthetic.html">synthetic</a></span><span class="op">(</span><span class="va">m</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical</a></span><span class="op">(</span><span class="va">synth</span><span class="op">$</span><span class="va">plot</span>, <span class="va">df</span><span class="op">$</span><span class="va">plot</span><span class="op">)</span>               <span class="co"># design column: byte-identical</span></span>
@@ -198,6 +257,7 @@ is re-simulated jointly.</p>
 <span><span class="co">#&gt; [1] FALSE</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/levels.html" class="external-link">levels</a></span><span class="op">(</span><span class="va">synth</span><span class="op">$</span><span class="va">gen</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "trt_001" "trt_002" "trt_003" "trt_004" "trt_005" "trt_006"</span></span></code></pre></div>
+</div>
 </div>
 <div class="section level2">
 <h2 id="local-and-collaborate-modes">Local and collaborate modes<a class="anchor" aria-label="anchor" href="#local-and-collaborate-modes"></a>
@@ -255,7 +315,7 @@ at a folder, an <code>.xlsx</code> file, or a named list of data frames
 and it masks every table at once, aliasing any shared key (a site code,
 a genotype name) <em>identically across tables</em> so a join of the
 synthetic tables still resolves.</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">set_dir</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, <span class="st">"met_set"</span>, package <span class="op">=</span> <span class="st">"masque"</span><span class="op">)</span></span>
 <span><span class="va">ms</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/masque.html">masque</a></span><span class="op">(</span><span class="va">set_dir</span>, mode <span class="op">=</span> <span class="st">"collaborate"</span>, seed <span class="op">=</span> <span class="fl">1</span>, ask <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> Using the proposed masking plan for <span style="color: #00BB00;">agronomy</span> (pass `roles` or set `ask = TRUE` to review).</span></span>

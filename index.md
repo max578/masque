@@ -13,7 +13,7 @@ source changes.
 The custodian holds the data and the recipe; the analyst gets only the
 synthetic. `masque` bridges that gap.
 
-Version 0.8.0 (development). Pre-CRAN; tagged releases on the GitHub
+Version 0.8.2 (development). Pre-CRAN; tagged releases on the GitHub
 repository.
 
 ------------------------------------------------------------------------

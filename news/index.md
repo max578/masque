@@ -1,5 +1,30 @@
 # Changelog
 
+## masque 0.8.2
+
+### New features
+
+- New
+  [`role_options()`](https://max578.github.io/masque/reference/role_options.md)
+  renders the two-axis vocabulary as data: every role and action pair,
+  the storage kinds the pair works for, and the reason it is constrained
+  when it is. The grid is generated from the same compatibility rules
+  [`roles_validate()`](https://max578.github.io/masque/reference/roles_validate.md)
+  enforces at
+  [`mask()`](https://max578.github.io/masque/reference/mask.md) time, so
+  it cannot drift from the validator. `role_options(kind = "factor")`
+  filters to the combinations available for one column’s storage kind.
+
+### Minor improvements and fixes
+
+- The *Getting started* vignette gains an “Editing the plan as code”
+  section: vectorised
+  [`set_role()`](https://max578.github.io/masque/reference/set_role.md),
+  direct data-frame edits with `NA` action re-resolution, the
+  [`role_options()`](https://max578.github.io/masque/reference/role_options.md)
+  grid, and hand-flagging `pii_suspected` on a sensitively valued column
+  the name heuristic cannot see.
+
 ## masque 0.8.1
 
 ### Bug fixes

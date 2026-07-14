@@ -131,6 +131,83 @@ Re-assigning a role re-resolves the default action; passing an explicit
 `action` pins the column. There is no requirement to name an `outcome`:
 with none marked, every scrambled numeric is re-simulated jointly.
 
+### Editing the plan as code
+
+The printed table – and the spreadsheet the guided prompt opens when you
+choose `e` – is an ordinary data frame, so anything the editor can do, a
+script can do reproducibly.
+[`set_role()`](https://max578.github.io/masque/reference/set_role.md) is
+vectorised over columns:
+
+``` r
+
+r2 <- set_role(roles, c("row", "col"), action = "drop")
+```
+
+Direct edits work too. A direct `role` edit leaves `action` untouched,
+so set the action to `NA` when you want
+[`mask()`](https://max578.github.io/masque/reference/mask.md) to
+re-resolve the default for the new role:
+
+``` r
+
+r2$role[r2$col == "rep"] <- "covariate"
+r2$action[r2$col == "rep"] <- NA
+r2[, c("col", "role", "action")]
+#> # A tibble: 7 × 3
+#>   col   role      action  
+#>   <chr> <chr>     <chr>   
+#> 1 plot  design    keep    
+#> 2 rep   covariate NA      
+#> 3 block design    keep    
+#> 4 gen   treatment alias   
+#> 5 yield outcome   scramble
+#> 6 row   design    drop    
+#> 7 col   design    drop
+```
+
+The `kind` column is derived from the column’s class, never chosen, and
+editing it changes nothing. Convert the column in the data and
+re-propose if the kind is wrong.
+
+Not every role and action pair makes sense – a design column cannot be
+scrambled, an outcome has no labels to alias.
+[`role_options()`](https://max578.github.io/masque/reference/role_options.md)
+renders the full grid the validator accepts, and its `kind` argument
+filters it to what is available for one column’s storage kind:
+
+``` r
+
+role_options(kind = "factor")
+#> # A tibble: 24 × 4
+#>    role      action   kinds                      notes                                              
+#>    <chr>     <chr>    <chr>                      <chr>                                              
+#>  1 design    keep     all                        ""                                                 
+#>  2 design    alias    factor, character, logical "design label aliasing requires a factor / charact…
+#>  3 design    drop     all                        ""                                                 
+#>  4 treatment keep     all                        ""                                                 
+#>  5 treatment scramble factor, character, logical "treatment scramble / alias requires a factor / ch…
+#>  6 treatment alias    factor, character, logical "treatment scramble / alias requires a factor / ch…
+#>  7 treatment drop     all                        ""                                                 
+#>  8 outcome   keep     all                        ""                                                 
+#>  9 outcome   drop     all                        ""                                                 
+#> 10 covariate keep     all                        ""                                                 
+#> # ℹ 14 more rows
+```
+
+Finally, `pii_suspected`.
+[`propose_roles()`](https://max578.github.io/masque/reference/propose_roles.md)
+sets it from the column *name* (`email`, `phone`, `owner`, …), and the
+leakage audit treats a flagged column that survives into the synthetic
+as a HIGH finding. The scan reads names, not content, so when a
+harmlessly named column holds sensitive values, flag it yourself and the
+audit honours the flag:
+
+``` r
+
+roles$pii_suspected[roles$col == "comments"] <- TRUE
+```
+
 Pass the edited table back to
 [`mask()`](https://max578.github.io/masque/reference/mask.md) (or to
 `masque(df, roles = roles)`):

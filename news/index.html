@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">masque</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.8.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.8.2</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -36,6 +36,17 @@
       <small>Source: <a href="https://github.com/max578/masque/blob/main/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.8.2" id="masque-082">masque 0.8.2<a class="anchor" aria-label="anchor" href="#masque-082"></a></h2>
+<div class="section level3">
+<h3 id="new-features-0-8-2">New features<a class="anchor" aria-label="anchor" href="#new-features-0-8-2"></a></h3>
+<ul><li>New <code><a href="../reference/role_options.html">role_options()</a></code> renders the two-axis vocabulary as data: every role and action pair, the storage kinds the pair works for, and the reason it is constrained when it is. The grid is generated from the same compatibility rules <code><a href="../reference/roles_validate.html">roles_validate()</a></code> enforces at <code><a href="../reference/mask.html">mask()</a></code> time, so it cannot drift from the validator. <code>role_options(kind = "factor")</code> filters to the combinations available for one column’s storage kind.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="minor-improvements-and-fixes-0-8-2">Minor improvements and fixes<a class="anchor" aria-label="anchor" href="#minor-improvements-and-fixes-0-8-2"></a></h3>
+<ul><li>The <em>Getting started</em> vignette gains an “Editing the plan as code” section: vectorised <code><a href="../reference/set_role.html">set_role()</a></code>, direct data-frame edits with <code>NA</code> action re-resolution, the <code><a href="../reference/role_options.html">role_options()</a></code> grid, and hand-flagging <code>pii_suspected</code> on a sensitively valued column the name heuristic cannot see.</li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.8.1" id="masque-081">masque 0.8.1<a class="anchor" aria-label="anchor" href="#masque-081"></a></h2>
 <div class="section level3">
