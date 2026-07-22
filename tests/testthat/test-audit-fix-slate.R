@@ -158,3 +158,40 @@ test_that("a suspected but unconfirmed environment is preserved, not scrambled",
       (table(synthetic(masked)$county, synthetic(masked)$gen) > 0)
   ))
 })
+
+test_that("mask warns when mode is unset and roles lost their provenance", {
+  d <- met_county_fixture()
+  roles <- propose_roles(d, mode = "collaborate")
+  stripped <- roles
+  attr(stripped, "mode") <- NULL # what a data.table()/saveRDS round-trip does
+
+  # stripped provenance + no explicit mode must warn, not silently mask local
+  expect_warning(
+    mask(d, stripped, seed = 1L),
+    class = "masque_mode_unset"
+  )
+
+  # an explicit mode silences the warning and is honoured
+  saw_unset <- FALSE
+  m2 <- withCallingHandlers(
+    mask(d, stripped, mode = "collaborate", seed = 1L),
+    masque_mode_unset = function(w) {
+      saw_unset <<- TRUE
+      invokeRestart("muffleWarning")
+    }
+  )
+  expect_false(saw_unset)
+  expect_equal(recipe(m2)@mode, "collaborate")
+
+  # an intact tibble still inherits its mode silently (no false alarm)
+  saw_intact <- FALSE
+  m3 <- withCallingHandlers(
+    mask(d, roles, seed = 1L),
+    masque_mode_unset = function(w) {
+      saw_intact <<- TRUE
+      invokeRestart("muffleWarning")
+    }
+  )
+  expect_false(saw_intact)
+  expect_equal(recipe(m3)@mode, "collaborate")
+})

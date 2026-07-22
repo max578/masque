@@ -39,6 +39,12 @@
   An explicit collaborate-to-local change raises a classed
   `masque_mode_downgrade` warning. `mask_set()` rejects role plans carrying
   mixed mode provenance.
+
+* `mask()` and `mask_set()` now warn (classed `masque_mode_unset`) when no
+  `mode` is supplied and the `roles` table carries no mode provenance, instead
+  of silently masking in `local` mode. A `data.table()` wrap or a `saveRDS()`
+  round-trip strips the tibble attribute that records the mode, so the warning
+  turns a silent local-mode downgrade into a recoverable one.
 * Site-only environment candidates now require replicated treatment evidence
   across sites for automatic promotion. A block nested within one farm is
   left for review rather than being misclassified as an environment.

@@ -91,6 +91,15 @@ mask_set <- function(input,
       }
       if (length(role_modes) == 1L) {
         mode <- role_modes[[1L]]
+      } else {
+        cli::cli_warn(c(
+          "No {.arg mode} was supplied and no supplied {.arg roles} table carries mode provenance.",
+          "i" = paste0(
+            "Defaulting to {.val local}. Pass {.code mode =} explicitly, or keep ",
+            "the tibbles from {.fn propose_roles} (a {.fn data.table} or ",
+            "{.fn saveRDS} round-trip strips the mode attribute)."
+          )
+        ), class = "masque_mode_unset")
       }
     }
   }

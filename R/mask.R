@@ -146,7 +146,20 @@ mask <- function(df,
     cli::cli_abort("`conditional` must be a single `TRUE` or `FALSE`.")
   }
   if (missing(mode)) {
-    mode <- attr(roles, "mode") %||% "local"
+    roles_mode <- attr(roles, "mode")
+    if (is.null(roles_mode)) {
+      cli::cli_warn(c(
+        "No {.arg mode} was supplied and {.arg roles} carries no mode provenance.",
+        "i" = paste0(
+          "Defaulting to {.val local}. If this table was prepared for ",
+          "{.val collaborate} or lost its attributes (for example via ",
+          "{.fn data.table} or {.fn saveRDS}), pass {.code mode =} explicitly."
+        )
+      ), class = "masque_mode_unset")
+      mode <- "local"
+    } else {
+      mode <- roles_mode
+    }
   }
   mode <- match.arg(mode, c("local", "collaborate"))
   clean <- match.arg(clean)
