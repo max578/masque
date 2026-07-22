@@ -27,6 +27,20 @@ breaking existing signatures. The track record so far:
   built by masque <= 0.5.0 are upgraded automatically with a one-time
   deprecation warning, so existing scripts keep working; the warning
   signposts re-running `propose_roles()`.
+- `0.7.0` — added opt-in conditional numeric synthesis. **No signature
+  breaks.**
+- `0.8.0` — strengthened warning propagation and the package-managed write
+  gate. Added `allow_high` at the end of affected signatures. **Behavioural
+  safety change, listed in `NEWS.md`.**
+- `0.9.1` — supersedes the untagged 0.9.0 release candidate. Added the
+  append-only `env` argument to `detect_design()` and
+  additive environment-scope properties to `design_summary`. Conservative
+  automatic scope detection changes `propose_roles()` defaults for
+  high-confidence MET environment columns. `env = FALSE` and
+  `detect = FALSE` retain the former detector and name-only role paths.
+  `mask()` and `mask_set()` now inherit the mode provenance recorded on role
+  plans when `mode` is omitted, with an explicit warning for a downgrade.
+  **Behaviour changes are listed first in `NEWS.md`.**
 
 The policy is "additive-by-intent" rather than "frozen": pre-1.0 reserves the
 right to break an existing signature when a design flaw surfaces, but every

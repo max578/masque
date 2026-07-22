@@ -74,7 +74,9 @@ test_that("conditional clone still preserves the global marginal", {
   expect_equal(stats::sd(s$yield), stats::sd(f$df$yield), tolerance = 0.3)
 })
 
-test_that("conditional flag and conditioning columns are recorded on the recipe", {
+test_that(
+  "conditional flag and conditioning columns are recorded on the recipe",
+  {
   f <- make_effect_fixture()
   m <- suppressWarnings(
     mask(f$df, f$roles, mode = "local", seed = 1, conditional = TRUE)
@@ -89,7 +91,8 @@ test_that("conditional flag and conditioning columns are recorded on the recipe"
   rec0 <- recipe(m0)
   expect_false(rec0@conditional)
   expect_identical(rec0@conditioning_cols, character())
-})
+  }
+)
 
 test_that("conditional default is FALSE and leaves existing output unchanged", {
   f <- make_effect_fixture()
@@ -114,7 +117,9 @@ test_that("conditional preserves treatment vocabulary and frequencies", {
   )
 })
 
-test_that("conditional warns and degrades when nothing is left to condition on", {
+test_that(
+  "conditional warns and degrades when nothing is left to condition on",
+  {
   set.seed(7)
   df <- data.frame(
     y = stats::rnorm(80),
@@ -140,7 +145,8 @@ test_that("conditional warns and degrades when nothing is left to condition on",
   expect_identical(rec@conditioning_cols, character())
   # Output is still produced (pooled fallback).
   expect_equal(nrow(synthetic(m)), nrow(df))
-})
+  }
+)
 
 test_that("conditional clone works through the masque() guided verb", {
   f <- make_effect_fixture()
@@ -183,7 +189,9 @@ test_that("conditional conditions on design strata, not only treatment", {
   expect_lt(spread(synthetic(m_marg)), 0.3 * true_spread)
 })
 
-test_that("conditional clone preserves an N-rate effect on public agridat data", {
+test_that(
+  "conditional clone preserves an N-rate effect on public agridat data",
+  {
   skip_if_not_installed("agridat")
   data("lasrosas.corn", package = "agridat", envir = environment())
   dat <- get("lasrosas.corn", envir = environment())
@@ -220,4 +228,5 @@ test_that("conditional clone preserves an N-rate effect on public agridat data",
   cor_marg <- stats::cor(arm_means(synthetic(m_marg)), true_means)
   expect_gt(cor_cond, 0.9)
   expect_lt(cor_marg, 0.5)
-})
+  }
+)

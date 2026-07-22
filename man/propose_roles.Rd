@@ -117,9 +117,35 @@ stashed as \code{attr(roles, "design")}. Pass \code{detect = FALSE} for the
 name-only heuristic.
 }
 
+\section{Multi-environment trials}{
+
+
+Since masque 0.9.1, high-confidence environment columns detected by
+\code{\link[=detect_design]{detect_design()}} are promoted to role \code{design}. In local mode their values
+remain byte-identical. In collaborate mode categorical environment labels
+default to \code{alias}, which preserves row assignment and factor codes while
+hiding the vocabulary. Numeric environment columns default to \code{keep} and
+raise a \code{masque_environment_disclosure} warning for explicit review.
+
+Weak or competing environment candidates never change roles automatically.
+Inspect \code{attr(roles, "design")} and use \code{\link[=set_role]{set_role()}} when domain knowledge
+should override an uncertain result. Preserving environment allocation does
+not imply that synthesised outcomes preserve treatment-by-environment
+effects.
+An explicitly chosen action is pinned and is not overwritten by a later
+design-role promotion.
+}
+
 \examples{
 propose_roles(iris)
 propose_roles(iris, mode = "collaborate")
+
+met <- expand.grid(
+  env = factor(c("E1", "E2")),
+  rep = factor(seq_len(2L)),
+  gen = factor(c("G1", "G2", "G3"))
+)
+propose_roles(met, mode = "collaborate")[, c("col", "role", "action")]
 
 }
 \seealso{

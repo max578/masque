@@ -30,7 +30,9 @@ of column names to treat as cross-table links, or \code{FALSE} to disable
 linking entirely (each table masked independently). When \code{NULL}
 (default), links are detected automatically.}
 
-\item{mode}{Either \code{"local"} (default) or \code{"collaborate"}.}
+\item{mode}{Either \code{"local"} or \code{"collaborate"}. When omitted and \code{roles}
+are supplied, inherit their common mode. Tables prepared for different
+modes must be reconciled explicitly. Otherwise default to \code{"local"}.}
 
 \item{seed}{Optional integer for reproducibility.}
 

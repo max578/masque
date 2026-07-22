@@ -17,10 +17,14 @@
 #' pre-step.
 #'
 #' @param df A data frame.
-#' @param clean One of `"auto"` (default - apply the safe fixes and
-#'   report everything), `"report"` (report what *would* change but
-#'   apply nothing), or `"off"` (skip cleaning entirely; returns `df`
-#'   untouched with an empty report).
+#' @param clean One of `"auto"` (default - legalise names, trim
+#'   whitespace, report near-duplicates), `"report"` (legalise names,
+#'   report what whitespace / near-duplicate changes *would* be made but
+#'   apply none), or `"off"` (legalise names only, skip all other
+#'   hygiene). Column-name legalisation is applied in **every** mode -- an
+#'   invalid name silently rewritten downstream corrupts the clone -- and
+#'   is surfaced as a `masque_name_repaired` warning; only the whitespace
+#'   and near-duplicate handling is governed by the mode.
 #' @param quiet Logical. When `FALSE` (default) a `cli` summary of the
 #'   fixes and advisories is printed. Set `TRUE` to suppress it (the
 #'   report object is returned either way).
@@ -57,47 +61,49 @@ clean_table <- function(df, clean = c("auto", "report", "off"), quiet = FALSE) {
   }
   clean <- match.arg(clean)
 
-  empty <- .empty_cleaning(df, clean)
-  if (identical(clean, "off")) {
-    return(empty)
-  }
-
-  apply_fixes <- identical(clean, "auto")
-
-  # 1. Legalise column names: trim, make.names, uniquify. The map records
-  #    only genuine changes.
+  # Column-name legalisation is applied in EVERY mode. An invalid column
+  # name silently rewritten during synthesis (via make.names() inside a
+  # downstream data.frame build) corrupts the clone and breaks the
+  # round-trip, so legalising it is a correctness fix, not optional
+  # hygiene. The `clean` mode governs only the whitespace and
+  # near-duplicate handling below.
   orig_names <- names(df)
   legal <- .legalise_names(orig_names)
   name_map <- stats::setNames(legal, orig_names)
   name_map <- name_map[orig_names != legal]
-
-  # 2. Trim whitespace in character / factor values.
-  level_fixes <- list()
-  near_dups <- list()
-  for (j in seq_along(df)) {
-    x <- df[[j]]
-    if (!(is.character(x) || is.factor(x))) next
-    nm_out <- if (apply_fixes && length(name_map)) {
-      legal[j]
-    } else {
-      orig_names[j]
-    }
-    fix <- .trim_levels(x)
-    if (length(fix$map)) {
-      level_fixes[[nm_out]] <- fix$map
-      if (apply_fixes) df[[j]] <- fix$x
-    }
-    # Near-duplicate detection runs on the (trimmed) vocabulary.
-    vals <- if (apply_fixes) fix$x else x
-    nd <- .near_duplicate_pairs(vals)
-    if (nrow(nd)) {
-      nd$col <- nm_out
-      near_dups[[length(near_dups) + 1L]] <- nd
-    }
+  if (length(name_map)) {
+    names(df) <- legal
+    warning(warningCondition(
+      .name_repair_message(name_map),
+      class = "masque_name_repaired"
+    ))
   }
 
-  if (apply_fixes && length(name_map)) {
-    names(df) <- legal
+  apply_fixes <- identical(clean, "auto")
+  do_hygiene <- !identical(clean, "off")
+
+  # Trim whitespace (auto only) and detect near-duplicate labels (auto and
+  # report). Keyed on the now-legalised column names.
+  level_fixes <- list()
+  near_dups <- list()
+  if (do_hygiene) {
+    for (j in seq_along(df)) {
+      x <- df[[j]]
+      if (!(is.character(x) || is.factor(x))) next
+      nm_out <- names(df)[j]
+      fix <- .trim_levels(x)
+      if (length(fix$map)) {
+        level_fixes[[nm_out]] <- fix$map
+        if (apply_fixes) df[[j]] <- fix$x
+      }
+      # Near-duplicate detection runs on the (trimmed) vocabulary.
+      vals <- if (apply_fixes) fix$x else x
+      nd <- .near_duplicate_pairs(vals)
+      if (nrow(nd)) {
+        nd$col <- nm_out
+        near_dups[[length(near_dups) + 1L]] <- nd
+      }
+    }
   }
 
   near_duplicates <- if (length(near_dups)) {
@@ -126,18 +132,6 @@ print.masque_cleaning <- function(x, ...) {
   invisible(x)
 }
 
-.empty_cleaning <- function(df, clean) {
-  out <- list(
-    data            = df,
-    name_map        = stats::setNames(character(), character()),
-    level_fixes     = list(),
-    near_duplicates = .empty_near_dups(),
-    mode            = clean
-  )
-  class(out) <- "masque_cleaning"
-  out
-}
-
 .empty_near_dups <- function() {
   data.frame(
     col = character(), a = character(), b = character(),
@@ -152,6 +146,22 @@ print.masque_cleaning <- function(x, ...) {
   trimmed <- trimws(nms)
   legal <- make.names(trimmed)
   make.unique(legal, sep = "_")
+}
+
+# Human-readable summary of a column-name legalisation, shared by the
+# clean_table() warning and mask()'s recipe record so the two never drift.
+.name_repair_message <- function(name_map) {
+  pairs <- paste(
+    sprintf("`%s` -> `%s`", names(name_map), unname(name_map)),
+    collapse = ", "
+  )
+  sprintf(
+    paste0(
+      "Renamed %d column name(s) that are not valid R names: %s. ",
+      "The map is recorded in the recipe and reversed on the round-trip."
+    ),
+    length(name_map), pairs
+  )
 }
 
 # Trim leading / trailing whitespace from a character or factor vector.
@@ -307,7 +317,8 @@ trimws_keep_class <- function(x) {
   cli::cli_h2("masque hygiene report")
 
   if (n_names) {
-    cli::cli_alert_info("Column names {verb} ({n_names}):")
+    # Names are legalised in every mode, so they are always already fixed.
+    cli::cli_alert_info("Column names legalised ({n_names}):")
     for (i in seq_len(n_names)) {
       cli::cli_li("{.val {names(cl$name_map)[i]}} -> {.val {cl$name_map[[i]]}}")
     }

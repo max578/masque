@@ -2,19 +2,29 @@
 % Please edit documentation in R/detect_plot.R
 \name{plot_design_summary}
 \alias{plot_design_summary}
-\title{Sanity-check visualisation for a detected design}
+\title{Sanity-check visualisation for detected scope and design}
 \usage{
-plot_design_summary(x, df, engine = c("base", "ggplot2"), ...)
+plot_design_summary(
+  x,
+  df,
+  engine = c("base", "ggplot2"),
+  environment = NULL,
+  ...
+)
 }
 \arguments{
 \item{x}{A \code{design_summary} object from \code{\link[=detect_design]{detect_design()}}.}
 
-\item{df}{The data frame that was passed to \code{\link[=detect_design]{detect_design()}} — used
+\item{df}{The data frame that was passed to \code{\link[=detect_design]{detect_design()}}. It is used
 to draw replication tiles, spatial layouts, and the NA-pattern.
-Required for every class except \code{"none"} with no factors.}
+The data are deliberately not stored in the summary.}
 
 \item{engine}{\code{"base"} (default) or \code{"ggplot2"}. The latter requires
-ggplot2; falls back to \code{"base"} with a warning if unavailable.}
+ggplot2 and falls back to \code{"base"} with a warning if unavailable.}
+
+\item{environment}{Optional single environment label. For a detected MET,
+the default is a compact all-environment overview. Supplying a label draws
+the selected environment's field layout or legacy design diagnostic.}
 
 \item{...}{Ignored.}
 }
@@ -22,8 +32,10 @@ ggplot2; falls back to \code{"base"} with a warning if unavailable.}
 The input \code{x}, invisibly. Called for the plot side-effect.
 }
 \description{
-Plots the structure that drove the \code{\link[=detect_design]{detect_design()}} verdict. The
-panel layout depends on the detected class:
+Plots the structure that drove the \code{\link[=detect_design]{detect_design()}} verdict. A detected MET
+uses a compact environment-coverage overview by default. Set \code{environment}
+to draw one selected environment. A single-trial panel depends on the
+detected design class:
 }
 \details{
 \itemize{
@@ -34,7 +46,7 @@ treatment).
 \item \code{split-plot} -> factor-nesting tree + within-block replication.
 }
 
-Output is purely diagnostic; do not use it as a publication figure
+Output is purely diagnostic. Do not use it as a publication figure
 (use \code{desplot::desplot()} or \code{ggplot2}-based packages for that).
 }
 \examples{
@@ -43,5 +55,14 @@ if (requireNamespace("agridat", quietly = TRUE)) {
   ds <- detect_design(d)
   plot(ds, df = d)
 }
+
+met <- expand.grid(
+  env = factor(c("E1", "E2")),
+  rep = factor(seq_len(2L)),
+  gen = factor(c("G1", "G2", "G3"))
+)
+met$yield <- seq_len(nrow(met))
+met_design <- detect_design(met, env = "env")
+plot(met_design, df = met)
 
 }

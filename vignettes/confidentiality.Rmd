@@ -26,10 +26,10 @@ trust boundary and the recipe stays with the custodian.
 
 | Actor holds | Wants to learn | What `masque` protects |
 |---|---|---|
-| Synthetic only | Original raw values | Aliased treatment / categorical vocabularies; jittered numerics; dropped ids and free text; optionally, the column names |
+| Synthetic only | Original raw values | Aliased treatment and categorical vocabularies, jittered numerics, dropped ids and free text, and optionally the column names |
 | Synthetic + recipe | Original raw values | Nothing -- the combination is as sensitive as the original |
 | Recipe only | Original raw values | Nothing useful -- the recipe is meaningless without the synthetic |
-| Synthetic + external side information | Identity of treatments / sites | Only the label vocabulary; a preserved design footprint or a `keep` column is recognisable, and side information wins |
+| Synthetic + external side information | Identity of treatments / sites | Only the label vocabulary. A preserved design footprint or a `keep` column is recognisable, and side information wins |
 
 What `masque` does: it preserves enough structure for pipelines to run
 unchanged, exposes the privacy-versus-fidelity trade-off through two
@@ -46,13 +46,13 @@ pipeline source code.
 
 Since version 0.6.0, every column carries a `role` (what it is) and an
 `action` (how deeply it is masked). The mode sets the default action per
-role; you override any column you like. The four actions are the privacy
+role. You override any column you like. The four actions are the privacy
 dial:
 
 | Action | Effect | Vocabulary visible? |
 |---|---|---|
 | `keep` | byte-identical pass-through | yes -- real values published |
-| `scramble` | re-simulate numerics; row-permute categoricals / dates | yes -- labels stay, assignment moves |
+| `scramble` | re-simulate numerics and row-permute categoricals / dates | yes -- labels stay, assignment moves |
 | `alias` | scramble, then replace labels with opaque codes | no |
 | `drop` | column omitted from the synthetic | n/a |
 
@@ -63,13 +63,13 @@ per-column work:
 |---|---|---|
 | Treatment labels | kept | aliased (`trt_001`) |
 | Categorical covariate labels | kept | aliased (`<col>_L001`) |
-| Date / time columns | row-permuted; class preserved | row-permuted; class preserved |
+| Date / time columns | row-permuted with class preserved | row-permuted with class preserved |
 | Identifiers (`id`) | kept | dropped |
 | Free text (`text`) | kept | dropped |
-| Numeric synthesis | empirical-quantile (may emit observed values) | empirical-quantile plus within-resolution jitter; integers stochastically rounded |
+| Numeric synthesis | empirical-quantile (may emit observed values) | empirical-quantile plus within-resolution jitter, with integers stochastically rounded |
 | NA mask | preserved cell-by-cell | preserved cell-by-cell |
 | `audit_mask()` | on demand | automatic at `mask()` time |
-| `print(recipe)` | redacted | redacted; explicit `reveal_maps()` to inspect |
+| `print(recipe)` | redacted | redacted, with explicit `reveal_maps()` to inspect |
 
 ## Depth controls
 
@@ -162,7 +162,7 @@ data.frame(
 )
 ```
 
-The marginal clone collapses the effect toward zero; the conditional
+The marginal clone collapses the effect toward zero. The conditional
 clone recovers it. Both clones still match the pooled marginal of the
 outcome:
 
@@ -190,11 +190,54 @@ recipe(cond)@conditioning_cols
 
 Conditional cloning composes with both modes and with `mask_set()` (each
 table is stratified by its own treatment and design columns). It needs
-enough rows per stratum to fit a stratum-local copula; cells smaller than
+enough rows per stratum to fit a stratum-local copula. Cells smaller than
 a handful of rows are pooled into a graceful global fallback rather than
 failing, and with no treatment or design column to condition on the path
 degrades cleanly to the global copula with a note. Reach for it whenever
 the development pipeline estimates an effect, not just a distribution.
+
+## What the copula carries: monotone, not non-monotone, association
+
+Numeric columns that are kept and re-simulated together share one
+Gaussian copula, fitted on the normal scores of their ranks. A Gaussian
+copula holds a single correlation per pair, so it reproduces a *monotone*
+association -- linear, or any order-preserving curve -- but not a
+dependence that a correlation cannot express. A non-monotone relationship,
+such as a U-shaped dependence of an outcome on a covariate, reads as
+near-zero rank correlation and is reproduced as near-independence.
+
+```{r nonmonotone}
+set.seed(7)
+n <- 2000
+x_lin <- rnorm(n)
+y_lin <- 2 * x_lin + rnorm(n, sd = 0.5)     # monotone (linear)
+x_u <- runif(n, -3, 3)
+y_u <- x_u^2 + rnorm(n, sd = 0.5)           # non-monotone (U-shaped)
+d <- data.frame(x_lin, y_lin, x_u, y_u)
+
+s <- synthetic(mask(d, propose_roles(d, detect = FALSE), seed = 1))
+
+# R-squared of a quadratic fit captures association of any curvature.
+fit_r2 <- function(x, y) summary(lm(y ~ poly(x, 2)))$r.squared
+data.frame(
+  pair = c("monotone (y = 2x)", "non-monotone (y = x^2)"),
+  original = c(fit_r2(x_lin, y_lin), fit_r2(x_u, y_u)),
+  clone = c(fit_r2(s$x_lin, s$y_lin), fit_r2(s$x_u, s$y_u))
+)
+```
+
+The monotone pair keeps its association almost exactly. The non-monotone
+pair loses it entirely, so on the clone the covariate carries no
+information about the outcome. `conditional = TRUE` does not repair this.
+It preserves the outcome's location within each treatment-by-design
+stratum, not the curvature of the outcome's dependence on a continuous
+covariate. A development pipeline whose modelling step is non-linear -- a
+smoothing spline, a generalised additive model, a tree, an interaction
+term -- will therefore see on the synthetic only the monotone part of any
+relationship present in the original, and a good fit there is not evidence
+the step behaves correctly on the real data. Validate such a step by
+round-tripping it onto the original through the recipe, not by trusting
+its result on the clone.
 
 ## The leakage audit
 
@@ -242,20 +285,20 @@ it. At write time, the package-managed writers (`masque()`'s `out` and
 `write_set()`) refuse to write while a HIGH finding stands: nothing is
 written, and the flagged columns are listed with the remedy (re-role,
 alias, or drop, then mask again). A custodian who has reviewed the
-findings can pass `allow_high = TRUE` to write anyway; the override is
+findings can pass `allow_high = TRUE` to write anyway. The override is
 raised as a `masque_high_override` warning and recorded in the recipe's
 warnings, so the exception stays auditable.
 
 Beyond that gate the release decision stays with the custodian --
 whether a synthetic table is appropriate for a given collaborator,
 environment, or jurisdiction depends on context the package cannot see.
-`masque` informs that decision; it does not make it.
+`masque` informs that decision. It does not make it.
 
 ## Multi-table sets
 
 When several tables share a key, `mask_set()` aliases that key
 *identically across all of them* so the synthetic tables still join. A
-linked key is the join surface; it is aliased consistently rather than
+linked key is the join surface. It is aliased consistently rather than
 permuted (permuting a key would break the join regardless of masking).
 
 ```{r set}
@@ -266,18 +309,18 @@ qa <- synthetic(ms)$quality
 setequal(unique(ag$gen), unique(qa$gen))   # same genotype codes in both
 ```
 
-The recipe bundle is private exactly as a single recipe is; `write_set()`
+The recipe bundle is private exactly as a single recipe is. `write_set()`
 never writes it.
 
 ## Operational guidance
 
-Default to collaborate mode when in doubt; local mode is for owner-only
+Default to collaborate mode when in doubt. Local mode is for owner-only
 development. Treat the recipe as you treat the original data -- same
 security class, same access controls. Re-run `audit_mask()` before any
 sharing even though collaborate mode runs it for you. Never override a
 `pii_suspected` flag without deciding deliberately. Remember that
 date/time columns and a preserved design footprint both carry real
-operational signal; alias or roll them up when that signal is sensitive.
+operational signal. Alias or roll them up when that signal is sensitive.
 Small designs leak -- a categorical cell count of one is high leakage, so
 aggregate or drop before masking.
 

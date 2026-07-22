@@ -22,7 +22,7 @@ roles <- set_role(roles, "yield", role = "outcome")
 ## Why the recipe matters
 
 This vignette is written for the analyst's side of the workflow. The
-custodian masks the data and keeps the recipe; you receive only the
+custodian masks the data and keeps the recipe. You receive only the
 synthetic. But the recipe is what makes a pipeline you write against the
 synthetic re-target to the real data, so it is worth understanding what
 it carries and how the round-trip works.
@@ -77,7 +77,7 @@ reveal_maps(rec)
 ## The round-trip
 
 The recipe is a bidirectional translator. `apply_recipe()` carries the
-original *into* the synthetic namespace; `unmask()` carries results
+original *into* the synthetic namespace. `unmask()` carries results
 *back*. The usual pattern is to fit on the synthetic, then score the
 original:
 

@@ -119,7 +119,10 @@
     return(m)
   }
   note <- sprintf(
-    "%s: HIGH leakage gate overridden at write time (allow_high = TRUE) for: %s",
+    paste0(
+      "%s: HIGH leakage gate overridden at write time ",
+      "(allow_high = TRUE) for: %s"
+    ),
     format(Sys.time(), "%Y-%m-%d %H:%M:%S", tz = "UTC"),
     paste(high, collapse = ", ")
   )

@@ -2,7 +2,7 @@
 
 ## Submission notes
 
-`masque` 0.8.0 is the first submission to CRAN. It carries the full
+`masque` 0.9.1 is the first submission to CRAN. It carries the full
 end-to-end surface built over the 0.2-0.7 development line - a two-axis
 roles model (a `role` and an `action` per column), a hygiene layer,
 opt-in column-name aliasing, a multi-table set layer with
@@ -10,7 +10,12 @@ cross-table-consistent key aliasing, a conditional clone mode, and a
 single guided `masque()` verb - plus the 0.8.0 safety correction: HIGH
 leakage findings are raised as classed warnings that the guided flow
 never silences, and package-managed writers refuse to write while a
-HIGH finding stands. See `NEWS.md` for the full change list.
+HIGH finding stands. Version 0.9.1 adds conservative multi-environment
+scope detection, environment-safe role defaults, connectivity diagnostics,
+and bounded print and plot methods. Its final audit fixes mode-provenance
+inheritance, false site-only promotion, bounded connectivity allocation,
+near-disjoint group diagnostics, and preservation of explicitly pinned
+actions. See `NEWS.md` for the full change list.
 
 ## R CMD check results
 
@@ -18,14 +23,15 @@ Local `R CMD check --as-cran` on macOS (Apple Silicon), R 4.5.2:
 
 * 0 errors
 * 0 warnings
-* Up to 3 NOTEs, all environment / release-context:
+* 2 NOTEs, both release-context:
   1. **New submission** -- expected for a first submission; maintainer
      name and email are correct.
-  2. **HTML Tidy** -- the local machine does not have a recent enough
-     HTML Tidy binary; the package's HTML help renders correctly under
-     R's own renderer.
-  3. **Future file timestamps** -- the local environment could not
+  2. **Future file timestamps** -- the local environment could not
      verify the current time against a network source.
+
+With remote incoming and system-clock probes disabled, the same final
+tarball returns `Status: OK` (0 errors, 0 warnings, 0 NOTEs). HTML help
+validation runs with HTML Tidy 5.8.0 and passes.
 
 A GitHub Actions matrix (Linux release / devel / oldrel-1, macOS
 release, Windows release) runs on every push and PR.
@@ -33,12 +39,13 @@ release, Windows release) runs on every push and PR.
 ## Dependencies
 
 * `Imports`: base R plus widely-used CRAN packages -- `cli`,
-  `data.table`, `digest`, `Matrix`, `S7`, `tibble`, `withr`.
+  `data.table`, `digest`, `Matrix`, `S7`, `stats`, `tibble`, `utils`,
+  `withr`.
   `data.table` is used for fast delimited I/O (`fread` / `fwrite`) in
   the set layer; the count slightly exceeds the lean-package ideal but
   each import carries a distinct, load-bearing contract.
-* `Suggests` (`readxl`, `writexl`, `fst`, `agridat`, `ggplot2`) are
-  every one gated via `requireNamespace()` in code and tests, and the
+* Suggested packages are gated via `requireNamespace()` in code and tests,
+  and the
   package degrades with a clear message when a Suggested package is
   absent.
 * No revdeps (first submission).

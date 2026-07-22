@@ -220,6 +220,19 @@ roles_validate <- function(roles, df = NULL, mode = NULL) {
     return(roles)
   }
 
+  if (identical(proposed_mode, "collaborate") && identical(mode, "local")) {
+    cli::cli_warn(c(
+      paste0(
+        "A roles table prepared for {.val collaborate} is being used in ",
+        "{.val local} mode."
+      ),
+      "i" = paste0(
+        "Collaborate defaults may be downgraded to values that expose real ",
+        "labels. Confirm this mode change before sharing output."
+      )
+    ), class = "masque_mode_downgrade")
+  }
+
   pa <- attr(roles, "proposed_actions")
   if (is.null(pa)) {
     cli::cli_warn(c(

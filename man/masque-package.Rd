@@ -50,6 +50,7 @@ integers stochastically rounded; \code{audit_mask()} auto-runs at construction.
 \seealso{
 Useful links:
 \itemize{
+  \item \url{https://max578.github.io/masque/}
   \item \url{https://github.com/max578/masque}
   \item Report bugs at \url{https://github.com/max578/masque/issues}
 }

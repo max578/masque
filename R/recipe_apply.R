@@ -173,6 +173,18 @@ unmask <- function(x, rec, column = NULL) {
         target_class = rec@storage_classes[[col]]
       )
     }
+    # Restore the original (pre-legalisation) column names last, after the
+    # level maps have matched on the legalised names. Reverses the name
+    # repair clean_table() applied at mask() time.
+    if (!is.null(rec@cleaning) && length(rec@cleaning$name_map)) {
+      inv <- stats::setNames(
+        names(rec@cleaning$name_map), unname(rec@cleaning$name_map)
+      )
+      nm <- names(out)
+      hits <- nm %in% names(inv)
+      nm[hits] <- unname(inv[nm[hits]])
+      names(out) <- nm
+    }
     return(tibble::as_tibble(out))
   }
 
@@ -309,7 +321,8 @@ unmask <- function(x, rec, column = NULL) {
 }
 
 # Internal: synthetic-label -> original-label. Fail-closed (see forward).
-.apply_level_map_inverse <- function(val, map, col = NULL, target_class = NULL) {
+.apply_level_map_inverse <- function(val, map, col = NULL,
+                                     target_class = NULL) {
   inv <- stats::setNames(names(map), unname(map))
   if (is.factor(val) || is.character(val) || is.logical(val)) {
     val_chr <- as.character(val)

@@ -4,18 +4,30 @@
 # rule engine (R/detect_rules.R), apply a simpler-design tie-break, and
 # wrap the result in an S7 design_summary object.
 
-#' Detect the experimental-design structure of a data frame
+#' Detect environment scope and experimental-design structure
 #'
-#' Inspects `df` and returns an S7 `design_summary` describing the most
-#' likely experimental design — one of `"CRD"`, `"RCBD"`,
+#' Inspects `df` and returns an S7 `design_summary`. Environment scope and
+#' experimental-design class are separate conclusions: a table can be a
+#' multi-environment trial (MET) even when its within-environment randomisation
+#' cannot be recovered from the recorded columns.
+#'
+#' @details
+#' With `env = NULL`, exact environment names and a bounded set of site-year
+#' patterns are assessed conservatively. A site-only candidate auto-resolves
+#' only when treatments are replicated across sites. Weak or competing
+#' evidence produces an explicit uncertain result rather than a guessed single
+#' trial. Supply `env` to define the environment basis, or use `env = FALSE`
+#' to run the pre-0.9 whole-table path exactly.
+#'
+#' After the scope step, the pooled legacy detector runs six independent
+#' design rules. Each returns a score in \eqn{[0, 1]}. The highest-scoring
+#' class above `threshold` is one of `"CRD"`, `"RCBD"`,
 #' `"IBD/alpha-lattice"`, `"row-column"`, `"split-plot"`, `"factorial"`,
-#' or `"none"` (observational / no detectable design).
-#'
-#' Detection runs six independent rules; each returns a score in
-#' \eqn{[0, 1]}. The orchestrator picks the highest-scoring class above
-#' `threshold`. Ties within `tie_delta` are broken in favour of the
-#' simpler design (CRD < RCBD < factorial < IBD < row-column <
-#' split-plot).
+#' or `"none"`. Ties within `tie_delta` favour the simpler design. For a MET,
+#' per-environment classes, treatment connectivity, and near-disjoint
+#' experiment groups are diagnostics only. Dense connectivity calculations
+#' that exceed the package safety bound are reported as `not_computed`.
+#' None of these diagnostics proves the original randomisation protocol.
 #'
 #' The detector never edits `df`. Its job is to recommend a role
 #' assignment, surface the evidence, and (optionally) draw a sanity
@@ -23,9 +35,8 @@
 #'
 #' @param df A data frame.
 #' @param roles Optional roles tibble (as returned by [propose_roles()]).
-#'   When supplied, columns roled `outcome` / `keep` / `ignore` are excluded
-#'   from factor candidates, and any column roled `treatment` is forced as
-#'   the working treatment.
+#'   When supplied, declared roles constrain candidate generation, and columns
+#'   roled `treatment` define the treatment basis.
 #' @param interactive If `TRUE`, when the top-2 rule scores are within
 #'   `tie_delta` the user is asked to choose between them via a cli
 #'   menu. Default `FALSE`.
@@ -34,11 +45,19 @@
 #' @param tie_delta Score difference within which two rules are treated
 #'   as tied. Default `0.02` — tight enough that 0.05-point score
 #'   differences (the typical name-bonus / coverage gap) are decisive.
+#' @param env Environment specification. `NULL` performs conservative automatic
+#'   resolution and leaves ambiguous or weak evidence unresolved. `FALSE`
+#'   disables MET handling and runs the legacy whole-table path. A character
+#'   vector names one or more columns whose interaction defines the environment.
 #'
-#' @return An S7 `design_summary` object with slots `class_label`,
+#' @returns An S7 `design_summary` object. Legacy design fields include
+#'   `class_label`,
 #'   `treatment_col`, `block_cols`, `whole_plot_col`, `sub_plot_col`,
 #'   `spatial_cols`, `scores`, `evidence`, `recommended_roles`,
-#'   `candidates`, `warnings`.
+#'   `candidates`, and `warnings`. Scope fields include `scope_label`,
+#'   `scope_status`, `scope_confidence`, `is_met`, `env_cols`, `env_method`,
+#'   `n_env`, `group_cols`, `connectivity`, `per_env`, and
+#'   `within_design_label`.
 #'
 #' @examples
 #' # Classic alpha-lattice (24 genotypes, 3 reps, 6 blocks per rep).
@@ -51,7 +70,18 @@
 #' # Observational data frame -> class_label "none".
 #' detect_design(mtcars)
 #'
-#' @seealso [propose_roles()] for the role tibble that feeds detection;
+#' # Explicit two-environment trial.
+#' met <- expand.grid(
+#'   env = factor(c("E1", "E2")),
+#'   rep = factor(seq_len(2L)),
+#'   gen = factor(c("G1", "G2", "G3"))
+#' )
+#' met$yield <- seq_len(nrow(met))
+#' met_design <- detect_design(met, env = "env")
+#' met_design@scope_label
+#' met_design@connectivity$status
+#'
+#' @seealso [propose_roles()] for the role tibble that feeds detection and
 #'   [plot_design_summary()] for the sanity-check visualisation.
 #'
 #' @export
@@ -59,13 +89,70 @@ detect_design <- function(df,
                           roles = NULL,
                           interactive = FALSE,
                           threshold = 0.5,
-                          tie_delta = 0.02) {
+                          tie_delta = 0.02,
+                          env = NULL) {
   if (!is.data.frame(df)) {
     cli::cli_abort("`df` must be a data frame; got {.cls {class(df)[1]}}.")
   }
   if (nrow(df) < 2L || ncol(df) == 0L) {
     cli::cli_abort("`df` must have at least 2 rows and 1 column.")
   }
+
+  env_spec <- .validate_environment_arg(df, env)
+  if (env_spec$mode == "disabled") {
+    return(.detect_design_legacy(
+      df = df,
+      roles = roles,
+      interactive = interactive,
+      threshold = threshold,
+      tie_delta = tie_delta,
+      scope = .scope_disabled()
+    ))
+  }
+
+  out <- .detect_design_legacy(
+    df = df,
+    roles = roles,
+    interactive = interactive,
+    threshold = threshold,
+    tie_delta = tie_delta,
+    scope = .scope_unknown()
+  )
+
+  if (env_spec$mode == "explicit") {
+    out <- .apply_explicit_environment(
+      out = out,
+      df = df,
+      roles = roles,
+      env_cols = env_spec$cols,
+      threshold = threshold,
+      tie_delta = tie_delta
+    )
+  } else if (env_spec$mode == "automatic") {
+    resolution <- .resolve_environment(df, out, roles)
+    out <- .apply_automatic_environment(
+      out = out,
+      df = df,
+      roles = roles,
+      resolution = resolution,
+      threshold = threshold,
+      tie_delta = tie_delta
+    )
+  }
+  out@recommended_roles <- .normalise_role_recommendations(
+    out@recommended_roles, df
+  )
+  out
+}
+
+# Legacy whole-table detector. Keep this path free of environment inference so
+# `env = FALSE` remains a stable compatibility escape hatch.
+.detect_design_legacy <- function(df,
+                                  roles = NULL,
+                                  interactive = FALSE,
+                                  threshold = 0.5,
+                                  tie_delta = 0.02,
+                                  scope = .scope_unknown()) {
 
   cands <- .propose_candidates(df, roles = roles)
 
@@ -92,11 +179,14 @@ detect_design <- function(df,
   }
 
   if (is.na(picked)) {
-    return(.design_summary_none(scores, cands))
+    return(.design_summary_none(scores, cands, scope = scope))
   }
 
   result <- results[[picked]]
-  .build_design_summary(picked, result, scores, cands, warnings_msgs)
+  .build_design_summary(
+    picked, result, scores, cands, warnings_msgs,
+    scope = scope
+  )
 }
 
 # Pick the top class label using a simpler-is-better tie-break.
@@ -155,7 +245,8 @@ detect_design <- function(df,
   top2[pick]
 }
 
-.build_design_summary <- function(label, result, scores, cands, warnings_msgs) {
+.build_design_summary <- function(label, result, scores, cands, warnings_msgs,
+                                  scope = .scope_unknown()) {
   ev <- result$evidence %||% list()
 
   treatment_col <- ev$treatment_col %||% character(0L)
@@ -189,11 +280,22 @@ detect_design <- function(df,
     recommended_roles = result$recommended_roles %||%
       .empty_recommended_roles(),
     candidates = cands,
-    warnings = warnings_msgs
+    warnings = warnings_msgs,
+    scope_label = scope$scope_label,
+    scope_status = scope$scope_status,
+    scope_confidence = scope$scope_confidence,
+    is_met = scope$is_met,
+    env_cols = scope$env_cols,
+    env_method = scope$env_method,
+    n_env = scope$n_env,
+    group_cols = scope$group_cols,
+    connectivity = scope$connectivity,
+    per_env = scope$per_env,
+    within_design_label = scope$within_design_label
   )
 }
 
-.design_summary_none <- function(scores, cands) {
+.design_summary_none <- function(scores, cands, scope = .scope_unknown()) {
   design_summary(
     class_label       = "none",
     treatment_col     = character(0L),
@@ -205,7 +307,18 @@ detect_design <- function(df,
     evidence          = list(reason = "max rule score below threshold"),
     recommended_roles = .empty_recommended_roles(),
     candidates        = cands,
-    warnings          = character(0L)
+    warnings          = character(0L),
+    scope_label       = scope$scope_label,
+    scope_status      = scope$scope_status,
+    scope_confidence  = scope$scope_confidence,
+    is_met            = scope$is_met,
+    env_cols          = scope$env_cols,
+    env_method        = scope$env_method,
+    n_env             = scope$n_env,
+    group_cols        = scope$group_cols,
+    connectivity      = scope$connectivity,
+    per_env           = scope$per_env,
+    within_design_label = scope$within_design_label
   )
 }
 
@@ -243,6 +356,17 @@ design_summary <- S7::new_class(
     evidence          = S7::class_list,
     recommended_roles = S7::class_data.frame,
     candidates        = S7::class_list,
-    warnings          = S7::class_character
+    warnings          = S7::class_character,
+    scope_label       = S7::class_character,
+    scope_status      = S7::class_character,
+    scope_confidence  = S7::class_character,
+    is_met            = S7::class_logical,
+    env_cols          = S7::class_character,
+    env_method        = S7::class_character,
+    n_env             = S7::class_integer,
+    group_cols        = S7::class_character,
+    connectivity      = S7::class_list,
+    per_env           = S7::class_data.frame,
+    within_design_label = S7::class_character
   )
 )

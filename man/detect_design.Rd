@@ -2,23 +2,23 @@
 % Please edit documentation in R/detect_design.R
 \name{detect_design}
 \alias{detect_design}
-\title{Detect the experimental-design structure of a data frame}
+\title{Detect environment scope and experimental-design structure}
 \usage{
 detect_design(
   df,
   roles = NULL,
   interactive = FALSE,
   threshold = 0.5,
-  tie_delta = 0.02
+  tie_delta = 0.02,
+  env = NULL
 )
 }
 \arguments{
 \item{df}{A data frame.}
 
 \item{roles}{Optional roles tibble (as returned by \code{\link[=propose_roles]{propose_roles()}}).
-When supplied, columns roled \code{outcome} / \code{keep} / \code{ignore} are excluded
-from factor candidates, and any column roled \code{treatment} is forced as
-the working treatment.}
+When supplied, declared roles constrain candidate generation, and columns
+roled \code{treatment} define the treatment basis.}
 
 \item{interactive}{If \code{TRUE}, when the top-2 rule scores are within
 \code{tie_delta} the user is asked to choose between them via a cli
@@ -30,25 +30,45 @@ Below this, \code{class_label} is \code{"none"}. Default \code{0.5}.}
 \item{tie_delta}{Score difference within which two rules are treated
 as tied. Default \code{0.02} — tight enough that 0.05-point score
 differences (the typical name-bonus / coverage gap) are decisive.}
+
+\item{env}{Environment specification. \code{NULL} performs conservative automatic
+resolution and leaves ambiguous or weak evidence unresolved. \code{FALSE}
+disables MET handling and runs the legacy whole-table path. A character
+vector names one or more columns whose interaction defines the environment.}
 }
 \value{
-An S7 \code{design_summary} object with slots \code{class_label},
+An S7 \code{design_summary} object. Legacy design fields include
+\code{class_label},
 \code{treatment_col}, \code{block_cols}, \code{whole_plot_col}, \code{sub_plot_col},
 \code{spatial_cols}, \code{scores}, \code{evidence}, \code{recommended_roles},
-\code{candidates}, \code{warnings}.
+\code{candidates}, and \code{warnings}. Scope fields include \code{scope_label},
+\code{scope_status}, \code{scope_confidence}, \code{is_met}, \code{env_cols}, \code{env_method},
+\code{n_env}, \code{group_cols}, \code{connectivity}, \code{per_env}, and
+\code{within_design_label}.
 }
 \description{
-Inspects \code{df} and returns an S7 \code{design_summary} describing the most
-likely experimental design — one of \code{"CRD"}, \code{"RCBD"},
-\code{"IBD/alpha-lattice"}, \code{"row-column"}, \code{"split-plot"}, \code{"factorial"},
-or \code{"none"} (observational / no detectable design).
+Inspects \code{df} and returns an S7 \code{design_summary}. Environment scope and
+experimental-design class are separate conclusions: a table can be a
+multi-environment trial (MET) even when its within-environment randomisation
+cannot be recovered from the recorded columns.
 }
 \details{
-Detection runs six independent rules; each returns a score in
-\eqn{[0, 1]}. The orchestrator picks the highest-scoring class above
-\code{threshold}. Ties within \code{tie_delta} are broken in favour of the
-simpler design (CRD < RCBD < factorial < IBD < row-column <
-split-plot).
+With \code{env = NULL}, exact environment names and a bounded set of site-year
+patterns are assessed conservatively. A site-only candidate auto-resolves
+only when treatments are replicated across sites. Weak or competing
+evidence produces an explicit uncertain result rather than a guessed single
+trial. Supply \code{env} to define the environment basis, or use \code{env = FALSE}
+to run the pre-0.9 whole-table path exactly.
+
+After the scope step, the pooled legacy detector runs six independent
+design rules. Each returns a score in \eqn{[0, 1]}. The highest-scoring
+class above \code{threshold} is one of \code{"CRD"}, \code{"RCBD"},
+\code{"IBD/alpha-lattice"}, \code{"row-column"}, \code{"split-plot"}, \code{"factorial"},
+or \code{"none"}. Ties within \code{tie_delta} favour the simpler design. For a MET,
+per-environment classes, treatment connectivity, and near-disjoint
+experiment groups are diagnostics only. Dense connectivity calculations
+that exceed the package safety bound are reported as \code{not_computed}.
+None of these diagnostics proves the original randomisation protocol.
 
 The detector never edits \code{df}. Its job is to recommend a role
 assignment, surface the evidence, and (optionally) draw a sanity
@@ -65,8 +85,19 @@ if (requireNamespace("agridat", quietly = TRUE)) {
 # Observational data frame -> class_label "none".
 detect_design(mtcars)
 
+# Explicit two-environment trial.
+met <- expand.grid(
+  env = factor(c("E1", "E2")),
+  rep = factor(seq_len(2L)),
+  gen = factor(c("G1", "G2", "G3"))
+)
+met$yield <- seq_len(nrow(met))
+met_design <- detect_design(met, env = "env")
+met_design@scope_label
+met_design@connectivity$status
+
 }
 \seealso{
-\code{\link[=propose_roles]{propose_roles()}} for the role tibble that feeds detection;
+\code{\link[=propose_roles]{propose_roles()}} for the role tibble that feeds detection and
 \code{\link[=plot_design_summary]{plot_design_summary()}} for the sanity-check visualisation.
 }

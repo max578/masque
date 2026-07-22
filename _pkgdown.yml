@@ -19,7 +19,7 @@ reference:
   - clean_table
 
 - title: Design detection
-  desc: Identify the experimental design and visualise it for sanity.
+  desc: Identify environment scope and experimental design, then visualise both for sanity.
   contents:
   - detect_design
   - plot_design_summary

@@ -13,10 +13,12 @@ utils::globalVariables(".data")
 # implemented from scratch in base graphics to keep `Imports:` lean.
 # `ggplot2`, if installed, is offered as an alternative engine.
 
-#' Sanity-check visualisation for a detected design
+#' Sanity-check visualisation for detected scope and design
 #'
-#' Plots the structure that drove the [detect_design()] verdict. The
-#' panel layout depends on the detected class:
+#' Plots the structure that drove the [detect_design()] verdict. A detected MET
+#' uses a compact environment-coverage overview by default. Set `environment`
+#' to draw one selected environment. A single-trial panel depends on the
+#' detected design class:
 #'
 #' \itemize{
 #'   \item `CRD`, `factorial`, `none` -> frequency-of-treatment + NA-pattern.
@@ -26,18 +28,21 @@ utils::globalVariables(".data")
 #'   \item `split-plot` -> factor-nesting tree + within-block replication.
 #' }
 #'
-#' Output is purely diagnostic; do not use it as a publication figure
+#' Output is purely diagnostic. Do not use it as a publication figure
 #' (use `desplot::desplot()` or `ggplot2`-based packages for that).
 #'
 #' @param x A `design_summary` object from [detect_design()].
-#' @param df The data frame that was passed to [detect_design()] — used
+#' @param df The data frame that was passed to [detect_design()]. It is used
 #'   to draw replication tiles, spatial layouts, and the NA-pattern.
-#'   Required for every class except `"none"` with no factors.
+#'   The data are deliberately not stored in the summary.
 #' @param engine `"base"` (default) or `"ggplot2"`. The latter requires
-#'   ggplot2; falls back to `"base"` with a warning if unavailable.
+#'   ggplot2 and falls back to `"base"` with a warning if unavailable.
+#' @param environment Optional single environment label. For a detected MET,
+#'   the default is a compact all-environment overview. Supplying a label draws
+#'   the selected environment's field layout or legacy design diagnostic.
 #' @param ... Ignored.
 #'
-#' @return The input `x`, invisibly. Called for the plot side-effect.
+#' @returns The input `x`, invisibly. Called for the plot side-effect.
 #'
 #' @examples
 #' if (requireNamespace("agridat", quietly = TRUE)) {
@@ -46,8 +51,18 @@ utils::globalVariables(".data")
 #'   plot(ds, df = d)
 #' }
 #'
+#' met <- expand.grid(
+#'   env = factor(c("E1", "E2")),
+#'   rep = factor(seq_len(2L)),
+#'   gen = factor(c("G1", "G2", "G3"))
+#' )
+#' met$yield <- seq_len(nrow(met))
+#' met_design <- detect_design(met, env = "env")
+#' plot(met_design, df = met)
+#'
 #' @export
-plot_design_summary <- function(x, df, engine = c("base", "ggplot2"), ...) {
+plot_design_summary <- function(x, df, engine = c("base", "ggplot2"),
+                                environment = NULL, ...) {
   engine <- match.arg(engine)
   if (!inherits(x, "masque::design_summary")) {
     cli::cli_abort("`x` must be a {.cls design_summary}.")
@@ -62,6 +77,23 @@ plot_design_summary <- function(x, df, engine = c("base", "ggplot2"), ...) {
     engine <- "base"
   }
 
+  plot_result <- if (isTRUE(x@is_met)) {
+    if (is.null(environment)) {
+      .plot_met_overview(x, engine)
+    } else {
+      .plot_met_environment(x, df, engine, environment)
+    }
+  } else {
+    .plot_legacy_design(x, df, engine)
+  }
+  if (inherits(plot_result, "ggplot")) {
+    print(plot_result)
+  }
+
+  invisible(x)
+}
+
+.plot_legacy_design <- function(x, df, engine) {
   switch(x@class_label,
     "CRD"               = .plot_freq_and_na(x, df, engine),
     "factorial"         = .plot_factorial(x, df, engine),
@@ -72,14 +104,148 @@ plot_design_summary <- function(x, df, engine = c("base", "ggplot2"), ...) {
     "none"              = .plot_freq_and_na(x, df, engine),
     .plot_freq_and_na(x, df, engine)
   )
-
-  invisible(x)
 }
 
 S7::method(plot, design_summary) <- function(
-  x, df, engine = c("base", "ggplot2"), ...
+  x, df, engine = c("base", "ggplot2"), environment = NULL, ...
 ) {
-  plot_design_summary(x, df = df, engine = engine, ...)
+  plot_design_summary(
+    x, df = df, engine = engine, environment = environment, ...
+  )
+}
+
+# --- panel: multi-environment overview -----------------------------------
+
+.met_overview_data <- function(x) {
+  per_env <- x@per_env
+  if (nrow(per_env) == 0L) {
+    return(data.frame(
+      env = "unavailable", value = 0, metric = "Rows",
+      stringsAsFactors = FALSE
+    ))
+  }
+  use_treatments <- any(per_env$n_treatments > 0L)
+  value <- if (use_treatments) per_env$n_treatments else per_env$n_rows
+  data.frame(
+    env = factor(per_env$env, levels = per_env$env),
+    value = value,
+    metric = if (use_treatments) "Treatments observed" else "Rows",
+    stringsAsFactors = FALSE
+  )
+}
+
+.met_plot_subtitle <- function(x) {
+  components <- if (is.na(x@connectivity$components)) {
+    "components not computed"
+  } else {
+    sprintf(
+      "%d component%s",
+      x@connectivity$components,
+      if (x@connectivity$components == 1L) "" else "s"
+    )
+  }
+  sprintf(
+    "%s connectivity; %s; inner design: %s",
+    x@connectivity$status, components, x@within_design_label
+  )
+}
+
+.plot_met_overview <- function(x, engine) {
+  plot_data <- .met_overview_data(x)
+  metric <- unique(plot_data$metric)[1L]
+  title <- sprintf(
+    "Multi-environment coverage: %d environment%s",
+    x@n_env, if (x@n_env == 1L) "" else "s"
+  )
+  subtitle <- .met_plot_subtitle(x)
+
+  if (engine == "ggplot2") {
+    return(
+      ggplot2::ggplot(
+        plot_data,
+        ggplot2::aes(x = .data$env, y = .data$value)
+      ) +
+        ggplot2::geom_col(fill = "#0072B2", width = 0.82) +
+        ggplot2::labs(
+          title = title,
+          subtitle = subtitle,
+          x = "Environment",
+          y = metric
+        ) +
+        ggplot2::theme_minimal() +
+        ggplot2::theme(
+          axis.text.x = ggplot2::element_text(
+            angle = if (nrow(plot_data) > 12L) 90 else 45,
+            hjust = 1,
+            vjust = 0.5
+          ),
+          panel.grid.major.x = ggplot2::element_blank()
+        )
+    )
+  }
+
+  op <- graphics::par(mar = c(6, 4, 4, 2) + 0.1)
+  on.exit(graphics::par(op), add = TRUE)
+  show_labels <- nrow(plot_data) <= 20L
+  graphics::barplot(
+    plot_data$value,
+    names.arg = if (show_labels) as.character(plot_data$env) else FALSE,
+    las = 2,
+    col = "#0072B2",
+    border = NA,
+    main = title,
+    sub = subtitle,
+    xlab = if (show_labels) "Environment" else sprintf(
+      "Environment (%d labels suppressed)", nrow(plot_data)
+    ),
+    ylab = metric
+  )
+}
+
+.plot_met_environment <- function(x, df, engine, environment) {
+  if (length(environment) != 1L || is.na(environment)) {
+    cli::cli_abort("`environment` must be one non-missing environment label.")
+  }
+  missing_cols <- setdiff(x@env_cols, names(df))
+  if (length(missing_cols) > 0L) {
+    cli::cli_abort(
+      "`df` is missing environment column(s): {.field {missing_cols}}."
+    )
+  }
+  env_key <- .interaction_key(df, x@env_cols)
+  env_label <- as.character(environment)
+  if (!(env_label %in% levels(env_key))) {
+    available <- utils::head(levels(env_key), 8L)
+    cli::cli_abort(c(
+      "Unknown environment label {.val {env_label}}.",
+      "i" = "Available label(s) include {.val {available}}."
+    ))
+  }
+  rows <- !is.na(env_key) & as.character(env_key) == env_label
+  slice <- droplevels(df[rows, , drop = FALSE])
+  candidate_cols <- setdiff(names(slice), x@env_cols)
+  constants <- vapply(slice[candidate_cols], function(column) {
+    length(unique(stats::na.omit(column))) <= 1L
+  }, logical(1L))
+  slice <- slice[, candidate_cols[!constants], drop = FALSE]
+  detected <- .detect_design_legacy(slice, scope = .scope_disabled())
+  if (length(x@treatment_col) > 0L) {
+    detected@treatment_col <- intersect(x@treatment_col, names(slice))
+  }
+
+  spatial <- detected@candidates$spatial
+  plot_result <- if (!is.null(spatial)) {
+    detected@spatial_cols <- c(spatial$row, spatial$col)
+    .plot_spatial(detected, slice, engine)
+  } else {
+    .plot_legacy_design(detected, slice, engine)
+  }
+  if (inherits(plot_result, "ggplot")) {
+    plot_result <- plot_result + ggplot2::labs(
+      subtitle = sprintf("Environment: %s", env_label)
+    )
+  }
+  plot_result
 }
 
 # --- panel: replication tile ---------------------------------------------

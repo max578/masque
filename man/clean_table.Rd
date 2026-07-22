@@ -9,10 +9,14 @@ clean_table(df, clean = c("auto", "report", "off"), quiet = FALSE)
 \arguments{
 \item{df}{A data frame.}
 
-\item{clean}{One of \code{"auto"} (default - apply the safe fixes and
-report everything), \code{"report"} (report what \emph{would} change but
-apply nothing), or \code{"off"} (skip cleaning entirely; returns \code{df}
-untouched with an empty report).}
+\item{clean}{One of \code{"auto"} (default - legalise names, trim
+whitespace, report near-duplicates), \code{"report"} (legalise names,
+report what whitespace / near-duplicate changes \emph{would} be made but
+apply none), or \code{"off"} (legalise names only, skip all other
+hygiene). Column-name legalisation is applied in \strong{every} mode -- an
+invalid name silently rewritten downstream corrupts the clone -- and
+is surfaced as a \code{masque_name_repaired} warning; only the whitespace
+and near-duplicate handling is governed by the mode.}
 
 \item{quiet}{Logical. When \code{FALSE} (default) a \code{cli} summary of the
 fixes and advisories is printed. Set \code{TRUE} to suppress it (the

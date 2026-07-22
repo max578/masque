@@ -1,6 +1,6 @@
 Package: masque
 Title: Structurally Faithful Development Surrogates for Tabular Data
-Version: 0.8.2
+Version: 0.9.1
 Authors@R: c(
     person("Max", "Moldovan",
            email = "max.moldovan@gmail.com",
@@ -11,8 +11,8 @@ Authors@R: c(
 Description: Turns a confidential tabular dataset - a single table, a folder
     of files, or a multi-sheet workbook - into a structurally faithful
     synthetic clone suitable for pipeline development. Experimental-design
-    columns and the NA pattern are preserved exactly; treatment and
-    categorical-covariate level vocabularies are optionally aliased; outcome
+    allocation and the NA pattern are preserved exactly; categorical design,
+    treatment, and covariate vocabularies can be reversibly aliased; outcome
     and numeric-covariate values are re-simulated via a Gaussian copula that
     preserves the global covariance structure. Columns shared across tables
     are aliased consistently so the synthetic tables still join. A private
@@ -49,5 +49,5 @@ Suggests:
     writexl
 VignetteBuilder: knitr
 Config/testthat/edition: 3
-URL: https://github.com/max578/masque
+URL: https://max578.github.io/masque/, https://github.com/max578/masque
 BugReports: https://github.com/max578/masque/issues

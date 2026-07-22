@@ -50,15 +50,20 @@
 #' @param roles A roles table from [propose_roles()] (possibly edited).
 #'   Tables from masque <= 0.5.0 are upgraded with a deprecation
 #'   warning; see [roles_validate()].
-#' @param mode Either `"local"` (default) or `"collaborate"`.
+#' @param mode Either `"local"` or `"collaborate"`. When omitted, inherit
+#'   `attr(roles, "mode")`, falling back to `"local"` for a roles table with
+#'   no mode provenance. An explicit collaborate-to-local downgrade raises a
+#'   classed `masque_mode_downgrade` warning.
 #' @param seed Optional integer for reproducibility.
-#' @param clean Column-name and label hygiene before masking, passed to
-#'   [clean_table()]: one of `"auto"` (default - legalise names, trim
-#'   whitespace, report near-duplicates), `"report"`, or `"off"`. When
-#'   names are legalised, the `roles` table's column references are
-#'   remapped to match, so a `roles` table built against the dirty names
-#'   still applies. The fixes are recorded in the recipe and re-applied
-#'   by [apply_recipe()].
+#' @param clean Label and column-name hygiene before masking, passed to
+#'   [clean_table()]: one of `"auto"` (default - trim whitespace and
+#'   report near-duplicate labels), `"report"` (report only), or `"off"`
+#'   (skip). Invalid column names are legalised in **every** mode -- an
+#'   invalid name silently rewritten during synthesis corrupts the clone --
+#'   and the repair is raised as a `masque_name_repaired` warning. The
+#'   `roles` table's column references are remapped to the legalised names,
+#'   the fixes are recorded in the recipe, and [apply_recipe()] /
+#'   [unmask()] reverse them on the round-trip.
 #' @param alias_names Hide the column names themselves. `FALSE` (the
 #'   default) keeps them. `TRUE` replaces every retained column name with
 #'   an opaque alias (`col_001`, `col_002`, ... in column order). A
@@ -140,23 +145,31 @@ mask <- function(df,
     is.na(conditional)) {
     cli::cli_abort("`conditional` must be a single `TRUE` or `FALSE`.")
   }
-  mode <- match.arg(mode)
+  if (missing(mode)) {
+    mode <- attr(roles, "mode") %||% "local"
+  }
+  mode <- match.arg(mode, c("local", "collaborate"))
   clean <- match.arg(clean)
+  warnings_acc <- character()
 
-  # Hygiene first: legalise names + trim whitespace, then remap the roles
-  # table's column references so a roles table built against the dirty
-  # names still applies. `report` / `off` leave df and roles untouched.
+  # Hygiene first. Column-name legalisation is applied in EVERY clean mode
+  # (an invalid name silently rewritten during synthesis corrupts the clone
+  # and breaks the round-trip), so `cl$data` always carries legal names and
+  # the roles table's column references are remapped to match. Whitespace
+  # trimming stays governed by the mode. clean_table() raises the
+  # `masque_name_repaired` warning; the repair is also recorded here so it
+  # lands in `recipe@warnings`.
   cl <- clean_table(df, clean = clean, quiet = TRUE)
-  cleaning_rec <- NULL
-  if (identical(clean, "auto") &&
-    (length(cl$name_map) || length(cl$level_fixes))) {
-    df <- cl$data
-    roles <- .remap_roles_cols(roles, cl$name_map)
-    cleaning_rec <- .cleaning_record(cl)
-  } else if (nrow(cl$near_duplicates) || length(cl$name_map) ||
-    length(cl$level_fixes)) {
-    # report mode (or auto with nothing applied): still note what was seen.
-    cleaning_rec <- .cleaning_record(cl)
+  df <- cl$data
+  roles <- .remap_roles_cols(roles, cl$name_map)
+  cleaning_rec <- if (length(cl$name_map) || length(cl$level_fixes) ||
+    nrow(cl$near_duplicates)) {
+    .cleaning_record(cl)
+  } else {
+    NULL
+  }
+  if (length(cl$name_map)) {
+    warnings_acc <- c(warnings_acc, .name_repair_message(cl$name_map))
   }
 
   roles <- roles_validate(roles, df, mode = mode)
@@ -173,7 +186,6 @@ mask <- function(df,
   } else {
     character()
   }
-  warnings_acc <- character()
   if (isTRUE(conditional) && !length(conditioning_cols)) {
     msg <- paste0(
       "conditional = TRUE but no treatment or design column survives to ",

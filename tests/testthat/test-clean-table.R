@@ -11,8 +11,11 @@ make_dirty <- function() {
   )
 }
 
-test_that("clean_table legalises column names", {
-  cl <- clean_table(make_dirty(), quiet = TRUE)
+test_that("clean_table legalises column names and warns", {
+  expect_warning(
+    cl <- clean_table(make_dirty(), quiet = TRUE),
+    class = "masque_name_repaired"
+  )
   expect_equal(names(cl$data), c("Site.Name", "Yield..t.ha.", "rep"))
   expect_equal(
     unname(cl$name_map[["Site Name"]]), "Site.Name"
@@ -20,7 +23,7 @@ test_that("clean_table legalises column names", {
 })
 
 test_that("clean_table trims whitespace in labels", {
-  cl <- clean_table(make_dirty(), quiet = TRUE)
+  cl <- suppressWarnings(clean_table(make_dirty(), quiet = TRUE))
   expect_false(any(grepl("\\s$", as.character(cl$data$Site.Name))))
   # " north " collapses onto "north": three norths now.
   expect_equal(sum(cl$data$Site.Name == "north"), 3L)
@@ -41,17 +44,28 @@ test_that("clean_table reports near-duplicate labels without changing them", {
   expect_true(all(c("Scope", "scope") %in% cl$data$geno))
 })
 
-test_that("clean = 'report' changes nothing but still reports", {
-  cl <- clean_table(make_dirty(), clean = "report", quiet = TRUE)
-  expect_equal(names(cl$data), names(make_dirty()))
+test_that("clean = 'report' legalises names but applies no label fixes", {
+  cl <- suppressWarnings(
+    clean_table(make_dirty(), clean = "report", quiet = TRUE)
+  )
+  # Names are legalised in every mode (a correctness fix, not optional).
+  expect_equal(names(cl$data), c("Site.Name", "Yield..t.ha.", "rep"))
   expect_true(length(cl$name_map) >= 1L)
+  # ... but whitespace is only reported, not applied.
+  expect_true(any(grepl("\\s$", as.character(cl$data$Site.Name))))
+  expect_true("Site.Name" %in% names(cl$level_fixes))
 })
 
-test_that("clean = 'off' is a pure pass-through", {
+test_that("clean = 'off' legalises names but skips all other hygiene", {
   df <- make_dirty()
-  cl <- clean_table(df, clean = "off", quiet = TRUE)
-  expect_identical(cl$data, df)
-  expect_length(cl$name_map, 0L)
+  cl <- suppressWarnings(clean_table(df, clean = "off", quiet = TRUE))
+  # Names are still legalised (correctness); values untouched, nothing reported.
+  expect_equal(names(cl$data), c("Site.Name", "Yield..t.ha.", "rep"))
+  expect_true(length(cl$name_map) >= 1L)
+  expect_identical(
+    as.character(cl$data$Site.Name), as.character(df[["Site Name"]])
+  )
+  expect_length(cl$level_fixes, 0L)
   expect_equal(nrow(cl$near_duplicates), 0L)
 })
 
@@ -60,7 +74,7 @@ test_that("name legalisation uniquifies collisions", {
     check.names = FALSE,
     "a b" = 1:3, "a.b" = 4:6
   )
-  cl <- clean_table(df, quiet = TRUE)
+  cl <- suppressWarnings(clean_table(df, quiet = TRUE))
   expect_equal(length(unique(names(cl$data))), 2L)
 })
 
@@ -83,12 +97,17 @@ test_that("apply_recipe re-applies cleaning so retargeting lines up", {
   expect_false(any(grepl("\\s$", as.character(fwd$Site.Name))))
 })
 
-test_that("mask(clean='off') preserves dirty names verbatim", {
+test_that("mask(clean='off') legalises names and round-trips them", {
   df <- make_dirty()
   r <- propose_roles(df)
   r <- set_role(r, "Yield (t/ha)", role = "outcome")
   m <- suppressWarnings(mask(df, r, seed = 1, clean = "off"))
-  expect_true("Site Name" %in% names(synthetic(m)))
+  # Legalised even under clean = "off": an invalid name silently rewritten
+  # during synthesis would corrupt the clone.
+  expect_true("Site.Name" %in% names(synthetic(m)))
+  expect_false("Site Name" %in% names(synthetic(m)))
+  back <- suppressWarnings(unmask(as.data.frame(synthetic(m)), recipe(m)))
+  expect_true("Site Name" %in% names(back))
 })
 
 test_that("clean_table errors on non-data-frame", {

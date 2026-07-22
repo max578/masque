@@ -88,6 +88,23 @@
 #' stashed as `attr(roles, "design")`. Pass `detect = FALSE` for the
 #' name-only heuristic.
 #'
+#' @section Multi-environment trials:
+#'
+#' Since masque 0.9.1, high-confidence environment columns detected by
+#' [detect_design()] are promoted to role `design`. In local mode their values
+#' remain byte-identical. In collaborate mode categorical environment labels
+#' default to `alias`, which preserves row assignment and factor codes while
+#' hiding the vocabulary. Numeric environment columns default to `keep` and
+#' raise a `masque_environment_disclosure` warning for explicit review.
+#'
+#' Weak or competing environment candidates never change roles automatically.
+#' Inspect `attr(roles, "design")` and use [set_role()] when domain knowledge
+#' should override an uncertain result. Preserving environment allocation does
+#' not imply that synthesised outcomes preserve treatment-by-environment
+#' effects.
+#' An explicitly chosen action is pinned and is not overwritten by a later
+#' design-role promotion.
+#'
 #' @param df A data frame. Must have at least one column.
 #' @param mode The masking mode the table is being prepared for:
 #'   `"local"` (default) or `"collaborate"`. Stored as
@@ -104,6 +121,13 @@
 #' @examples
 #' propose_roles(iris)
 #' propose_roles(iris, mode = "collaborate")
+#'
+#' met <- expand.grid(
+#'   env = factor(c("E1", "E2")),
+#'   rep = factor(seq_len(2L)),
+#'   gen = factor(c("G1", "G2", "G3"))
+#' )
+#' propose_roles(met, mode = "collaborate")[, c("col", "role", "action")]
 #'
 #' @seealso [set_role()] to edit; [roles_validate()] for the fail-closed
 #'   validation applied at `mask()` time.
@@ -140,9 +164,10 @@ propose_roles <- function(df, mode = c("local", "collaborate"),
   }
 
   ds <- detect_design(df, roles = roles)
-  if (ds@class_label != "none" && nrow(ds@recommended_roles) > 0L) {
+  if (nrow(ds@recommended_roles) > 0L) {
     roles <- .overlay_recommended_roles(roles, ds@recommended_roles, mode)
   }
+  .warn_environment_disclosure(roles, ds, mode)
   attr(roles, "design") <- ds
   roles
 }
@@ -152,27 +177,78 @@ propose_roles <- function(df, mode = c("local", "collaborate"),
 # role, and extends the notes string. Never introduces or drops rows.
 .overlay_recommended_roles <- function(roles, rec, mode) {
   for (i in seq_len(nrow(rec))) {
+    if ("auto_apply" %in% names(rec) && !isTRUE(rec$auto_apply[i])) next
     col_i <- rec$col[i]
     role_i <- rec$role[i]
     row_idx <- which(roles$col == col_i)
     if (length(row_idx) != 1L) next
-    if (identical(roles$role[row_idx], role_i)) next
+    pa <- attr(roles, "proposed_actions")
+    action_pinned <- !is.null(pa) && col_i %in% names(pa) &&
+      !identical(roles$action[row_idx], unname(pa[[col_i]]))
+    if (action_pinned) next
+
     old_role <- roles$role[row_idx]
     roles$role[row_idx] <- role_i
-    roles$action[row_idx] <- .default_action(
-      role_i, roles$kind[row_idx], mode
+    tracks_default <- !is.null(pa) && (
+      col_i %in% names(pa) &&
+        identical(roles$action[row_idx], unname(pa[[col_i]]))
     )
-    pa <- attr(roles, "proposed_actions")
-    if (!is.null(pa)) {
+    if (tracks_default) {
+      action_field <- if (identical(mode, "collaborate")) {
+        "action_collaborate"
+      } else {
+        "action_local"
+      }
+      recommended_action <- if (action_field %in% names(rec)) {
+        rec[[action_field]][i]
+      } else {
+        .default_action(role_i, roles$kind[row_idx], mode)
+      }
+      roles$action[row_idx] <- recommended_action
+    }
+    if (!is.null(pa) && tracks_default) {
       pa[[col_i]] <- roles$action[row_idx]
       attr(roles, "proposed_actions") <- pa
     }
+    reason <- if ("reason" %in% names(rec)) rec$reason[i] else ""
     roles$notes[row_idx] <- sprintf(
-      "detect_design: %s -> %s (was: %s)",
-      old_role, role_i, roles$notes[row_idx]
+      "detect_design: %s -> %s; %s (was: %s)",
+      old_role, role_i, reason, roles$notes[row_idx]
     )
   }
   roles
+}
+
+.warn_environment_disclosure <- function(roles, ds, mode) {
+  if (!identical(mode, "collaborate") || nrow(ds@recommended_roles) == 0L) {
+    return(invisible(NULL))
+  }
+  rec <- ds@recommended_roles
+  required <- c("col", "source", "auto_apply", "action_collaborate")
+  if (!all(required %in% names(rec))) {
+    return(invisible(NULL))
+  }
+  env_cols <- rec$col[
+    rec$source == "environment_auto" & rec$auto_apply &
+      rec$action_collaborate == "keep"
+  ]
+  env_cols <- intersect(env_cols, roles$col[
+    roles$kind %in% .numeric_kinds() & roles$action == "keep"
+  ])
+  if (length(env_cols) == 0L) {
+    return(invisible(NULL))
+  }
+  cli::cli_warn(c(
+    paste0(
+      "Numeric environment column(s) {.field {env_cols}} remain ",
+      "{.val keep} in collaborate mode."
+    ),
+    "i" = paste0(
+      "This preserves environment structure but may disclose year or other ",
+      "numeric labels; review before release."
+    )
+  ), class = "masque_environment_disclosure")
+  invisible(NULL)
 }
 
 # Internal: classify a single column and return a single-row data.frame.

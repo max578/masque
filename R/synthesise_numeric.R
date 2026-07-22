@@ -119,10 +119,11 @@ synthesise_numeric_local <- function(
     )
   })
 
-  out <- as.data.frame(
-    out_cols,
-    stringsAsFactors = FALSE, col.names = names(x_obs)
-  )
+  # Assign names explicitly (never via col.names, whose default check.names
+  # would run make.names() and silently rewrite a non-syntactic name here).
+  # Name legalisation is handled once, up front, by clean_table().
+  out <- as.data.frame(out_cols, stringsAsFactors = FALSE)
+  names(out) <- names(x_obs)
 
   # Preserve integer class
   for (j in seq_len(p)) {

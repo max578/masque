@@ -48,7 +48,9 @@ test_that("read_set reads a folder of CSVs", {
   d <- withr::local_tempdir()
   tab <- make_set()
   utils::write.csv(tab$trials, file.path(d, "trials.csv"), row.names = FALSE)
-  utils::write.csv(tab$pedigree, file.path(d, "pedigree.csv"), row.names = FALSE)
+  utils::write.csv(
+    tab$pedigree, file.path(d, "pedigree.csv"), row.names = FALSE
+  )
   s <- read_set(d)
   expect_setequal(names(s), c("trials", "pedigree"))
   expect_equal(nrow(s$trials), 12L)
@@ -142,14 +144,17 @@ test_that("the shipped met_set fixture masks and joins", {
   skip_if(dir == "", "met_set fixture not installed")
   s <- read_set(dir)
   expect_setequal(names(s), c("agronomy", "quality"))
-  m <- mask_set(dir, mode = "collaborate", seed = 1, quiet = TRUE)
+  expect_warning(
+    m <- mask_set(dir, mode = "collaborate", seed = 1, quiet = TRUE),
+    class = "masque_environment_disclosure"
+  )
   ag <- synthetic(m)$agronomy
   qa <- synthetic(m)$quality
   # gen is a shared treatment-like key -> linked and consistently aliased.
   link_names <- vapply(recipe(m)@links, `[[`, character(1L), "name")
   expect_true("gen" %in% link_names)
   expect_setequal(unique(as.character(ag$gen)), unique(as.character(qa$gen)))
-  # env auto-classifies as design (kept byte-identical), so the join on
-  # env still resolves without an alias map.
+  # env auto-classifies as design and is consistently aliased, so the join
+  # remains valid without exposing the original environment vocabulary.
   expect_setequal(unique(as.character(ag$env)), unique(as.character(qa$env)))
 })

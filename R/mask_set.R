@@ -29,7 +29,9 @@
 #'   of column names to treat as cross-table links, or `FALSE` to disable
 #'   linking entirely (each table masked independently). When `NULL`
 #'   (default), links are detected automatically.
-#' @param mode Either `"local"` (default) or `"collaborate"`.
+#' @param mode Either `"local"` or `"collaborate"`. When omitted and `roles`
+#'   are supplied, inherit their common mode. Tables prepared for different
+#'   modes must be reconciled explicitly. Otherwise default to `"local"`.
 #' @param seed Optional integer for reproducibility.
 #' @param clean Hygiene mode passed to [clean_table()] for every table
 #'   (`"auto"`, `"report"`, or `"off"`).
@@ -74,7 +76,25 @@ mask_set <- function(input,
                      conditional = FALSE,
                      quiet = FALSE) {
   withr::local_preserve_seed()
-  mode <- match.arg(mode)
+  if (missing(mode)) {
+    mode <- "local"
+    if (!is.null(roles) && is.list(roles)) {
+      role_modes <- unique(vapply(roles, function(role_table) {
+        attr(role_table, "mode") %||% NA_character_
+      }, character(1L)))
+      role_modes <- stats::na.omit(role_modes)
+      if (length(role_modes) > 1L) {
+        cli::cli_abort(c(
+          "Supplied `roles` were prepared for multiple modes.",
+          "i" = "Set `mode` explicitly after reconciling the role tables."
+        ))
+      }
+      if (length(role_modes) == 1L) {
+        mode <- role_modes[[1L]]
+      }
+    }
+  }
+  mode <- match.arg(mode, c("local", "collaborate"))
   clean <- match.arg(clean)
 
   tables <- read_set(input)

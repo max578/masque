@@ -23,17 +23,22 @@ mask(
 Tables from masque <= 0.5.0 are upgraded with a deprecation
 warning; see \code{\link[=roles_validate]{roles_validate()}}.}
 
-\item{mode}{Either \code{"local"} (default) or \code{"collaborate"}.}
+\item{mode}{Either \code{"local"} or \code{"collaborate"}. When omitted, inherit
+\code{attr(roles, "mode")}, falling back to \code{"local"} for a roles table with
+no mode provenance. An explicit collaborate-to-local downgrade raises a
+classed \code{masque_mode_downgrade} warning.}
 
 \item{seed}{Optional integer for reproducibility.}
 
-\item{clean}{Column-name and label hygiene before masking, passed to
-\code{\link[=clean_table]{clean_table()}}: one of \code{"auto"} (default - legalise names, trim
-whitespace, report near-duplicates), \code{"report"}, or \code{"off"}. When
-names are legalised, the \code{roles} table's column references are
-remapped to match, so a \code{roles} table built against the dirty names
-still applies. The fixes are recorded in the recipe and re-applied
-by \code{\link[=apply_recipe]{apply_recipe()}}.}
+\item{clean}{Label and column-name hygiene before masking, passed to
+\code{\link[=clean_table]{clean_table()}}: one of \code{"auto"} (default - trim whitespace and
+report near-duplicate labels), \code{"report"} (report only), or \code{"off"}
+(skip). Invalid column names are legalised in \strong{every} mode -- an
+invalid name silently rewritten during synthesis corrupts the clone --
+and the repair is raised as a \code{masque_name_repaired} warning. The
+\code{roles} table's column references are remapped to the legalised names,
+the fixes are recorded in the recipe, and \code{\link[=apply_recipe]{apply_recipe()}} /
+\code{\link[=unmask]{unmask()}} reverse them on the round-trip.}
 
 \item{alias_names}{Hide the column names themselves. \code{FALSE} (the
 default) keeps them. \code{TRUE} replaces every retained column name with

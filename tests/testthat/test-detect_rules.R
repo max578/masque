@@ -27,7 +27,9 @@ test_that(".propose_candidates() excludes unique-per-row columns", {
   expect_true("trt" %in% cands$factors)
 })
 
-test_that(".propose_candidates() respects user-roled outcomes / keeps / ignores", {
+test_that(
+  ".propose_candidates() respects user-roled outcomes / keeps / ignores",
+  {
   df <- data.frame(
     x = factor(rep(1:5, each = 10)),
     y = rnorm(50),
@@ -46,7 +48,8 @@ test_that(".propose_candidates() respects user-roled outcomes / keeps / ignores"
   expect_false("keep_me" %in% cands$factors)
   expect_false("num_keep" %in% cands$numerics)
   expect_false("other" %in% cands$factors)
-})
+  }
+)
 
 test_that(".detect_spatial_pair() returns NULL without integer-named row+col", {
   df <- data.frame(
@@ -55,7 +58,7 @@ test_that(".detect_spatial_pair() returns NULL without integer-named row+col", {
   )
   expect_null(masque:::.detect_spatial_pair(
     df, names(df),
-    sapply(df, masque:::col_kind)
+    vapply(df, masque:::col_kind, character(1L))
   ))
 })
 
@@ -63,7 +66,7 @@ test_that(".detect_spatial_pair() finds row/col when both gridded", {
   df <- expand.grid(row = 1:4, col = 1:5)
   sp <- masque:::.detect_spatial_pair(
     df, names(df),
-    sapply(df, masque:::col_kind)
+    vapply(df, masque:::col_kind, character(1L))
   )
   expect_equal(sp$row, "row")
   expect_equal(sp$col, "col")

@@ -1,3 +1,77 @@
+# masque 0.9.1 (development version)
+
+## Breaking changes
+
+* `propose_roles()` now protects a conservatively detected
+  multi-environment allocation by default. Before 0.9.1, an environment
+  column not recognised by the name heuristic could remain
+  `covariate/scramble`, which moved observations between environments.
+  High-confidence categorical environment columns now become
+  `design/keep` in local mode and `design/alias` in collaborate mode.
+  Numeric environment columns remain `design/keep` and raise a classed
+  disclosure warning in collaborate mode. Disable the new scope path
+  explicitly when reproducing the former detector output:
+
+  ```r
+  detect_design(df, env = FALSE)
+  propose_roles(df, detect = FALSE)
+  ```
+
+## New features
+
+* `detect_design()` gains an append-only `env` argument and an orthogonal
+  environment-scope contract. Use `env = NULL` for conservative automatic
+  resolution, `env = c("site", "year")` for an explicit composite, or
+  `env = FALSE` for the whole-table compatibility path. The returned
+  `design_summary` records scope confidence, environment basis, experiment
+  groups, exact treatment-connectivity components, and advisory
+  per-environment design summaries without storing the source data.
+* `print()` on a `design_summary` now leads with scope and reports bounded,
+  aggregated MET diagnostics. `plot()` supports compact base and ggplot2
+  environment overviews plus one selected field layout through
+  `environment =`. Connectivity and inner-design labels are diagnostic and
+  do not claim to reconstruct the original randomisation.
+
+## Bug fixes
+
+* Omitting `mode` from `mask()` or `mask_set()` now inherits the mode stored
+  by `propose_roles()`, rather than silently falling back to local defaults.
+  An explicit collaborate-to-local change raises a classed
+  `masque_mode_downgrade` warning. `mask_set()` rejects role plans carrying
+  mixed mode provenance.
+* Site-only environment candidates now require replicated treatment evidence
+  across sites for automatic promotion. A block nested within one farm is
+  left for review rather than being misclassified as an environment.
+* Environment connectivity diagnostics now guard both dense incidence and
+  environment-adjacency allocations. Oversized problems return an explicit
+  `not_computed` diagnostic instead of attempting an unsafe allocation.
+* Experiment-group diagnostics tolerate a small, recorded treatment overlap
+  while rejecting genuinely interleaved groups. The evidence now reports the
+  confined and shared-treatment fractions.
+* Explicitly pinned role actions are no longer overwritten when a detected
+  environment recommendation promotes a column to the `design` role.
+
+* A medium-confidence or ambiguous environment candidate is now preserved as
+  `design/keep` in both modes rather than falling through to a `covariate`
+  default. Previously an unreplicated environment named with a site token
+  outside the design-name heuristic (for example `county`, `location` or
+  `farm`) could be silently row-permuted by a default `mask()`, moving
+  observations between environments. Such a column is kept byte-identical and
+  is never auto-aliased; pass `env =` to enable environment-aware masking.
+
+* Invalid (non-syntactic) column names are now legalised in **every**
+  `clean` mode, not only `"auto"`, and the repair is raised as a classed
+  `masque_name_repaired` warning and recorded in the recipe. Previously,
+  under `clean = "off"` an invalid name such as `GY_%VARMAX` was silently
+  rewritten by `make.names()` inside numeric synthesis with no map
+  recorded, so the synthesised column no longer matched its source: the
+  original column survived **un-masked** alongside the synthetic copy --
+  a leak -- and the round-trip broke. `mask()` now legalises names up
+  front in all modes, remaps the `roles` table, records the map, and
+  `synthesise_numeric_local()` no longer rewrites names.
+* `unmask()` now restores the original (pre-legalisation) column names,
+  so a legalised name round-trips symmetrically with `apply_recipe()`.
+
 # masque 0.8.2
 
 ## New features
