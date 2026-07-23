@@ -72,3 +72,40 @@ test_that("invalid input is rejected", {
   df2 <- data.frame(lat = "x", lon = 138)
   expect_error(jitter_coordinates(df2, "lat", "lon"), "numeric")
 })
+
+test_that("mask(coords=) coarsens a declared pair on land and records it", {
+  skip_if_not_installed("maps")
+  set.seed(1)
+  lon <- stats::runif(400, 139, 148)
+  lat <- stats::runif(400, -36, -33)
+  onl <- !is.na(maps::map.where("world", lon, lat))
+  lon <- lon[onl][1:60]
+  lat <- lat[onl][1:60]
+  df <- data.frame(
+    site  = factor(sample(c("A", "B", "C"), 60, TRUE)),
+    gps_s = lat, gps_e = lon,
+    yield = stats::rnorm(60)
+  )
+  df$gps_s[1] <- NA
+  df$gps_e[1] <- NA
+  roles <- suppressWarnings(propose_roles(df, mode = "collaborate"))
+  m <- suppressWarnings(mask(df, roles, mode = "collaborate", seed = 1,
+                             coords = list(c(lat = "gps_s", lon = "gps_e"))))
+  syn <- synthetic(m)
+  ok <- !is.na(df$gps_s) & !is.na(syn$gps_s)
+  expect_false(isTRUE(all.equal(df$gps_s[ok], syn$gps_s[ok])))   # coarsened
+  expect_true(all(!is.na(maps::map.where("world", syn$gps_e[ok], syn$gps_s[ok]))))
+  d <- .hav_km(df$gps_e[ok], df$gps_s[ok], syn$gps_e[ok], syn$gps_s[ok])
+  expect_true(all(d >= 4.8 & d <= 20.3))                          # within donut band
+  expect_true(is.na(syn$gps_s[1]) && is.na(syn$gps_e[1]))         # NA stays NA, paired
+  expect_true(any(grepl("coarsened", recipe(m)@warnings)))        # recorded
+})
+
+test_that("mask(coords=) validates the declared columns", {
+  df <- data.frame(gps_s = c(-34, -35), gps_e = c(138, 140), y = c(1, 2))
+  roles <- suppressWarnings(propose_roles(df, detect = FALSE))
+  expect_error(
+    suppressWarnings(mask(df, roles, coords = list(c(lat = "nope", lon = "gps_e")))),
+    "not found"
+  )
+})

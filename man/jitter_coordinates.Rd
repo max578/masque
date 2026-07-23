@@ -97,13 +97,14 @@ if (requireNamespace("maps", quietly = TRUE)) {
 
 }
 \references{
-Hampton, K. H., Fitch, M. K., Allshouse, W. B., et al. (2010). Mapping
-health data: improved privacy protection with donut method geomasking.
-\emph{American Journal of Epidemiology, 172}(9), 1062-1069.
+Hampton, K. H., Fitch, M. K., Allshouse, W. B., Doherty, I. A., Gesink,
+D. C., Leone, P. A., Serre, M. L., & Miller, W. C. (2010). Mapping health
+data: improved privacy protection with donut method geomasking. \emph{American
+Journal of Epidemiology, 172}(9), 1062-1069. \doi{10.1093/aje/kwq248}
 
 Zandbergen, P. A. (2014). Ensuring confidentiality of geocoded health data:
-assessing geographic masking strategies for individual-level data.
-\emph{Advances in Medicine, 2014}, 567049.
+assessing geographic masking strategies for individual-level data. \emph{Advances
+in Medicine, 2014}, 567049. \doi{10.1155/2014/567049}
 }
 \seealso{
 \code{\link[=synthesise_geospatial]{synthesise_geospatial()}} to instead re-anchor coordinates at

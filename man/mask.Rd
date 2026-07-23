@@ -12,6 +12,7 @@ mask(
   clean = c("auto", "report", "off"),
   alias_names = FALSE,
   conditional = FALSE,
+  coords = NULL,
   .shared_maps = list(),
   ...
 )
@@ -65,6 +66,15 @@ marginal. The conditioning columns (treatment plus retained design)
 are recorded on the recipe. With no treatment or design column to
 condition on, the path degrades cleanly to the global copula and a
 note is emitted.}
+
+\item{coords}{Optional geographic-coordinate declaration. Supply one or more
+latitude/longitude pairs and each is coarsened in place by an on-land
+jitter (see \code{\link[=jitter_coordinates]{jitter_coordinates()}}) instead of being copula-scrambled into
+implausible locations. A pair is a named vector \code{c(lat = "lat_col", lon = "lon_col")} or a named list that also carries jitter parameters
+(\code{method}, \code{min_km}, \code{max_km}, \code{sd_km}, \code{on_land}); pass several pairs as a
+list. Defaults to a donut of 5-20 km on land. A declared pair always
+survives masking, coarsened; the recipe records that it was coarsened and
+\code{\link[=apply_recipe]{apply_recipe()}} retargets to the real coordinates.}
 
 \item{.shared_maps}{Internal. A named list of pre-computed
 \code{original -> alias} level maps for cross-table linked columns, set

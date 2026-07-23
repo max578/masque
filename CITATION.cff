@@ -20,7 +20,7 @@ authors:
 repository-code: "https://github.com/max578/masque"
 url: "https://max578.github.io/masque/"
 license: MIT
-version: 0.9.1
+version: 0.9.2
 keywords:
   - synthetic-data
   - data-masking

@@ -88,6 +88,15 @@
 #'   are recorded on the recipe. With no treatment or design column to
 #'   condition on, the path degrades cleanly to the global copula and a
 #'   note is emitted.
+#' @param coords Optional geographic-coordinate declaration. Supply one or more
+#'   latitude/longitude pairs and each is coarsened in place by an on-land
+#'   jitter (see [jitter_coordinates()]) instead of being copula-scrambled into
+#'   implausible locations. A pair is a named vector `c(lat = "lat_col",
+#'   lon = "lon_col")` or a named list that also carries jitter parameters
+#'   (`method`, `min_km`, `max_km`, `sd_km`, `on_land`); pass several pairs as a
+#'   list. Defaults to a donut of 5-20 km on land. A declared pair always
+#'   survives masking, coarsened; the recipe records that it was coarsened and
+#'   [apply_recipe()] retargets to the real coordinates.
 #' @param .shared_maps Internal. A named list of pre-computed
 #'   `original -> alias` level maps for cross-table linked columns, set
 #'   by [mask_set()]. Not for direct use.
@@ -114,6 +123,7 @@ mask <- function(df,
                  clean = c("auto", "report", "off"),
                  alias_names = FALSE,
                  conditional = FALSE,
+                 coords = NULL,
                  .shared_maps = list(),
                  ...) {
   # A misspelled argument silently swallowed by `...` looks like success;
@@ -188,6 +198,15 @@ mask <- function(df,
   roles <- roles_validate(roles, df, mode = mode)
   roles <- roles[match(names(df), roles$col), , drop = FALSE]
 
+  # Coordinate columns declared in `coords` are coarsened by an on-land jitter
+  # after synthesis, so they must survive it: force them to `keep` (bypassing
+  # the copula, which would smear a lat/lon pair into implausible locations).
+  coord_specs <- .normalise_coords(coords, df)
+  coord_cols <- .coord_cols(coord_specs)
+  if (length(coord_cols)) {
+    roles$action[roles$col %in% coord_cols] <- "keep"
+  }
+
   opts <- mode_defaults(mode)
 
   # Conditional clone bookkeeping: resolve the conditioning columns once
@@ -223,6 +242,18 @@ mask <- function(df,
     if (any(nm)) {
       synth[[col]][nm] <- NA
     }
+  }
+
+  # Coarsen declared coordinate columns in place, before the audit sees them
+  # and before any column-name aliasing. The jitter is irreversible by design;
+  # the recipe records that it happened (in `warnings`), and `apply_recipe()`
+  # retargets a pipeline to the real coordinates.
+  if (length(coord_specs)) {
+    synth <- .apply_coord_jitter(synth, coord_specs, seed)
+    warnings_acc <- c(warnings_acc, sprintf(
+      "coordinates coarsened in place by an on-land jitter: %s.",
+      paste(coord_cols, collapse = ", ")
+    ))
   }
 
   # Local mode: the owner-development reminder is recorded on the recipe

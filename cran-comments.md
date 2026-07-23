@@ -2,7 +2,7 @@
 
 ## Submission notes
 
-`masque` 0.9.1 is the first submission to CRAN. It carries the full
+`masque` 0.9.2 is the first submission to CRAN. It carries the full
 end-to-end surface built over the 0.2-0.7 development line - a two-axis
 roles model (a `role` and an `action` per column), a hygiene layer,
 opt-in column-name aliasing, a multi-table set layer with
@@ -10,12 +10,12 @@ cross-table-consistent key aliasing, a conditional clone mode, and a
 single guided `masque()` verb - plus the 0.8.0 safety correction: HIGH
 leakage findings are raised as classed warnings that the guided flow
 never silences, and package-managed writers refuse to write while a
-HIGH finding stands. Version 0.9.1 adds conservative multi-environment
-scope detection, environment-safe role defaults, connectivity diagnostics,
-and bounded print and plot methods. Its final audit fixes mode-provenance
-inheritance, false site-only promotion, bounded connectivity allocation,
-near-disjoint group diagnostics, and preservation of explicitly pinned
-actions. See `NEWS.md` for the full change list.
+HIGH finding stands. Versions 0.9.1 and 0.9.2 add conservative
+multi-environment scope detection with environment-safe role defaults,
+connectivity diagnostics, bounded print and plot methods, a
+mode-provenance guard, and on-land geographic-coordinate coarsening
+(`jitter_coordinates()` plus a `coords` argument to `mask()`). See
+`NEWS.md` for the full change list.
 
 ## R CMD check results
 

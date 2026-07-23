@@ -312,6 +312,58 @@ setequal(unique(ag$gen), unique(qa$gen))   # same genotype codes in both
 The recipe bundle is private exactly as a single recipe is. `write_set()`
 never writes it.
 
+## Geographic coordinates
+
+Latitude and longitude are treated as sensitive: `propose_roles()` flags a
+column whose name looks like a coordinate (`gps`, `lat`/`latitude`,
+`lon`/`longitude`) as `pii_suspected` and proposes `drop`. Dropping is the
+safest choice when the synthetic does not need locations.
+
+When the synthetic does need plausible coordinates -- to exercise a spatial
+pipeline, say -- a plain scramble is the wrong tool: the copula re-simulates
+each axis and smears a latitude/longitude pair into a continuous cloud that can
+land in the sea. masque offers two purpose-built alternatives.
+
+`jitter_coordinates()` coarsens coordinates in place by a geographic-masking
+jitter. The default donut scheme displaces every point by a random distance
+drawn uniformly by area from an annulus, in a random direction, and re-draws
+until the point falls on land, so a coastal site is never pushed offshore. The
+longitude step is corrected by `cos(latitude)` so the ground distance matches
+the requested kilometres at any latitude, and the NA pattern and the
+latitude/longitude pairing are preserved.
+
+```{r geo-coords, eval = requireNamespace("maps", quietly = TRUE)}
+sites <- data.frame(
+  site = c("A", "B", "C"),
+  lat  = c(-34.9, -35.2, -33.6),
+  lon  = c(138.6, 142.0, 148.2)
+)
+jitter_coordinates(sites, "lat", "lon", min_km = 5, max_km = 20, seed = 1)
+```
+
+Declaring the pair to `mask()` applies the same coarsening as part of masking,
+so the coordinates never pass through the copula:
+
+```{r geo-mask, eval = FALSE}
+m <- mask(df, roles, mode = "collaborate",
+          coords = list(c(lat = "GPS_S", lon = "GPS_E")), seed = 1)
+```
+
+`synthesise_geospatial()` is the alternative when you would rather re-anchor
+points around fake centroids you supply for each region.
+
+**How far to displace.** The right magnitude is not a constant. It is calibrated
+to the density of the entities being protected, so that the masked point is
+spatially k-anonymous -- roughly, at least *k* comparable entities lie closer to
+the masked point than the true one (Hampton et al., 2010). Individual-level
+urban health data is typically masked with a standard deviation of about one
+kilometre, because cities are dense. Fields and farms are far sparser, so
+comparable protection needs a much larger displacement; a donut of roughly 5 to
+20 km (the default) moves a point across several properties while keeping it in
+the same agroclimatic region (Zandbergen, 2014). For a formal guarantee,
+calibrate the radii to the local field density rather than relying on the
+default.
+
 ## Operational guidance
 
 Default to collaborate mode when in doubt. Local mode is for owner-only
@@ -326,3 +378,14 @@ aggregate or drop before masking.
 
 For what the recipe stores and how the round-trip works, see *Recipe
 anatomy and the round-trip*.
+
+## References
+
+Hampton, K. H., Fitch, M. K., Allshouse, W. B., Doherty, I. A., Gesink, D. C.,
+Leone, P. A., Serre, M. L., & Miller, W. C. (2010). Mapping health data:
+improved privacy protection with donut method geomasking. *American Journal of
+Epidemiology, 172*(9), 1062--1069. <https://doi.org/10.1093/aje/kwq248>
+
+Zandbergen, P. A. (2014). Ensuring confidentiality of geocoded health data:
+assessing geographic masking strategies for individual-level data. *Advances in
+Medicine, 2014*, 567049. <https://doi.org/10.1155/2014/567049>

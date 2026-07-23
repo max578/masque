@@ -55,13 +55,14 @@
 #'   coordinates (rounded to five decimal places, about one metre).
 #'
 #' @references
-#' Hampton, K. H., Fitch, M. K., Allshouse, W. B., et al. (2010). Mapping
-#' health data: improved privacy protection with donut method geomasking.
-#' *American Journal of Epidemiology, 172*(9), 1062-1069.
+#' Hampton, K. H., Fitch, M. K., Allshouse, W. B., Doherty, I. A., Gesink,
+#' D. C., Leone, P. A., Serre, M. L., & Miller, W. C. (2010). Mapping health
+#' data: improved privacy protection with donut method geomasking. *American
+#' Journal of Epidemiology, 172*(9), 1062-1069. \doi{10.1093/aje/kwq248}
 #'
 #' Zandbergen, P. A. (2014). Ensuring confidentiality of geocoded health data:
-#' assessing geographic masking strategies for individual-level data.
-#' *Advances in Medicine, 2014*, 567049.
+#' assessing geographic masking strategies for individual-level data. *Advances
+#' in Medicine, 2014*, 567049. \doi{10.1155/2014/567049}
 #'
 #' @examples
 #' df <- data.frame(
@@ -166,4 +167,63 @@ jitter_coordinates <- function(df, lat_col, lon_col,
     return(function(lo, la) !is.na(maps::map.where("world", lo, la)))
   }
   function(lo, la) rep(TRUE, length(lo))
+}
+
+# Normalise the `coords` argument of mask() into a list of fully-specified
+# coordinate-pair jitter specs. Accepts a single named vector
+# `c(lat = "a", lon = "b")`, a named list `list(lat = , lon = , ...)`, or a list
+# of either. Jitter parameters default to a donut of 5-20 km on land.
+.normalise_coords <- function(coords, df) {
+  if (is.null(coords)) {
+    return(list())
+  }
+  if (is.character(coords) && length(names(coords))) {
+    coords <- list(coords)
+  }
+  if (!is.list(coords)) {
+    cli::cli_abort(c(
+      "`coords` must be a named `c(lat =, lon =)`, a `list(lat =, lon =, ...)`, or a list of them."
+    ))
+  }
+  lapply(coords, function(spec) {
+    if (is.character(spec)) spec <- as.list(spec)
+    if (is.null(spec$lat) || is.null(spec$lon)) {
+      cli::cli_abort("Each `coords` entry needs `lat` and `lon` column names.")
+    }
+    for (cn in c(spec$lat, spec$lon)) {
+      if (!cn %in% names(df)) {
+        cli::cli_abort("Coordinate column {.field {cn}} not found in `df`.")
+      }
+      if (!is.numeric(df[[cn]])) {
+        cli::cli_abort("Coordinate column {.field {cn}} must be numeric decimal degrees.")
+      }
+    }
+    list(
+      lat     = spec$lat,
+      lon     = spec$lon,
+      method  = spec$method %||% "donut",
+      min_km  = spec$min_km %||% 5,
+      max_km  = spec$max_km %||% 20,
+      sd_km   = spec$sd_km %||% 10,
+      on_land = if (is.null(spec$on_land)) TRUE else spec$on_land
+    )
+  })
+}
+
+# All coordinate column names across a set of normalised specs.
+.coord_cols <- function(specs) {
+  unique(unlist(lapply(specs, function(s) c(s$lat, s$lon)), use.names = FALSE))
+}
+
+# Apply each spec's jitter to the synthetic frame, in place.
+.apply_coord_jitter <- function(synth, specs, seed) {
+  seed_i <- if (is.null(seed)) NULL else as.integer(seed)
+  for (s in specs) {
+    synth <- jitter_coordinates(
+      synth, lat_col = s$lat, lon_col = s$lon, method = s$method,
+      min_km = s$min_km, max_km = s$max_km, sd_km = s$sd_km,
+      on_land = s$on_land, seed = seed_i
+    )
+  }
+  synth
 }
