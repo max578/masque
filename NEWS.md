@@ -7,9 +7,12 @@
   `coords = list(c(lat = "GPS_S", lon = "GPS_E"))`) and each pair is passed
   through synthesis untouched and then displaced in place by the on-land
   `jitter_coordinates()` geomask (a 5-20 km donut by default), instead of being
-  copula-scrambled into implausible locations. A declared pair always survives,
-  coarsened; the recipe records that it was coarsened, and `apply_recipe()`
-  retargets a pipeline to the real coordinates.
+  copula-scrambled into implausible locations. A pair may be a bare
+  `c(lat =, lon =)` vector or a `list(lat =, lon =, min_km =, max_km =, ...)`
+  that also carries jitter parameters; both spellings work (numbers supplied
+  through the vector form are coerced back from strings). A declared pair always
+  survives, coarsened; the recipe records that it was coarsened, and
+  `apply_recipe()` retargets a pipeline to the real coordinates.
 
 
 # masque 0.9.1

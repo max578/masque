@@ -109,3 +109,20 @@ test_that("mask(coords=) validates the declared columns", {
     "not found"
   )
 })
+
+test_that("coords accepts the c() form with numeric params (string-coerced)", {
+  skip_if_not_installed("maps")
+  set.seed(3)
+  lon <- stats::runif(300, 139, 148)
+  lat <- stats::runif(300, -36, -33)
+  onl <- !is.na(maps::map.where("world", lon, lat))
+  df <- data.frame(gps_s = lat[onl][1:40], gps_e = lon[onl][1:40],
+                   y = stats::rnorm(40))
+  roles <- suppressWarnings(propose_roles(df, detect = FALSE))
+  # c() coerces 10 / 18 to "10" / "18"; the coarsening must still honour them
+  m <- suppressWarnings(mask(df, roles, seed = 1, mode = "local",
+    coords = list(c(lat = "gps_s", lon = "gps_e", min_km = 10, max_km = 18))))
+  syn <- synthetic(m)
+  d <- .hav_km(df$gps_e, df$gps_s, syn$gps_e, syn$gps_s)
+  expect_true(all(d >= 9.8 & d <= 18.3))
+})

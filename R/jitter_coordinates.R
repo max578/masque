@@ -198,14 +198,23 @@ jitter_coordinates <- function(df, lat_col, lon_col,
         cli::cli_abort("Coordinate column {.field {cn}} must be numeric decimal degrees.")
       }
     }
+    # A `c(lat = "a", lon = "b", min_km = 5)` vector coerces the numbers to
+    # strings; coerce them back so both the vector and the list forms work.
+    num <- function(x, default) if (is.null(x)) default else as.numeric(x)
+    on_land <- spec$on_land
+    if (is.null(on_land)) {
+      on_land <- TRUE
+    } else if (is.character(on_land)) {
+      on_land <- as.logical(on_land)
+    }
     list(
-      lat     = spec$lat,
-      lon     = spec$lon,
+      lat     = as.character(spec$lat),
+      lon     = as.character(spec$lon),
       method  = spec$method %||% "donut",
-      min_km  = spec$min_km %||% 5,
-      max_km  = spec$max_km %||% 20,
-      sd_km   = spec$sd_km %||% 10,
-      on_land = if (is.null(spec$on_land)) TRUE else spec$on_land
+      min_km  = num(spec$min_km, 5),
+      max_km  = num(spec$max_km, 20),
+      sd_km   = num(spec$sd_km, 10),
+      on_land = on_land
     )
   })
 }
