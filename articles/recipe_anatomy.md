@@ -3,7 +3,7 @@
 ## Why the recipe matters
 
 This vignette is written for the analyst’s side of the workflow. The
-custodian masks the data and keeps the recipe; you receive only the
+custodian masks the data and keeps the recipe. You receive only the
 synthetic. But the recipe is what makes a pipeline you write against the
 synthetic re-target to the real data, so it is worth understanding what
 it carries and how the round-trip works.
@@ -53,11 +53,11 @@ vocabularies themselves:
 rec
 #> 
 #> ── masque_recipe ───────────────────────────────────────────────────────────────────────────────────
-#> • Created: 2026-07-14 01:31:27 UTC
+#> • Created: 2026-07-23 04:28:34 UTC
 #> • Mode: collaborate
 #> • Clone fidelity: marginal / structural (global copula)
 #> • Seed: present (redacted)
-#> • masque version: 0.8.2
+#> • masque version: 0.9.2
 #> • Integrity fingerprint: 0cec319ba9e2...
 #> 
 #> ── Columns (7 total; 1 level-map(s); 0 column-name map(s)) ──
@@ -91,7 +91,7 @@ reveal_maps(rec)
 
 The recipe is a bidirectional translator.
 [`apply_recipe()`](https://max578.github.io/masque/reference/apply_recipe.md)
-carries the original *into* the synthetic namespace;
+carries the original *into* the synthetic namespace.
 [`unmask()`](https://max578.github.io/masque/reference/unmask.md)
 carries results *back*. The usual pattern is to fit on the synthetic,
 then score the original:
@@ -178,6 +178,9 @@ verbs dispatch on it, operating table by table over a named list:
 
 set_dir <- system.file("extdata", "met_set", package = "masque")
 ms <- mask_set(set_dir, mode = "collaborate", seed = 1, quiet = TRUE)
+#> Warning: Numeric environment column(s) year remain "keep" in collaborate mode.
+#> ℹ This preserves environment structure but may disclose year or other numeric labels; review before
+#>   release.
 originals <- read_set(set_dir)
 fwd_set <- apply_recipe(originals, recipe(ms))
 names(fwd_set)

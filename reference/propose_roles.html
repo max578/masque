@@ -15,7 +15,7 @@ Heuristics are seeds, not law."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">masque</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.8.2</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.2</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -189,6 +189,25 @@ stashed as <code>attr(roles, "design")</code>. Pass <code>detect = FALSE</code> 
 name-only heuristic.</p>
     </div>
     <div class="section level2">
+    <h2 id="multi-environment-trials">Multi-environment trials<a class="anchor" aria-label="anchor" href="#multi-environment-trials"></a></h2>
+
+
+
+<p>Since masque 0.9.1, high-confidence environment columns detected by
+<code><a href="detect_design.html">detect_design()</a></code> are promoted to role <code>design</code>. In local mode their values
+remain byte-identical. In collaborate mode categorical environment labels
+default to <code>alias</code>, which preserves row assignment and factor codes while
+hiding the vocabulary. Numeric environment columns default to <code>keep</code> and
+raise a <code>masque_environment_disclosure</code> warning for explicit review.</p>
+<p>Weak or competing environment candidates never change roles automatically.
+Inspect <code>attr(roles, "design")</code> and use <code><a href="set_role.html">set_role()</a></code> when domain knowledge
+should override an uncertain result. Preserving environment allocation does
+not imply that synthesised outcomes preserve treatment-by-environment
+effects.
+An explicitly chosen action is pinned and is not overwritten by a later
+design-role promotion.</p>
+    </div>
+    <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
     <div class="dont-index"><p><code><a href="set_role.html">set_role()</a></code> to edit; <code><a href="roles_validate.html">roles_validate()</a></code> for the fail-closed
 validation applied at <code><a href="mask.html">mask()</a></code> time.</p></div>
@@ -214,6 +233,19 @@ validation applied at <code><a href="mask.html">mask()</a></code> time.</p></div
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">3</span> Petal.Length covariate scramble numeric [1, 6.9]      FALSE         Default -…</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">4</span> Petal.Width  covariate scramble numeric [0.1, 2.5]    FALSE         Default -…</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">5</span> Species      treatment alias    factor  n=3 levels    FALSE         detect_de…</span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="va">met</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/expand.grid.html" class="external-link">expand.grid</a></span><span class="op">(</span></span></span>
+<span class="r-in"><span>  env <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"E1"</span>, <span class="st">"E2"</span><span class="op">)</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>  rep <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_len</a></span><span class="op">(</span><span class="fl">2L</span><span class="op">)</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>  gen <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"G1"</span>, <span class="st">"G2"</span>, <span class="st">"G3"</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu">propose_roles</span><span class="op">(</span><span class="va">met</span>, mode <span class="op">=</span> <span class="st">"collaborate"</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"col"</span>, <span class="st">"role"</span>, <span class="st">"action"</span><span class="op">)</span><span class="op">]</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 3 × 3</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   col   role      action</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span> env   design    alias </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span> rep   design    keep  </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">3</span> gen   treatment alias </span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
     </div>

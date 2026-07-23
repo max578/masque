@@ -53,6 +53,8 @@ for the full threat model and limitations.
 
 Useful links:
 
+- <https://max578.github.io/masque/>
+
 - <https://github.com/max578/masque>
 
 - Report bugs at <https://github.com/max578/masque/issues>

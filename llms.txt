@@ -13,7 +13,7 @@ source changes.
 The custodian holds the data and the recipe; the analyst gets only the
 synthetic. `masque` bridges that gap.
 
-Version 0.8.2 (development). Pre-CRAN; tagged releases on the GitHub
+Version 0.9.1 (development). Pre-CRAN; tagged releases on the GitHub
 repository.
 
 ------------------------------------------------------------------------
@@ -73,6 +73,25 @@ synthetic tables still join.
 See
 [`vignette("getting_started", package = "masque")`](https://max578.github.io/masque/articles/getting_started.md)
 for the full walk-through.
+
+### Multi-environment trials
+
+[`detect_design()`](https://max578.github.io/masque/reference/detect_design.md)
+treats environment scope, treatment connectivity, and within-environment
+design as separate questions. It conservatively recognises explicit
+environment columns and common site-year structures, while uncertain or
+competing candidates remain unresolved.
+[`propose_roles()`](https://max578.github.io/masque/reference/propose_roles.md)
+protects only high-confidence environment allocations automatically:
+local mode keeps the values, while collaborate mode aliases categorical
+environment labels without moving observations between environments.
+Numeric environment labels remain visible and raise a disclosure warning
+for review.
+
+Preserving allocation structure does not preserve
+genotype-by-environment effects in synthesised outcomes. The clone
+remains a pipeline-development surrogate, not a substitute dataset for
+scientific inference.
 
 ------------------------------------------------------------------------
 
@@ -186,12 +205,13 @@ Inspect a data frame and decide what each column is and how to mask it.
 
 ## Design detection
 
-Identify the experimental design and visualise it for sanity.
+Identify environment scope and experimental design, then visualise both
+for sanity.
 
 - [`detect_design()`](https://max578.github.io/masque/reference/detect_design.md)
-  : Detect the experimental-design structure of a data frame
+  : Detect environment scope and experimental-design structure
 - [`plot_design_summary()`](https://max578.github.io/masque/reference/plot_design_summary.md)
-  : Sanity-check visualisation for a detected design
+  : Sanity-check visualisation for detected scope and design
 
 ## Masking
 
@@ -235,9 +255,11 @@ Check a synthetic for residual structural leakage.
 
 ## Geospatial post-processing
 
-Re-anchor synthetic coordinates at plausible-but-fake locations while
-preserving site-count clustering.
+Coarsen or re-anchor synthetic coordinates while keeping them on land
+and plausible.
 
+- [`jitter_coordinates()`](https://max578.github.io/masque/reference/jitter_coordinates.md)
+  : Coarsen geographic coordinates by an on-land privacy jitter
 - [`synthesise_geospatial()`](https://max578.github.io/masque/reference/synthesise_geospatial.md)
   : Re-anchor synthetic geospatial coordinates at plausible-but-fake
   locations

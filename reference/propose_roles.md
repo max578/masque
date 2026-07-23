@@ -160,6 +160,25 @@ default action for any promoted column. The design summary is stashed as
 `attr(roles, "design")`. Pass `detect = FALSE` for the name-only
 heuristic.
 
+## Multi-environment trials
+
+Since masque 0.9.1, high-confidence environment columns detected by
+[`detect_design()`](https://max578.github.io/masque/reference/detect_design.md)
+are promoted to role `design`. In local mode their values remain
+byte-identical. In collaborate mode categorical environment labels
+default to `alias`, which preserves row assignment and factor codes
+while hiding the vocabulary. Numeric environment columns default to
+`keep` and raise a `masque_environment_disclosure` warning for explicit
+review.
+
+Weak or competing environment candidates never change roles
+automatically. Inspect `attr(roles, "design")` and use
+[`set_role()`](https://max578.github.io/masque/reference/set_role.md)
+when domain knowledge should override an uncertain result. Preserving
+environment allocation does not imply that synthesised outcomes preserve
+treatment-by-environment effects. An explicitly chosen action is pinned
+and is not overwritten by a later design-role promotion.
+
 ## See also
 
 [`set_role()`](https://max578.github.io/masque/reference/set_role.md) to
@@ -189,4 +208,17 @@ propose_roles(iris, mode = "collaborate")
 #> 3 Petal.Length covariate scramble numeric [1, 6.9]      FALSE         Default -…
 #> 4 Petal.Width  covariate scramble numeric [0.1, 2.5]    FALSE         Default -…
 #> 5 Species      treatment alias    factor  n=3 levels    FALSE         detect_de…
+
+met <- expand.grid(
+  env = factor(c("E1", "E2")),
+  rep = factor(seq_len(2L)),
+  gen = factor(c("G1", "G2", "G3"))
+)
+propose_roles(met, mode = "collaborate")[, c("col", "role", "action")]
+#> # A tibble: 3 × 3
+#>   col   role      action
+#>   <chr> <chr>     <chr> 
+#> 1 env   design    alias 
+#> 2 rep   design    keep  
+#> 3 gen   treatment alias 
 ```

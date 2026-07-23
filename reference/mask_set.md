@@ -51,7 +51,9 @@ mask_set(
 
 - mode:
 
-  Either `"local"` (default) or `"collaborate"`.
+  Either `"local"` or `"collaborate"`. When omitted and `roles` are
+  supplied, inherit their common mode. Tables prepared for different
+  modes must be reconciled explicitly. Otherwise default to `"local"`.
 
 - seed:
 

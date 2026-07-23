@@ -1,5 +1,145 @@
 # Changelog
 
+## masque 0.9.2 (development version)
+
+### New features
+
+- [`mask()`](https://max578.github.io/masque/reference/mask.md) gains a
+  `coords` argument to coarsen geographic coordinates as part of
+  masking. Declare one or more latitude/longitude pairs (for example
+  `coords = list(c(lat = "GPS_S", lon = "GPS_E"))`) and each pair is
+  passed through synthesis untouched and then displaced in place by the
+  on-land
+  [`jitter_coordinates()`](https://max578.github.io/masque/reference/jitter_coordinates.md)
+  geomask (a 5-20 km donut by default), instead of being
+  copula-scrambled into implausible locations. A pair may be a bare
+  `c(lat =, lon =)` vector or a
+  `list(lat =, lon =, min_km =, max_km =, ...)` that also carries jitter
+  parameters; both spellings work (numbers supplied through the vector
+  form are coerced back from strings). A declared pair always survives,
+  coarsened; the recipe records that it was coarsened, and
+  [`apply_recipe()`](https://max578.github.io/masque/reference/apply_recipe.md)
+  retargets a pipeline to the real coordinates.
+
+## masque 0.9.1
+
+### Breaking changes
+
+- [`propose_roles()`](https://max578.github.io/masque/reference/propose_roles.md)
+  now protects a conservatively detected multi-environment allocation by
+  default. Before 0.9.1, an environment column not recognised by the
+  name heuristic could remain `covariate/scramble`, which moved
+  observations between environments. High-confidence categorical
+  environment columns now become `design/keep` in local mode and
+  `design/alias` in collaborate mode. Numeric environment columns remain
+  `design/keep` and raise a classed disclosure warning in collaborate
+  mode. Disable the new scope path explicitly when reproducing the
+  former detector output:
+
+  ``` r
+
+  detect_design(df, env = FALSE)
+  propose_roles(df, detect = FALSE)
+  ```
+
+### New features
+
+- [`detect_design()`](https://max578.github.io/masque/reference/detect_design.md)
+  gains an append-only `env` argument and an orthogonal
+  environment-scope contract. Use `env = NULL` for conservative
+  automatic resolution, `env = c("site", "year")` for an explicit
+  composite, or `env = FALSE` for the whole-table compatibility path.
+  The returned `design_summary` records scope confidence, environment
+  basis, experiment groups, exact treatment-connectivity components, and
+  advisory per-environment design summaries without storing the source
+  data.
+- [`print()`](https://rdrr.io/r/base/print.html) on a `design_summary`
+  now leads with scope and reports bounded, aggregated MET diagnostics.
+  [`plot()`](https://rdrr.io/r/graphics/plot.default.html) supports
+  compact base and ggplot2 environment overviews plus one selected field
+  layout through `environment =`. Connectivity and inner-design labels
+  are diagnostic and do not claim to reconstruct the original
+  randomisation.
+- New
+  [`jitter_coordinates()`](https://max578.github.io/masque/reference/jitter_coordinates.md)
+  coarsens latitude/longitude in place by an on-land geographic-masking
+  jitter (donut or Gaussian), so a synthetic table can carry realistic
+  coordinates without revealing a true field or farm location. The donut
+  default moves every point 5-20 km in a random direction, re-drawing
+  until it lands on land (via `maps`); the NA pattern and the
+  latitude/longitude pairing are preserved. It complements
+  [`synthesise_geospatial()`](https://max578.github.io/masque/reference/synthesise_geospatial.md),
+  which instead re-anchors coordinates at user-supplied fake centroids.
+
+### Bug fixes
+
+- Omitting `mode` from
+  [`mask()`](https://max578.github.io/masque/reference/mask.md) or
+  [`mask_set()`](https://max578.github.io/masque/reference/mask_set.md)
+  now inherits the mode stored by
+  [`propose_roles()`](https://max578.github.io/masque/reference/propose_roles.md),
+  rather than silently falling back to local defaults. An explicit
+  collaborate-to-local change raises a classed `masque_mode_downgrade`
+  warning.
+  [`mask_set()`](https://max578.github.io/masque/reference/mask_set.md)
+  rejects role plans carrying mixed mode provenance.
+
+- [`mask()`](https://max578.github.io/masque/reference/mask.md) and
+  [`mask_set()`](https://max578.github.io/masque/reference/mask_set.md)
+  now warn (classed `masque_mode_unset`) when no `mode` is supplied and
+  the `roles` table carries no mode provenance, instead of silently
+  masking in `local` mode. A `data.table()` wrap or a
+  [`saveRDS()`](https://rdrr.io/r/base/readRDS.html) round-trip strips
+  the tibble attribute that records the mode, so the warning turns a
+  silent local-mode downgrade into a recoverable one.
+
+- Site-only environment candidates now require replicated treatment
+  evidence across sites for automatic promotion. A block nested within
+  one farm is left for review rather than being misclassified as an
+  environment.
+
+- Environment connectivity diagnostics now guard both dense incidence
+  and environment-adjacency allocations. Oversized problems return an
+  explicit `not_computed` diagnostic instead of attempting an unsafe
+  allocation.
+
+- Experiment-group diagnostics tolerate a small, recorded treatment
+  overlap while rejecting genuinely interleaved groups. The evidence now
+  reports the confined and shared-treatment fractions.
+
+- Explicitly pinned role actions are no longer overwritten when a
+  detected environment recommendation promotes a column to the `design`
+  role.
+
+- A medium-confidence or ambiguous environment candidate is now
+  preserved as `design/keep` in both modes rather than falling through
+  to a `covariate` default. Previously an unreplicated environment named
+  with a site token outside the design-name heuristic (for example
+  `county`, `location` or `farm`) could be silently row-permuted by a
+  default [`mask()`](https://max578.github.io/masque/reference/mask.md),
+  moving observations between environments. Such a column is kept
+  byte-identical and is never auto-aliased; pass `env =` to enable
+  environment-aware masking.
+
+- Invalid (non-syntactic) column names are now legalised in **every**
+  `clean` mode, not only `"auto"`, and the repair is raised as a classed
+  `masque_name_repaired` warning and recorded in the recipe. Previously,
+  under `clean = "off"` an invalid name such as `GY_%VARMAX` was
+  silently rewritten by
+  [`make.names()`](https://rdrr.io/r/base/make.names.html) inside
+  numeric synthesis with no map recorded, so the synthesised column no
+  longer matched its source: the original column survived **un-masked**
+  alongside the synthetic copy – a leak – and the round-trip broke.
+  [`mask()`](https://max578.github.io/masque/reference/mask.md) now
+  legalises names up front in all modes, remaps the `roles` table,
+  records the map, and `synthesise_numeric_local()` no longer rewrites
+  names.
+
+- [`unmask()`](https://max578.github.io/masque/reference/unmask.md) now
+  restores the original (pre-legalisation) column names, so a legalised
+  name round-trips symmetrically with
+  [`apply_recipe()`](https://max578.github.io/masque/reference/apply_recipe.md).
+
 ## masque 0.8.2
 
 ### New features

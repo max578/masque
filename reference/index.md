@@ -25,12 +25,13 @@ Inspect a data frame and decide what each column is and how to mask it.
 
 ## Design detection
 
-Identify the experimental design and visualise it for sanity.
+Identify environment scope and experimental design, then visualise both
+for sanity.
 
 - [`detect_design()`](https://max578.github.io/masque/reference/detect_design.md)
-  : Detect the experimental-design structure of a data frame
+  : Detect environment scope and experimental-design structure
 - [`plot_design_summary()`](https://max578.github.io/masque/reference/plot_design_summary.md)
-  : Sanity-check visualisation for a detected design
+  : Sanity-check visualisation for detected scope and design
 
 ## Masking
 
@@ -74,9 +75,11 @@ Check a synthetic for residual structural leakage.
 
 ## Geospatial post-processing
 
-Re-anchor synthetic coordinates at plausible-but-fake locations while
-preserving site-count clustering.
+Coarsen or re-anchor synthetic coordinates while keeping them on land
+and plausible.
 
+- [`jitter_coordinates()`](https://max578.github.io/masque/reference/jitter_coordinates.md)
+  : Coarsen geographic coordinates by an on-land privacy jitter
 - [`synthesise_geospatial()`](https://max578.github.io/masque/reference/synthesise_geospatial.md)
   : Re-anchor synthetic geospatial coordinates at plausible-but-fake
   locations

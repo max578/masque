@@ -19,7 +19,7 @@ original with no code changes.
 It is **not** an anonymiser. The synthetic is a development surrogate,
 not a public-release-safe artefact. The companion vignette
 *Confidentiality and the threat model* sets out exactly what is and is
-not protected; read it before sharing any output.
+not protected. Read it before sharing any output.
 
 ## The one-call path
 
@@ -99,11 +99,11 @@ The eight roles – `design`, `treatment`, `outcome`, `covariate`, `date`,
 `id`, `text`, `other` – describe the column. The four actions set the
 depth:
 
-- `keep` – pass the column through byte-for-byte;
+- `keep` – pass the column through byte-for-byte.
 - `scramble` – re-simulate numerics through a Gaussian copula, or
   row-permute categoricals, dates, and text (the vocabulary stays
-  visible);
-- `alias` – scramble and replace the labels with opaque codes;
+  visible).
+- `alias` – scramble and replace the labels with opaque codes.
 - `drop` – leave the column out of the synthetic entirely.
 
 [`propose_roles()`](https://max578.github.io/masque/reference/propose_roles.md)
@@ -127,7 +127,7 @@ roles[, c("col", "role", "action")]
 #> 7 col   design    keep
 ```
 
-Re-assigning a role re-resolves the default action; passing an explicit
+Re-assigning a role re-resolves the default action. Passing an explicit
 `action` pins the column. There is no requirement to name an `outcome`:
 with none marked, every scrambled numeric is re-simulated jointly.
 
@@ -230,10 +230,16 @@ The mode sets the safe defaults.
 
 | Mode | Use case | Defaults |
 |----|----|----|
-| `local` | Owner develops on a realistic surrogate locally | Vocabulary preserved; numeric values may match observed |
-| `collaborate` | Owner shares the synthetic while keeping the recipe private | Treatment and categorical labels aliased; numerics jittered; ids and free text dropped; the leakage audit runs automatically |
+| `local` | Owner develops on a realistic surrogate locally | Vocabulary preserved, with numeric values that may match observed |
+| `collaborate` | Owner shares the synthetic while keeping the recipe private | Treatment and categorical labels aliased, numerics jittered, ids and free text dropped, and the leakage audit run automatically |
 
 Per-column `action` choices override the mode wherever you need them.
+When [`mask()`](https://max578.github.io/masque/reference/mask.md) or
+[`mask_set()`](https://max578.github.io/masque/reference/mask_set.md) is
+called without `mode`, it inherits the mode stored on the reviewed roles
+plan. Passing `mode = "local"` explicitly with a collaborate-mode plan
+raises a warning so a sharing-oriented plan cannot be silently
+downgraded.
 
 ## Tidy, dates, and depth
 
@@ -264,11 +270,15 @@ a join of the synthetic tables still resolves.
 
 set_dir <- system.file("extdata", "met_set", package = "masque")
 ms <- masque(set_dir, mode = "collaborate", seed = 1, ask = FALSE)
+#> Warning: Numeric environment column(s) year remain "keep" in collaborate mode.
+#> ℹ This preserves environment structure but may disclose year or other numeric labels; review before
+#>   release.
 #> ℹ Using the proposed masking plan for agronomy (pass `roles` or set `ask = TRUE` to review).
 #> ℹ Using the proposed masking plan for quality (pass `roles` or set `ask = TRUE` to review).
 #> 
-#> ── Cross-table links (1) ──
+#> ── Cross-table links (2) ──
 #> 
+#> • "env" shared across "agronomy, quality" - aliased consistently
 #> • "gen" shared across "agronomy, quality" - aliased consistently
 #> ✔ Masked 2 tables in "collaborate" mode - audit: 0 HIGH, 0 medium, 12 low.
 #> ℹ Recipe is private - keep it. Review `audit_mask(m)` before any release decision; masque informs that decision, it does not make it.
@@ -280,8 +290,9 @@ ms
 #> • agronomy: 464 row(s) x 7 column(s)
 #> • quality: 464 row(s) x 5 column(s)
 #> 
-#> ── Cross-table links (1) ──
+#> ── Cross-table links (2) ──
 #> 
+#> • "env" shared across "agronomy, quality"
 #> • "gen" shared across "agronomy, quality"
 #> Use `synthetic(m)` for the tables; `recipe(m)` for the bundle.
 #> 
@@ -291,6 +302,88 @@ ms
 The genotype column `gen` appears in both tables and is masked to the
 same codes in each, so the field and laboratory tables still join. See
 *Confidentiality and the threat model* for the set-level controls.
+
+## Multi-environment structure
+
+A multi-environment trial has at least three distinct structural
+questions: (1) which rows belong to each environment, (2) whether
+treatments connect the environments, and (3) what randomisation
+structure can be recovered within each environment.
+[`detect_design()`](https://max578.github.io/masque/reference/detect_design.md)
+reports these separately. Connectivity is a comparability diagnostic,
+not the definition of a multi-environment trial. An observed block or
+field layout is evidence, not proof of the original randomisation
+protocol.
+
+This small example has two environments and three genotypes:
+
+``` r
+
+met <- expand.grid(
+  env = factor(c("E1", "E2")),
+  rep = factor(seq_len(2L)),
+  gen = factor(c("G1", "G2", "G3"))
+)
+met$yield <- seq_len(nrow(met)) + rep(c(0, 2), each = 6L)
+
+ds <- detect_design(met)
+ds@scope_label
+#> [1] "multi_environment"
+ds@env_cols
+#> [1] "env"
+ds@connectivity$status
+#> [1] "connected"
+ds@within_design_label
+#> [1] "RCBD"
+```
+
+Automatic detection is deliberately conservative. Exact `env` or
+`environment` names and bounded site-year patterns can be selected when
+they pass validity and competition gates. A site-only column
+auto-resolves only when treatments are replicated across sites,
+preventing a nested block from being promoted as an environment. Weak or
+competing evidence remains uncertain. Supply the basis explicitly when
+domain knowledge is stronger than the recorded names:
+
+``` r
+
+ds_explicit <- detect_design(met, env = "env")
+```
+
+The default plot is a compact environment overview. Select one label to
+inspect its recoverable field structure. The original data frame remains
+an explicit argument because `design_summary` does not duplicate source
+data.
+
+``` r
+
+plot(ds_explicit, df = met)
+```
+
+![](getting_started_files/figure-html/met-plot-1.png)
+
+High-confidence environment recommendations feed the masking plan. Local
+mode keeps environment values byte-identical. Collaborate mode aliases
+categorical environment labels in place, preserving row assignment,
+factor codes, the NA mask, and recipe inversion. A numeric environment
+such as year remains `keep` and raises a disclosure warning because its
+values are still visible.
+
+``` r
+
+met_roles <- propose_roles(met, mode = "collaborate")
+met_roles[met_roles$col == "env", c("col", "role", "action")]
+#> # A tibble: 1 × 3
+#>   col   role   action
+#>   <chr> <chr>  <chr> 
+#> 1 env   design alias
+```
+
+This safeguard protects the allocation used by a pipeline. It does not
+imply that the synthesised outcomes preserve genotype-by-environment
+effects. Sparse treatment-by-environment cells may fall back to pooled
+synthesis, and the clone must not be used as a substitute for the
+original trial in scientific inference.
 
 ## Where to go next
 

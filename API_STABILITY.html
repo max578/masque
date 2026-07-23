@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="index.html">masque</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.8.2</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.2</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -55,6 +55,15 @@
 </li>
 <li>
 <code>0.6.0</code> — the <strong>two-axis roles model</strong>: the roles table gains an <code>action</code> column and the role vocabulary changes (<code>keep</code> / <code>ignore</code> become the <code>keep</code> / <code>drop</code> <em>actions</em>; new roles <code>date</code> / <code>id</code> / <code>text</code> / <code>other</code>). New exports: <code><a href="reference/masque.html">masque()</a></code> (guided verb), <code><a href="reference/set_role.html">set_role()</a></code>, <code><a href="reference/clean_table.html">clean_table()</a></code>, <code><a href="reference/mask_set.html">mask_set()</a></code>, <code><a href="reference/read_set.html">read_set()</a></code>, <code><a href="reference/write_set.html">write_set()</a></code>. <code><a href="reference/mask.html">mask()</a></code> no longer requires an <code>outcome</code>. <strong>This is a breaking change, listed in <code>NEWS.md</code>.</strong> Roles tables built by masque &lt;= 0.5.0 are upgraded automatically with a one-time deprecation warning, so existing scripts keep working; the warning signposts re-running <code><a href="reference/propose_roles.html">propose_roles()</a></code>.</li>
+<li>
+<code>0.7.0</code> — added opt-in conditional numeric synthesis. <strong>No signature breaks.</strong>
+</li>
+<li>
+<code>0.8.0</code> — strengthened warning propagation and the package-managed write gate. Added <code>allow_high</code> at the end of affected signatures. <strong>Behavioural safety change, listed in <code>NEWS.md</code>.</strong>
+</li>
+<li>
+<code>0.9.1</code> — supersedes the untagged 0.9.0 release candidate. Added the append-only <code>env</code> argument to <code><a href="reference/detect_design.html">detect_design()</a></code> and additive environment-scope properties to <code>design_summary</code>. Conservative automatic scope detection changes <code><a href="reference/propose_roles.html">propose_roles()</a></code> defaults for high-confidence MET environment columns. <code>env = FALSE</code> and <code>detect = FALSE</code> retain the former detector and name-only role paths. <code><a href="reference/mask.html">mask()</a></code> and <code><a href="reference/mask_set.html">mask_set()</a></code> now inherit the mode provenance recorded on role plans when <code>mode</code> is omitted, with an explicit warning for a downgrade. <strong>Behaviour changes are listed first in <code>NEWS.md</code>.</strong>
+</li>
 </ul><p>The policy is “additive-by-intent” rather than “frozen”: pre-1.0 reserves the right to break an existing signature when a design flaw surfaces, but every such change must be:</p>
 <ol style="list-style-type: decimal"><li>Listed under a <code>## Breaking changes</code> heading in <code>NEWS.md</code>, first.</li>
 <li>Justified in the release notes.</li>

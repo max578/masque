@@ -11,8 +11,8 @@
 <script src="deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
 <script src="deps/headroom-0.11.0/headroom.min.js"></script><script src="deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="deps/search-1.0.0/fuse.min.js"></script><script src="deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="pkgdown.js"></script><meta property="og:title" content="Structurally Faithful Development Surrogates for Tabular Data">
-<meta name="description" content="Turns a confidential tabular dataset - a single table, a folder of files, or a multi-sheet workbook - into a structurally faithful synthetic clone suitable for pipeline development. Experimental-design columns and the NA pattern are preserved exactly; treatment and categorical-covariate level vocabularies are optionally aliased; outcome and numeric-covariate values are re-simulated via a Gaussian copula that preserves the global covariance structure. Columns shared across tables are aliased consistently so the synthetic tables still join. A private recipe object round-trips a pipeline written against the synthetic clone onto the original data. Not a differential-privacy or anonymisation tool: outputs are development surrogates, not public-release-safe artefacts.">
-<meta property="og:description" content="Turns a confidential tabular dataset - a single table, a folder of files, or a multi-sheet workbook - into a structurally faithful synthetic clone suitable for pipeline development. Experimental-design columns and the NA pattern are preserved exactly; treatment and categorical-covariate level vocabularies are optionally aliased; outcome and numeric-covariate values are re-simulated via a Gaussian copula that preserves the global covariance structure. Columns shared across tables are aliased consistently so the synthetic tables still join. A private recipe object round-trips a pipeline written against the synthetic clone onto the original data. Not a differential-privacy or anonymisation tool: outputs are development surrogates, not public-release-safe artefacts.">
+<meta name="description" content="Turns a confidential tabular dataset - a single table, a folder of files, or a multi-sheet workbook - into a structurally faithful synthetic clone suitable for pipeline development. Experimental-design allocation and the NA pattern are preserved exactly; categorical design, treatment, and covariate vocabularies can be reversibly aliased; outcome and numeric-covariate values are re-simulated via a Gaussian copula that preserves the global covariance structure. Columns shared across tables are aliased consistently so the synthetic tables still join. A private recipe object round-trips a pipeline written against the synthetic clone onto the original data. Not a differential-privacy or anonymisation tool: outputs are development surrogates, not public-release-safe artefacts.">
+<meta property="og:description" content="Turns a confidential tabular dataset - a single table, a folder of files, or a multi-sheet workbook - into a structurally faithful synthetic clone suitable for pipeline development. Experimental-design allocation and the NA pattern are preserved exactly; categorical design, treatment, and covariate vocabularies can be reversibly aliased; outcome and numeric-covariate values are re-simulated via a Gaussian copula that preserves the global covariance structure. Columns shared across tables are aliased consistently so the synthetic tables still join. A private recipe object round-trips a pipeline written against the synthetic clone onto the original data. Not a differential-privacy or anonymisation tool: outputs are development surrogates, not public-release-safe artefacts.">
 </head>
 <body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -22,7 +22,7 @@
 
     <a class="navbar-brand me-2" href="index.html">masque</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.8.2</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.2</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -59,7 +59,7 @@
 </blockquote>
 <p><code>masque</code> turns a confidential tabular dataset – a single table, a folder of files, or a multi-sheet workbook – into a structurally faithful synthetic clone whose experimental design, NA pattern, and global covariance are close enough to the original that pipeline code runs unchanged. It returns a private <code>recipe</code> that round-trips: a pipeline written against the synthetic re-targets to the original data with no source changes.</p>
 <p>The custodian holds the data and the recipe; the analyst gets only the synthetic. <code>masque</code> bridges that gap.</p>
-<p>Version 0.8.2 (development). Pre-CRAN; tagged releases on the GitHub repository.</p>
+<p>Version 0.9.1 (development). Pre-CRAN; tagged releases on the GitHub repository.</p>
 <hr>
 <div class="section level2">
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
@@ -78,7 +78,7 @@
 <h2 id="two-minute-example">Two-minute example<a class="anchor" aria-label="anchor" href="#two-minute-example"></a>
 </h2>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/max578/masque" class="external-link">masque</a></span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://max578.github.io/masque/">masque</a></span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Read a small public fixture (alpha-design field trial; John &amp; Williams, 1995).</span></span>
 <span><span class="va">f</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, <span class="st">"john_alpha.csv"</span>, package <span class="op">=</span> <span class="st">"masque"</span><span class="op">)</span></span>
@@ -98,7 +98,13 @@
 <span><span class="va">preds</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">fit</span>, newdata <span class="op">=</span> <span class="fu"><a href="reference/apply_recipe.html">apply_recipe</a></span><span class="op">(</span><span class="va">df</span>, <span class="va">rec</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <p>A folder of files or a multi-sheet workbook works the same way – pass the path to <code><a href="reference/masque.html">masque()</a></code> and it masks every table at once, aliasing shared keys consistently so the synthetic tables still join.</p>
 <p>See <code><a href="articles/getting_started.html">vignette("getting_started", package = "masque")</a></code> for the full walk-through.</p>
+<div class="section level3">
+<h3 id="multi-environment-trials">Multi-environment trials<a class="anchor" aria-label="anchor" href="#multi-environment-trials"></a>
+</h3>
+<p><code><a href="reference/detect_design.html">detect_design()</a></code> treats environment scope, treatment connectivity, and within-environment design as separate questions. It conservatively recognises explicit environment columns and common site-year structures, while uncertain or competing candidates remain unresolved. <code><a href="reference/propose_roles.html">propose_roles()</a></code> protects only high-confidence environment allocations automatically: local mode keeps the values, while collaborate mode aliases categorical environment labels without moving observations between environments. Numeric environment labels remain visible and raise a disclosure warning for review.</p>
+<p>Preserving allocation structure does not preserve genotype-by-environment effects in synthesised outcomes. The clone remains a pipeline-development surrogate, not a substitute dataset for scientific inference.</p>
 <hr>
+</div>
 </div>
 <div class="section level2">
 <h2 id="threat-model">Threat model<a class="anchor" aria-label="anchor" href="#threat-model"></a>

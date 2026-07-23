@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">masque</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.8.2</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.2</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -36,6 +36,46 @@
       <small>Source: <a href="https://github.com/max578/masque/blob/main/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.9.2" id="masque-092-development-version">masque 0.9.2 (development version)<a class="anchor" aria-label="anchor" href="#masque-092-development-version"></a></h2>
+<div class="section level3">
+<h3 id="new-features-0-9-2">New features<a class="anchor" aria-label="anchor" href="#new-features-0-9-2"></a></h3>
+<ul><li>
+<code><a href="../reference/mask.html">mask()</a></code> gains a <code>coords</code> argument to coarsen geographic coordinates as part of masking. Declare one or more latitude/longitude pairs (for example <code>coords = list(c(lat = "GPS_S", lon = "GPS_E"))</code>) and each pair is passed through synthesis untouched and then displaced in place by the on-land <code><a href="../reference/jitter_coordinates.html">jitter_coordinates()</a></code> geomask (a 5-20 km donut by default), instead of being copula-scrambled into implausible locations. A pair may be a bare <code>c(lat =, lon =)</code> vector or a <code>list(lat =, lon =, min_km =, max_km =, ...)</code> that also carries jitter parameters; both spellings work (numbers supplied through the vector form are coerced back from strings). A declared pair always survives, coarsened; the recipe records that it was coarsened, and <code><a href="../reference/apply_recipe.html">apply_recipe()</a></code> retargets a pipeline to the real coordinates.</li>
+</ul></div>
+</div>
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.9.1" id="masque-091">masque 0.9.1<a class="anchor" aria-label="anchor" href="#masque-091"></a></h2>
+<div class="section level3">
+<h3 id="breaking-changes-0-9-1">Breaking changes<a class="anchor" aria-label="anchor" href="#breaking-changes-0-9-1"></a></h3>
+<ul><li>
+<p><code><a href="../reference/propose_roles.html">propose_roles()</a></code> now protects a conservatively detected multi-environment allocation by default. Before 0.9.1, an environment column not recognised by the name heuristic could remain <code>covariate/scramble</code>, which moved observations between environments. High-confidence categorical environment columns now become <code>design/keep</code> in local mode and <code>design/alias</code> in collaborate mode. Numeric environment columns remain <code>design/keep</code> and raise a classed disclosure warning in collaborate mode. Disable the new scope path explicitly when reproducing the former detector output:</p>
+<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/detect_design.html">detect_design</a></span><span class="op">(</span><span class="va">df</span>, env <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/propose_roles.html">propose_roles</a></span><span class="op">(</span><span class="va">df</span>, detect <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></code></pre></div>
+</li>
+</ul></div>
+<div class="section level3">
+<h3 id="new-features-0-9-1">New features<a class="anchor" aria-label="anchor" href="#new-features-0-9-1"></a></h3>
+<ul><li>
+<code><a href="../reference/detect_design.html">detect_design()</a></code> gains an append-only <code>env</code> argument and an orthogonal environment-scope contract. Use <code>env = NULL</code> for conservative automatic resolution, <code>env = c("site", "year")</code> for an explicit composite, or <code>env = FALSE</code> for the whole-table compatibility path. The returned <code>design_summary</code> records scope confidence, environment basis, experiment groups, exact treatment-connectivity components, and advisory per-environment design summaries without storing the source data.</li>
+<li>
+<code><a href="https://rdrr.io/r/base/print.html" class="external-link">print()</a></code> on a <code>design_summary</code> now leads with scope and reports bounded, aggregated MET diagnostics. <code><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot()</a></code> supports compact base and ggplot2 environment overviews plus one selected field layout through <code>environment =</code>. Connectivity and inner-design labels are diagnostic and do not claim to reconstruct the original randomisation.</li>
+<li>New <code><a href="../reference/jitter_coordinates.html">jitter_coordinates()</a></code> coarsens latitude/longitude in place by an on-land geographic-masking jitter (donut or Gaussian), so a synthetic table can carry realistic coordinates without revealing a true field or farm location. The donut default moves every point 5-20 km in a random direction, re-drawing until it lands on land (via <code>maps</code>); the NA pattern and the latitude/longitude pairing are preserved. It complements <code><a href="../reference/synthesise_geospatial.html">synthesise_geospatial()</a></code>, which instead re-anchors coordinates at user-supplied fake centroids.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="bug-fixes-0-9-1">Bug fixes<a class="anchor" aria-label="anchor" href="#bug-fixes-0-9-1"></a></h3>
+<ul><li><p>Omitting <code>mode</code> from <code><a href="../reference/mask.html">mask()</a></code> or <code><a href="../reference/mask_set.html">mask_set()</a></code> now inherits the mode stored by <code><a href="../reference/propose_roles.html">propose_roles()</a></code>, rather than silently falling back to local defaults. An explicit collaborate-to-local change raises a classed <code>masque_mode_downgrade</code> warning. <code><a href="../reference/mask_set.html">mask_set()</a></code> rejects role plans carrying mixed mode provenance.</p></li>
+<li><p><code><a href="../reference/mask.html">mask()</a></code> and <code><a href="../reference/mask_set.html">mask_set()</a></code> now warn (classed <code>masque_mode_unset</code>) when no <code>mode</code> is supplied and the <code>roles</code> table carries no mode provenance, instead of silently masking in <code>local</code> mode. A <code>data.table()</code> wrap or a <code><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">saveRDS()</a></code> round-trip strips the tibble attribute that records the mode, so the warning turns a silent local-mode downgrade into a recoverable one.</p></li>
+<li><p>Site-only environment candidates now require replicated treatment evidence across sites for automatic promotion. A block nested within one farm is left for review rather than being misclassified as an environment.</p></li>
+<li><p>Environment connectivity diagnostics now guard both dense incidence and environment-adjacency allocations. Oversized problems return an explicit <code>not_computed</code> diagnostic instead of attempting an unsafe allocation.</p></li>
+<li><p>Experiment-group diagnostics tolerate a small, recorded treatment overlap while rejecting genuinely interleaved groups. The evidence now reports the confined and shared-treatment fractions.</p></li>
+<li><p>Explicitly pinned role actions are no longer overwritten when a detected environment recommendation promotes a column to the <code>design</code> role.</p></li>
+<li><p>A medium-confidence or ambiguous environment candidate is now preserved as <code>design/keep</code> in both modes rather than falling through to a <code>covariate</code> default. Previously an unreplicated environment named with a site token outside the design-name heuristic (for example <code>county</code>, <code>location</code> or <code>farm</code>) could be silently row-permuted by a default <code><a href="../reference/mask.html">mask()</a></code>, moving observations between environments. Such a column is kept byte-identical and is never auto-aliased; pass <code>env =</code> to enable environment-aware masking.</p></li>
+<li><p>Invalid (non-syntactic) column names are now legalised in <strong>every</strong> <code>clean</code> mode, not only <code>"auto"</code>, and the repair is raised as a classed <code>masque_name_repaired</code> warning and recorded in the recipe. Previously, under <code>clean = "off"</code> an invalid name such as <code>GY_%VARMAX</code> was silently rewritten by <code><a href="https://rdrr.io/r/base/make.names.html" class="external-link">make.names()</a></code> inside numeric synthesis with no map recorded, so the synthesised column no longer matched its source: the original column survived <strong>un-masked</strong> alongside the synthetic copy – a leak – and the round-trip broke. <code><a href="../reference/mask.html">mask()</a></code> now legalises names up front in all modes, remaps the <code>roles</code> table, records the map, and <code>synthesise_numeric_local()</code> no longer rewrites names.</p></li>
+<li><p><code><a href="../reference/unmask.html">unmask()</a></code> now restores the original (pre-legalisation) column names, so a legalised name round-trips symmetrically with <code><a href="../reference/apply_recipe.html">apply_recipe()</a></code>.</p></li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.8.2" id="masque-082">masque 0.8.2<a class="anchor" aria-label="anchor" href="#masque-082"></a></h2>
 <div class="section level3">

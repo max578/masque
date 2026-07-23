@@ -13,7 +13,7 @@ source changes.
 The custodian holds the data and the recipe; the analyst gets only the
 synthetic. `masque` bridges that gap.
 
-Version 0.8.2 (development). Pre-CRAN; tagged releases on the GitHub
+Version 0.9.1 (development). Pre-CRAN; tagged releases on the GitHub
 repository.
 
 ------------------------------------------------------------------------
@@ -73,6 +73,25 @@ synthetic tables still join.
 See
 [`vignette("getting_started", package = "masque")`](https://max578.github.io/masque/articles/getting_started.md)
 for the full walk-through.
+
+### Multi-environment trials
+
+[`detect_design()`](https://max578.github.io/masque/reference/detect_design.md)
+treats environment scope, treatment connectivity, and within-environment
+design as separate questions. It conservatively recognises explicit
+environment columns and common site-year structures, while uncertain or
+competing candidates remain unresolved.
+[`propose_roles()`](https://max578.github.io/masque/reference/propose_roles.md)
+protects only high-confidence environment allocations automatically:
+local mode keeps the values, while collaborate mode aliases categorical
+environment labels without moving observations between environments.
+Numeric environment labels remain visible and raise a disclosure warning
+for review.
+
+Preserving allocation structure does not preserve
+genotype-by-environment effects in synthesised outcomes. The clone
+remains a pipeline-development surrogate, not a substitute dataset for
+scientific inference.
 
 ------------------------------------------------------------------------
 

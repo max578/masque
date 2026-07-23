@@ -40,6 +40,25 @@ far:
   automatically with a one-time deprecation warning, so existing scripts
   keep working; the warning signposts re-running
   [`propose_roles()`](https://max578.github.io/masque/reference/propose_roles.md).
+- `0.7.0` — added opt-in conditional numeric synthesis. **No signature
+  breaks.**
+- `0.8.0` — strengthened warning propagation and the package-managed
+  write gate. Added `allow_high` at the end of affected signatures.
+  **Behavioural safety change, listed in `NEWS.md`.**
+- `0.9.1` — supersedes the untagged 0.9.0 release candidate. Added the
+  append-only `env` argument to
+  [`detect_design()`](https://max578.github.io/masque/reference/detect_design.md)
+  and additive environment-scope properties to `design_summary`.
+  Conservative automatic scope detection changes
+  [`propose_roles()`](https://max578.github.io/masque/reference/propose_roles.md)
+  defaults for high-confidence MET environment columns. `env = FALSE`
+  and `detect = FALSE` retain the former detector and name-only role
+  paths. [`mask()`](https://max578.github.io/masque/reference/mask.md)
+  and
+  [`mask_set()`](https://max578.github.io/masque/reference/mask_set.md)
+  now inherit the mode provenance recorded on role plans when `mode` is
+  omitted, with an explicit warning for a downgrade. **Behaviour changes
+  are listed first in `NEWS.md`.**
 
 The policy is “additive-by-intent” rather than “frozen”: pre-1.0
 reserves the right to break an existing signature when a design flaw

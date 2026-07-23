@@ -14,10 +14,10 @@ with the custodian.
 
 | Actor holds | Wants to learn | What `masque` protects |
 |----|----|----|
-| Synthetic only | Original raw values | Aliased treatment / categorical vocabularies; jittered numerics; dropped ids and free text; optionally, the column names |
+| Synthetic only | Original raw values | Aliased treatment and categorical vocabularies, jittered numerics, dropped ids and free text, and optionally the column names |
 | Synthetic + recipe | Original raw values | Nothing – the combination is as sensitive as the original |
 | Recipe only | Original raw values | Nothing useful – the recipe is meaningless without the synthetic |
-| Synthetic + external side information | Identity of treatments / sites | Only the label vocabulary; a preserved design footprint or a `keep` column is recognisable, and side information wins |
+| Synthetic + external side information | Identity of treatments / sites | Only the label vocabulary. A preserved design footprint or a `keep` column is recognisable, and side information wins |
 
 What `masque` does: it preserves enough structure for pipelines to run
 unchanged, exposes the privacy-versus-fidelity trade-off through two
@@ -34,13 +34,13 @@ pipeline source code.
 
 Since version 0.6.0, every column carries a `role` (what it is) and an
 `action` (how deeply it is masked). The mode sets the default action per
-role; you override any column you like. The four actions are the privacy
+role. You override any column you like. The four actions are the privacy
 dial:
 
 | Action | Effect | Vocabulary visible? |
 |----|----|----|
 | `keep` | byte-identical pass-through | yes – real values published |
-| `scramble` | re-simulate numerics; row-permute categoricals / dates | yes – labels stay, assignment moves |
+| `scramble` | re-simulate numerics and row-permute categoricals / dates | yes – labels stay, assignment moves |
 | `alias` | scramble, then replace labels with opaque codes | no |
 | `drop` | column omitted from the synthetic | n/a |
 
@@ -51,13 +51,13 @@ per-column work:
 |----|----|----|
 | Treatment labels | kept | aliased (`trt_001`) |
 | Categorical covariate labels | kept | aliased (`<col>_L001`) |
-| Date / time columns | row-permuted; class preserved | row-permuted; class preserved |
+| Date / time columns | row-permuted with class preserved | row-permuted with class preserved |
 | Identifiers (`id`) | kept | dropped |
 | Free text (`text`) | kept | dropped |
-| Numeric synthesis | empirical-quantile (may emit observed values) | empirical-quantile plus within-resolution jitter; integers stochastically rounded |
+| Numeric synthesis | empirical-quantile (may emit observed values) | empirical-quantile plus within-resolution jitter, with integers stochastically rounded |
 | NA mask | preserved cell-by-cell | preserved cell-by-cell |
 | [`audit_mask()`](https://max578.github.io/masque/reference/audit_mask.md) | on demand | automatic at [`mask()`](https://max578.github.io/masque/reference/mask.md) time |
-| `print(recipe)` | redacted | redacted; explicit [`reveal_maps()`](https://max578.github.io/masque/reference/reveal_maps.md) to inspect |
+| `print(recipe)` | redacted | redacted, with explicit [`reveal_maps()`](https://max578.github.io/masque/reference/reveal_maps.md) to inspect |
 
 ## Depth controls
 
@@ -163,7 +163,7 @@ data.frame(
 #> 2        conditional        5.1382869    4.988538
 ```
 
-The marginal clone collapses the effect toward zero; the conditional
+The marginal clone collapses the effect toward zero. The conditional
 clone recovers it. Both clones still match the pooled marginal of the
 outcome:
 
@@ -200,12 +200,61 @@ recipe(cond)@conditioning_cols
 Conditional cloning composes with both modes and with
 [`mask_set()`](https://max578.github.io/masque/reference/mask_set.md)
 (each table is stratified by its own treatment and design columns). It
-needs enough rows per stratum to fit a stratum-local copula; cells
+needs enough rows per stratum to fit a stratum-local copula. Cells
 smaller than a handful of rows are pooled into a graceful global
 fallback rather than failing, and with no treatment or design column to
 condition on the path degrades cleanly to the global copula with a note.
 Reach for it whenever the development pipeline estimates an effect, not
 just a distribution.
+
+## What the copula carries: monotone, not non-monotone, association
+
+Numeric columns that are kept and re-simulated together share one
+Gaussian copula, fitted on the normal scores of their ranks. A Gaussian
+copula holds a single correlation per pair, so it reproduces a
+*monotone* association – linear, or any order-preserving curve – but not
+a dependence that a correlation cannot express. A non-monotone
+relationship, such as a U-shaped dependence of an outcome on a
+covariate, reads as near-zero rank correlation and is reproduced as
+near-independence.
+
+``` r
+
+set.seed(7)
+n <- 2000
+x_lin <- rnorm(n)
+y_lin <- 2 * x_lin + rnorm(n, sd = 0.5)     # monotone (linear)
+x_u <- runif(n, -3, 3)
+y_u <- x_u^2 + rnorm(n, sd = 0.5)           # non-monotone (U-shaped)
+d <- data.frame(x_lin, y_lin, x_u, y_u)
+
+s <- synthetic(mask(d, propose_roles(d, detect = FALSE), seed = 1))
+
+# R-squared of a quadratic fit captures association of any curvature.
+fit_r2 <- function(x, y) summary(lm(y ~ poly(x, 2)))$r.squared
+data.frame(
+  pair = c("monotone (y = 2x)", "non-monotone (y = x^2)"),
+  original = c(fit_r2(x_lin, y_lin), fit_r2(x_u, y_u)),
+  clone = c(fit_r2(s$x_lin, s$y_lin), fit_r2(s$x_u, s$y_u))
+)
+#>                     pair  original        clone
+#> 1      monotone (y = 2x) 0.9418049 0.9412768375
+#> 2 non-monotone (y = x^2) 0.9661641 0.0002984912
+```
+
+The monotone pair keeps its association almost exactly. The non-monotone
+pair loses it entirely, so on the clone the covariate carries no
+information about the outcome. `conditional = TRUE` does not repair
+this. It preserves the outcome’s location within each
+treatment-by-design stratum, not the curvature of the outcome’s
+dependence on a continuous covariate. A development pipeline whose
+modelling step is non-linear – a smoothing spline, a generalised
+additive model, a tree, an interaction term – will therefore see on the
+synthetic only the monotone part of any relationship present in the
+original, and a good fit there is not evidence the step behaves
+correctly on the real data. Validate such a step by round-tripping it
+onto the original through the recipe, not by trusting its result on the
+clone.
 
 ## The leakage audit
 
@@ -286,21 +335,21 @@ never silences it. At write time, the package-managed writers
 refuse to write while a HIGH finding stands: nothing is written, and the
 flagged columns are listed with the remedy (re-role, alias, or drop,
 then mask again). A custodian who has reviewed the findings can pass
-`allow_high = TRUE` to write anyway; the override is raised as a
+`allow_high = TRUE` to write anyway. The override is raised as a
 `masque_high_override` warning and recorded in the recipe’s warnings, so
 the exception stays auditable.
 
 Beyond that gate the release decision stays with the custodian – whether
 a synthetic table is appropriate for a given collaborator, environment,
 or jurisdiction depends on context the package cannot see. `masque`
-informs that decision; it does not make it.
+informs that decision. It does not make it.
 
 ## Multi-table sets
 
 When several tables share a key,
 [`mask_set()`](https://max578.github.io/masque/reference/mask_set.md)
 aliases that key *identically across all of them* so the synthetic
-tables still join. A linked key is the join surface; it is aliased
+tables still join. A linked key is the join surface. It is aliased
 consistently rather than permuted (permuting a key would break the join
 regardless of masking).
 
@@ -308,28 +357,110 @@ regardless of masking).
 
 set_dir <- system.file("extdata", "met_set", package = "masque")
 ms <- mask_set(set_dir, mode = "collaborate", seed = 1, quiet = TRUE)
+#> Warning: Numeric environment column(s) year remain "keep" in collaborate mode.
+#> ℹ This preserves environment structure but may disclose year or other numeric labels; review before
+#>   release.
 ag <- synthetic(ms)$agronomy
 qa <- synthetic(ms)$quality
 setequal(unique(ag$gen), unique(qa$gen))   # same genotype codes in both
 #> [1] TRUE
 ```
 
-The recipe bundle is private exactly as a single recipe is;
+The recipe bundle is private exactly as a single recipe is.
 [`write_set()`](https://max578.github.io/masque/reference/write_set.md)
 never writes it.
 
+## Geographic coordinates
+
+Latitude and longitude are treated as sensitive:
+[`propose_roles()`](https://max578.github.io/masque/reference/propose_roles.md)
+flags a column whose name looks like a coordinate (`gps`,
+`lat`/`latitude`, `lon`/`longitude`) as `pii_suspected` and proposes
+`drop`. Dropping is the safest choice when the synthetic does not need
+locations.
+
+When the synthetic does need plausible coordinates – to exercise a
+spatial pipeline, say – a plain scramble is the wrong tool: the copula
+re-simulates each axis and smears a latitude/longitude pair into a
+continuous cloud that can land in the sea. masque offers two
+purpose-built alternatives.
+
+[`jitter_coordinates()`](https://max578.github.io/masque/reference/jitter_coordinates.md)
+coarsens coordinates in place by a geographic-masking jitter. The
+default donut scheme displaces every point by a random distance drawn
+uniformly by area from an annulus, in a random direction, and re-draws
+until the point falls on land, so a coastal site is never pushed
+offshore. The longitude step is corrected by `cos(latitude)` so the
+ground distance matches the requested kilometres at any latitude, and
+the NA pattern and the latitude/longitude pairing are preserved.
+
+``` r
+
+sites <- data.frame(
+  site = c("A", "B", "C"),
+  lat  = c(-34.9, -35.2, -33.6),
+  lon  = c(138.6, 142.0, 148.2)
+)
+jitter_coordinates(sites, "lat", "lon", min_km = 5, max_km = 20, seed = 1)
+#>   site       lat      lon
+#> 1    A -34.81596 138.5333
+#> 2    B -35.16555 142.1346
+#> 3    C -33.48829 148.1005
+```
+
+Declaring the pair to
+[`mask()`](https://max578.github.io/masque/reference/mask.md) applies
+the same coarsening as part of masking, so the coordinates never pass
+through the copula:
+
+``` r
+
+m <- mask(df, roles, mode = "collaborate",
+          coords = list(c(lat = "GPS_S", lon = "GPS_E")), seed = 1)
+```
+
+[`synthesise_geospatial()`](https://max578.github.io/masque/reference/synthesise_geospatial.md)
+is the alternative when you would rather re-anchor points around fake
+centroids you supply for each region.
+
+**How far to displace.** The right magnitude is not a constant. It is
+calibrated to the density of the entities being protected, so that the
+masked point is spatially k-anonymous – roughly, at least *k* comparable
+entities lie closer to the masked point than the true one (Hampton et
+al., 2010). Individual-level urban health data is typically masked with
+a standard deviation of about one kilometre, because cities are dense.
+Fields and farms are far sparser, so comparable protection needs a much
+larger displacement; a donut of roughly 5 to 20 km (the default) moves a
+point across several properties while keeping it in the same
+agroclimatic region (Zandbergen, 2014). For a formal guarantee,
+calibrate the radii to the local field density rather than relying on
+the default.
+
 ## Operational guidance
 
-Default to collaborate mode when in doubt; local mode is for owner-only
+Default to collaborate mode when in doubt. Local mode is for owner-only
 development. Treat the recipe as you treat the original data – same
 security class, same access controls. Re-run
 [`audit_mask()`](https://max578.github.io/masque/reference/audit_mask.md)
 before any sharing even though collaborate mode runs it for you. Never
 override a `pii_suspected` flag without deciding deliberately. Remember
 that date/time columns and a preserved design footprint both carry real
-operational signal; alias or roll them up when that signal is sensitive.
+operational signal. Alias or roll them up when that signal is sensitive.
 Small designs leak – a categorical cell count of one is high leakage, so
 aggregate or drop before masking.
 
 For what the recipe stores and how the round-trip works, see *Recipe
 anatomy and the round-trip*.
+
+## References
+
+Hampton, K. H., Fitch, M. K., Allshouse, W. B., Doherty, I. A., Gesink,
+D. C., Leone, P. A., Serre, M. L., & Miller, W. C. (2010). Mapping
+health data: improved privacy protection with donut method geomasking.
+*American Journal of Epidemiology, 172*(9), 1062–1069.
+<https://doi.org/10.1093/aje/kwq248>
+
+Zandbergen, P. A. (2014). Ensuring confidentiality of geocoded health
+data: assessing geographic masking strategies for individual-level data.
+*Advances in Medicine, 2014*, 567049.
+<https://doi.org/10.1155/2014/567049>

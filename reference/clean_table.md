@@ -23,10 +23,14 @@ clean_table(df, clean = c("auto", "report", "off"), quiet = FALSE)
 
 - clean:
 
-  One of `"auto"` (default - apply the safe fixes and report
-  everything), `"report"` (report what *would* change but apply
-  nothing), or `"off"` (skip cleaning entirely; returns `df` untouched
-  with an empty report).
+  One of `"auto"` (default - legalise names, trim whitespace, report
+  near-duplicates), `"report"` (legalise names, report what whitespace /
+  near-duplicate changes *would* be made but apply none), or `"off"`
+  (legalise names only, skip all other hygiene). Column-name
+  legalisation is applied in **every** mode – an invalid name silently
+  rewritten downstream corrupts the clone – and is surfaced as a
+  `masque_name_repaired` warning; only the whitespace and near-duplicate
+  handling is governed by the mode.
 
 - quiet:
 
@@ -76,6 +80,7 @@ df <- data.frame(
   check.names = FALSE
 )
 cl <- clean_table(df, quiet = TRUE)
+#> Warning: Renamed 2 column name(s) that are not valid R names: `Site Name` -> `Site.Name`, `Yield (t/ha)` -> `Yield..t.ha.`. The map is recorded in the recipe and reversed on the round-trip.
 names(cl$data)
 #> [1] "Site.Name"    "Yield..t.ha."
 cl$near_duplicates

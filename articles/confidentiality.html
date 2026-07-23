@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">masque</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.8.2</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.2</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -90,8 +90,8 @@ the custodian.</p>
 <tr class="odd">
 <td>Synthetic only</td>
 <td>Original raw values</td>
-<td>Aliased treatment / categorical vocabularies; jittered numerics;
-dropped ids and free text; optionally, the column names</td>
+<td>Aliased treatment and categorical vocabularies, jittered numerics,
+dropped ids and free text, and optionally the column names</td>
 </tr>
 <tr class="even">
 <td>Synthetic + recipe</td>
@@ -107,7 +107,7 @@ synthetic</td>
 <tr class="even">
 <td>Synthetic + external side information</td>
 <td>Identity of treatments / sites</td>
-<td>Only the label vocabulary; a preserved design footprint or a
+<td>Only the label vocabulary. A preserved design footprint or a
 <code>keep</code> column is recognisable, and side information wins</td>
 </tr>
 </tbody>
@@ -128,7 +128,7 @@ it does not rewrite pipeline source code.</p>
 </h2>
 <p>Since version 0.6.0, every column carries a <code>role</code> (what
 it is) and an <code>action</code> (how deeply it is masked). The mode
-sets the default action per role; you override any column you like. The
+sets the default action per role. You override any column you like. The
 four actions are the privacy dial:</p>
 <table class="table">
 <colgroup>
@@ -149,7 +149,7 @@ four actions are the privacy dial:</p>
 </tr>
 <tr class="even">
 <td><code>scramble</code></td>
-<td>re-simulate numerics; row-permute categoricals / dates</td>
+<td>re-simulate numerics and row-permute categoricals / dates</td>
 <td>yes – labels stay, assignment moves</td>
 </tr>
 <tr class="odd">
@@ -190,8 +190,8 @@ per-column work:</p>
 </tr>
 <tr class="odd">
 <td>Date / time columns</td>
-<td>row-permuted; class preserved</td>
-<td>row-permuted; class preserved</td>
+<td>row-permuted with class preserved</td>
+<td>row-permuted with class preserved</td>
 </tr>
 <tr class="even">
 <td>Identifiers (<code>id</code>)</td>
@@ -206,7 +206,7 @@ per-column work:</p>
 <tr class="even">
 <td>Numeric synthesis</td>
 <td>empirical-quantile (may emit observed values)</td>
-<td>empirical-quantile plus within-resolution jitter; integers
+<td>empirical-quantile plus within-resolution jitter, with integers
 stochastically rounded</td>
 </tr>
 <tr class="odd">
@@ -222,7 +222,7 @@ stochastically rounded</td>
 <tr class="odd">
 <td><code>print(recipe)</code></td>
 <td>redacted</td>
-<td>redacted; explicit <code><a href="../reference/reveal_maps.html">reveal_maps()</a></code> to inspect</td>
+<td>redacted, with explicit <code><a href="../reference/reveal_maps.html">reveal_maps()</a></code> to inspect</td>
 </tr>
 </tbody>
 </table>
@@ -319,7 +319,7 @@ on each clone:</p>
 <span><span class="co">#&gt;                clone estimated_effect true_effect</span></span>
 <span><span class="co">#&gt; 1 marginal (default)        0.2486581    4.988538</span></span>
 <span><span class="co">#&gt; 2        conditional        5.1382869    4.988538</span></span></code></pre></div>
-<p>The marginal clone collapses the effect toward zero; the conditional
+<p>The marginal clone collapses the effect toward zero. The conditional
 clone recovers it. Both clones still match the pooled marginal of the
 outcome:</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
@@ -348,11 +348,58 @@ columns – are recorded on the recipe, so the choice is auditable:</p>
 <p>Conditional cloning composes with both modes and with
 <code><a href="../reference/mask_set.html">mask_set()</a></code> (each table is stratified by its own treatment
 and design columns). It needs enough rows per stratum to fit a
-stratum-local copula; cells smaller than a handful of rows are pooled
+stratum-local copula. Cells smaller than a handful of rows are pooled
 into a graceful global fallback rather than failing, and with no
 treatment or design column to condition on the path degrades cleanly to
 the global copula with a note. Reach for it whenever the development
 pipeline estimates an effect, not just a distribution.</p>
+</div>
+<div class="section level2">
+<h2 id="what-the-copula-carries-monotone-not-non-monotone-association">What the copula carries: monotone, not non-monotone,
+association<a class="anchor" aria-label="anchor" href="#what-the-copula-carries-monotone-not-non-monotone-association"></a>
+</h2>
+<p>Numeric columns that are kept and re-simulated together share one
+Gaussian copula, fitted on the normal scores of their ranks. A Gaussian
+copula holds a single correlation per pair, so it reproduces a
+<em>monotone</em> association – linear, or any order-preserving curve –
+but not a dependence that a correlation cannot express. A non-monotone
+relationship, such as a U-shaped dependence of an outcome on a
+covariate, reads as near-zero rank correlation and is reproduced as
+near-independence.</p>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">7</span><span class="op">)</span></span>
+<span><span class="va">n</span> <span class="op">&lt;-</span> <span class="fl">2000</span></span>
+<span><span class="va">x_lin</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">n</span><span class="op">)</span></span>
+<span><span class="va">y_lin</span> <span class="op">&lt;-</span> <span class="fl">2</span> <span class="op">*</span> <span class="va">x_lin</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">n</span>, sd <span class="op">=</span> <span class="fl">0.5</span><span class="op">)</span>     <span class="co"># monotone (linear)</span></span>
+<span><span class="va">x_u</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html" class="external-link">runif</a></span><span class="op">(</span><span class="va">n</span>, <span class="op">-</span><span class="fl">3</span>, <span class="fl">3</span><span class="op">)</span></span>
+<span><span class="va">y_u</span> <span class="op">&lt;-</span> <span class="va">x_u</span><span class="op">^</span><span class="fl">2</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">n</span>, sd <span class="op">=</span> <span class="fl">0.5</span><span class="op">)</span>           <span class="co"># non-monotone (U-shaped)</span></span>
+<span><span class="va">d</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span><span class="va">x_lin</span>, <span class="va">y_lin</span>, <span class="va">x_u</span>, <span class="va">y_u</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">s</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synthetic.html">synthetic</a></span><span class="op">(</span><span class="fu"><a href="../reference/mask.html">mask</a></span><span class="op">(</span><span class="va">d</span>, <span class="fu"><a href="../reference/propose_roles.html">propose_roles</a></span><span class="op">(</span><span class="va">d</span>, detect <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span>, seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># R-squared of a quadratic fit captures association of any curvature.</span></span>
+<span><span class="va">fit_r2</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">x</span>, <span class="va">y</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/lm.html" class="external-link">lm</a></span><span class="op">(</span><span class="va">y</span> <span class="op">~</span> <span class="fu"><a href="https://rdrr.io/r/stats/poly.html" class="external-link">poly</a></span><span class="op">(</span><span class="va">x</span>, <span class="fl">2</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">$</span><span class="va">r.squared</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
+<span>  pair <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"monotone (y = 2x)"</span>, <span class="st">"non-monotone (y = x^2)"</span><span class="op">)</span>,</span>
+<span>  original <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fu">fit_r2</span><span class="op">(</span><span class="va">x_lin</span>, <span class="va">y_lin</span><span class="op">)</span>, <span class="fu">fit_r2</span><span class="op">(</span><span class="va">x_u</span>, <span class="va">y_u</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  clone <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fu">fit_r2</span><span class="op">(</span><span class="va">s</span><span class="op">$</span><span class="va">x_lin</span>, <span class="va">s</span><span class="op">$</span><span class="va">y_lin</span><span class="op">)</span>, <span class="fu">fit_r2</span><span class="op">(</span><span class="va">s</span><span class="op">$</span><span class="va">x_u</span>, <span class="va">s</span><span class="op">$</span><span class="va">y_u</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span><span class="co">#&gt;                     pair  original        clone</span></span>
+<span><span class="co">#&gt; 1      monotone (y = 2x) 0.9418049 0.9412768375</span></span>
+<span><span class="co">#&gt; 2 non-monotone (y = x^2) 0.9661641 0.0002984912</span></span></code></pre></div>
+<p>The monotone pair keeps its association almost exactly. The
+non-monotone pair loses it entirely, so on the clone the covariate
+carries no information about the outcome.
+<code>conditional = TRUE</code> does not repair this. It preserves the
+outcome’s location within each treatment-by-design stratum, not the
+curvature of the outcome’s dependence on a continuous covariate. A
+development pipeline whose modelling step is non-linear – a smoothing
+spline, a generalised additive model, a tree, an interaction term – will
+therefore see on the synthetic only the monotone part of any
+relationship present in the original, and a good fit there is not
+evidence the step behaves correctly on the real data. Validate such a
+step by round-tripping it onto the original through the recipe, not by
+trusting its result on the clone.</p>
 </div>
 <div class="section level2">
 <h2 id="the-leakage-audit">The leakage audit<a class="anchor" aria-label="anchor" href="#the-leakage-audit"></a>
@@ -362,7 +409,7 @@ and grades the leakage of each column. In collaborate mode it runs
 automatically and warns at <code><a href="../reference/mask.html">mask()</a></code> time. Here is a fixture
 built to trip it: a PII-suspected column the user retains against the
 default, and a categorical covariate with a frequency-one level.</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">df</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
 <span>  rep <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fl">1</span><span class="op">:</span><span class="fl">3</span>, each <span class="op">=</span> <span class="fl">20</span><span class="op">)</span>,</span>
 <span>  variety <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="st">"V"</span>, <span class="fl">1</span><span class="op">:</span><span class="fl">6</span><span class="op">)</span>, <span class="fl">10</span><span class="op">)</span><span class="op">)</span>,</span>
@@ -389,7 +436,7 @@ default, and a categorical covariate with a frequency-one level.</p>
 <code>pii_suspected</code> and set to <code>drop</code>. We override it
 – pretending the custodian insists on keeping it – and make the rare
 column a covariate, then mask:</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">roles</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/set_role.html">set_role</a></span><span class="op">(</span><span class="va">roles</span>, <span class="st">"yield"</span>, role <span class="op">=</span> <span class="st">"outcome"</span><span class="op">)</span></span>
 <span><span class="va">roles</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/set_role.html">set_role</a></span><span class="op">(</span><span class="va">roles</span>, <span class="st">"contact_email"</span>, role <span class="op">=</span> <span class="st">"covariate"</span>, action <span class="op">=</span> <span class="st">"keep"</span><span class="op">)</span></span>
 <span><span class="va">roles</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/set_role.html">set_role</a></span><span class="op">(</span><span class="va">roles</span>, <span class="st">"rare_treatment"</span>, role <span class="op">=</span> <span class="st">"covariate"</span><span class="op">)</span></span>
@@ -422,48 +469,118 @@ package-managed writers (<code><a href="../reference/masque.html">masque()</a></
 <code><a href="../reference/write_set.html">write_set()</a></code>) refuse to write while a HIGH finding stands:
 nothing is written, and the flagged columns are listed with the remedy
 (re-role, alias, or drop, then mask again). A custodian who has reviewed
-the findings can pass <code>allow_high = TRUE</code> to write anyway;
-the override is raised as a <code>masque_high_override</code> warning
+the findings can pass <code>allow_high = TRUE</code> to write anyway.
+The override is raised as a <code>masque_high_override</code> warning
 and recorded in the recipe’s warnings, so the exception stays
 auditable.</p>
 <p>Beyond that gate the release decision stays with the custodian –
 whether a synthetic table is appropriate for a given collaborator,
 environment, or jurisdiction depends on context the package cannot see.
-<code>masque</code> informs that decision; it does not make it.</p>
+<code>masque</code> informs that decision. It does not make it.</p>
 </div>
 <div class="section level2">
 <h2 id="multi-table-sets">Multi-table sets<a class="anchor" aria-label="anchor" href="#multi-table-sets"></a>
 </h2>
 <p>When several tables share a key, <code><a href="../reference/mask_set.html">mask_set()</a></code> aliases that
 key <em>identically across all of them</em> so the synthetic tables
-still join. A linked key is the join surface; it is aliased consistently
+still join. A linked key is the join surface. It is aliased consistently
 rather than permuted (permuting a key would break the join regardless of
 masking).</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">set_dir</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, <span class="st">"met_set"</span>, package <span class="op">=</span> <span class="st">"masque"</span><span class="op">)</span></span>
 <span><span class="va">ms</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/mask_set.html">mask_set</a></span><span class="op">(</span><span class="va">set_dir</span>, mode <span class="op">=</span> <span class="st">"collaborate"</span>, seed <span class="op">=</span> <span class="fl">1</span>, quiet <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="co">#&gt; Warning: Numeric environment column(s) <span style="color: #00BB00;">year</span> remain <span style="color: #0000BB;">"keep"</span> in collaborate mode.</span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> This preserves environment structure but may disclose year or other numeric labels; review before</span></span>
+<span><span class="co">#&gt;   release.</span></span>
 <span><span class="va">ag</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synthetic.html">synthetic</a></span><span class="op">(</span><span class="va">ms</span><span class="op">)</span><span class="op">$</span><span class="va">agronomy</span></span>
 <span><span class="va">qa</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synthetic.html">synthetic</a></span><span class="op">(</span><span class="va">ms</span><span class="op">)</span><span class="op">$</span><span class="va">quality</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/sets.html" class="external-link">setequal</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique</a></span><span class="op">(</span><span class="va">ag</span><span class="op">$</span><span class="va">gen</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique</a></span><span class="op">(</span><span class="va">qa</span><span class="op">$</span><span class="va">gen</span><span class="op">)</span><span class="op">)</span>   <span class="co"># same genotype codes in both</span></span>
 <span><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
-<p>The recipe bundle is private exactly as a single recipe is;
+<p>The recipe bundle is private exactly as a single recipe is.
 <code><a href="../reference/write_set.html">write_set()</a></code> never writes it.</p>
+</div>
+<div class="section level2">
+<h2 id="geographic-coordinates">Geographic coordinates<a class="anchor" aria-label="anchor" href="#geographic-coordinates"></a>
+</h2>
+<p>Latitude and longitude are treated as sensitive:
+<code><a href="../reference/propose_roles.html">propose_roles()</a></code> flags a column whose name looks like a
+coordinate (<code>gps</code>, <code>lat</code>/<code>latitude</code>,
+<code>lon</code>/<code>longitude</code>) as <code>pii_suspected</code>
+and proposes <code>drop</code>. Dropping is the safest choice when the
+synthetic does not need locations.</p>
+<p>When the synthetic does need plausible coordinates – to exercise a
+spatial pipeline, say – a plain scramble is the wrong tool: the copula
+re-simulates each axis and smears a latitude/longitude pair into a
+continuous cloud that can land in the sea. masque offers two
+purpose-built alternatives.</p>
+<p><code><a href="../reference/jitter_coordinates.html">jitter_coordinates()</a></code> coarsens coordinates in place by a
+geographic-masking jitter. The default donut scheme displaces every
+point by a random distance drawn uniformly by area from an annulus, in a
+random direction, and re-draws until the point falls on land, so a
+coastal site is never pushed offshore. The longitude step is corrected
+by <code>cos(latitude)</code> so the ground distance matches the
+requested kilometres at any latitude, and the NA pattern and the
+latitude/longitude pairing are preserved.</p>
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">sites</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
+<span>  site <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"A"</span>, <span class="st">"B"</span>, <span class="st">"C"</span><span class="op">)</span>,</span>
+<span>  lat  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="op">-</span><span class="fl">34.9</span>, <span class="op">-</span><span class="fl">35.2</span>, <span class="op">-</span><span class="fl">33.6</span><span class="op">)</span>,</span>
+<span>  lon  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">138.6</span>, <span class="fl">142.0</span>, <span class="fl">148.2</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/jitter_coordinates.html">jitter_coordinates</a></span><span class="op">(</span><span class="va">sites</span>, <span class="st">"lat"</span>, <span class="st">"lon"</span>, min_km <span class="op">=</span> <span class="fl">5</span>, max_km <span class="op">=</span> <span class="fl">20</span>, seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
+<span><span class="co">#&gt;   site       lat      lon</span></span>
+<span><span class="co">#&gt; 1    A -34.81596 138.5333</span></span>
+<span><span class="co">#&gt; 2    B -35.16555 142.1346</span></span>
+<span><span class="co">#&gt; 3    C -33.48829 148.1005</span></span></code></pre></div>
+<p>Declaring the pair to <code><a href="../reference/mask.html">mask()</a></code> applies the same coarsening
+as part of masking, so the coordinates never pass through the
+copula:</p>
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">m</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/mask.html">mask</a></span><span class="op">(</span><span class="va">df</span>, <span class="va">roles</span>, mode <span class="op">=</span> <span class="st">"collaborate"</span>,</span>
+<span>          coords <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>lat <span class="op">=</span> <span class="st">"GPS_S"</span>, lon <span class="op">=</span> <span class="st">"GPS_E"</span><span class="op">)</span><span class="op">)</span>, seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span></code></pre></div>
+<p><code><a href="../reference/synthesise_geospatial.html">synthesise_geospatial()</a></code> is the alternative when you
+would rather re-anchor points around fake centroids you supply for each
+region.</p>
+<p><strong>How far to displace.</strong> The right magnitude is not a
+constant. It is calibrated to the density of the entities being
+protected, so that the masked point is spatially k-anonymous – roughly,
+at least <em>k</em> comparable entities lie closer to the masked point
+than the true one (Hampton et al., 2010). Individual-level urban health
+data is typically masked with a standard deviation of about one
+kilometre, because cities are dense. Fields and farms are far sparser,
+so comparable protection needs a much larger displacement; a donut of
+roughly 5 to 20 km (the default) moves a point across several properties
+while keeping it in the same agroclimatic region (Zandbergen, 2014). For
+a formal guarantee, calibrate the radii to the local field density
+rather than relying on the default.</p>
 </div>
 <div class="section level2">
 <h2 id="operational-guidance">Operational guidance<a class="anchor" aria-label="anchor" href="#operational-guidance"></a>
 </h2>
-<p>Default to collaborate mode when in doubt; local mode is for
+<p>Default to collaborate mode when in doubt. Local mode is for
 owner-only development. Treat the recipe as you treat the original data
 – same security class, same access controls. Re-run
 <code><a href="../reference/audit_mask.html">audit_mask()</a></code> before any sharing even though collaborate
 mode runs it for you. Never override a <code>pii_suspected</code> flag
 without deciding deliberately. Remember that date/time columns and a
-preserved design footprint both carry real operational signal; alias or
+preserved design footprint both carry real operational signal. Alias or
 roll them up when that signal is sensitive. Small designs leak – a
 categorical cell count of one is high leakage, so aggregate or drop
 before masking.</p>
 <p>For what the recipe stores and how the round-trip works, see
 <em>Recipe anatomy and the round-trip</em>.</p>
+</div>
+<div class="section level2">
+<h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a>
+</h2>
+<p>Hampton, K. H., Fitch, M. K., Allshouse, W. B., Doherty, I. A.,
+Gesink, D. C., Leone, P. A., Serre, M. L., &amp; Miller, W. C. (2010).
+Mapping health data: improved privacy protection with donut method
+geomasking. <em>American Journal of Epidemiology, 172</em>(9),
+1062–1069. <a href="https://doi.org/10.1093/aje/kwq248" class="external-link uri">https://doi.org/10.1093/aje/kwq248</a></p>
+<p>Zandbergen, P. A. (2014). Ensuring confidentiality of geocoded health
+data: assessing geographic masking strategies for individual-level data.
+<em>Advances in Medicine, 2014</em>, 567049. <a href="https://doi.org/10.1155/2014/567049" class="external-link uri">https://doi.org/10.1155/2014/567049</a></p>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>

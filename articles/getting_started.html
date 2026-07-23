@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">masque</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.8.2</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.2</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -83,7 +83,7 @@ synthetic re-targets to the original with no code changes.</p>
 <p>It is <strong>not</strong> an anonymiser. The synthetic is a
 development surrogate, not a public-release-safe artefact. The companion
 vignette <em>Confidentiality and the threat model</em> sets out exactly
-what is and is not protected; read it before sharing any output.</p>
+what is and is not protected. Read it before sharing any output.</p>
 </div>
 <div class="section level2">
 <h2 id="the-one-call-path">The one-call path<a class="anchor" aria-label="anchor" href="#the-one-call-path"></a>
@@ -94,7 +94,7 @@ session – pauses to let you review the plan first. We use the classical
 John &amp; Williams (1995) alpha-design field trial, shipped with the
 package.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/max578/masque" class="external-link">masque</a></span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://max578.github.io/masque/">masque</a></span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">f</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, <span class="st">"john_alpha.csv"</span>, package <span class="op">=</span> <span class="st">"masque"</span><span class="op">)</span></span>
 <span><span class="va">df</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.csv</a></span><span class="op">(</span><span class="va">f</span>, stringsAsFactors <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
@@ -155,14 +155,14 @@ is) and an <code>action</code> (what masque does to it).</p>
 column. The four actions set the depth:</p>
 <ul>
 <li>
-<code>keep</code> – pass the column through byte-for-byte;</li>
+<code>keep</code> – pass the column through byte-for-byte.</li>
 <li>
 <code>scramble</code> – re-simulate numerics through a Gaussian
 copula, or row-permute categoricals, dates, and text (the vocabulary
-stays visible);</li>
+stays visible).</li>
 <li>
 <code>alias</code> – scramble and replace the labels with opaque
-codes;</li>
+codes.</li>
 <li>
 <code>drop</code> – leave the column out of the synthetic
 entirely.</li>
@@ -183,7 +183,7 @@ run. Edit it with <code><a href="../reference/set_role.html">set_role()</a></cod
 <span><span class="co">#&gt; <span style="color: #BCBCBC;">5</span> yield outcome   scramble</span></span>
 <span><span class="co">#&gt; <span style="color: #BCBCBC;">6</span> row   design    keep    </span></span>
 <span><span class="co">#&gt; <span style="color: #BCBCBC;">7</span> col   design    keep</span></span></code></pre></div>
-<p>Re-assigning a role re-resolves the default action; passing an
+<p>Re-assigning a role re-resolves the default action. Passing an
 explicit <code>action</code> pins the column. There is no requirement to
 name an <code>outcome</code>: with none marked, every scrambled numeric
 is re-simulated jointly.</p>
@@ -278,18 +278,23 @@ sensitive values, flag it yourself and the audit honours the flag:</p>
 <tr class="odd">
 <td><code>local</code></td>
 <td>Owner develops on a realistic surrogate locally</td>
-<td>Vocabulary preserved; numeric values may match observed</td>
+<td>Vocabulary preserved, with numeric values that may match
+observed</td>
 </tr>
 <tr class="even">
 <td><code>collaborate</code></td>
 <td>Owner shares the synthetic while keeping the recipe private</td>
-<td>Treatment and categorical labels aliased; numerics jittered; ids and
-free text dropped; the leakage audit runs automatically</td>
+<td>Treatment and categorical labels aliased, numerics jittered, ids and
+free text dropped, and the leakage audit run automatically</td>
 </tr>
 </tbody>
 </table>
 <p>Per-column <code>action</code> choices override the mode wherever you
-need them.</p>
+need them. When <code><a href="../reference/mask.html">mask()</a></code> or <code><a href="../reference/mask_set.html">mask_set()</a></code> is called
+without <code>mode</code>, it inherits the mode stored on the reviewed
+roles plan. Passing <code>mode = "local"</code> explicitly with a
+collaborate-mode plan raises a warning so a sharing-oriented plan cannot
+be silently downgraded.</p>
 </div>
 <div class="section level2">
 <h2 id="tidy-dates-and-depth">Tidy, dates, and depth<a class="anchor" aria-label="anchor" href="#tidy-dates-and-depth"></a>
@@ -318,11 +323,15 @@ synthetic tables still resolves.</p>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">set_dir</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, <span class="st">"met_set"</span>, package <span class="op">=</span> <span class="st">"masque"</span><span class="op">)</span></span>
 <span><span class="va">ms</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/masque.html">masque</a></span><span class="op">(</span><span class="va">set_dir</span>, mode <span class="op">=</span> <span class="st">"collaborate"</span>, seed <span class="op">=</span> <span class="fl">1</span>, ask <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span><span class="co">#&gt; Warning: Numeric environment column(s) <span style="color: #00BB00;">year</span> remain <span style="color: #0000BB;">"keep"</span> in collaborate mode.</span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> This preserves environment structure but may disclose year or other numeric labels; review before</span></span>
+<span><span class="co">#&gt;   release.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> Using the proposed masking plan for <span style="color: #00BB00;">agronomy</span> (pass `roles` or set `ask = TRUE` to review).</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> Using the proposed masking plan for <span style="color: #00BB00;">quality</span> (pass `roles` or set `ask = TRUE` to review).</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; ── <span style="font-weight: bold;">Cross-table links (1)</span> ──</span></span>
+<span><span class="co">#&gt; ── <span style="font-weight: bold;">Cross-table links (2)</span> ──</span></span>
 <span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; • <span style="color: #0000BB;">"env"</span> shared across <span style="color: #0000BB;">"agronomy, quality"</span> - aliased consistently</span></span>
 <span><span class="co">#&gt; • <span style="color: #0000BB;">"gen"</span> shared across <span style="color: #0000BB;">"agronomy, quality"</span> - aliased consistently</span></span>
 <span><span class="co">#&gt; <span style="color: #00BB00;">✔</span> Masked 2 tables in <span style="color: #0000BB;">"collaborate"</span> mode - audit: 0 HIGH, 0 medium, 12 low.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> Recipe is private - keep it. Review `audit_mask(m)` before any release decision; masque informs that decision, it does not make it.</span></span>
@@ -334,8 +343,9 @@ synthetic tables still resolves.</p>
 <span><span class="co">#&gt; • <span style="color: #00BB00;">agronomy</span>: 464 row(s) x 7 column(s)</span></span>
 <span><span class="co">#&gt; • <span style="color: #00BB00;">quality</span>: 464 row(s) x 5 column(s)</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; ── <span style="font-weight: bold;">Cross-table links (1)</span> ──</span></span>
+<span><span class="co">#&gt; ── <span style="font-weight: bold;">Cross-table links (2)</span> ──</span></span>
 <span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; • <span style="color: #0000BB;">"env"</span> shared across <span style="color: #0000BB;">"agronomy, quality"</span></span></span>
 <span><span class="co">#&gt; • <span style="color: #0000BB;">"gen"</span> shared across <span style="color: #0000BB;">"agronomy, quality"</span></span></span>
 <span><span class="co">#&gt; Use `synthetic(m)` for the tables; `recipe(m)` for the bundle.</span></span>
 <span><span class="co">#&gt; </span></span>
@@ -344,6 +354,71 @@ synthetic tables still resolves.</p>
 masked to the same codes in each, so the field and laboratory tables
 still join. See <em>Confidentiality and the threat model</em> for the
 set-level controls.</p>
+</div>
+<div class="section level2">
+<h2 id="multi-environment-structure">Multi-environment structure<a class="anchor" aria-label="anchor" href="#multi-environment-structure"></a>
+</h2>
+<p>A multi-environment trial has at least three distinct structural
+questions: (1) which rows belong to each environment, (2) whether
+treatments connect the environments, and (3) what randomisation
+structure can be recovered within each environment.
+<code><a href="../reference/detect_design.html">detect_design()</a></code> reports these separately. Connectivity is a
+comparability diagnostic, not the definition of a multi-environment
+trial. An observed block or field layout is evidence, not proof of the
+original randomisation protocol.</p>
+<p>This small example has two environments and three genotypes:</p>
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">met</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/expand.grid.html" class="external-link">expand.grid</a></span><span class="op">(</span></span>
+<span>  env <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"E1"</span>, <span class="st">"E2"</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  rep <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_len</a></span><span class="op">(</span><span class="fl">2L</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  gen <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"G1"</span>, <span class="st">"G2"</span>, <span class="st">"G3"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span><span class="va">met</span><span class="op">$</span><span class="va">yield</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_len</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">met</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">2</span><span class="op">)</span>, each <span class="op">=</span> <span class="fl">6L</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">ds</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/detect_design.html">detect_design</a></span><span class="op">(</span><span class="va">met</span><span class="op">)</span></span>
+<span><span class="va">ds</span><span class="op">@</span><span class="va">scope_label</span></span>
+<span><span class="co">#&gt; [1] "multi_environment"</span></span>
+<span><span class="va">ds</span><span class="op">@</span><span class="va">env_cols</span></span>
+<span><span class="co">#&gt; [1] "env"</span></span>
+<span><span class="va">ds</span><span class="op">@</span><span class="va">connectivity</span><span class="op">$</span><span class="va">status</span></span>
+<span><span class="co">#&gt; [1] "connected"</span></span>
+<span><span class="va">ds</span><span class="op">@</span><span class="va">within_design_label</span></span>
+<span><span class="co">#&gt; [1] "RCBD"</span></span></code></pre></div>
+<p>Automatic detection is deliberately conservative. Exact
+<code>env</code> or <code>environment</code> names and bounded site-year
+patterns can be selected when they pass validity and competition gates.
+A site-only column auto-resolves only when treatments are replicated
+across sites, preventing a nested block from being promoted as an
+environment. Weak or competing evidence remains uncertain. Supply the
+basis explicitly when domain knowledge is stronger than the recorded
+names:</p>
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">ds_explicit</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/detect_design.html">detect_design</a></span><span class="op">(</span><span class="va">met</span>, env <span class="op">=</span> <span class="st">"env"</span><span class="op">)</span></span></code></pre></div>
+<p>The default plot is a compact environment overview. Select one label
+to inspect its recoverable field structure. The original data frame
+remains an explicit argument because <code>design_summary</code> does
+not duplicate source data.</p>
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">ds_explicit</span>, df <span class="op">=</span> <span class="va">met</span><span class="op">)</span></span></code></pre></div>
+<p><img src="getting_started_files/figure-html/met-plot-1.png" class="r-plt" alt="" width="672"></p>
+<p>High-confidence environment recommendations feed the masking plan.
+Local mode keeps environment values byte-identical. Collaborate mode
+aliases categorical environment labels in place, preserving row
+assignment, factor codes, the NA mask, and recipe inversion. A numeric
+environment such as year remains <code>keep</code> and raises a
+disclosure warning because its values are still visible.</p>
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">met_roles</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/propose_roles.html">propose_roles</a></span><span class="op">(</span><span class="va">met</span>, mode <span class="op">=</span> <span class="st">"collaborate"</span><span class="op">)</span></span>
+<span><span class="va">met_roles</span><span class="op">[</span><span class="va">met_roles</span><span class="op">$</span><span class="va">col</span> <span class="op">==</span> <span class="st">"env"</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"col"</span>, <span class="st">"role"</span>, <span class="st">"action"</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 1 × 3</span></span></span>
+<span><span class="co">#&gt;   col   role   action</span></span>
+<span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span> </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> env   design alias</span></span></code></pre></div>
+<p>This safeguard protects the allocation used by a pipeline. It does
+not imply that the synthesised outcomes preserve genotype-by-environment
+effects. Sparse treatment-by-environment cells may fall back to pooled
+synthesis, and the clone must not be used as a substitute for the
+original trial in scientific inference.</p>
 </div>
 <div class="section level2">
 <h2 id="where-to-go-next">Where to go next<a class="anchor" aria-label="anchor" href="#where-to-go-next"></a>

@@ -19,6 +19,7 @@ mask(
   clean = c("auto", "report", "off"),
   alias_names = FALSE,
   conditional = FALSE,
+  coords = NULL,
   .shared_maps = list(),
   ...
 )
@@ -40,7 +41,10 @@ mask(
 
 - mode:
 
-  Either `"local"` (default) or `"collaborate"`.
+  Either `"local"` or `"collaborate"`. When omitted, inherit
+  `attr(roles, "mode")`, falling back to `"local"` for a roles table
+  with no mode provenance. An explicit collaborate-to-local downgrade
+  raises a classed `masque_mode_downgrade` warning.
 
 - seed:
 
@@ -48,14 +52,18 @@ mask(
 
 - clean:
 
-  Column-name and label hygiene before masking, passed to
+  Label and column-name hygiene before masking, passed to
   [`clean_table()`](https://max578.github.io/masque/reference/clean_table.md):
-  one of `"auto"` (default - legalise names, trim whitespace, report
-  near-duplicates), `"report"`, or `"off"`. When names are legalised,
-  the `roles` table's column references are remapped to match, so a
-  `roles` table built against the dirty names still applies. The fixes
-  are recorded in the recipe and re-applied by
-  [`apply_recipe()`](https://max578.github.io/masque/reference/apply_recipe.md).
+  one of `"auto"` (default - trim whitespace and report near-duplicate
+  labels), `"report"` (report only), or `"off"` (skip). Invalid column
+  names are legalised in **every** mode – an invalid name silently
+  rewritten during synthesis corrupts the clone – and the repair is
+  raised as a `masque_name_repaired` warning. The `roles` table's column
+  references are remapped to the legalised names, the fixes are recorded
+  in the recipe, and
+  [`apply_recipe()`](https://max578.github.io/masque/reference/apply_recipe.md)
+  / [`unmask()`](https://max578.github.io/masque/reference/unmask.md)
+  reverse them on the round-trip.
 
 - alias_names:
 
@@ -86,6 +94,21 @@ mask(
   design) are recorded on the recipe. With no treatment or design column
   to condition on, the path degrades cleanly to the global copula and a
   note is emitted.
+
+- coords:
+
+  Optional geographic-coordinate declaration. Supply one or more
+  latitude/longitude pairs and each is coarsened in place by an on-land
+  jitter (see
+  [`jitter_coordinates()`](https://max578.github.io/masque/reference/jitter_coordinates.md))
+  instead of being copula-scrambled into implausible locations. A pair
+  is a named vector `c(lat = "lat_col", lon = "lon_col")` or a named
+  list that also carries jitter parameters (`method`, `min_km`,
+  `max_km`, `sd_km`, `on_land`); pass several pairs as a list. Defaults
+  to a donut of 5-20 km on land. A declared pair always survives
+  masking, coarsened; the recipe records that it was coarsened and
+  [`apply_recipe()`](https://max578.github.io/masque/reference/apply_recipe.md)
+  retargets to the real coordinates.
 
 - .shared_maps:
 
