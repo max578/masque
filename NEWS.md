@@ -31,6 +31,14 @@
   environment overviews plus one selected field layout through
   `environment =`. Connectivity and inner-design labels are diagnostic and
   do not claim to reconstruct the original randomisation.
+* New `jitter_coordinates()` coarsens latitude/longitude in place by an
+  on-land geographic-masking jitter (donut or Gaussian), so a synthetic table
+  can carry realistic coordinates without revealing a true field or farm
+  location. The donut default moves every point 5-20 km in a random direction,
+  re-drawing until it lands on land (via `maps`); the NA pattern and the
+  latitude/longitude pairing are preserved. It complements
+  `synthesise_geospatial()`, which instead re-anchors coordinates at
+  user-supplied fake centroids.
 
 ## Bug fixes
 

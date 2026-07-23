@@ -42,6 +42,7 @@ Suggests:
     fst,
     ggplot2,
     knitr,
+    maps,
     readxl,
     rmarkdown,
     spelling,
