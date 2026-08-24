@@ -8,13 +8,15 @@ jitter_coordinates(
   df,
   lat_col,
   lon_col,
+  by = NULL,
   method = c("donut", "gaussian"),
   min_km = 5,
   max_km = 20,
   sd_km = 10,
   on_land = TRUE,
   max_tries = 100L,
-  seed = NULL
+  seed = NULL,
+  .group = NULL
 )
 }
 \arguments{
@@ -23,10 +25,15 @@ jitter_coordinates(
 \item{lat_col, lon_col}{Column names of the latitude and longitude (numeric,
 in decimal degrees).}
 
+\item{by}{How rows are grouped into sites. \code{NULL} (default) groups rows that
+share an identical input coordinate pair. A character vector names one or
+more columns of \code{df} whose values identify a site. \code{FALSE} displaces every
+row independently (the pre-0.10.0 behaviour). See the section above.}
+
 \item{method}{\code{"donut"} (default) or \code{"gaussian"}.}
 
 \item{min_km, max_km}{Inner and outer radii of the donut, in kilometres
-(used when \code{method = "donut"}). Every point moves at least \code{min_km} and at
+(used when \code{method = "donut"}). Every site moves at least \code{min_km} and at
 most \code{max_km}.}
 
 \item{sd_km}{Per-axis standard deviation in kilometres (used when
@@ -38,27 +45,32 @@ displacement that lands in the sea, using \code{\link[maps:map.where]{maps::map.
 supplies your own test (for example an \code{sf}-based high-resolution
 coastline). \code{FALSE} applies no constraint.}
 
-\item{max_tries}{Maximum re-draws per point before giving up and leaving it
-unchanged (with a warning). Default \code{100}.}
+\item{max_tries}{Maximum re-draws per site before giving up. Default \code{100}.
+A site that cannot be placed on land is set to \code{NA} on both axes, with a
+warning: masque never emits the true coordinate as though it were masked.}
 
 \item{seed}{Optional integer seed for reproducibility. The caller's RNG state
 is preserved.}
+
+\item{.group}{Internal. A pre-computed grouping vector of length
+\code{nrow(df)}, used by \code{\link[=mask]{mask()}} to group by the \emph{original} table's site
+structure. Takes precedence over \code{by}. Not for direct use.}
 }
 \value{
 \code{df}, with \code{lat_col} and \code{lon_col} overwritten by the jittered
 coordinates (rounded to five decimal places, about one metre).
 }
 \description{
-Displaces each latitude / longitude pair by a small random distance, in
-place, so a synthetic table can carry realistic coordinates without
-revealing the true location of a field, farm or site. Two geographic-masking
-schemes are offered. The default \code{"donut"} displaces every point by a
-distance drawn uniformly (by area) from an annulus between \code{min_km} and
-\code{max_km}, in a random direction: this guarantees a minimum displacement (a
-privacy floor -- no point is left almost where it started) while bounding the
-maximum drift. The \code{"gaussian"} scheme adds independent normal noise of
-standard deviation \code{sd_km} to each axis; it is simpler but has an unbounded
-tail, so a handful of points can move much further than intended.
+Displaces latitude / longitude pairs by a small random distance, in place,
+so a synthetic table can carry realistic coordinates without revealing the
+true location of a field, farm or site. Two geographic-masking schemes are
+offered. The default \code{"donut"} displaces every point by a distance drawn
+uniformly (by area) from an annulus between \code{min_km} and \code{max_km}, in a
+random direction: this guarantees a minimum displacement (a privacy floor --
+no point is left almost where it started) while bounding the maximum drift.
+The \code{"gaussian"} scheme adds independent normal noise of standard deviation
+\code{sd_km} to each axis; it is simpler but has an unbounded tail, so a handful
+of points can move much further than intended.
 }
 \details{
 The displacement is computed in kilometres and converted to degrees with a
@@ -68,6 +80,68 @@ land mask and re-drawn until it falls on land, so a coastal point is never
 pushed offshore. The original NA pattern is preserved cell-by-cell and the
 two axes stay paired (if either coordinate is missing, both are set to NA).
 }
+\section{A coordinate belongs to a site, not to a row}{
+
+
+One displacement is drawn per \strong{site}, not per row, and broadcast to every
+row of that site. A table that holds many rows per physical place -- plots
+within a trial, samples within a paddock, observations within a farm --
+therefore comes back with one masked coordinate per place, exactly as the
+source table has one true coordinate per place. \code{by} chooses how a site is
+identified:
+\itemize{
+\item \code{by = NULL} (default) treats rows that share an identical input coordinate
+pair as one site. This needs no user action and cannot alter genuinely
+point-level data, where every input pair is already distinct.
+\item \code{by = c("trial")} (one or more column names) treats rows sharing those
+values as one site, for the case where a site's recorded coordinates differ
+slightly between rows. Where such a group holds more than one distinct
+input coordinate, the group's row-weighted centroid is used and the
+consolidation is reported.
+\item \code{by = FALSE} restores the pre-0.10.0 behaviour of displacing every row
+independently, and warns if the input carries repeated coordinate pairs.
+It exists only so a table masked by an earlier version can be reproduced.
+}
+
+Per-row displacement of a repeated coordinate is not merely unfaithful, it
+leaks. Donut displacement is isotropic, so the mean of many independent
+draws around one true site converges on that site: averaging the 360 rows of
+a single trial recovers the true position to a median 0.58 km, against the
+5 km floor the donut was asked for. One draw per site removes the estimator
+and leaves the full displacement in place.
+}
+
+\section{Rebuilding, and the displacement budget}{
+
+
+One displacement per site holds \emph{within} a masked table. It does not hold
+across several. Each rebuild with a fresh seed draws independently, so a
+site masked repeatedly and kept in several versions can be averaged back
+out, exactly as its rows could be before. Measured at the 5-20 km default:
+
+\tabular{lr}{
+Rebuilds kept \tab Median recovery error \cr
+1  \tab 14.2 km \cr
+2  \tab 10.1 km \cr
+4  \tab  6.4 km \cr
+8  \tab  4.5 km \cr
+16 \tab  3.1 km
+}
+
+Eight kept rebuilds fall below the 5 km floor the donut was asked for.
+
+The remedy costs nothing: \strong{reuse the seed}. The same \code{seed} reproduces the
+same displacement for the same sites, so any number of rebuilds yields one
+point and nothing to average. Draw a fresh seed only when you intend to
+supersede every earlier version, and retire the ones you replace.
+
+Choose the unit carefully. It is the finest grouping that denotes \strong{one
+physical place at one time}. For a multi-year trial series that is location
+by year, not location alone: trials at one named location in different
+seasons legitimately sit in different paddocks, and collapsing that real
+variation would be as wrong as inventing it.
+}
+
 \section{Choosing the magnitude}{
 
 
@@ -85,14 +159,16 @@ k-anonymity rather than relying on the default.
 }
 
 \examples{
+# Four plots at each of three sites: one masked coordinate per site.
 df <- data.frame(
-  site = c("A", "B", "C"),
-  lat  = c(-34.9, -35.2, -33.6),
-  lon  = c(138.6, 142.0, 148.2)
+  site = rep(c("A", "B", "C"), each = 4),
+  lat  = rep(c(-34.9, -35.2, -33.6), each = 4),
+  lon  = rep(c(138.6, 142.0, 148.2), each = 4)
 )
-# Move each site 5-20 km, staying on land (needs the `maps` package):
 if (requireNamespace("maps", quietly = TRUE)) {
-  jitter_coordinates(df, "lat", "lon", min_km = 5, max_km = 20, seed = 1)
+  out <- jitter_coordinates(df, "lat", "lon", min_km = 5, max_km = 20,
+                            seed = 1)
+  nrow(unique(out[c("lat", "lon")])) # 3, one pair per site
 }
 
 }

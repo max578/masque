@@ -71,10 +71,14 @@ note is emitted.}
 latitude/longitude pairs and each is coarsened in place by an on-land
 jitter (see \code{\link[=jitter_coordinates]{jitter_coordinates()}}) instead of being copula-scrambled into
 implausible locations. A pair is a named vector \code{c(lat = "lat_col", lon = "lon_col")} or a named list that also carries jitter parameters
-(\code{method}, \code{min_km}, \code{max_km}, \code{sd_km}, \code{on_land}); pass several pairs as a
-list. Defaults to a donut of 5-20 km on land. A declared pair always
-survives masking, coarsened; the recipe records that it was coarsened and
-\code{\link[=apply_recipe]{apply_recipe()}} retargets to the real coordinates.}
+(\code{by}, \code{method}, \code{min_km}, \code{max_km}, \code{sd_km}, \code{on_land}); pass several
+pairs as a list. Defaults to a donut of 5-20 km on land. One displacement
+is drawn per \strong{site} and broadcast to that site's rows: \code{by} names the
+columns of \code{df} that identify a site, and is omitted when rows sharing an
+identical input coordinate already identify one. A declared pair always
+survives masking, coarsened; the recipe records the parameters and the site
+grouping it was coarsened under, and \code{\link[=apply_recipe]{apply_recipe()}} retargets to the real
+coordinates.}
 
 \item{.shared_maps}{Internal. A named list of pre-computed
 \code{original -> alias} level maps for cross-table linked columns, set

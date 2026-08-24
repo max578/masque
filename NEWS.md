@@ -1,4 +1,76 @@
-# masque 0.9.2 (development version)
+# masque 0.10.0
+
+## Breaking changes
+
+* **A coordinate belongs to a site, not to a row.** `jitter_coordinates()` and
+  `mask(coords = )` now draw **one displacement per site** and broadcast it to
+  every row of that site, instead of displacing every row independently. A
+  table holding many rows per physical place -- plots within a trial, samples
+  within a paddock, observations within a farm -- now comes back with one
+  masked coordinate per place, as its source table has one true coordinate per
+  place.
+
+  **Tables masked by 0.9.2 or earlier carry the old per-row structure.** Their
+  coordinate columns assert that observations kilometres apart share a site,
+  and should be treated as invalid for anything spatial until the table is
+  rebuilt under 0.10.0.
+
+  The change closes a confidentiality defect as well as a fidelity one. Donut
+  displacement is isotropic, so the mean of many independent draws around one
+  true site converges on that site: averaging the 360 rows of a single trial
+  recovered the true position to a median 0.58 km, against the 5 km floor the
+  donut was asked for. One draw per site removes that estimator and leaves the
+  full displacement in place.
+
+* `jitter_coordinates()` gains `by`, which chooses how a site is identified.
+  `by = NULL` (the default) groups rows sharing an identical input coordinate.
+  A character vector names site columns, for the case where a site's recorded
+  coordinates differ slightly between rows; such a group is consolidated to its
+  row-weighted centroid and the consolidation is reported by a classed
+  `masque_geo_consolidated` warning, with `masque_geo_wide_group` raised when a
+  named group spans more than the displacement radius. `by = FALSE` restores
+  the pre-0.10.0 per-row draw and warns (`masque_geo_ungrouped`) if the input
+  carries repeated coordinate pairs. It exists only so a table masked by an
+  earlier version can be reproduced.
+
+* A site that cannot be placed on land within `max_tries` re-draws is now set
+  to `NA` on both axes rather than left unchanged. Leaving it unchanged shipped
+  the **true** coordinate inside a table the caller believed was masked, behind
+  a warning. The `masque_geo_unplaced` warning is unchanged in class and still
+  names the count.
+
+  Genuinely point-level input -- every coordinate pair already distinct -- is
+  unaffected by all of the above, and reproduces its 0.9.2 output exactly under
+  the same seed.
+
+* One displacement per site holds *within* a table, not across rebuilds. Each
+  rebuild with a fresh seed is an independent draw, so a site kept in several
+  masked versions can be averaged back out: at the 5-20 km default, eight kept
+  rebuilds recover it to 4.5 km, below the floor. Reuse the seed and the
+  displacement is identical, so there is nothing to average. Documented under
+  "Rebuilding, and the displacement budget" in `?jitter_coordinates`.
+
+## New features
+
+* `mask(coords = )` accepts `by` in a coordinate spec, for example
+  `coords = list(list(lat = "GPS_S", lon = "GPS_E", by = "TRIAL"))`. The
+  grouping is taken from the **original** table, so a site column that is
+  aliased, permuted or dropped in the synthetic still groups correctly.
+
+* The recipe records what happened to each declared coordinate pair: the jitter
+  parameters, the grouping it was masked under, the number of sites that
+  grouping produced, any consolidated sites, and any site set to `NA`. It is
+  shown by `print(recipe(m))` and readable at `recipe(m)@coords`. Recipes
+  written before 0.10.0 read back with no such record.
+
+## Bug fixes
+
+* `mask()` gave every declared coordinate pair the same seed, so two
+  latitude/longitude pairs in one table received identical displacement
+  vectors. Each pair now draws from its own sub-stream, deterministically
+  derived from the `mask()` seed.
+
+# masque 0.9.2
 
 ## New features
 

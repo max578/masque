@@ -341,13 +341,50 @@ sites <- data.frame(
 jitter_coordinates(sites, "lat", "lon", min_km = 5, max_km = 20, seed = 1)
 ```
 
+**A coordinate belongs to a site, not to a row.** One displacement is drawn per
+site and broadcast to every row of that site, so a table holding many rows per
+physical place -- plots within a trial, samples within a paddock -- comes back
+with one masked coordinate per place, exactly as the source table has one true
+coordinate per place. By default a site is a set of rows sharing an identical
+input coordinate, which needs no user action and cannot alter genuinely
+point-level data. Where a site's recorded coordinates differ slightly between
+rows, name the site columns and the group is consolidated to its centroid.
+
+```{r geo-by, eval = requireNamespace("maps", quietly = TRUE)}
+plots <- data.frame(
+  trial = rep(c("T1", "T2"), each = 4),
+  lat   = rep(c(-34.9, -35.2), each = 4),
+  lon   = rep(c(138.6, 142.0), each = 4)
+)
+masked <- jitter_coordinates(plots, "lat", "lon", by = "trial", seed = 1)
+nrow(unique(masked[c("lat", "lon")]))   # one coordinate per trial, not per plot
+```
+
+Grouping is a confidentiality control, not only a fidelity one. Donut
+displacement is isotropic, so the mean of many independent draws around one
+true site converges on that site. Displacing a 360-row trial row by row leaves
+its centroid a median 0.58 km from the truth, against the 5 km floor the donut
+was asked for. One draw per site removes that estimator and leaves the full
+displacement in place. Choose the unit carefully: it is the finest grouping
+denoting one physical place at one time, so for a multi-year trial series it is
+location by year rather than location alone, because trials at one named
+location in different seasons legitimately sit in different paddocks.
+
+A site that cannot be placed on land within `max_tries` re-draws is set to `NA`
+on both axes, with a warning. masque does not emit a true coordinate inside a
+table the caller believes is masked.
+
 Declaring the pair to `mask()` applies the same coarsening as part of masking,
 so the coordinates never pass through the copula:
 
 ```{r geo-mask, eval = FALSE}
 m <- mask(df, roles, mode = "collaborate",
-          coords = list(c(lat = "GPS_S", lon = "GPS_E")), seed = 1)
+          coords = list(list(lat = "GPS_S", lon = "GPS_E", by = "TRIAL")),
+          seed = 1)
 ```
+
+The recipe records the grouping each declared pair was masked under, so a clone
+carries the account of its own coordinate structure.
 
 `synthesise_geospatial()` is the alternative when you would rather re-anchor
 points around fake centroids you supply for each region.

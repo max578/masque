@@ -2,7 +2,7 @@
 
 ## Submission notes
 
-`masque` 0.9.2 is the first submission to CRAN. It carries the full
+`masque` 0.10.0 is the first submission to CRAN. It carries the full
 end-to-end surface built over the 0.2-0.7 development line - a two-axis
 roles model (a `role` and an `action` per column), a hygiene layer,
 opt-in column-name aliasing, a multi-table set layer with
@@ -14,8 +14,13 @@ HIGH finding stands. Versions 0.9.1 and 0.9.2 add conservative
 multi-environment scope detection with environment-safe role defaults,
 connectivity diagnostics, bounded print and plot methods, a
 mode-provenance guard, and on-land geographic-coordinate coarsening
-(`jitter_coordinates()` plus a `coords` argument to `mask()`). See
-`NEWS.md` for the full change list.
+(`jitter_coordinates()` plus a `coords` argument to `mask()`). Version
+0.10.0 corrects that coarsening: one displacement is now drawn per site
+rather than per row, because per-row displacement of a repeated
+coordinate both fabricates within-site variation and lets the true site
+be recovered by averaging, and a point that cannot be placed on land now
+fails closed to `NA` rather than retaining its true value. See `NEWS.md`
+for the full change list.
 
 ## R CMD check results
 

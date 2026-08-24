@@ -41,6 +41,16 @@ S7::method(print, masque_recipe) <- function(x, ...) {
     )
   ))
 
+  if (length(x@coords)) {
+    cli::cli_h2(sprintf(
+      "Coordinates (%d pair(s), coarsened)", length(x@coords)
+    ))
+    for (cr in x@coords) {
+      line <- .coord_print_line(cr)
+      cli::cli_bullets(c("*" = "{line}"))
+    }
+  }
+
   n_lvl_maps <- length(x@level_maps)
   n_col_map <- if (is.null(x@column_name_map)) 0L else length(x@column_name_map)
   cli::cli_h2(sprintf(

@@ -93,10 +93,14 @@
 #'   jitter (see [jitter_coordinates()]) instead of being copula-scrambled into
 #'   implausible locations. A pair is a named vector `c(lat = "lat_col",
 #'   lon = "lon_col")` or a named list that also carries jitter parameters
-#'   (`method`, `min_km`, `max_km`, `sd_km`, `on_land`); pass several pairs as a
-#'   list. Defaults to a donut of 5-20 km on land. A declared pair always
-#'   survives masking, coarsened; the recipe records that it was coarsened and
-#'   [apply_recipe()] retargets to the real coordinates.
+#'   (`by`, `method`, `min_km`, `max_km`, `sd_km`, `on_land`); pass several
+#'   pairs as a list. Defaults to a donut of 5-20 km on land. One displacement
+#'   is drawn per **site** and broadcast to that site's rows: `by` names the
+#'   columns of `df` that identify a site, and is omitted when rows sharing an
+#'   identical input coordinate already identify one. A declared pair always
+#'   survives masking, coarsened; the recipe records the parameters and the site
+#'   grouping it was coarsened under, and [apply_recipe()] retargets to the real
+#'   coordinates.
 #' @param .shared_maps Internal. A named list of pre-computed
 #'   `original -> alias` level maps for cross-table linked columns, set
 #'   by [mask_set()]. Not for direct use.
@@ -248,11 +252,17 @@ mask <- function(df,
   # and before any column-name aliasing. The jitter is irreversible by design;
   # the recipe records that it happened (in `warnings`), and `apply_recipe()`
   # retargets a pipeline to the real coordinates.
+  coord_reports <- list()
   if (length(coord_specs)) {
-    synth <- .apply_coord_jitter(synth, coord_specs, seed)
+    coord_out <- .apply_coord_jitter(synth, coord_specs, seed, original = df)
+    synth <- coord_out$df
+    coord_reports <- coord_out$reports
     warnings_acc <- c(warnings_acc, sprintf(
       "coordinates coarsened in place by an on-land jitter: %s.",
       paste(coord_cols, collapse = ", ")
+    ))
+    warnings_acc <- c(warnings_acc, vapply(
+      coord_reports, .coord_report_line, character(1)
     ))
   }
 
@@ -337,6 +347,7 @@ mask <- function(df,
     storage_classes   = storage_classes,
     factor_meta       = factor_meta,
     cleaning          = cleaning_rec,
+    coords            = coord_reports,
     warnings          = warnings_acc,
     integrity_fp      = digest::digest(is.na(df), algo = "sha256")
   )

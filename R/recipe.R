@@ -42,6 +42,10 @@ masque_recipe <- S7::new_class(
       class   = S7::new_union(S7::class_list, NULL),
       default = NULL
     ),
+    # One entry per declared coordinate pair: the jitter parameters, the site
+    # grouping it was masked under, and how many sites the grouping produced.
+    # Empty for a recipe written before 0.10.0, which had no such record.
+    coords = S7::new_property(class = S7::class_list, default = list()),
     warnings = S7::new_property(
       class = S7::class_character, default = character()
     ),
