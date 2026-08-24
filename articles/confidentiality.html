@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">masque</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.2</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.10.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -532,12 +532,47 @@ latitude/longitude pairing are preserved.</p>
 <span><span class="co">#&gt; 1    A -34.81596 138.5333</span></span>
 <span><span class="co">#&gt; 2    B -35.16555 142.1346</span></span>
 <span><span class="co">#&gt; 3    C -33.48829 148.1005</span></span></code></pre></div>
+<p><strong>A coordinate belongs to a site, not to a row.</strong> One
+displacement is drawn per site and broadcast to every row of that site,
+so a table holding many rows per physical place – plots within a trial,
+samples within a paddock – comes back with one masked coordinate per
+place, exactly as the source table has one true coordinate per place. By
+default a site is a set of rows sharing an identical input coordinate,
+which needs no user action and cannot alter genuinely point-level data.
+Where a site’s recorded coordinates differ slightly between rows, name
+the site columns and the group is consolidated to its centroid.</p>
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">plots</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
+<span>  trial <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"T1"</span>, <span class="st">"T2"</span><span class="op">)</span>, each <span class="op">=</span> <span class="fl">4</span><span class="op">)</span>,</span>
+<span>  lat   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="op">-</span><span class="fl">34.9</span>, <span class="op">-</span><span class="fl">35.2</span><span class="op">)</span>, each <span class="op">=</span> <span class="fl">4</span><span class="op">)</span>,</span>
+<span>  lon   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">138.6</span>, <span class="fl">142.0</span><span class="op">)</span>, each <span class="op">=</span> <span class="fl">4</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span><span class="va">masked</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/jitter_coordinates.html">jitter_coordinates</a></span><span class="op">(</span><span class="va">plots</span>, <span class="st">"lat"</span>, <span class="st">"lon"</span>, by <span class="op">=</span> <span class="st">"trial"</span>, seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique</a></span><span class="op">(</span><span class="va">masked</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"lat"</span>, <span class="st">"lon"</span><span class="op">)</span><span class="op">]</span><span class="op">)</span><span class="op">)</span>   <span class="co"># one coordinate per trial, not per plot</span></span>
+<span><span class="co">#&gt; [1] 2</span></span></code></pre></div>
+<p>Grouping is a confidentiality control, not only a fidelity one. Donut
+displacement is isotropic, so the mean of many independent draws around
+one true site converges on that site. Displacing a 360-row trial row by
+row leaves its centroid a median 0.58 km from the truth, against the 5
+km floor the donut was asked for. One draw per site removes that
+estimator and leaves the full displacement in place. Choose the unit
+carefully: it is the finest grouping denoting one physical place at one
+time, so for a multi-year trial series it is location by year rather
+than location alone, because trials at one named location in different
+seasons legitimately sit in different paddocks.</p>
+<p>A site that cannot be placed on land within <code>max_tries</code>
+re-draws is set to <code>NA</code> on both axes, with a warning. masque
+does not emit a true coordinate inside a table the caller believes is
+masked.</p>
 <p>Declaring the pair to <code><a href="../reference/mask.html">mask()</a></code> applies the same coarsening
 as part of masking, so the coordinates never pass through the
 copula:</p>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">m</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/mask.html">mask</a></span><span class="op">(</span><span class="va">df</span>, <span class="va">roles</span>, mode <span class="op">=</span> <span class="st">"collaborate"</span>,</span>
-<span>          coords <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>lat <span class="op">=</span> <span class="st">"GPS_S"</span>, lon <span class="op">=</span> <span class="st">"GPS_E"</span><span class="op">)</span><span class="op">)</span>, seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span></code></pre></div>
+<span>          coords <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>lat <span class="op">=</span> <span class="st">"GPS_S"</span>, lon <span class="op">=</span> <span class="st">"GPS_E"</span>, by <span class="op">=</span> <span class="st">"TRIAL"</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>          seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span></code></pre></div>
+<p>The recipe records the grouping each declared pair was masked under,
+so a clone carries the account of its own coordinate structure.</p>
 <p><code><a href="../reference/synthesise_geospatial.html">synthesise_geospatial()</a></code> is the alternative when you
 would rather re-anchor points around fake centroids you supply for each
 region.</p>

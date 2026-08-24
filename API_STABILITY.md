@@ -59,6 +59,19 @@ far:
   now inherit the mode provenance recorded on role plans when `mode` is
   omitted, with an explicit warning for a downgrade. **Behaviour changes
   are listed first in `NEWS.md`.**
+- `0.9.2` — added
+  [`jitter_coordinates()`](https://max578.github.io/masque/reference/jitter_coordinates.md)
+  and the [`mask()`](https://max578.github.io/masque/reference/mask.md)
+  `coords` argument. **No breaking changes.**
+- `0.10.0` — the geomask now draws one displacement per **site** rather
+  than per row, and a site that cannot be placed on land fails closed to
+  `NA` instead of retaining its true coordinate.
+  [`jitter_coordinates()`](https://max578.github.io/masque/reference/jitter_coordinates.md)
+  gains `by` (appended after `lon_col`), and a coordinate spec passed to
+  `mask(coords = )` accepts `by`. `by = FALSE` recovers the pre-0.10.0
+  per-row behaviour, and genuinely point-level input reproduces its
+  0.9.2 output exactly under the same seed. **This is a behaviour change
+  and a confidentiality fix, listed first in `NEWS.md`.**
 
 The policy is “additive-by-intent” rather than “frozen”: pre-1.0
 reserves the right to break an existing signature when a design flaw

@@ -15,7 +15,7 @@ masque_recipe."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">masque</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.2</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.10.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -141,10 +141,14 @@ note is emitted.</p></dd>
 latitude/longitude pairs and each is coarsened in place by an on-land
 jitter (see <code><a href="jitter_coordinates.html">jitter_coordinates()</a></code>) instead of being copula-scrambled into
 implausible locations. A pair is a named vector <code>c(lat = "lat_col", lon = "lon_col")</code> or a named list that also carries jitter parameters
-(<code>method</code>, <code>min_km</code>, <code>max_km</code>, <code>sd_km</code>, <code>on_land</code>); pass several pairs as a
-list. Defaults to a donut of 5-20 km on land. A declared pair always
-survives masking, coarsened; the recipe records that it was coarsened and
-<code><a href="apply_recipe.html">apply_recipe()</a></code> retargets to the real coordinates.</p></dd>
+(<code>by</code>, <code>method</code>, <code>min_km</code>, <code>max_km</code>, <code>sd_km</code>, <code>on_land</code>); pass several
+pairs as a list. Defaults to a donut of 5-20 km on land. One displacement
+is drawn per <strong>site</strong> and broadcast to that site's rows: <code>by</code> names the
+columns of <code>df</code> that identify a site, and is omitted when rows sharing an
+identical input coordinate already identify one. A declared pair always
+survives masking, coarsened; the recipe records the parameters and the site
+grouping it was coarsened under, and <code><a href="apply_recipe.html">apply_recipe()</a></code> retargets to the real
+coordinates.</p></dd>
 
 
 <dt id="arg--shared-maps">.shared_maps<a class="anchor" aria-label="anchor" href="#arg--shared-maps"></a></dt>

@@ -103,10 +103,14 @@ mask(
   [`jitter_coordinates()`](https://max578.github.io/masque/reference/jitter_coordinates.md))
   instead of being copula-scrambled into implausible locations. A pair
   is a named vector `c(lat = "lat_col", lon = "lon_col")` or a named
-  list that also carries jitter parameters (`method`, `min_km`,
+  list that also carries jitter parameters (`by`, `method`, `min_km`,
   `max_km`, `sd_km`, `on_land`); pass several pairs as a list. Defaults
-  to a donut of 5-20 km on land. A declared pair always survives
-  masking, coarsened; the recipe records that it was coarsened and
+  to a donut of 5-20 km on land. One displacement is drawn per **site**
+  and broadcast to that site's rows: `by` names the columns of `df` that
+  identify a site, and is omitted when rows sharing an identical input
+  coordinate already identify one. A declared pair always survives
+  masking, coarsened; the recipe records the parameters and the site
+  grouping it was coarsened under, and
   [`apply_recipe()`](https://max578.github.io/masque/reference/apply_recipe.md)
   retargets to the real coordinates.
 

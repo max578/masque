@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">masque</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.9.2</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.10.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -37,7 +37,34 @@
     </div>
 
     <div class="section level2">
-<h2 class="pkg-version" data-toc-text="0.9.2" id="masque-092-development-version">masque 0.9.2 (development version)<a class="anchor" aria-label="anchor" href="#masque-092-development-version"></a></h2>
+<h2 class="pkg-version" data-toc-text="0.10.0" id="masque-0100">masque 0.10.0<a class="anchor" aria-label="anchor" href="#masque-0100"></a></h2>
+<div class="section level3">
+<h3 id="breaking-changes-0-10-0">Breaking changes<a class="anchor" aria-label="anchor" href="#breaking-changes-0-10-0"></a></h3>
+<ul><li>
+<p><strong>A coordinate belongs to a site, not to a row.</strong> <code><a href="../reference/jitter_coordinates.html">jitter_coordinates()</a></code> and <code>mask(coords = )</code> now draw <strong>one displacement per site</strong> and broadcast it to every row of that site, instead of displacing every row independently. A table holding many rows per physical place – plots within a trial, samples within a paddock, observations within a farm – now comes back with one masked coordinate per place, as its source table has one true coordinate per place.</p>
+<p><strong>Tables masked by 0.9.2 or earlier carry the old per-row structure.</strong> Their coordinate columns assert that observations kilometres apart share a site, and should be treated as invalid for anything spatial until the table is rebuilt under 0.10.0.</p>
+<p>The change closes a confidentiality defect as well as a fidelity one. Donut displacement is isotropic, so the mean of many independent draws around one true site converges on that site: averaging the 360 rows of a single trial recovered the true position to a median 0.58 km, against the 5 km floor the donut was asked for. One draw per site removes that estimator and leaves the full displacement in place.</p>
+</li>
+<li><p><code><a href="../reference/jitter_coordinates.html">jitter_coordinates()</a></code> gains <code>by</code>, which chooses how a site is identified. <code>by = NULL</code> (the default) groups rows sharing an identical input coordinate. A character vector names site columns, for the case where a site’s recorded coordinates differ slightly between rows; such a group is consolidated to its row-weighted centroid and the consolidation is reported by a classed <code>masque_geo_consolidated</code> warning, with <code>masque_geo_wide_group</code> raised when a named group spans more than the displacement radius. <code>by = FALSE</code> restores the pre-0.10.0 per-row draw and warns (<code>masque_geo_ungrouped</code>) if the input carries repeated coordinate pairs. It exists only so a table masked by an earlier version can be reproduced.</p></li>
+<li>
+<p>A site that cannot be placed on land within <code>max_tries</code> re-draws is now set to <code>NA</code> on both axes rather than left unchanged. Leaving it unchanged shipped the <strong>true</strong> coordinate inside a table the caller believed was masked, behind a warning. The <code>masque_geo_unplaced</code> warning is unchanged in class and still names the count.</p>
+<p>Genuinely point-level input – every coordinate pair already distinct – is unaffected by all of the above, and reproduces its 0.9.2 output exactly under the same seed.</p>
+</li>
+<li><p>One displacement per site holds <em>within</em> a table, not across rebuilds. Each rebuild with a fresh seed is an independent draw, so a site kept in several masked versions can be averaged back out: at the 5-20 km default, eight kept rebuilds recover it to 4.5 km, below the floor. Reuse the seed and the displacement is identical, so there is nothing to average. Documented under “Rebuilding, and the displacement budget” in <code><a href="../reference/jitter_coordinates.html">?jitter_coordinates</a></code>.</p></li>
+</ul></div>
+<div class="section level3">
+<h3 id="new-features-0-10-0">New features<a class="anchor" aria-label="anchor" href="#new-features-0-10-0"></a></h3>
+<ul><li><p><code>mask(coords = )</code> accepts <code>by</code> in a coordinate spec, for example <code>coords = list(list(lat = "GPS_S", lon = "GPS_E", by = "TRIAL"))</code>. The grouping is taken from the <strong>original</strong> table, so a site column that is aliased, permuted or dropped in the synthetic still groups correctly.</p></li>
+<li><p>The recipe records what happened to each declared coordinate pair: the jitter parameters, the grouping it was masked under, the number of sites that grouping produced, any consolidated sites, and any site set to <code>NA</code>. It is shown by <code>print(recipe(m))</code> and readable at <code>recipe(m)@coords</code>. Recipes written before 0.10.0 read back with no such record.</p></li>
+</ul></div>
+<div class="section level3">
+<h3 id="bug-fixes-0-10-0">Bug fixes<a class="anchor" aria-label="anchor" href="#bug-fixes-0-10-0"></a></h3>
+<ul><li>
+<code><a href="../reference/mask.html">mask()</a></code> gave every declared coordinate pair the same seed, so two latitude/longitude pairs in one table received identical displacement vectors. Each pair now draws from its own sub-stream, deterministically derived from the <code><a href="../reference/mask.html">mask()</a></code> seed.</li>
+</ul></div>
+</div>
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.9.2" id="masque-092">masque 0.9.2<a class="anchor" aria-label="anchor" href="#masque-092"></a></h2>
 <div class="section level3">
 <h3 id="new-features-0-9-2">New features<a class="anchor" aria-label="anchor" href="#new-features-0-9-2"></a></h3>
 <ul><li>
