@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">masque</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.10.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.11.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -36,6 +36,26 @@
       <small>Source: <a href="https://github.com/max578/masque/blob/main/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.11.0" id="masque-0110">masque 0.11.0<a class="anchor" aria-label="anchor" href="#masque-0110"></a></h2>
+<div class="section level3">
+<h3 id="breaking-changes-0-11-0">Breaking changes<a class="anchor" aria-label="anchor" href="#breaking-changes-0-11-0"></a></h3>
+<ul><li>
+<p><strong>A coordinate in a masked table is masked unless you say otherwise.</strong> <code><a href="../reference/mask.html">mask()</a></code> now <strong>stops</strong> when a column whose name says coordinate (<code>gps</code>, <code>lat</code>, <code>lon</code>, <code>easting</code>, <code>northing</code>, <code>utm</code>, <code>wgs84</code>, …) would be written through with <code>action = "keep"</code>. A position locates the site and often the operator with it, so the burden is on the caller to say what should happen to it, and the default when nothing is said is to refuse rather than to emit.</p>
+<p>Three ways to state otherwise, all unchanged in spelling:</p>
+<ul><li>declare the pair to <code>coords</code>, which coarsens it by the on-land geomask;</li>
+<li>give the column a masking action (<code>drop</code>, the default <code><a href="../reference/propose_roles.html">propose_roles()</a></code> already proposes for a coordinate-named column, or <code>scramble</code>);</li>
+<li>pass the new <code>allow_unmasked_coords = TRUE</code>, having decided the coordinate is not sensitive. It is recorded on the recipe.</li>
+</ul><p>The refusal is the classed condition <code>masque_unmasked_coords</code>.</p>
+</li>
+<li><p>A column detected as a coordinate only by the <strong>shape of its values</strong> – a numeric pair inside plausible latitude and longitude ranges carrying at least four decimal places, which is metre-scale precision no temperature or yield column has – raises the classed warning <code>masque_coords_suspected</code> rather than stopping. Confidence is lower there, and a false positive should not block a legitimate mask. Ordinary numeric covariates do not trip it: whole numbers, low-precision values and unpaired columns are all excluded.</p></li>
+</ul></div>
+<div class="section level3">
+<h3 id="bug-fixes-0-11-0">Bug fixes<a class="anchor" aria-label="anchor" href="#bug-fixes-0-11-0"></a></h3>
+<ul><li><p><code><a href="../reference/audit_mask.html">audit_mask()</a></code> reported a coordinate declared to <code>coords</code> as HIGH leakage with the note “kept as-is - visible to collaborators”. The column had in fact been coarsened in place by the geomask, displaced by the requested radius and shared across its site. It now audits as <strong>medium</strong> in collaborate mode, with the note “coordinate coarsened in place by the geomask”. The stale HIGH also tripped the package-managed write gate, so every caller who used <code>coords</code> had to override it to write.</p></li>
+<li><p>The audit <code><a href="../reference/mask.html">mask()</a></code> runs for itself in collaborate mode was built on a temporary recipe that omitted the coordinate record, so it reached the same wrong conclusion as above even after the record existed.</p></li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.10.0" id="masque-0100">masque 0.10.0<a class="anchor" aria-label="anchor" href="#masque-0100"></a></h2>
 <div class="section level3">

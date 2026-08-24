@@ -15,7 +15,7 @@ masque_recipe."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">masque</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.10.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.11.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -64,6 +64,7 @@ a synthetic clone according to each column's <code>action</code>. Returns a
 <span>  alias_names <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  conditional <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  coords <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  allow_unmasked_coords <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  .shared_maps <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span></code></pre></div>
@@ -149,6 +150,17 @@ identical input coordinate already identify one. A declared pair always
 survives masking, coarsened; the recipe records the parameters and the site
 grouping it was coarsened under, and <code><a href="apply_recipe.html">apply_recipe()</a></code> retargets to the real
 coordinates.</p></dd>
+
+
+<dt id="arg-allow-unmasked-coords">allow_unmasked_coords<a class="anchor" aria-label="anchor" href="#arg-allow-unmasked-coords"></a></dt>
+<dd><p>Single logical. A masked table must not carry
+a real coordinate, so by default <code>mask()</code> <strong>stops</strong> when a column whose
+name says coordinate (<code>gps</code>, <code>lat</code>, <code>lon</code>, <code>easting</code>, ...) would be
+written through unmasked, and warns when a column detected only by the
+shape of its values would be. State otherwise by declaring the pair to
+<code>coords</code> (coarsened), giving the column a masking action (<code>drop</code> or
+<code>scramble</code>), or – having decided the coordinate is not sensitive –
+setting this to <code>TRUE</code>, which is recorded on the recipe.</p></dd>
 
 
 <dt id="arg--shared-maps">.shared_maps<a class="anchor" aria-label="anchor" href="#arg--shared-maps"></a></dt>

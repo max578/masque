@@ -72,6 +72,14 @@ far:
   per-row behaviour, and genuinely point-level input reproduces its
   0.9.2 output exactly under the same seed. **This is a behaviour change
   and a confidentiality fix, listed first in `NEWS.md`.**
+- `0.11.0` — a coordinate column kept unmasked now stops
+  [`mask()`](https://max578.github.io/masque/reference/mask.md) unless
+  the caller states otherwise, via `coords`, a masking action, or the
+  new `allow_unmasked_coords` argument (appended, default `FALSE`).
+  Value-shaped coordinate detection warns rather than stops.
+  [`audit_mask()`](https://max578.github.io/masque/reference/audit_mask.md)
+  no longer classes a geomask-coarsened coordinate as HIGH. **Behaviour
+  change, listed first in `NEWS.md`.**
 
 The policy is “additive-by-intent” rather than “frozen”: pre-1.0
 reserves the right to break an existing signature when a design flaw

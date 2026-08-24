@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">masque</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.10.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.11.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -508,6 +508,18 @@ coordinate (<code>gps</code>, <code>lat</code>/<code>latitude</code>,
 <code>lon</code>/<code>longitude</code>) as <code>pii_suspected</code>
 and proposes <code>drop</code>. Dropping is the safest choice when the
 synthetic does not need locations.</p>
+<p><strong>A coordinate is masked unless you say otherwise.</strong>
+Dropping is one way to say what happens to it; there are three, and
+<code><a href="../reference/mask.html">mask()</a></code> refuses to guess. If a column whose name says
+coordinate would be written through with <code>action = "keep"</code>,
+the call stops. Declare the pair to <code>coords</code> and it is
+coarsened, give the column <code>drop</code> or <code>scramble</code>
+and it is masked, or pass <code>allow_unmasked_coords = TRUE</code>
+having decided the position is not sensitive – which is recorded on the
+recipe, so the decision is visible later. A column that looks like a
+coordinate only by the shape of its values raises a warning instead of
+stopping, because that detection is a guess and a false positive should
+not block a legitimate mask.</p>
 <p>When the synthetic does need plausible coordinates – to exercise a
 spatial pipeline, say – a plain scramble is the wrong tool: the copula
 re-simulates each axis and smears a latitude/longitude pair into a
@@ -576,6 +588,11 @@ so a clone carries the account of its own coordinate structure.</p>
 <p><code><a href="../reference/synthesise_geospatial.html">synthesise_geospatial()</a></code> is the alternative when you
 would rather re-anchor points around fake centroids you supply for each
 region.</p>
+<p>A coordinate declared to <code>coords</code> is retained in the
+synthetic, so <code><a href="../reference/audit_mask.html">audit_mask()</a></code> reports it – retention is worth
+knowing about. It reports it as <em>medium</em>, noting that the column
+was coarsened in place, rather than as the high-leakage passthrough it
+would be had the real values been kept.</p>
 <p><strong>How far to displace.</strong> The right magnitude is not a
 constant. It is calibrated to the density of the entities being
 protected, so that the masked point is spatially k-anonymous – roughly,

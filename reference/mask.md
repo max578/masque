@@ -20,6 +20,7 @@ mask(
   alias_names = FALSE,
   conditional = FALSE,
   coords = NULL,
+  allow_unmasked_coords = FALSE,
   .shared_maps = list(),
   ...
 )
@@ -113,6 +114,17 @@ mask(
   grouping it was coarsened under, and
   [`apply_recipe()`](https://max578.github.io/masque/reference/apply_recipe.md)
   retargets to the real coordinates.
+
+- allow_unmasked_coords:
+
+  Single logical. A masked table must not carry a real coordinate, so by
+  default `mask()` **stops** when a column whose name says coordinate
+  (`gps`, `lat`, `lon`, `easting`, ...) would be written through
+  unmasked, and warns when a column detected only by the shape of its
+  values would be. State otherwise by declaring the pair to `coords`
+  (coarsened), giving the column a masking action (`drop` or
+  `scramble`), or – having decided the coordinate is not sensitive –
+  setting this to `TRUE`, which is recorded on the recipe.
 
 - .shared_maps:
 
