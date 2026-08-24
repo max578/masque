@@ -1,3 +1,47 @@
+# masque 0.11.0
+
+## Breaking changes
+
+* **A coordinate in a masked table is masked unless you say otherwise.**
+  `mask()` now **stops** when a column whose name says coordinate (`gps`,
+  `lat`, `lon`, `easting`, `northing`, `utm`, `wgs84`, ...) would be written
+  through with `action = "keep"`. A position locates the site and often the
+  operator with it, so the burden is on the caller to say what should happen
+  to it, and the default when nothing is said is to refuse rather than to
+  emit.
+
+  Three ways to state otherwise, all unchanged in spelling:
+
+  - declare the pair to `coords`, which coarsens it by the on-land geomask;
+  - give the column a masking action (`drop`, the default `propose_roles()`
+    already proposes for a coordinate-named column, or `scramble`);
+  - pass the new `allow_unmasked_coords = TRUE`, having decided the
+    coordinate is not sensitive. It is recorded on the recipe.
+
+  The refusal is the classed condition `masque_unmasked_coords`.
+
+* A column detected as a coordinate only by the **shape of its values** -- a
+  numeric pair inside plausible latitude and longitude ranges carrying at
+  least four decimal places, which is metre-scale precision no temperature or
+  yield column has -- raises the classed warning `masque_coords_suspected`
+  rather than stopping. Confidence is lower there, and a false positive should
+  not block a legitimate mask. Ordinary numeric covariates do not trip it:
+  whole numbers, low-precision values and unpaired columns are all excluded.
+
+## Bug fixes
+
+* `audit_mask()` reported a coordinate declared to `coords` as HIGH leakage
+  with the note "kept as-is - visible to collaborators". The column had in
+  fact been coarsened in place by the geomask, displaced by the requested
+  radius and shared across its site. It now audits as **medium** in
+  collaborate mode, with the note "coordinate coarsened in place by the
+  geomask". The stale HIGH also tripped the package-managed write gate, so
+  every caller who used `coords` had to override it to write.
+
+* The audit `mask()` runs for itself in collaborate mode was built on a
+  temporary recipe that omitted the coordinate record, so it reached the same
+  wrong conclusion as above even after the record existed.
+
 # masque 0.10.0
 
 ## Breaking changes

@@ -2,7 +2,7 @@
 
 ## Submission notes
 
-`masque` 0.10.0 is the first submission to CRAN. It carries the full
+`masque` 0.11.0 is the first submission to CRAN. It carries the full
 end-to-end surface built over the 0.2-0.7 development line - a two-axis
 roles model (a `role` and an `action` per column), a hygiene layer,
 opt-in column-name aliasing, a multi-table set layer with
@@ -19,8 +19,12 @@ mode-provenance guard, and on-land geographic-coordinate coarsening
 rather than per row, because per-row displacement of a repeated
 coordinate both fabricates within-site variation and lets the true site
 be recovered by averaging, and a point that cannot be placed on land now
-fails closed to `NA` rather than retaining its true value. See `NEWS.md`
-for the full change list.
+fails closed to `NA` rather than retaining its true value. Version
+0.11.0 completes that posture on the caller's side: a coordinate column
+written through unmasked now stops the call unless the caller states
+otherwise, and a coordinate coarsened by the geomask is no longer
+mis-audited as a high-leakage passthrough. See `NEWS.md` for the full
+change list.
 
 ## R CMD check results
 

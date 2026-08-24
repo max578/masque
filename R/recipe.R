@@ -46,6 +46,11 @@ masque_recipe <- S7::new_class(
     # grouping it was masked under, and how many sites the grouping produced.
     # Empty for a recipe written before 0.10.0, which had no such record.
     coords = S7::new_property(class = S7::class_list, default = list()),
+    # TRUE when the caller deliberately wrote a real coordinate through
+    # unmasked. FALSE, and absent on a recipe written before 0.11.0.
+    allow_unmasked_coords = S7::new_property(
+      class = S7::class_logical, default = FALSE
+    ),
     warnings = S7::new_property(
       class = S7::class_character, default = character()
     ),

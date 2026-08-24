@@ -13,6 +13,7 @@ mask(
   alias_names = FALSE,
   conditional = FALSE,
   coords = NULL,
+  allow_unmasked_coords = FALSE,
   .shared_maps = list(),
   ...
 )
@@ -79,6 +80,15 @@ identical input coordinate already identify one. A declared pair always
 survives masking, coarsened; the recipe records the parameters and the site
 grouping it was coarsened under, and \code{\link[=apply_recipe]{apply_recipe()}} retargets to the real
 coordinates.}
+
+\item{allow_unmasked_coords}{Single logical. A masked table must not carry
+a real coordinate, so by default \code{mask()} \strong{stops} when a column whose
+name says coordinate (\code{gps}, \code{lat}, \code{lon}, \code{easting}, ...) would be
+written through unmasked, and warns when a column detected only by the
+shape of its values would be. State otherwise by declaring the pair to
+\code{coords} (coarsened), giving the column a masking action (\code{drop} or
+\code{scramble}), or -- having decided the coordinate is not sensitive --
+setting this to \code{TRUE}, which is recorded on the recipe.}
 
 \item{.shared_maps}{Internal. A named list of pre-computed
 \code{original -> alias} level maps for cross-table linked columns, set

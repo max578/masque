@@ -8,6 +8,11 @@
 .compute_audit <- function(df, synth, rec, mode) {
   cols <- rec@roles$col
   has_action <- "action" %in% names(rec@roles)
+  # Columns coarsened in place by the geomask. Retained, but displaced and
+  # site-grouped, so they are not "kept as-is".
+  coarsened <- unlist(lapply(rec@coords, function(cr) c(cr$lat, cr$lon)),
+                      use.names = FALSE)
+  if (is.null(coarsened)) coarsened <- character()
   na_pattern_uniq <- .global_na_pattern_uniqueness(df)
 
   rows <- lapply(cols, function(col) {
@@ -57,16 +62,18 @@
 
     na_pct <- 100 * sum(is.na(x)) / n
 
+    is_coarsened <- col %in% coarsened
     leakage_class <- .classify_leakage(
       role = role, kind = kind, action = action, pii = pii, mode = mode,
       in_synth = in_synth, alias_status = alias_status,
       exact_match_pct = exact_match_pct, freq_min = freq_min,
-      n_unique_levels = n_unique_levels, n_rows = n
+      n_unique_levels = n_unique_levels, n_rows = n,
+      coarsened = is_coarsened
     )
 
     notes <- .audit_notes(
       role, kind, action, pii, alias_status, mode, leakage_class,
-      exact_match_pct, freq_min
+      exact_match_pct, freq_min, coarsened = is_coarsened
     )
 
     data.frame(
@@ -102,9 +109,17 @@
 
 .classify_leakage <- function(
   role, kind, action, pii, mode, in_synth, alias_status,
-  exact_match_pct, freq_min, n_unique_levels, n_rows
+  exact_match_pct, freq_min, n_unique_levels, n_rows, coarsened = FALSE
 ) {
   collab <- identical(mode, "collaborate")
+
+  # 0. A coordinate coarsened in place by the geomask is retained but not
+  #    disclosed: the value is displaced by the requested radius and shared
+  #    across the site. Retention is still worth reporting, so this is
+  #    MEDIUM rather than the HIGH that bare PII retention earns.
+  if (isTRUE(coarsened) && in_synth) {
+    return(if (collab) "medium" else "low")
+  }
 
   # 1. PII pattern retained in the synthetic: HIGH across the trust
   #    boundary (even aliased - retention itself is the finding),
@@ -150,17 +165,21 @@
 }
 
 .audit_notes <- function(role, kind, action, pii, alias_status, mode,
-                         leakage_class, exact_match_pct, freq_min) {
+                         leakage_class, exact_match_pct, freq_min,
+                         coarsened = FALSE) {
   collab <- identical(mode, "collaborate")
   bits <- character()
-  if (pii) bits <- c(bits, "PII-pattern column name")
+  if (pii && !isTRUE(coarsened)) bits <- c(bits, "PII-pattern column name")
+  if (isTRUE(coarsened)) {
+    bits <- c(bits, "coordinate coarsened in place by the geomask")
+  }
   if (alias_status == "aliased") bits <- c(bits, "levels aliased")
   if (alias_status == "permuted") {
     bits <- c(bits, "labels permuted; vocabulary visible")
   }
   if (alias_status == "dropped") bits <- c(bits, "dropped")
   if (alias_status == "passthrough" && !is.na(action) && action == "keep" &&
-    role != "design" && collab) {
+    role != "design" && collab && !isTRUE(coarsened)) {
     bits <- c(bits, "kept as-is - visible to collaborators")
   }
   if (alias_status == "passthrough" &&

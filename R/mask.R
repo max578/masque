@@ -101,6 +101,14 @@
 #'   survives masking, coarsened; the recipe records the parameters and the site
 #'   grouping it was coarsened under, and [apply_recipe()] retargets to the real
 #'   coordinates.
+#' @param allow_unmasked_coords Single logical. A masked table must not carry
+#'   a real coordinate, so by default `mask()` **stops** when a column whose
+#'   name says coordinate (`gps`, `lat`, `lon`, `easting`, ...) would be
+#'   written through unmasked, and warns when a column detected only by the
+#'   shape of its values would be. State otherwise by declaring the pair to
+#'   `coords` (coarsened), giving the column a masking action (`drop` or
+#'   `scramble`), or -- having decided the coordinate is not sensitive --
+#'   setting this to `TRUE`, which is recorded on the recipe.
 #' @param .shared_maps Internal. A named list of pre-computed
 #'   `original -> alias` level maps for cross-table linked columns, set
 #'   by [mask_set()]. Not for direct use.
@@ -128,6 +136,7 @@ mask <- function(df,
                  alias_names = FALSE,
                  conditional = FALSE,
                  coords = NULL,
+                 allow_unmasked_coords = FALSE,
                  .shared_maps = list(),
                  ...) {
   # A misspelled argument silently swallowed by `...` looks like success;
@@ -211,6 +220,15 @@ mask <- function(df,
     roles$action[roles$col %in% coord_cols] <- "keep"
   }
 
+  # A masked table must not carry a real coordinate unless the caller has
+  # said so. Runs after `coords` is resolved, so a declared pair -- which is
+  # coarsened below -- is not caught by its own declaration.
+  if (!is.logical(allow_unmasked_coords) ||
+    length(allow_unmasked_coords) != 1L) {
+    cli::cli_abort("`allow_unmasked_coords` must be a single logical.")
+  }
+  .guard_unmasked_coords(df, roles, coord_cols, allow_unmasked_coords)
+
   opts <- mode_defaults(mode)
 
   # Conditional clone bookkeeping: resolve the conditioning columns once
@@ -293,6 +311,7 @@ mask <- function(df,
       level_maps      = level_maps,
       storage_classes = list(),
       factor_meta     = list(),
+      coords          = coord_reports,
       warnings        = character(),
       integrity_fp    = ""
     )
@@ -348,6 +367,7 @@ mask <- function(df,
     factor_meta       = factor_meta,
     cleaning          = cleaning_rec,
     coords            = coord_reports,
+    allow_unmasked_coords = isTRUE(allow_unmasked_coords),
     warnings          = warnings_acc,
     integrity_fp      = digest::digest(is.na(df), algo = "sha256")
   )

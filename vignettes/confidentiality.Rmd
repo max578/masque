@@ -319,6 +319,17 @@ column whose name looks like a coordinate (`gps`, `lat`/`latitude`,
 `lon`/`longitude`) as `pii_suspected` and proposes `drop`. Dropping is the
 safest choice when the synthetic does not need locations.
 
+**A coordinate is masked unless you say otherwise.** Dropping is one way to
+say what happens to it; there are three, and `mask()` refuses to guess. If a
+column whose name says coordinate would be written through with
+`action = "keep"`, the call stops. Declare the pair to `coords` and it is
+coarsened, give the column `drop` or `scramble` and it is masked, or pass
+`allow_unmasked_coords = TRUE` having decided the position is not sensitive --
+which is recorded on the recipe, so the decision is visible later. A column
+that looks like a coordinate only by the shape of its values raises a warning
+instead of stopping, because that detection is a guess and a false positive
+should not block a legitimate mask.
+
 When the synthetic does need plausible coordinates -- to exercise a spatial
 pipeline, say -- a plain scramble is the wrong tool: the copula re-simulates
 each axis and smears a latitude/longitude pair into a continuous cloud that can
@@ -388,6 +399,11 @@ carries the account of its own coordinate structure.
 
 `synthesise_geospatial()` is the alternative when you would rather re-anchor
 points around fake centroids you supply for each region.
+
+A coordinate declared to `coords` is retained in the synthetic, so `audit_mask()`
+reports it -- retention is worth knowing about. It reports it as *medium*, noting
+that the column was coarsened in place, rather than as the high-leakage
+passthrough it would be had the real values been kept.
 
 **How far to displace.** The right magnitude is not a constant. It is calibrated
 to the density of the entities being protected, so that the masked point is
