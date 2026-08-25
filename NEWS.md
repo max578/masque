@@ -1,5 +1,12 @@
 # masque (development version)
 
+* Every orchestra-facing decline in `mask()`, `mask_set()`, `unmask()` and
+  `audit_mask()` that was a bare, unclassed `cli::cli_abort()` now carries a
+  class ending in `_refusal` plus the shared `orchestra_refusal` marker, so
+  a caller (or a conductoR node) can catch the decline programmatically
+  instead of string-matching the message. `masque_unmasked_coords` and
+  `masque_conditional_degraded` were already classed and are unchanged.
+
 * `mask_set()` draws the alias map for linked (join-key) columns from the
   seeded permutation like every other alias map; it was lexicographic and
   seed-invariant, so a public vocabulary could invert it (M-01).

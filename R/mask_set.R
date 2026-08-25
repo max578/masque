@@ -87,7 +87,7 @@ mask_set <- function(input,
         cli::cli_abort(c(
           "Supplied `roles` were prepared for multiple modes.",
           "i" = "Set `mode` explicitly after reconciling the role tables."
-        ))
+        ), class = c("masque_mode_conflict_refusal", "orchestra_refusal"))
       }
       if (length(role_modes) == 1L) {
         mode <- role_modes[[1L]]
@@ -182,11 +182,17 @@ mask_set <- function(input,
 
 .check_roles_list <- function(roles, tables) {
   if (!is.list(roles) || is.null(names(roles))) {
-    cli::cli_abort("`roles` must be a named list of roles tables.")
+    cli::cli_abort(
+      "`roles` must be a named list of roles tables.",
+      class = c("masque_bad_roles_refusal", "orchestra_refusal")
+    )
   }
   missing <- setdiff(names(tables), names(roles))
   if (length(missing)) {
-    cli::cli_abort("`roles` is missing table(s): {.val {missing}}.")
+    cli::cli_abort(
+      "`roles` is missing table(s): {.val {missing}}.",
+      class = c("masque_roles_missing_table_refusal", "orchestra_refusal")
+    )
   }
 }
 
@@ -213,7 +219,7 @@ mask_set <- function(input,
       cli::cli_abort(c(
         "`links` names column(s) not shared across tables: {.val {unknown}}.",
         i = "Columns appearing in >= 2 tables: {.val {multi}}."
-      ))
+      ), class = c("masque_bad_links_refusal", "orchestra_refusal"))
     }
     multi <- links
   }

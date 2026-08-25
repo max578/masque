@@ -164,7 +164,7 @@ mask <- function(df,
     cli::cli_abort(c(
       paste0("Unused ", label, unused, " passed to `mask()`."),
       i = "Check for misspelled argument names."
-    ))
+    ), class = c("masque_unused_arg_refusal", "orchestra_refusal"))
   }
 
   # Belt-and-braces RNG hygiene: any RNG perturbation inside mask() is
@@ -173,11 +173,17 @@ mask <- function(df,
   withr::local_preserve_seed()
 
   if (!is.data.frame(df)) {
-    cli::cli_abort("`df` must be a data frame; got {.cls {class(df)[1]}}.")
+    cli::cli_abort(
+      "`df` must be a data frame; got {.cls {class(df)[1]}}.",
+      class = c("masque_bad_df_refusal", "orchestra_refusal")
+    )
   }
   if (!is.logical(conditional) || length(conditional) != 1L ||
     is.na(conditional)) {
-    cli::cli_abort("`conditional` must be a single `TRUE` or `FALSE`.")
+    cli::cli_abort(
+      "`conditional` must be a single `TRUE` or `FALSE`.",
+      class = c("masque_bad_conditional_refusal", "orchestra_refusal")
+    )
   }
   if (missing(mode)) {
     roles_mode <- attr(roles, "mode")
@@ -236,7 +242,10 @@ mask <- function(df,
   # coarsened below -- is not caught by its own declaration.
   if (!is.logical(allow_unmasked_coords) ||
     length(allow_unmasked_coords) != 1L) {
-    cli::cli_abort("`allow_unmasked_coords` must be a single logical.")
+    cli::cli_abort(
+      "`allow_unmasked_coords` must be a single logical.",
+      class = c("masque_bad_allow_unmasked_coords_refusal", "orchestra_refusal")
+    )
   }
   .guard_unmasked_coords(df, roles, coord_cols, allow_unmasked_coords)
 
@@ -440,14 +449,15 @@ mask <- function(df,
           "Dropped columns cannot be aliased. Available: ",
           "{.val {cols}}."
         )
-      ))
+      ), class = c("masque_bad_alias_names_refusal", "orchestra_refusal"))
     }
     alias_names
   } else if (isFALSE(alias_names)) {
     return(NULL)
   } else {
     cli::cli_abort(
-      "`alias_names` must be a single logical or a character vector."
+      "`alias_names` must be a single logical or a character vector.",
+      class = c("masque_bad_alias_names_refusal", "orchestra_refusal")
     )
   }
   if (!length(target)) {

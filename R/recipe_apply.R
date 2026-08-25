@@ -159,7 +159,8 @@ unmask <- function(x, rec, column = NULL) {
   }
   if (!S7::S7_inherits(rec, masque_recipe)) {
     cli::cli_abort(
-      "`rec` must be a {.cls masque_recipe} object; got {.cls {class(rec)[1]}}."
+      "`rec` must be a {.cls masque_recipe} object; got {.cls {class(rec)[1]}}.",
+      class = c("masque_bad_recipe_refusal", "orchestra_refusal")
     )
   }
 
@@ -208,7 +209,7 @@ unmask <- function(x, rec, column = NULL) {
         cli::cli_abort(c(
           "Column {.field {column}} is not known to the recipe.",
           i = "Available columns: {.val {rec@roles$col}}."
-        ))
+        ), class = c("masque_unknown_column_refusal", "orchestra_refusal"))
       }
       return(x)
     }
@@ -224,7 +225,7 @@ unmask <- function(x, rec, column = NULL) {
           "Numeric / logical / Date-like vectors are passed through ",
           "unchanged."
         )
-      ))
+      ), class = c("masque_no_level_map_refusal", "orchestra_refusal"))
     }
     if (is.null(column)) {
       if (length(rec@level_maps) == 1L) {
@@ -236,14 +237,14 @@ unmask <- function(x, rec, column = NULL) {
             "please supply {.arg column}."
           ),
           i = "Available: {.val {names(rec@level_maps)}}."
-        ))
+        ), class = c("masque_ambiguous_column_refusal", "orchestra_refusal"))
       }
     }
     if (!(column %in% names(rec@level_maps))) {
       cli::cli_abort(c(
         "Column {.field {column}} has no level map in this recipe.",
         i = "Available: {.val {names(rec@level_maps)}}."
-      ))
+      ), class = c("masque_column_no_level_map_refusal", "orchestra_refusal"))
     }
     return(.apply_level_map_inverse(
       x, rec@level_maps[[column]],
@@ -253,7 +254,8 @@ unmask <- function(x, rec, column = NULL) {
   }
 
   cli::cli_abort(
-    "`x` must be a data frame or atomic vector; got {.cls {class(x)[1]}}."
+    "`x` must be a data frame or atomic vector; got {.cls {class(x)[1]}}.",
+    class = c("masque_bad_x_refusal", "orchestra_refusal")
   )
 }
 
