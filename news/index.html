@@ -38,6 +38,25 @@
 
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="development version" id="masque-development-version">masque (development version)<a class="anchor" aria-label="anchor" href="#masque-development-version"></a></h2>
+<ul><li>
+<code><a href="../reference/mask_set.html">mask_set()</a></code> draws the alias map for linked (join-key) columns from the seeded permutation like every other alias map; it was lexicographic and seed-invariant, so a public vocabulary could invert it (M-01).</li>
+</ul><div class="section level3">
+<h3 id="bug-fixes-development-version">Bug fixes<a class="anchor" aria-label="anchor" href="#bug-fixes-development-version"></a></h3>
+<ul><li>
+<p><strong>The collaborate-mode alias map is no longer the sort order.</strong> Aliases (<code>trt_001</code>, <code>&lt;col&gt;_L001</code>, …) were assigned to levels in lexicographic order and were invariant to <code>seed</code>, so a holder of the synthetic who could guess the vocabulary – a public variety roster, an N-rate ladder, a site list – inverted the map by sorting a candidate list, with no recipe. The assignment is now drawn from a uniform random permutation taken from the seeded stream <code><a href="../reference/mask.html">mask()</a></code> already uses. The map is recorded on the recipe exactly as before, so <code><a href="../reference/apply_recipe.html">apply_recipe()</a></code> / <code><a href="../reference/unmask.html">unmask()</a></code> still invert it, and a fixed <code>seed</code> still reproduces it. Two notes for callers: the seed is now confidential material (published beside the synthetic it re-opens the inversion), and level <em>frequencies</em> are unchanged by design and remain matchable. The <code>confidentiality</code> vignette states both.</p>
+<p>This changes the integer codes of an aliased factor, which are now a relabelling rather than a copy of the original codes. Code that compared <code><a href="https://rdrr.io/r/base/integer.html" class="external-link">as.integer()</a></code> of an aliased column against the source should compare the partition instead (recode both by order of first appearance); the incidence structure itself is unchanged.</p>
+</li>
+<li><p><strong><code>conditional = TRUE</code> no longer collapses silently to the pooled copula.</strong> The conditioning stratum was treatment crossed with <em>every</em> retained design column, so on a replicated factorial (six N rates by three varieties by four replicates) every cell held one row, all of them fell below the minimum stratum size, and the whole numeric block was pooled – the marginal clone under a conditional label, with the recipe still asserting <code>conditional = TRUE</code>. <code><a href="../reference/mask.html">mask()</a></code> now walks a coarsening ladder: design columns are dropped, the finest first, until the cells reach the minimum; treatment columns are never dropped. On a replicated 2 x 3 factorial with a planted effect this restores the treatment sum-of-squares fraction from 0.004 to inside the stratified-bootstrap envelope of the source’s 0.859.</p></li>
+<li><p>Degradation of a conditional clone now raises a <strong>classed</strong> <code>masque_conditional_degraded</code> warning – when the ladder gives up a column, when rows remain in the pooled fallback, and when there is nothing to condition on at all – so a caller can catch it instead of matching on message text.</p></li>
+</ul></div>
+<div class="section level3">
+<h3 id="features-development-version">Features<a class="anchor" aria-label="anchor" href="#features-development-version"></a></h3>
+<ul><li>The recipe records <code>conditioning_used</code> (the rung of the ladder actually reached) and <code>fallback_frac</code> (the share of rows pooled at that rung) alongside the existing <code>conditioning_cols</code> (what was requested). <code><a href="https://rdrr.io/r/base/print.html" class="external-link">print()</a></code> on a recipe names the coarsening and the pooled share.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="testing-development-version">Testing<a class="anchor" aria-label="anchor" href="#testing-development-version"></a></h3>
+<ul><li>Graded <code>min_stratum</code> at 2, 5 and 20 on a layout whose cells straddle all three, and <code>synthesise_numeric_local(regularise = FALSE)</code> on a rank-deficient block – both previously unexercised at any value.</li>
+</ul></div>
 <div class="section level3">
 <h3 id="documentation-development-version">Documentation<a class="anchor" aria-label="anchor" href="#documentation-development-version"></a></h3>
 <ul><li>The <code>getting_started</code> vignette’s environment-overview figure now has a <code>fig.cap</code>/<code>fig.alt</code> and two sentences reading the panel (what even bar heights and a single connected component mean, and what a broken MET would look like there).</li>

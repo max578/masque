@@ -63,12 +63,12 @@ head(synth)
 #> # A tibble: 6 × 7
 #>    plot rep   block gen     yield   row   col
 #>   <int> <fct> <fct> <fct>   <dbl> <int> <int>
-#> 1     1 R1    B1    trt_011  4.15     1     1
-#> 2     2 R1    B1    trt_004  4.25     2     1
-#> 3     3 R1    B1    trt_005  4.58     3     1
-#> 4     4 R1    B1    trt_022  5.30     4     1
-#> 5     5 R1    B2    trt_021  3.99     5     1
-#> 6     6 R1    B2    trt_010  5.26     6     1
+#> 1     1 R1    B1    trt_006  4.15     1     1
+#> 2     2 R1    B1    trt_001  4.25     2     1
+#> 3     3 R1    B1    trt_019  4.58     3     1
+#> 4     4 R1    B1    trt_023  5.30     4     1
+#> 5     5 R1    B2    trt_002  3.99     5     1
+#> 6     6 R1    B2    trt_014  5.26     6     1
 ```
 
 ## The masking plan: roles and actions

@@ -92,9 +92,20 @@ mask(
   the real treatment effect within sampling tolerance - the data-side
   analogue of preserving a conditional mean embedding rather than a
   pooled marginal. The conditioning columns (treatment plus retained
-  design) are recorded on the recipe. With no treatment or design column
-  to condition on, the path degrades cleanly to the global copula and a
-  note is emitted.
+  design) are recorded on the recipe.
+
+  The stratum is chosen by a **coarsening ladder**. Treatment crossed
+  with every retained design column is the finest rung, but on a
+  replicated factorial that rung holds one row per cell, which is too
+  thin to synthesise. The ladder then drops design columns, finest
+  first, until the cells hold at least five rows; treatment columns are
+  never dropped. Whatever remains below that floor is pooled into a
+  global fallback. The rung reached is recorded on the recipe as
+  `conditioning_used`, the pooled share as `fallback_frac`, and any
+  coarsening or residual pooling raises a classed
+  `masque_conditional_degraded` warning – including the case where no
+  treatment or design column survives at all, in which case the clone is
+  the pooled copula.
 
 - coords:
 

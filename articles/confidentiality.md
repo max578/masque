@@ -17,7 +17,7 @@ with the custodian.
 | Synthetic only | Original raw values | Aliased treatment and categorical vocabularies, jittered numerics, dropped ids and free text, and optionally the column names |
 | Synthetic + recipe | Original raw values | Nothing – the combination is as sensitive as the original |
 | Recipe only | Original raw values | Nothing useful – the recipe is meaningless without the synthetic |
-| Synthetic + external side information | Identity of treatments / sites | Only the label vocabulary. A preserved design footprint or a `keep` column is recognisable, and side information wins |
+| Synthetic + external side information | Identity of treatments / sites | The label vocabulary and the order it was in. A preserved design footprint or a `keep` column is recognisable, level frequencies are unchanged, and side information wins |
 
 What `masque` does: it preserves enough structure for pipelines to run
 unchanged, exposes the privacy-versus-fidelity trade-off through two
@@ -86,7 +86,7 @@ roles <- propose_roles(df, detect = FALSE)
 roles <- set_role(roles, "site", role = "design", action = "alias")
 s <- synthetic(mask(df, roles, mode = "collaborate", seed = 1))
 unique(as.character(s$site))   # real site names gone
-#> [1] "site_D002" "site_D001" "site_D003"
+#> [1] "site_D002" "site_D003" "site_D001"
 table(s$site)                  # ... but the three-site structure intact
 #> 
 #> site_D001 site_D002 site_D003 
@@ -95,6 +95,36 @@ table(s$site)                  # ... but the three-site structure intact
 
 This knowingly breaks byte-identity, so it is never a default – you ask
 for it explicitly.
+
+**What an alias does and does not hide.** The alias vocabulary is fixed
+and sorted (`trt_001`, `trt_002`, …), but which level receives which
+alias is drawn from a random permutation, so for a six-level column
+there are 720 equally likely maps. This matters because the vocabularies
+in field research are routinely public: a variety roster, an N-rate
+ladder, a site list. Under an order-preserving map, sorting a candidate
+list would reconstruct the whole assignment from the synthetic alone. It
+no longer does, and the same draw governs the join keys a
+[`mask_set()`](https://max578.github.io/masque/reference/mask_set.md)
+shares across tables.
+
+Two limits go with that, and they are yours to manage:
+
+- **The seed is confidential material.** The permutation comes from the
+  seeded stream, so `mask(seed = 1)` reproduces the same map, exactly as
+  it reproduces the same synthetic values. Publishing the seed beside
+  the synthetic re-opens the inversion for anyone who can also reproduce
+  the draw. Keep the seed with the recipe, or use `seed = NULL` where
+  reproducibility is not required and take a fresh map each call.
+- **Frequencies are not hidden.** Aliasing is a bijection on labels: the
+  count of each level is unchanged by design, because the design
+  footprint is what makes the clone useful. A vocabulary whose level
+  counts are known and distinct is still matchable one level at a time.
+  [`audit_mask()`](https://max578.github.io/masque/reference/audit_mask.md)
+  reports those counts so the exposure is visible rather than implicit.
+
+An alias therefore raises the cost of re-identification; it is not a
+cryptographic commitment, and none of it is a differential-privacy
+guarantee.
 
 ## The conditional clone: preserving the treatment effect
 
@@ -195,17 +225,49 @@ recipe(cond)@conditional
 #> [1] TRUE
 recipe(cond)@conditioning_cols
 #> [1] "genotype"
+recipe(cond)@conditioning_used
+#> [1] "genotype"
+recipe(cond)@fallback_frac
+#> [1] 0
+```
+
+Read the last two. `conditioning_cols` is what the call asked for;
+`conditioning_used` is the stratum the clone actually got, and
+`fallback_frac` is the share of rows that did not get a stratum at all.
+
+They differ because a conditional clone needs enough rows per stratum to
+fit a stratum-local copula, and the finest stratum available is rarely
+the one that has them. Treatment crossed with every retained design
+column on a replicated factorial – six N rates by three varieties by
+four replicates – is seventy-two cells of one row. Rather than pool that
+wholesale, [`mask()`](https://max578.github.io/masque/reference/mask.md)
+walks a **coarsening ladder**: it drops design columns, the finest
+first, until the cells hold at least five rows. Treatment columns are
+never dropped, because the assignment is the thing the conditional clone
+exists to preserve. Whatever is still too thin at the bottom rung is
+pooled into a global fallback, as before.
+
+Any coarsening, and any residual pooling, raises a classed
+`masque_conditional_degraded` warning naming the columns given up and
+the pooled share, and both facts are written onto the recipe. Catch the
+class if a pipeline should stop when its clone is less conditional than
+it asked for:
+
+``` r
+
+withCallingHandlers(
+  mask(trial, roles, seed = 1, conditional = TRUE),
+  masque_conditional_degraded = function(w) stop(conditionMessage(w))
+)
 ```
 
 Conditional cloning composes with both modes and with
 [`mask_set()`](https://max578.github.io/masque/reference/mask_set.md)
-(each table is stratified by its own treatment and design columns). It
-needs enough rows per stratum to fit a stratum-local copula. Cells
-smaller than a handful of rows are pooled into a graceful global
-fallback rather than failing, and with no treatment or design column to
-condition on the path degrades cleanly to the global copula with a note.
-Reach for it whenever the development pipeline estimates an effect, not
-just a distribution.
+(each table is stratified by its own treatment and design columns). With
+no treatment or design column to condition on at all, the path degrades
+to the global copula and raises the same classed warning. Reach for it
+whenever the development pipeline estimates an effect, not just a
+distribution.
 
 ## What the copula carries: monotone, not non-monotone, association
 
