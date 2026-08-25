@@ -278,8 +278,8 @@ sensitive values, flag it yourself and the audit honours the flag:</p>
 <tr class="odd">
 <td><code>local</code></td>
 <td>Owner develops on a realistic surrogate locally</td>
-<td>Vocabulary preserved, with numeric values that may match
-observed</td>
+<td>Vocabulary preserved, with numeric values that may match the
+observed values</td>
 </tr>
 <tr class="even">
 <td><code>collaborate</code></td>
@@ -400,7 +400,22 @@ remains an explicit argument because <code>design_summary</code> does
 not duplicate source data.</p>
 <div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">ds_explicit</span>, df <span class="op">=</span> <span class="va">met</span><span class="op">)</span></span></code></pre></div>
-<p><img src="getting_started_files/figure-html/met-plot-1.png" class="r-plt" alt="" width="672"></p>
+<div class="figure">
+<img src="getting_started_files/figure-html/met-plot-1.png" class="r-plt" alt="Bar chart titled Multi-environment coverage: 2 environments. Two equal-height bars, one for E1 and one for E2, each at three treatments observed. Subtitle reads connected connectivity, 1 component, inner design RCBD." width="672"><p class="caption">
+One bar per environment (E1, E2), height the number of genotypes
+observed there; the subtitle reports connectivity status, the count of
+connected components, and the recovered within-environment design (here,
+RCBD).
+</p>
+</div>
+<p>Both bars sit at three treatments observed, because every genotype in
+this toy trial appears in both environments – that even coverage,
+together with the subtitle’s “connected connectivity, 1 component”, is
+what makes the two environments comparable at all. A design where a
+genotype fails to show up in one bar, or where the subtitle reports more
+than one component, marks environments that cannot be pooled into a
+single connected analysis without first checking whether the missing
+coverage is real or an artefact of how the table was assembled.</p>
 <p>High-confidence environment recommendations feed the masking plan.
 Local mode keeps environment values byte-identical. Collaborate mode
 aliases categorical environment labels in place, preserving row

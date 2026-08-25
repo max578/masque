@@ -59,7 +59,7 @@
 </blockquote>
 <p><code>masque</code> turns a confidential tabular dataset – a single table, a folder of files, or a multi-sheet workbook – into a structurally faithful synthetic clone whose experimental design, NA pattern, and global covariance are close enough to the original that pipeline code runs unchanged. It returns a private <code>recipe</code> that round-trips: a pipeline written against the synthetic re-targets to the original data with no source changes.</p>
 <p>The custodian holds the data and the recipe; the analyst gets only the synthetic. <code>masque</code> bridges that gap.</p>
-<p>Version 0.9.1 (development). Pre-CRAN; tagged releases on the GitHub repository.</p>
+<p>Pre-CRAN; tagged releases on the GitHub repository. See <code>NEWS.md</code> for the current version and full changelog. If you are masking a table with a coordinate column and last read this from a pre-0.10.0 tag: 0.10.0 changed the per-site coordinate displacement, and 0.11.0 made an unmasked coordinate column an error by default (<code>masque_unmasked_coords</code>) – re-read <code><a href="articles/confidentiality.html">vignette("confidentiality")</a></code> before re-running a coordinate-bearing mask.</p>
 <hr>
 <div class="section level2">
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
@@ -134,13 +134,13 @@
 </h2>
 <ul>
 <li>
-<code><a href="articles/getting_started.html">vignette("getting_started")</a></code> — the one-call path on a public fixture.</li>
+<code><a href="articles/getting_started.html">vignette("getting_started")</a></code> – the one-call path on a public fixture.</li>
 <li>
-<code><a href="articles/confidentiality.html">vignette("confidentiality")</a></code> — full threat model, the two modes, and the depth controls.</li>
+<code><a href="articles/confidentiality.html">vignette("confidentiality")</a></code> – full threat model, the two modes, and the depth controls.</li>
 <li>
-<code><a href="articles/recipe_anatomy.html">vignette("recipe_anatomy")</a></code> — what a recipe holds and how the round-trip re-targets a pipeline onto the original.</li>
+<code><a href="articles/recipe_anatomy.html">vignette("recipe_anatomy")</a></code> – what a recipe holds and how the round-trip re-targets a pipeline onto the original.</li>
 </ul>
-<p>Reference index: <a href="https://max578.github.io/masque/" class="uri">https://max578.github.io/masque/</a> — full per-function docs + rendered vignettes, deployed from the <code>gh-pages</code> branch.</p>
+<p>Reference index: <a href="https://max578.github.io/masque/" class="uri">https://max578.github.io/masque/</a> – full per-function docs + rendered vignettes, deployed from the <code>gh-pages</code> branch.</p>
 <p>API stability policy: see <code>API_STABILITY.md</code>.</p>
 <hr>
 </div>

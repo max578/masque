@@ -41,7 +41,7 @@ m <- mask(iris, r, seed = 1)
 recipe(m)
 #> 
 #> ── masque_recipe ───────────────────────────────────────────────────────────────
-#> • Created: 2026-08-24 08:29:08 UTC
+#> • Created: 2026-08-25 09:44:12 UTC
 #> • Mode: local
 #> • Clone fidelity: marginal / structural (global copula)
 #> • Seed: present (redacted)

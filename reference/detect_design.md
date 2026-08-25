@@ -44,7 +44,7 @@ detect_design(
 - tie_delta:
 
   Score difference within which two rules are treated as tied. Default
-  `0.02` — tight enough that 0.05-point score differences (the typical
+  `0.02` – tight enough that 0.05-point score differences (the typical
   name-bonus / coverage gap) are decisive.
 
 - env:

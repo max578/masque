@@ -37,6 +37,22 @@
     </div>
 
     <div class="section level2">
+<h2 class="pkg-version" data-toc-text="development version" id="masque-development-version">masque (development version)<a class="anchor" aria-label="anchor" href="#masque-development-version"></a></h2>
+<div class="section level3">
+<h3 id="documentation-development-version">Documentation<a class="anchor" aria-label="anchor" href="#documentation-development-version"></a></h3>
+<ul><li>The <code>getting_started</code> vignette’s environment-overview figure now has a <code>fig.cap</code>/<code>fig.alt</code> and two sentences reading the panel (what even bar heights and a single connected component mean, and what a broken MET would look like there).</li>
+<li>Fixed a dangling comparative in the <code>getting_started</code> mode-comparison table (“numeric values that may match observed” -&gt; “… the observed values”).</li>
+<li>
+<code>recipe_anatomy</code> documents the recipe’s <code>coords</code> and <code>allow_unmasked_coords</code> properties (added in 0.10.0/0.11.0) and shows <code>recipe(m)@coords</code> on a worked coordinate example.</li>
+<li>
+<code>README.md</code> no longer hard-codes a stale version number; points to <code>NEWS.md</code> instead and flags the 0.10.0/0.11.0 coordinate-handling changes for readers coming from an older tag.</li>
+<li>
+<code><a href="../reference/apply_recipe.html">apply_recipe()</a></code>’s roxygen no longer describes the pre-0.6.0 <code>ignore</code> role; step 2 now states the current, mode-independent <code>action == "drop"</code> rule.</li>
+<li>Added <code>@examples</code> to <code><a href="../reference/read_recipe.html">read_recipe()</a></code> and <code><a href="../reference/unmask.html">unmask()</a></code>, the package’s last two exports without a runnable example.</li>
+<li>Converted seventeen stray Unicode em dashes and one Unicode <code>±</code> in internal and roxygen comments to the package’s ASCII <code>--</code>/<code>+/-</code> convention (no rendered-text or behaviour change).</li>
+</ul></div>
+</div>
+    <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.11.0" id="masque-0110">masque 0.11.0<a class="anchor" aria-label="anchor" href="#masque-0110"></a></h2>
 <div class="section level3">
 <h3 id="breaking-changes-0-11-0">Breaking changes<a class="anchor" aria-label="anchor" href="#breaking-changes-0-11-0"></a></h3>

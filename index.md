@@ -13,8 +13,14 @@ source changes.
 The custodian holds the data and the recipe; the analyst gets only the
 synthetic. `masque` bridges that gap.
 
-Version 0.9.1 (development). Pre-CRAN; tagged releases on the GitHub
-repository.
+Pre-CRAN; tagged releases on the GitHub repository. See `NEWS.md` for
+the current version and full changelog. If you are masking a table with
+a coordinate column and last read this from a pre-0.10.0 tag: 0.10.0
+changed the per-site coordinate displacement, and 0.11.0 made an
+unmasked coordinate column an error by default
+(`masque_unmasked_coords`) – re-read
+[`vignette("confidentiality")`](https://max578.github.io/masque/articles/confidentiality.md)
+before re-running a coordinate-bearing mask.
 
 ------------------------------------------------------------------------
 
@@ -148,14 +154,14 @@ boundary.
 ## Documentation
 
 - [`vignette("getting_started")`](https://max578.github.io/masque/articles/getting_started.md)
-  — the one-call path on a public fixture.
+  – the one-call path on a public fixture.
 - [`vignette("confidentiality")`](https://max578.github.io/masque/articles/confidentiality.md)
-  — full threat model, the two modes, and the depth controls.
+  – full threat model, the two modes, and the depth controls.
 - [`vignette("recipe_anatomy")`](https://max578.github.io/masque/articles/recipe_anatomy.md)
-  — what a recipe holds and how the round-trip re-targets a pipeline
+  – what a recipe holds and how the round-trip re-targets a pipeline
   onto the original.
 
-Reference index: <https://max578.github.io/masque/> — full per-function
+Reference index: <https://max578.github.io/masque/> – full per-function
 docs + rendered vignettes, deployed from the `gh-pages` branch.
 
 API stability policy: see `API_STABILITY.md`.

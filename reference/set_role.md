@@ -4,7 +4,7 @@ Ergonomic editor for the two-axis roles table returned by
 [`propose_roles()`](https://max578.github.io/masque/reference/propose_roles.md).
 Setting a `role` without an explicit `action` re-resolves the action to
 the default for the new role, the column's kind, and the mode the table
-was proposed for — so a re-roled column never silently carries a stale
+was proposed for – so a re-roled column never silently carries a stale
 action from its previous role.
 
 ## Usage

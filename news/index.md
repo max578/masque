@@ -1,5 +1,33 @@
 # Changelog
 
+## masque (development version)
+
+### Documentation
+
+- The `getting_started` vignette’s environment-overview figure now has a
+  `fig.cap`/`fig.alt` and two sentences reading the panel (what even bar
+  heights and a single connected component mean, and what a broken MET
+  would look like there).
+- Fixed a dangling comparative in the `getting_started` mode-comparison
+  table (“numeric values that may match observed” -\> “… the observed
+  values”).
+- `recipe_anatomy` documents the recipe’s `coords` and
+  `allow_unmasked_coords` properties (added in 0.10.0/0.11.0) and shows
+  `recipe(m)@coords` on a worked coordinate example.
+- `README.md` no longer hard-codes a stale version number; points to
+  `NEWS.md` instead and flags the 0.10.0/0.11.0 coordinate-handling
+  changes for readers coming from an older tag.
+- [`apply_recipe()`](https://max578.github.io/masque/reference/apply_recipe.md)’s
+  roxygen no longer describes the pre-0.6.0 `ignore` role; step 2 now
+  states the current, mode-independent `action == "drop"` rule.
+- Added `@examples` to
+  [`read_recipe()`](https://max578.github.io/masque/reference/read_recipe.md)
+  and [`unmask()`](https://max578.github.io/masque/reference/unmask.md),
+  the package’s last two exports without a runnable example.
+- Converted seventeen stray Unicode em dashes and one Unicode `±` in
+  internal and roxygen comments to the package’s ASCII `--`/`+/-`
+  convention (no rendered-text or behaviour change).
+
 ## masque 0.11.0
 
 ### Breaking changes

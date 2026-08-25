@@ -4,7 +4,7 @@ Replaces the latitude / longitude values in a masqued data frame with
 coordinates anchored at user-supplied centroids and clustered to
 preserve the original's site-count-per-anchor structure. The function
 never reads the real coordinates beyond counting how many distinct sites
-the original holds per anchor level — so it leaks the
+the original holds per anchor level – so it leaks the
 replication-per-site distribution and the count of distinct sites,
 nothing more.
 
@@ -105,7 +105,7 @@ What the function does **not** preserve:
 
 - any spatial autocorrelation in the outcome.
 
-Coordinates that are `NA` in the original remain `NA` in the synthetic —
+Coordinates that are `NA` in the original remain `NA` in the synthetic –
 the NA pattern is preserved cell-by-cell.
 
 ## Examples

@@ -6,7 +6,7 @@ Accepts a data frame or an atomic vector. For an atomic factor /
 character vector with a recipe that holds multiple level maps, `column`
 must name which map to invert. Atomic numeric, integer, logical, and
 `Date` / `POSIXct` vectors are returned unchanged (no inverse map
-applies — these are pass-through under
+applies – these are pass-through under
 [`apply_recipe()`](https://max578.github.io/masque/reference/apply_recipe.md)
 too).
 
@@ -55,3 +55,19 @@ with an informative error rather than silently coercing to `NA`.
 
 [`apply_recipe()`](https://max578.github.io/masque/reference/apply_recipe.md),
 [`mask()`](https://max578.github.io/masque/reference/mask.md).
+
+## Examples
+
+``` r
+r <- propose_roles(iris)
+r$role[r$col == "Species"] <- "treatment"
+m <- mask(iris, r, mode = "collaborate", seed = 1)
+#> Re-resolved default actions for mode "collaborate" (explicit edits always win):
+#> • Species: keep -> alias
+synth <- synthetic(m)
+rec <- recipe(m)
+# round-trip a synthetic-namespace value back to its original label
+head(unmask(synth$Species, rec, column = "Species"))
+#> [1] setosa setosa setosa setosa setosa setosa
+#> Levels: setosa versicolor virginica
+```

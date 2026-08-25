@@ -42,10 +42,11 @@ Operations applied (in order):
     SHA-256 fingerprint stored on the recipe (controlled by
     `check_integrity`).
 
-2.  **Drop** columns that
-    [`mask()`](https://max578.github.io/masque/reference/mask.md)
-    dropped (in `collaborate` mode this is every `ignore` column; in
-    `local` mode no columns are dropped).
+2.  **Drop** every column whose resolved `action` was `"drop"` on the
+    roles table
+    [`mask()`](https://max578.github.io/masque/reference/mask.md) masked
+    with – mode-independent: a column is dropped because its action says
+    so, not because of which mode ran.
 
 3.  **Subset and reorder** to the columns the recipe knows about.
 

@@ -84,8 +84,9 @@ recipe was built.</p></dd>
     <p>Operations applied (in order):</p><ol><li><p><strong>Verify integrity</strong> by comparing the NA mask of <code>original</code> to the
 SHA-256 fingerprint stored on the recipe (controlled by
 <code>check_integrity</code>).</p></li>
-<li><p><strong>Drop</strong> columns that <code><a href="mask.html">mask()</a></code> dropped (in <code>collaborate</code> mode this is
-every <code>ignore</code> column; in <code>local</code> mode no columns are dropped).</p></li>
+<li><p><strong>Drop</strong> every column whose resolved <code>action</code> was <code>"drop"</code> on the
+roles table <code><a href="mask.html">mask()</a></code> masked with – mode-independent: a column is
+dropped because its action says so, not because of which mode ran.</p></li>
 <li><p><strong>Subset and reorder</strong> to the columns the recipe knows about.</p></li>
 <li><p><strong>Re-label factors / characters</strong> for any column with a level map
 held by the recipe (i.e., treatment and categorical covariates in

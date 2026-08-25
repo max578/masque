@@ -36,11 +36,54 @@ A recipe is runtime-minimal by default:
   re-applies the identical tidying.
 - `storage_classes`, `factor_meta` – the original column classes and
   factor metadata, for faithful reconstruction.
+- `coords` – one entry per coordinate pair declared to
+  [`mask()`](https://max578.github.io/masque/reference/mask.md)’s
+  `coords` argument: the jitter method and radius, the site grouping it
+  was masked under, and how many sites the grouping produced. Empty for
+  a recipe written before 0.10.0, which had no such record.
+- `allow_unmasked_coords` – `TRUE` only when the caller deliberately
+  wrote a real coordinate through unmasked. `FALSE`, and absent, on a
+  recipe written before 0.11.0.
 - `integrity_fp` – a SHA-256 of `is.na(original)`: an integrity
   fingerprint, not a privacy guarantee.
 
 It deliberately does not hold the copula covariance, the raw observed
 values, or any file paths or usernames.
+
+A recipe built with `coords` carries its own coordinate account, so an
+audit of the recipe does not need the original data back:
+
+``` r
+
+df_geo <- df
+df_geo$lat <- -34.9 + stats::runif(nrow(df_geo), -0.05, 0.05)
+df_geo$lon <- 138.6 + stats::runif(nrow(df_geo), -0.05, 0.05)
+roles_geo <- propose_roles(df_geo, mode = "collaborate")
+roles_geo <- set_role(roles_geo, "yield", role = "outcome")
+roles_geo <- set_role(roles_geo, c("lat", "lon"), action = "keep")
+
+m_geo <- mask(df_geo, roles_geo, mode = "collaborate", seed = 1,
+              coords = list(list(lat = "lat", lon = "lon")))
+recipe(m_geo)@coords[[1]][c("method", "min_km", "max_km", "n_sites")]
+#> $method
+#> [1] "donut"
+#> 
+#> $min_km
+#> [1] 5
+#> 
+#> $max_km
+#> [1] 20
+#> 
+#> $n_sites
+#> [1] 72
+recipe(m_geo)@allow_unmasked_coords
+#> [1] FALSE
+```
+
+Every row here shared one true coordinate, so `n_sites` above equals the
+row count – the recipe records that the whole table was jittered as one
+group, not each row independently, which is the confidentiality property
+`jitter_coordinates(by = )` is for.
 
 ## Printing is redacted
 
@@ -53,7 +96,7 @@ vocabularies themselves:
 rec
 #> 
 #> ── masque_recipe ───────────────────────────────────────────────────────────────────────────────────
-#> • Created: 2026-08-24 08:29:18 UTC
+#> • Created: 2026-08-25 09:44:23 UTC
 #> • Mode: collaborate
 #> • Clone fidelity: marginal / structural (global copula)
 #> • Seed: present (redacted)

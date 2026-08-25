@@ -230,7 +230,7 @@ The mode sets the safe defaults.
 
 | Mode | Use case | Defaults |
 |----|----|----|
-| `local` | Owner develops on a realistic surrogate locally | Vocabulary preserved, with numeric values that may match observed |
+| `local` | Owner develops on a realistic surrogate locally | Vocabulary preserved, with numeric values that may match the observed values |
 | `collaborate` | Owner shares the synthetic while keeping the recipe private | Treatment and categorical labels aliased, numerics jittered, ids and free text dropped, and the leakage audit run automatically |
 
 Per-column `action` choices override the mode wherever you need them.
@@ -360,7 +360,24 @@ data.
 plot(ds_explicit, df = met)
 ```
 
-![](getting_started_files/figure-html/met-plot-1.png)
+![Bar chart titled Multi-environment coverage: 2 environments. Two
+equal-height bars, one for E1 and one for E2, each at three treatments
+observed. Subtitle reads connected connectivity, 1 component, inner
+design RCBD.](getting_started_files/figure-html/met-plot-1.png)
+
+One bar per environment (E1, E2), height the number of genotypes
+observed there; the subtitle reports connectivity status, the count of
+connected components, and the recovered within-environment design (here,
+RCBD).
+
+Both bars sit at three treatments observed, because every genotype in
+this toy trial appears in both environments – that even coverage,
+together with the subtitle’s “connected connectivity, 1 component”, is
+what makes the two environments comparable at all. A design where a
+genotype fails to show up in one bar, or where the subtitle reports more
+than one component, marks environments that cannot be pooled into a
+single connected analysis without first checking whether the missing
+coverage is real or an artefact of how the table was assembled.
 
 High-confidence environment recommendations feed the masking plan. Local
 mode keeps environment values byte-identical. Collaborate mode aliases
