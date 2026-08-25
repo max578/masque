@@ -1,5 +1,59 @@
 # masque (development version)
 
+## Bug fixes
+
+* **The collaborate-mode alias map is no longer the sort order.** Aliases
+  (`trt_001`, `<col>_L001`, ...) were assigned to levels in lexicographic
+  order and were invariant to `seed`, so a holder of the synthetic who
+  could guess the vocabulary -- a public variety roster, an N-rate ladder,
+  a site list -- inverted the map by sorting a candidate list, with no
+  recipe. The assignment is now drawn from a uniform random permutation
+  taken from the seeded stream `mask()` already uses. The map is recorded
+  on the recipe exactly as before, so `apply_recipe()` / `unmask()` still
+  invert it, and a fixed `seed` still reproduces it. Two notes for
+  callers: the seed is now confidential material (published beside the
+  synthetic it re-opens the inversion), and level *frequencies* are
+  unchanged by design and remain matchable. The `confidentiality`
+  vignette states both.
+
+  This changes the integer codes of an aliased factor, which are now a
+  relabelling rather than a copy of the original codes. Code that compared
+  `as.integer()` of an aliased column against the source should compare the
+  partition instead (recode both by order of first appearance); the
+  incidence structure itself is unchanged.
+
+* **`conditional = TRUE` no longer collapses silently to the pooled
+  copula.** The conditioning stratum was treatment crossed with *every*
+  retained design column, so on a replicated factorial (six N rates by
+  three varieties by four replicates) every cell held one row, all of them
+  fell below the minimum stratum size, and the whole numeric block was
+  pooled -- the marginal clone under a conditional label, with the recipe
+  still asserting `conditional = TRUE`. `mask()` now walks a coarsening
+  ladder: design columns are dropped, the finest first, until the cells
+  reach the minimum; treatment columns are never dropped. On a replicated
+  2 x 3 factorial with a planted effect this restores the treatment
+  sum-of-squares fraction from 0.004 to inside the stratified-bootstrap
+  envelope of the source's 0.859.
+
+* Degradation of a conditional clone now raises a **classed**
+  `masque_conditional_degraded` warning -- when the ladder gives up a
+  column, when rows remain in the pooled fallback, and when there is
+  nothing to condition on at all -- so a caller can catch it instead of
+  matching on message text.
+
+## Features
+
+* The recipe records `conditioning_used` (the rung of the ladder actually
+  reached) and `fallback_frac` (the share of rows pooled at that rung)
+  alongside the existing `conditioning_cols` (what was requested).
+  `print()` on a recipe names the coarsening and the pooled share.
+
+## Testing
+
+* Graded `min_stratum` at 2, 5 and 20 on a layout whose cells straddle all
+  three, and `synthesise_numeric_local(regularise = FALSE)` on a
+  rank-deficient block -- both previously unexercised at any value.
+
 ## Documentation
 
 * The `getting_started` vignette's environment-overview figure now has a
