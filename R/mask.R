@@ -85,9 +85,20 @@
 #'   effect within sampling tolerance - the data-side analogue of
 #'   preserving a conditional mean embedding rather than a pooled
 #'   marginal. The conditioning columns (treatment plus retained design)
-#'   are recorded on the recipe. With no treatment or design column to
-#'   condition on, the path degrades cleanly to the global copula and a
-#'   note is emitted.
+#'   are recorded on the recipe.
+#'
+#'   The stratum is chosen by a **coarsening ladder**. Treatment crossed
+#'   with every retained design column is the finest rung, but on a
+#'   replicated factorial that rung holds one row per cell, which is too
+#'   thin to synthesise. The ladder then drops design columns, finest
+#'   first, until the cells hold at least five rows; treatment columns are
+#'   never dropped. Whatever remains below that floor is pooled into a
+#'   global fallback. The rung reached is recorded on the recipe as
+#'   `conditioning_used`, the pooled share as `fallback_frac`, and any
+#'   coarsening or residual pooling raises a classed
+#'   `masque_conditional_degraded` warning -- including the case where no
+#'   treatment or design column survives at all, in which case the clone is
+#'   the pooled copula.
 #' @param coords Optional geographic-coordinate declaration. Supply one or more
 #'   latitude/longitude pairs and each is coarsened in place by an on-land
 #'   jitter (see [jitter_coordinates()]) instead of being copula-scrambled into
@@ -245,7 +256,11 @@ mask <- function(df,
       "conditional = TRUE but no treatment or design column survives to ",
       "condition on; numeric synthesis falls back to the global copula."
     )
-    cli::cli_warn(msg)
+    # Classed, like every other degradation in the package, so a caller
+    # (or an orchestration node) can catch the loss of conditional
+    # fidelity instead of matching on the message text. The ladder's own
+    # degradation below carries the same class.
+    warning(warningCondition(msg, class = "masque_conditional_degraded"))
     warnings_acc <- c(warnings_acc, msg)
   }
 
@@ -256,6 +271,33 @@ mask <- function(df,
   synth <- result$synth
   level_maps <- result$level_maps
   warnings_acc <- c(warnings_acc, result$warnings)
+
+  # Conditional clone: report what the conditioning ladder actually
+  # reached. A dropped rung or a residual pooled fraction means the clone
+  # is less conditional than the call asked for, and that has to be said
+  # out loud -- the recipe would otherwise assert `conditional = TRUE`
+  # over a pooled copula.
+  cond_report <- result$conditional
+  conditioning_used <- if (is.null(cond_report)) {
+    conditioning_cols
+  } else {
+    cond_report$used
+  }
+  fallback_frac <- if (is.null(cond_report)) {
+    if (isTRUE(conditional)) 0 else NA_real_
+  } else {
+    cond_report$fallback_frac
+  }
+  if (!is.null(cond_report)) {
+    deg_msg <- .conditional_degrade_message(cond_report)
+    if (!is.null(deg_msg)) {
+      warning(warningCondition(
+        deg_msg,
+        class = "masque_conditional_degraded"
+      ))
+      warnings_acc <- c(warnings_acc, deg_msg)
+    }
+  }
 
   # NA-mask preservation cell-by-cell (only over columns retained)
   retained <- intersect(names(df), names(synth))
@@ -361,6 +403,8 @@ mask <- function(df,
     roles             = .strip_roles_provenance(as.data.frame(roles)),
     conditional       = conditional,
     conditioning_cols = conditioning_cols,
+    conditioning_used = conditioning_used,
+    fallback_frac     = fallback_frac,
     column_name_map   = column_name_map,
     level_maps        = level_maps,
     storage_classes   = storage_classes,
@@ -416,6 +460,46 @@ mask <- function(df,
   as.list(stats::setNames(aliases, target))
 }
 
+# Internal: the advisory for a conditional clone that did not get the
+# stratum it asked for. Returns NULL when the finest conditioning set was
+# used and no row fell into the pooled fallback -- the only case in which
+# `conditional = TRUE` means exactly what it says.
+.conditional_degrade_message <- function(report) {
+  dropped <- report$dropped
+  frac <- report$fallback_frac
+  if (!length(dropped) && (!is.finite(frac) || frac <= 0)) {
+    return(NULL)
+  }
+  parts <- character()
+  if (length(dropped)) {
+    parts <- c(parts, sprintf(
+      paste0(
+        "conditional = TRUE: cells of the finest conditioning stratum held ",
+        "fewer than %d rows, so the ladder coarsened it by dropping %s. ",
+        "Conditioning on: %s."
+      ),
+      report$min_stratum,
+      paste(dropped, collapse = ", "),
+      if (length(report$used)) {
+        paste(report$used, collapse = " x ")
+      } else {
+        "nothing (pooled copula)"
+      }
+    ))
+  }
+  if (is.finite(frac) && frac > 0) {
+    parts <- c(parts, sprintf(
+      paste0(
+        "%.1f%% of rows still sit in strata below %d rows and are pooled ",
+        "into the global fallback; their conditional fidelity degrades ",
+        "toward the marginal clone."
+      ),
+      100 * frac, report$min_stratum
+    ))
+  }
+  paste(parts, collapse = " ")
+}
+
 # Internal: orchestrate the per-action synthesis with the RNG state
 # already set. The action column is the authority; mode only modulates
 # the numeric-jitter layer (via opts) and downstream audit behaviour.
@@ -454,12 +538,20 @@ mask <- function(df,
   # column is present, so the path degrades cleanly to the global copula.
   num_idx <- which(action == "scramble" & kind %in% .numeric_kinds() &
     !is_shared)
+  conditional_report <- NULL
   if (length(num_idx) >= 1L) {
     x_num <- df[, num_idx, drop = FALSE]
     if (isTRUE(conditional)) {
-      cond_cols <- .conditioning_cols(roles)
-      groups <- .conditioning_groups(df, cond_cols)
-      x_num_new <- synthesise_numeric_conditional(x_num, groups)
+      conditional_report <- .conditioning_ladder(
+        df,
+        cond_cols    = .conditioning_cols(roles),
+        protect_cols = roles$col[role == "treatment" & action != "drop"],
+        min_stratum  = .MIN_STRATUM
+      )
+      x_num_new <- synthesise_numeric_conditional(
+        x_num, conditional_report$groups,
+        min_stratum = .MIN_STRATUM
+      )
     } else {
       x_num_new <- synthesise_numeric_local(x_num)
     }
@@ -561,8 +653,20 @@ mask <- function(df,
     )
   }
 
-  list(synth = synth, level_maps = level_maps, warnings = warnings)
+  list(
+    synth       = synth,
+    level_maps  = level_maps,
+    warnings    = warnings,
+    conditional = conditional_report
+  )
 }
+
+# Minimum rows a stratum needs before the conditional clone will fit a
+# stratum-local copula in it. Four rows cannot support an empirical
+# marginal, let alone a joint one; the ladder in
+# .conditioning_ladder() coarsens the conditioning set rather than
+# accepting cells below this floor.
+.MIN_STRATUM <- 5L
 
 # Internal: relabel a vector through an explicit `original -> alias` map,
 # preserving factor / character / logical type. Used for cross-table

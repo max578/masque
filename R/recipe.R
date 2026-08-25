@@ -29,6 +29,20 @@ masque_recipe <- S7::new_class(
     conditioning_cols = S7::new_property(
       class = S7::class_character, default = character()
     ),
+    # The rung of the conditioning ladder actually used. Equal to
+    # `conditioning_cols` when the finest stratum was large enough;
+    # shorter when the ladder had to coarsen. Absent on a recipe written
+    # before 0.11.1.
+    conditioning_used = S7::new_property(
+      class = S7::class_character, default = character()
+    ),
+    # Fraction of rows pooled into the global fallback stratum at that
+    # rung. 0 means every row was conditioned on its own stratum; 1 means
+    # the conditional clone is the marginal clone. NA when the clone was
+    # not conditional.
+    fallback_frac = S7::new_property(
+      class = S7::class_double, default = NA_real_
+    ),
     column_name_map = S7::new_property(
       class   = S7::new_union(S7::class_list, NULL),
       default = NULL

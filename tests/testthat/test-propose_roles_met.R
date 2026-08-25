@@ -1,3 +1,15 @@
+# Aliased columns are compared by the partition they induce, not by their
+# integer codes. Since the M-01 fix the alias assignment is a random
+# permutation, so `as.integer()` of an aliased factor is a relabelling of
+# the original codes -- preserving the code order would itself hand back
+# the level ordering the aliasing is meant to hide. Recoding both sides by
+# order of first appearance tests the invariant that actually matters: the
+# same rows are grouped together, in the same row order.
+.partition_code <- function(x) {
+  chr <- as.character(x)
+  as.integer(factor(chr, levels = unique(chr)))
+}
+
 # MET role/action safety contract.
 
 test_that("site-like county is promoted without scrambling allocation", {
@@ -32,7 +44,7 @@ test_that("categorical environment aliases in collaborate mode", {
   out <- synthetic(masked)
 
   expect_false(identical(levels(out$env), levels(d$env)))
-  expect_identical(as.integer(out$env), as.integer(d$env))
+  expect_identical(.partition_code(out$env), .partition_code(d$env))
   expect_identical(dim(table(out$env, out$gen)), dim(table(d$env, d$gen)))
 })
 
@@ -144,9 +156,15 @@ test_that("composite MET structure and recipe round-trip hold in both modes", {
     masked <- suppressWarnings(mask(d, roles, mode = mode, seed = 103L))
     out <- synthetic(masked)
 
-    expect_identical(as.integer(out$site), as.integer(d$site), info = mode)
+    expect_identical(
+      .partition_code(out$site), .partition_code(d$site),
+      info = mode
+    )
     expect_identical(out$year, d$year, info = mode)
-    expect_identical(as.integer(out$gen), as.integer(d$gen), info = mode)
+    expect_identical(
+      .partition_code(out$gen), .partition_code(d$gen),
+      info = mode
+    )
     expect_identical(
       unname(table(
         interaction(out$site, out$year, drop = TRUE), out$gen
