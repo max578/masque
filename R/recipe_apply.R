@@ -10,8 +10,9 @@
 #' 1. **Verify integrity** by comparing the NA mask of `original` to the
 #'    SHA-256 fingerprint stored on the recipe (controlled by
 #'    `check_integrity`).
-#' 2. **Drop** columns that `mask()` dropped (in `collaborate` mode this is
-#'    every `ignore` column; in `local` mode no columns are dropped).
+#' 2. **Drop** every column whose resolved `action` was `"drop"` on the
+#'    roles table `mask()` masked with -- mode-independent: a column is
+#'    dropped because its action says so, not because of which mode ran.
 #' 3. **Subset and reorder** to the columns the recipe knows about.
 #' 4. **Re-label factors / characters** for any column with a level map
 #'    held by the recipe (i.e., treatment and categorical covariates in
@@ -114,7 +115,7 @@ apply_recipe <- function(original, rec, check_integrity = TRUE) {
 #' For an atomic factor / character vector with a recipe that holds
 #' multiple level maps, `column` must name which map to invert. Atomic
 #' numeric, integer, logical, and `Date` / `POSIXct` vectors are
-#' returned unchanged (no inverse map applies — these are pass-through
+#' returned unchanged (no inverse map applies -- these are pass-through
 #' under [apply_recipe()] too).
 #'
 #' The most common pattern is round-tripping pipeline predictions:
@@ -140,6 +141,15 @@ apply_recipe <- function(original, rec, check_integrity = TRUE) {
 #'   known columns.
 #'
 #' @return An object of the same type as `x`, in the original namespace.
+#'
+#' @examples
+#' r <- propose_roles(iris)
+#' r$role[r$col == "Species"] <- "treatment"
+#' m <- mask(iris, r, mode = "collaborate", seed = 1)
+#' synth <- synthetic(m)
+#' rec <- recipe(m)
+#' # round-trip a synthetic-namespace value back to its original label
+#' head(unmask(synth$Species, rec, column = "Species"))
 #'
 #' @seealso [apply_recipe()], [mask()].
 #' @export

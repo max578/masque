@@ -28,7 +28,7 @@ menu. Default \code{FALSE}.}
 Below this, \code{class_label} is \code{"none"}. Default \code{0.5}.}
 
 \item{tie_delta}{Score difference within which two rules are treated
-as tied. Default \code{0.02} — tight enough that 0.05-point score
+as tied. Default \code{0.02} -- tight enough that 0.05-point score
 differences (the typical name-bonus / coverage gap) are decisive.}
 
 \item{env}{Environment specification. \code{NULL} performs conservative automatic

@@ -28,7 +28,7 @@ The edited roles table.
 Ergonomic editor for the two-axis roles table returned by
 \code{\link[=propose_roles]{propose_roles()}}. Setting a \code{role} without an explicit \code{action}
 re-resolves the action to the default for the new role, the column's
-kind, and the mode the table was proposed for — so a re-roled column
+kind, and the mode the table was proposed for -- so a re-roled column
 never silently carries a stale action from its previous role.
 }
 \details{

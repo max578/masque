@@ -18,6 +18,16 @@ contains a \code{masque_recipe} and informs (does not error) if the recipe
 was written by a different package version than the one currently
 installed.
 }
+\examples{
+r <- propose_roles(iris)
+r$role[r$col == "Sepal.Length"] <- "outcome"
+m <- mask(iris, r, mode = "collaborate", seed = 1)
+tmp <- tempfile(fileext = ".rds")
+save_recipe(recipe(m), tmp)
+rec2 <- read_recipe(tmp)
+rec2
+
+}
 \seealso{
 \code{\link[=save_recipe]{save_recipe()}}, \code{\link[=recipe]{recipe()}}.
 }

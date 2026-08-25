@@ -43,7 +43,7 @@
 #' @param threshold Minimum top-rule score for a class to be reported.
 #'   Below this, `class_label` is `"none"`. Default `0.5`.
 #' @param tie_delta Score difference within which two rules are treated
-#'   as tied. Default `0.02` — tight enough that 0.05-point score
+#'   as tied. Default `0.02` -- tight enough that 0.05-point score
 #'   differences (the typical name-bonus / coverage gap) are decisive.
 #' @param env Environment specification. `NULL` performs conservative automatic
 #'   resolution and leaves ambiguous or weak evidence unresolved. `FALSE`
@@ -334,7 +334,7 @@ detect_design <- function(df,
   if (is.null(a) || (is.atomic(a) && length(a) == 0L)) b else a
 }
 
-# S7 design_summary class — returned by detect_design().
+# S7 design_summary class -- returned by detect_design().
 # Internal constructor; users get instances via detect_design() and
 # interact via slot access (e.g., ds@class_label). Following the
 # masque_recipe pattern: no Rd is generated and the class is not

@@ -14,16 +14,16 @@
 #
 # @return Named list with at minimum:
 #   * `n_rows`, `cols`, `kinds`, `cardinality`
-#   * `factors`   character — factor-like cols (factor / character / integer /
+#   * `factors`   character -- factor-like cols (factor / character / integer /
 #                 logical with 2 <= cardinality <= ceiling(sqrt(n)))
-#   * `numerics`  character — numeric / integer cols that are NOT factor-like
+#   * `numerics`  character -- numeric / integer cols that are NOT factor-like
 #                 (probable outcomes / numeric covariates)
 #   * `spatial`   list(row, col, n_row, n_col) or NULL
-#   * `trt_named` character — factor-like cols whose names match the
+#   * `trt_named` character -- factor-like cols whose names match the
 #                 treatment regex from `propose_roles()`
-#   * `block_named` character — factor-like cols whose names match a
+#   * `block_named` character -- factor-like cols whose names match a
 #                 design / block regex
-#   * `trt_user`  character — columns the user has already roled as treatment
+#   * `trt_user`  character -- columns the user has already roled as treatment
 .propose_candidates <- function(df, roles = NULL) {
   n <- nrow(df)
   cols <- names(df)
@@ -41,7 +41,7 @@
   #     numeric     -> cardinality 2..sqrt(n) (low-card integers are
   #                   plausible labels / dose levels; high-card integers
   #                   are measurements)
-  #   * character   -> cardinality 2..n/2 (allow more — text labels like
+  #   * character   -> cardinality 2..n/2 (allow more -- text labels like
   #                   variety names commonly exceed sqrt(n))
   half_n <- max(2L, floor(n / 2L))
   small_card_cap <- max(2L, ceiling(sqrt(max(n, 1L))))
@@ -87,7 +87,7 @@
   )]
   trt_named <- intersect(trt_named, factors)
 
-  # Reuse propose_roles()'s DESIGN_PATTERN — covers rep, block, row, col,
+  # Reuse propose_roles()'s DESIGN_PATTERN -- covers rep, block, row, col,
   # range, plot, site, env, trial, year, season.
   block_named <- cols[vapply(cols, matches_pattern, logical(1L),
     pat = DESIGN_PATTERN

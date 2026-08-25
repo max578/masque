@@ -32,8 +32,9 @@ Operations applied (in order):
 \item \strong{Verify integrity} by comparing the NA mask of \code{original} to the
 SHA-256 fingerprint stored on the recipe (controlled by
 \code{check_integrity}).
-\item \strong{Drop} columns that \code{mask()} dropped (in \code{collaborate} mode this is
-every \code{ignore} column; in \code{local} mode no columns are dropped).
+\item \strong{Drop} every column whose resolved \code{action} was \code{"drop"} on the
+roles table \code{mask()} masked with -- mode-independent: a column is
+dropped because its action says so, not because of which mode ran.
 \item \strong{Subset and reorder} to the columns the recipe knows about.
 \item \strong{Re-label factors / characters} for any column with a level map
 held by the recipe (i.e., treatment and categorical covariates in

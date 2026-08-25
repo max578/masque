@@ -64,6 +64,15 @@ save_recipe <- function(rec, path, include_simulator = FALSE) {
 #'
 #' @return A `masque_recipe` object.
 #'
+#' @examples
+#' r <- propose_roles(iris)
+#' r$role[r$col == "Sepal.Length"] <- "outcome"
+#' m <- mask(iris, r, mode = "collaborate", seed = 1)
+#' tmp <- tempfile(fileext = ".rds")
+#' save_recipe(recipe(m), tmp)
+#' rec2 <- read_recipe(tmp)
+#' rec2
+#'
 #' @seealso [save_recipe()], [recipe()].
 #' @export
 read_recipe <- function(path) {

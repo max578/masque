@@ -26,7 +26,7 @@ Inverse of \code{\link[=apply_recipe]{apply_recipe()}}. Accepts a data frame or 
 For an atomic factor / character vector with a recipe that holds
 multiple level maps, \code{column} must name which map to invert. Atomic
 numeric, integer, logical, and \code{Date} / \code{POSIXct} vectors are
-returned unchanged (no inverse map applies — these are pass-through
+returned unchanged (no inverse map applies -- these are pass-through
 under \code{\link[=apply_recipe]{apply_recipe()}} too).
 }
 \details{
@@ -42,6 +42,16 @@ preds_orig          <- unmask(preds_synth, recipe(m))    # inverse
 Unknown levels (synthetic aliases not in the recipe's map) fail
 closed with an informative error rather than silently coercing to
 \code{NA}.
+}
+\examples{
+r <- propose_roles(iris)
+r$role[r$col == "Species"] <- "treatment"
+m <- mask(iris, r, mode = "collaborate", seed = 1)
+synth <- synthetic(m)
+rec <- recipe(m)
+# round-trip a synthetic-namespace value back to its original label
+head(unmask(synth$Species, rec, column = "Species"))
+
 }
 \seealso{
 \code{\link[=apply_recipe]{apply_recipe()}}, \code{\link[=mask]{mask()}}.
