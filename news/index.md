@@ -2,6 +2,19 @@
 
 ## masque (development version)
 
+- Every orchestra-facing decline in
+  [`mask()`](https://max578.github.io/masque/reference/mask.md),
+  [`mask_set()`](https://max578.github.io/masque/reference/mask_set.md),
+  [`unmask()`](https://max578.github.io/masque/reference/unmask.md) and
+  [`audit_mask()`](https://max578.github.io/masque/reference/audit_mask.md)
+  that was a bare, unclassed
+  [`cli::cli_abort()`](https://cli.r-lib.org/reference/cli_abort.html)
+  now carries a class ending in `_refusal` plus the shared
+  `orchestra_refusal` marker, so a caller (or a conductoR node) can
+  catch the decline programmatically instead of string-matching the
+  message. `masque_unmasked_coords` and `masque_conditional_degraded`
+  were already classed and are unchanged.
+
 - [`mask_set()`](https://max578.github.io/masque/reference/mask_set.md)
   draws the alias map for linked (join-key) columns from the seeded
   permutation like every other alias map; it was lexicographic and

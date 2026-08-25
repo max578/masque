@@ -38,8 +38,8 @@
 
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="development version" id="masque-development-version">masque (development version)<a class="anchor" aria-label="anchor" href="#masque-development-version"></a></h2>
-<ul><li>
-<code><a href="../reference/mask_set.html">mask_set()</a></code> draws the alias map for linked (join-key) columns from the seeded permutation like every other alias map; it was lexicographic and seed-invariant, so a public vocabulary could invert it (M-01).</li>
+<ul><li><p>Every orchestra-facing decline in <code><a href="../reference/mask.html">mask()</a></code>, <code><a href="../reference/mask_set.html">mask_set()</a></code>, <code><a href="../reference/unmask.html">unmask()</a></code> and <code><a href="../reference/audit_mask.html">audit_mask()</a></code> that was a bare, unclassed <code><a href="https://cli.r-lib.org/reference/cli_abort.html" class="external-link">cli::cli_abort()</a></code> now carries a class ending in <code>_refusal</code> plus the shared <code>orchestra_refusal</code> marker, so a caller (or a conductoR node) can catch the decline programmatically instead of string-matching the message. <code>masque_unmasked_coords</code> and <code>masque_conditional_degraded</code> were already classed and are unchanged.</p></li>
+<li><p><code><a href="../reference/mask_set.html">mask_set()</a></code> draws the alias map for linked (join-key) columns from the seeded permutation like every other alias map; it was lexicographic and seed-invariant, so a public vocabulary could invert it (M-01).</p></li>
 </ul><div class="section level3">
 <h3 id="bug-fixes-development-version">Bug fixes<a class="anchor" aria-label="anchor" href="#bug-fixes-development-version"></a></h3>
 <ul><li>
