@@ -109,7 +109,8 @@ are 720 equally likely maps. This matters because the vocabularies in
 field research are routinely public: a variety roster, an N-rate ladder,
 a site list. Under an order-preserving map, sorting a candidate list
 would reconstruct the whole assignment from the synthetic alone. It no
-longer does.
+longer does, and the same draw governs the join keys a `mask_set()` shares
+across tables.
 
 Two limits go with that, and they are yours to manage:
 

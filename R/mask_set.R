@@ -272,7 +272,10 @@ mask_set <- function(input,
     aliases <- sprintf(
       paste0("%s_K%0", width, "d"), col, seq_along(union_vals)
     )
-    map <- stats::setNames(aliases, union_vals)
+    # Which level receives which alias is a draw from the seeded stream, as
+    # in alias_levels(): a lexicographic map is invertible from a public
+    # vocabulary alone (M-01, 2026-08-25 audit).
+    map <- stats::setNames(aliases[.alias_order(length(union_vals))], union_vals)
 
     g$map <- map
     kept_groups[[col]] <- g

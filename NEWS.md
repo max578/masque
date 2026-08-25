@@ -1,5 +1,9 @@
 # masque (development version)
 
+* `mask_set()` draws the alias map for linked (join-key) columns from the
+  seeded permutation like every other alias map; it was lexicographic and
+  seed-invariant, so a public vocabulary could invert it (M-01).
+
 ## Bug fixes
 
 * **The collaborate-mode alias map is no longer the sort order.** Aliases
