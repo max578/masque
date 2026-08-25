@@ -14,18 +14,7 @@ NULL
 
 S7::method(print, masque_recipe) <- function(x, ...) {
   cli::cli_h1("masque_recipe")
-  fidelity <- if (isTRUE(x@conditional)) {
-    if (length(x@conditioning_cols)) {
-      sprintf(
-        "conditional (treatment -> outcome preserved; strata: %s)",
-        paste(x@conditioning_cols, collapse = ", ")
-      )
-    } else {
-      "conditional requested (no conditioning column; pooled fallback)"
-    }
-  } else {
-    "marginal / structural (global copula)"
-  }
+  fidelity <- .recipe_fidelity_line(x)
   cli::cli_bullets(c(
     "*" = sprintf("Created: %s", format(x@created_at, "%Y-%m-%d %H:%M:%S %Z")),
     "*" = sprintf("Mode: %s", x@mode),
@@ -206,4 +195,42 @@ reveal_maps <- function(rec) {
   }
 
   invisible(rec)
+}
+
+# Internal: the one-line clone-fidelity summary printed for a recipe. It
+# reports the conditioning rung the ladder reached, not the one that was
+# requested, and names the pooled fraction when the two differ -- a
+# recipe that says "conditional" over a pooled copula is the M-02 defect
+# this line exists to make visible.
+.recipe_fidelity_line <- function(x) {
+  if (!isTRUE(x@conditional)) {
+    return("marginal / structural (global copula)")
+  }
+  requested <- x@conditioning_cols
+  used <- tryCatch(x@conditioning_used, error = function(e) requested)
+  if (is.null(used)) {
+    used <- requested
+  }
+  frac <- tryCatch(x@fallback_frac, error = function(e) NA_real_)
+  if (is.null(frac) || !length(frac)) {
+    frac <- NA_real_
+  }
+  if (!length(used)) {
+    return("conditional requested (no conditioning column; pooled fallback)")
+  }
+  line <- sprintf(
+    "conditional (treatment -> outcome preserved; strata: %s)",
+    paste(used, collapse = ", ")
+  )
+  dropped <- setdiff(requested, used)
+  if (length(dropped)) {
+    line <- sprintf(
+      "%s [ladder coarsened; dropped: %s]",
+      line, paste(dropped, collapse = ", ")
+    )
+  }
+  if (isTRUE(is.finite(frac)) && frac > 0) {
+    line <- sprintf("%s [%.1f%% of rows pooled]", line, 100 * frac)
+  }
+  line
 }
