@@ -60,7 +60,8 @@
 audit_mask <- function(m, original = NULL, print = TRUE) {
   if (!S7::S7_inherits(m, masque_obj)) {
     cli::cli_abort(
-      "`m` must be a {.cls masque} object; got {.cls {class(m)[1]}}."
+      "`m` must be a {.cls masque} object; got {.cls {class(m)[1]}}.",
+      class = c("masque_bad_masque_obj_refusal", "orchestra_refusal")
     )
   }
 
@@ -73,7 +74,7 @@ audit_mask <- function(m, original = NULL, print = TRUE) {
           "(local mode does not auto-audit)."
         ),
         i = "Supply {.arg original} to recompute."
-      ))
+      ), class = c("masque_audit_missing_refusal", "orchestra_refusal"))
     }
     audit <- .compute_audit(original, m@synthetic, m@recipe, m@mode)
   }
