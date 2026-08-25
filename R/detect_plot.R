@@ -6,9 +6,9 @@
 utils::globalVariables(".data")
 
 #
-# Sanity-check visualisations in base graphics. Four atoms — replication
+# Sanity-check visualisations in base graphics. Four atoms -- replication
 # tile, spatial layout tile, factor-nesting tree, frequency + NA-pattern
-# tile — composed differently per design class. Borrowing the desplot
+# tile -- composed differently per design class. Borrowing the desplot
 # `out1` outline idiom and dae's structure-formula nesting view, but
 # implemented from scratch in base graphics to keep `Imports:` lean.
 # `ggplot2`, if installed, is offered as an alternative engine.

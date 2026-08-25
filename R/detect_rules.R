@@ -316,7 +316,7 @@
 # Rule 4: Row-Column design.
 # Spatial pair (row, col) exists AND treatment is structurally balanced
 # WITHIN rows and WITHIN columns (Latin-square / Youden / row-column
-# lattice signature). Bare presence of (row, col) is not enough — it just
+# lattice signature). Bare presence of (row, col) is not enough -- it just
 # means plot positions were recorded, which is also true of CRD trials.
 .rule_row_column <- function(df, cands) {
   if (is.null(cands$spatial)) {

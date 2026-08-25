@@ -54,7 +54,7 @@ Replaces the latitude / longitude values in a masqued data frame with
 coordinates anchored at user-supplied centroids and clustered to
 preserve the original's site-count-per-anchor structure. The function
 never reads the real coordinates beyond counting how many distinct
-sites the original holds per anchor level — so it leaks the
+sites the original holds per anchor level -- so it leaks the
 replication-per-site distribution and the count of distinct sites,
 nothing more.
 }
@@ -85,7 +85,7 @@ user-defined neighbourhood of each anchor centroid);
 }
 
 Coordinates that are \code{NA} in the original remain \code{NA} in the
-synthetic — the NA pattern is preserved cell-by-cell.
+synthetic -- the NA pattern is preserved cell-by-cell.
 }
 \examples{
 \donttest{

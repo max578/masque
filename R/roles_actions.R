@@ -3,7 +3,7 @@
 #' Ergonomic editor for the two-axis roles table returned by
 #' [propose_roles()]. Setting a `role` without an explicit `action`
 #' re-resolves the action to the default for the new role, the column's
-#' kind, and the mode the table was proposed for — so a re-roled column
+#' kind, and the mode the table was proposed for -- so a re-roled column
 #' never silently carries a stale action from its previous role.
 #'
 #' Direct edits (`roles$role[roles$col == "x"] <- "outcome"`) remain

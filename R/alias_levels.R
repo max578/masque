@@ -3,7 +3,7 @@
 #' Replaces the level vocabulary with opaque aliases of the form
 #' `<prefix>_001`, `<prefix>_002`, ... in lexicographic order of the
 #' original levels. The aliasing is deterministic given the level order
-#' and prefix — no randomness — so a fresh `mask()` call with the same
+#' and prefix -- no randomness -- so a fresh `mask()` call with the same
 #' input yields the same aliases.
 #'
 #' Used by `mask(mode = "collaborate")` on `treatment` and categorical

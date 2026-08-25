@@ -4,7 +4,7 @@
 #' coordinates anchored at user-supplied centroids and clustered to
 #' preserve the original's site-count-per-anchor structure. The function
 #' never reads the real coordinates beyond counting how many distinct
-#' sites the original holds per anchor level — so it leaks the
+#' sites the original holds per anchor level -- so it leaks the
 #' replication-per-site distribution and the count of distinct sites,
 #' nothing more.
 #'
@@ -34,7 +34,7 @@
 #' }
 #'
 #' Coordinates that are `NA` in the original remain `NA` in the
-#' synthetic — the NA pattern is preserved cell-by-cell.
+#' synthetic -- the NA pattern is preserved cell-by-cell.
 #'
 #' @param synth A synthetic data frame (typically `synthetic(mask(...))`).
 #' @param original The original data frame from which `synth` was derived
@@ -143,7 +143,7 @@ synthesise_geospatial <- function(synth, original,
   sites_by_anchor <- split(sites$n, sites$anchor)
 
   # 2. For each anchor level present in synth, generate fake-site centroids
-  # placed uniformly within ±site_spread_deg of the user-supplied centroid.
+  # placed uniformly within +/-site_spread_deg of the user-supplied centroid.
   fake_sites <- list()
   synth_anchor <- as.character(synth[[anchor_col]])
   for (a in unique(stats::na.omit(synth_anchor))) {
