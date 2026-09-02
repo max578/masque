@@ -2,6 +2,16 @@
 
 ## masque (development version)
 
+- All three vignettes were brought to the orchestra vignette quality
+  bar: each now opens with the question in the voice of the person
+  asking it (a custodian or an analyst), follows a fixed
+  Why/What/Do/Read/Limits shape, carries a `ggplot2` figure that shows
+  what its tables cannot (the conditional-clone treatment-effect
+  recovery, the multi-environment coverage plot, and the
+  original-versus-clone marginal overlay), and demonstrates a
+  fail-closed refusal for real in each case (an incompatible role/action
+  pairing, a blocked HIGH-leakage write, and an unmapped factor level).
+
 - Every orchestra-facing decline in
   [`mask()`](https://max578.github.io/masque/reference/mask.md),
   [`mask_set()`](https://max578.github.io/masque/reference/mask_set.md),
