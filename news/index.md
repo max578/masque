@@ -1,6 +1,29 @@
 # Changelog
 
-## masque (development version)
+## masque 0.12.0
+
+- [`conform_table()`](https://max578.github.io/masque/reference/conform_table.md)
+  takes a cleaned table the last step to an analysable one, and reports
+  every assumption it makes as a plain sentence. It handles the two jobs
+  [`clean_table()`](https://max578.github.io/masque/reference/clean_table.md)
+  deliberately refuses: deciding that `"NSW"` and `"Nsw"` are one
+  category, and deciding that a character column holding six labels is a
+  factor. Both are **off by default** (`merge_labels = "report"`,
+  `types = "report"`), so the first call names what it would do and
+  changes nothing.
+
+  Storage is decided before categories, which is the ordering that
+  matters: a column of numbers held as text is not a set of categories,
+  and merging `"4.2"` into `"4.4"` because they differ by one character
+  is how an automatic cleaner destroys data. Only columns that remain
+  categorical are considered for merging, and a one-character edit
+  between labels shorter than four characters is ignored.
+
+  A pair differing only by capitalisation is one category whatever
+  happens, so it is merged onto the more frequent spelling (on a tie,
+  the one that appeared first). A pair differing by one edit might be
+  two real categories, so it is merged only when one spelling is clearly
+  more common, and refused otherwise.
 
 - All three vignettes were brought to the orchestra vignette quality
   bar: each now opens with the question in the voice of the person

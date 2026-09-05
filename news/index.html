@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">masque</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.11.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.12.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -37,12 +37,17 @@
     </div>
 
     <div class="section level2">
-<h2 class="pkg-version" data-toc-text="development version" id="masque-development-version">masque (development version)<a class="anchor" aria-label="anchor" href="#masque-development-version"></a></h2>
-<ul><li><p>All three vignettes were brought to the orchestra vignette quality bar: each now opens with the question in the voice of the person asking it (a custodian or an analyst), follows a fixed Why/What/Do/Read/Limits shape, carries a <code>ggplot2</code> figure that shows what its tables cannot (the conditional-clone treatment-effect recovery, the multi-environment coverage plot, and the original-versus-clone marginal overlay), and demonstrates a fail-closed refusal for real in each case (an incompatible role/action pairing, a blocked HIGH-leakage write, and an unmapped factor level).</p></li>
+<h2 class="pkg-version" data-toc-text="0.12.0" id="masque-0120">masque 0.12.0<a class="anchor" aria-label="anchor" href="#masque-0120"></a></h2>
+<ul><li>
+<p><code><a href="../reference/conform_table.html">conform_table()</a></code> takes a cleaned table the last step to an analysable one, and reports every assumption it makes as a plain sentence. It handles the two jobs <code><a href="../reference/clean_table.html">clean_table()</a></code> deliberately refuses: deciding that <code>"NSW"</code> and <code>"Nsw"</code> are one category, and deciding that a character column holding six labels is a factor. Both are <strong>off by default</strong> (<code>merge_labels = "report"</code>, <code>types = "report"</code>), so the first call names what it would do and changes nothing.</p>
+<p>Storage is decided before categories, which is the ordering that matters: a column of numbers held as text is not a set of categories, and merging <code>"4.2"</code> into <code>"4.4"</code> because they differ by one character is how an automatic cleaner destroys data. Only columns that remain categorical are considered for merging, and a one-character edit between labels shorter than four characters is ignored.</p>
+<p>A pair differing only by capitalisation is one category whatever happens, so it is merged onto the more frequent spelling (on a tie, the one that appeared first). A pair differing by one edit might be two real categories, so it is merged only when one spelling is clearly more common, and refused otherwise.</p>
+</li>
+<li><p>All three vignettes were brought to the orchestra vignette quality bar: each now opens with the question in the voice of the person asking it (a custodian or an analyst), follows a fixed Why/What/Do/Read/Limits shape, carries a <code>ggplot2</code> figure that shows what its tables cannot (the conditional-clone treatment-effect recovery, the multi-environment coverage plot, and the original-versus-clone marginal overlay), and demonstrates a fail-closed refusal for real in each case (an incompatible role/action pairing, a blocked HIGH-leakage write, and an unmapped factor level).</p></li>
 <li><p>Every orchestra-facing decline in <code><a href="../reference/mask.html">mask()</a></code>, <code><a href="../reference/mask_set.html">mask_set()</a></code>, <code><a href="../reference/unmask.html">unmask()</a></code> and <code><a href="../reference/audit_mask.html">audit_mask()</a></code> that was a bare, unclassed <code><a href="https://cli.r-lib.org/reference/cli_abort.html" class="external-link">cli::cli_abort()</a></code> now carries a class ending in <code>_refusal</code> plus the shared <code>orchestra_refusal</code> marker, so a caller (or a conductoR node) can catch the decline programmatically instead of string-matching the message. <code>masque_unmasked_coords</code> and <code>masque_conditional_degraded</code> were already classed and are unchanged.</p></li>
 <li><p><code><a href="../reference/mask_set.html">mask_set()</a></code> draws the alias map for linked (join-key) columns from the seeded permutation like every other alias map; it was lexicographic and seed-invariant, so a public vocabulary could invert it (M-01).</p></li>
 </ul><div class="section level3">
-<h3 id="bug-fixes-development-version">Bug fixes<a class="anchor" aria-label="anchor" href="#bug-fixes-development-version"></a></h3>
+<h3 id="bug-fixes-0-12-0">Bug fixes<a class="anchor" aria-label="anchor" href="#bug-fixes-0-12-0"></a></h3>
 <ul><li>
 <p><strong>The collaborate-mode alias map is no longer the sort order.</strong> Aliases (<code>trt_001</code>, <code>&lt;col&gt;_L001</code>, …) were assigned to levels in lexicographic order and were invariant to <code>seed</code>, so a holder of the synthetic who could guess the vocabulary – a public variety roster, an N-rate ladder, a site list – inverted the map by sorting a candidate list, with no recipe. The assignment is now drawn from a uniform random permutation taken from the seeded stream <code><a href="../reference/mask.html">mask()</a></code> already uses. The map is recorded on the recipe exactly as before, so <code><a href="../reference/apply_recipe.html">apply_recipe()</a></code> / <code><a href="../reference/unmask.html">unmask()</a></code> still invert it, and a fixed <code>seed</code> still reproduces it. Two notes for callers: the seed is now confidential material (published beside the synthetic it re-opens the inversion), and level <em>frequencies</em> are unchanged by design and remain matchable. The <code>confidentiality</code> vignette states both.</p>
 <p>This changes the integer codes of an aliased factor, which are now a relabelling rather than a copy of the original codes. Code that compared <code><a href="https://rdrr.io/r/base/integer.html" class="external-link">as.integer()</a></code> of an aliased column against the source should compare the partition instead (recode both by order of first appearance); the incidence structure itself is unchanged.</p>
@@ -51,15 +56,15 @@
 <li><p>Degradation of a conditional clone now raises a <strong>classed</strong> <code>masque_conditional_degraded</code> warning – when the ladder gives up a column, when rows remain in the pooled fallback, and when there is nothing to condition on at all – so a caller can catch it instead of matching on message text.</p></li>
 </ul></div>
 <div class="section level3">
-<h3 id="features-development-version">Features<a class="anchor" aria-label="anchor" href="#features-development-version"></a></h3>
+<h3 id="features-0-12-0">Features<a class="anchor" aria-label="anchor" href="#features-0-12-0"></a></h3>
 <ul><li>The recipe records <code>conditioning_used</code> (the rung of the ladder actually reached) and <code>fallback_frac</code> (the share of rows pooled at that rung) alongside the existing <code>conditioning_cols</code> (what was requested). <code><a href="https://rdrr.io/r/base/print.html" class="external-link">print()</a></code> on a recipe names the coarsening and the pooled share.</li>
 </ul></div>
 <div class="section level3">
-<h3 id="testing-development-version">Testing<a class="anchor" aria-label="anchor" href="#testing-development-version"></a></h3>
+<h3 id="testing-0-12-0">Testing<a class="anchor" aria-label="anchor" href="#testing-0-12-0"></a></h3>
 <ul><li>Graded <code>min_stratum</code> at 2, 5 and 20 on a layout whose cells straddle all three, and <code>synthesise_numeric_local(regularise = FALSE)</code> on a rank-deficient block – both previously unexercised at any value.</li>
 </ul></div>
 <div class="section level3">
-<h3 id="documentation-development-version">Documentation<a class="anchor" aria-label="anchor" href="#documentation-development-version"></a></h3>
+<h3 id="documentation-0-12-0">Documentation<a class="anchor" aria-label="anchor" href="#documentation-0-12-0"></a></h3>
 <ul><li>The <code>getting_started</code> vignette’s environment-overview figure now has a <code>fig.cap</code>/<code>fig.alt</code> and two sentences reading the panel (what even bar heights and a single connected component mean, and what a broken MET would look like there).</li>
 <li>Fixed a dangling comparative in the <code>getting_started</code> mode-comparison table (“numeric values that may match observed” -&gt; “… the observed values”).</li>
 <li>
