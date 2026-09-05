@@ -7,7 +7,9 @@ bibentry(
                    email = "max.moldovan@gmail.com",
                    comment = c(ORCID = "0000-0001-9680-8474")),
   year    = "2026",
-  note    = "R package version 0.7.1",
+  # read from DESCRIPTION so this can never go stale again (it had drifted
+  # four releases, from 0.7.1, before the 0.12.0 release check caught it)
+  note    = paste("R package version", meta$Version),
   url     = "https://github.com/max578/masque"
 )
 
