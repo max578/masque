@@ -17,6 +17,7 @@ reference:
   - role_options
   - roles_validate
   - clean_table
+  - conform_table
 
 - title: Design detection
   desc: Identify environment scope and experimental design, then visualise both for sanity.
