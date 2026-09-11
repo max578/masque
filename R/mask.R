@@ -185,6 +185,17 @@ mask <- function(df,
       class = c("masque_bad_conditional_refusal", "orchestra_refusal")
     )
   }
+  # Shape-check `roles` before reading its mode provenance, for the same
+  # reason as in `mask_set()`: something that is not a roles table has no
+  # provenance to carry, so inferring mode from it first warns the caller
+  # about a missing `mode` attribute when the real fault is the argument.
+  # `roles_validate()` repeats this check for its own callers.
+  if (!is.data.frame(roles)) {
+    cli::cli_abort(
+      "`roles` must be a data frame / tibble; got {.cls {class(roles)[1]}}.",
+      class = c("masque_bad_roles_refusal", "orchestra_refusal")
+    )
+  }
   if (missing(mode)) {
     roles_mode <- attr(roles, "mode")
     if (is.null(roles_mode)) {

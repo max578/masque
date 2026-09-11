@@ -1,3 +1,18 @@
+# masque 0.12.0.9000 (development)
+
+* `mask()` and `mask_set()` now check the shape of `roles` before they read its
+  mode provenance. Passing something that is not a roles table used to draw a
+  warning about a missing `mode` attribute -- advice to keep the tibbles from
+  `propose_roles()` through a `data.table()` or `saveRDS()` round-trip -- before
+  the call was refused for the real reason, which is that the argument was never
+  a roles table at all. The misdiagnosing warning is gone; the refusal is
+  unchanged and now arrives first.
+
+* A `roles` that is not a data frame is refused by `mask()` with the typed
+  `masque_bad_roles_refusal` class, as `mask_set()` already did. It previously
+  aborted without a class, so a cross-member caller could not catch it as a
+  refusal.
+
 # masque 0.12.0
 
 * `conform_table()` takes a cleaned table the last step to an analysable one, and

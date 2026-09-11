@@ -76,6 +76,11 @@ mask_set <- function(input,
                      conditional = FALSE,
                      quiet = FALSE) {
   withr::local_preserve_seed()
+  # Shape-check `roles` before reading its mode provenance: a malformed
+  # `roles` has no provenance to read, and inferring mode from it first
+  # would advise the caller about `propose_roles()` round-trips when the
+  # real fault is the shape of the argument.
+  if (!is.null(roles)) .check_roles_shape(roles)
   if (missing(mode)) {
     mode <- "local"
     if (!is.null(roles) && is.list(roles)) {
@@ -180,13 +185,20 @@ mask_set <- function(input,
   )
 }
 
-.check_roles_list <- function(roles, tables) {
+# The shape half of the roles check, split out so it can run before the
+# mode is inferred from the roles tables' provenance attribute.
+.check_roles_shape <- function(roles) {
   if (!is.list(roles) || is.null(names(roles))) {
     cli::cli_abort(
       "`roles` must be a named list of roles tables.",
       class = c("masque_bad_roles_refusal", "orchestra_refusal")
     )
   }
+  invisible(roles)
+}
+
+.check_roles_list <- function(roles, tables) {
+  .check_roles_shape(roles)
   missing <- setdiff(names(tables), names(roles))
   if (length(missing)) {
     cli::cli_abort(
