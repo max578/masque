@@ -62,4 +62,11 @@ Useful links:
 ## Author
 
 **Maintainer**: Max Moldovan <max.moldovan@gmail.com>
-([ORCID](https://orcid.org/0000-0001-9680-8474)) (Adelaide University)
+([ORCID](https://orcid.org/0000-0001-9680-8474)) (affiliation: Adelaide
+University)
+
+Authors:
+
+- Max Moldovan <max.moldovan@gmail.com>
+  ([ORCID](https://orcid.org/0000-0001-9680-8474)) (affiliation:
+  Adelaide University)
