@@ -119,11 +119,11 @@ vocabularies themselves:
 rec
 #> 
 #> ── masque_recipe ───────────────────────────────────────────────────────────────────────────────────
-#> • Created: 2026-09-05 06:32:27 UTC
+#> • Created: 2026-09-12 03:04:39 UTC
 #> • Mode: collaborate
 #> • Clone fidelity: marginal / structural (global copula)
 #> • Seed: present (redacted)
-#> • masque version: 0.12.0
+#> • masque version: 0.12.0.9000
 #> • Integrity fingerprint: 0cec319ba9e2...
 #> 
 #> ── Columns (7 total; 1 level-map(s); 0 column-name map(s)) ──
@@ -373,7 +373,7 @@ versions follow.
 sessionInfo()
 #> R version 4.6.1 (2026-06-24)
 #> Platform: x86_64-pc-linux-gnu
-#> Running under: Ubuntu 24.04.4 LTS
+#> Running under: Ubuntu 24.04.5 LTS
 #> 
 #> Matrix products: default
 #> BLAS:   /usr/lib/x86_64-linux-gnu/openblas-pthread/libblas.so.3 
@@ -391,13 +391,13 @@ sessionInfo()
 #> [1] stats     graphics  grDevices utils     datasets  methods   base     
 #> 
 #> other attached packages:
-#> [1] masque_0.12.0
+#> [1] masque_0.12.0.9000
 #> 
 #> loaded via a namespace (and not attached):
 #>  [1] gtable_0.3.6        jsonlite_2.0.0      compiler_4.6.1      maps_3.4.3         
 #>  [5] jquerylib_0.1.4     systemfonts_1.3.2   scales_1.4.0        textshaping_1.0.5  
 #>  [9] yaml_2.3.12         fastmap_1.2.0       ggplot2_4.0.3       R6_2.6.1           
-#> [13] labeling_0.4.3      knitr_1.51          tibble_3.3.1        desc_1.4.3         
+#> [13] labeling_0.4.3      knitr_1.52          tibble_3.3.1        desc_1.4.3         
 #> [17] bslib_0.12.0        pillar_1.11.1       RColorBrewer_1.1-3  rlang_1.3.0        
 #> [21] cachem_1.1.0        xfun_0.60           fs_2.1.0            sass_0.4.10        
 #> [25] S7_0.2.2            otel_0.2.0          viridisLite_0.4.3   cli_3.6.6          

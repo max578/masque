@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">masque</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.12.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.12.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -36,6 +36,11 @@
       <small>Source: <a href="https://github.com/max578/masque/blob/main/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.12.0.9000" id="masque-01209000-development">masque 0.12.0.9000 (development)<a class="anchor" aria-label="anchor" href="#masque-01209000-development"></a></h2>
+<ul><li><p><code><a href="../reference/mask.html">mask()</a></code> and <code><a href="../reference/mask_set.html">mask_set()</a></code> now check the shape of <code>roles</code> before they read its mode provenance. Passing something that is not a roles table used to draw a warning about a missing <code>mode</code> attribute – advice to keep the tibbles from <code><a href="../reference/propose_roles.html">propose_roles()</a></code> through a <code>data.table()</code> or <code><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">saveRDS()</a></code> round-trip – before the call was refused for the real reason, which is that the argument was never a roles table at all. The misdiagnosing warning is gone; the refusal is unchanged and now arrives first.</p></li>
+<li><p>A <code>roles</code> that is not a data frame is refused by <code><a href="../reference/mask.html">mask()</a></code> with the typed <code>masque_bad_roles_refusal</code> class, as <code><a href="../reference/mask_set.html">mask_set()</a></code> already did. It previously aborted without a class, so a cross-member caller could not catch it as a refusal.</p></li>
+</ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.12.0" id="masque-0120">masque 0.12.0<a class="anchor" aria-label="anchor" href="#masque-0120"></a></h2>
 <ul><li>

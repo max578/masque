@@ -41,11 +41,11 @@ rec2 <- read_recipe(tmp)
 rec2
 #> 
 #> ── masque_recipe ───────────────────────────────────────────────────────────────
-#> • Created: 2026-09-05 06:32:10 UTC
+#> • Created: 2026-09-12 03:04:25 UTC
 #> • Mode: collaborate
 #> • Clone fidelity: marginal / structural (global copula)
 #> • Seed: present (redacted)
-#> • masque version: 0.12.0
+#> • masque version: 0.12.0.9000
 #> • Integrity fingerprint: 62a4affb7e41...
 #> 
 #> ── Columns (5 total; 1 level-map(s); 0 column-name map(s)) ──

@@ -1,5 +1,26 @@
 # Changelog
 
+## masque 0.12.0.9000 (development)
+
+- [`mask()`](https://max578.github.io/masque/reference/mask.md) and
+  [`mask_set()`](https://max578.github.io/masque/reference/mask_set.md)
+  now check the shape of `roles` before they read its mode provenance.
+  Passing something that is not a roles table used to draw a warning
+  about a missing `mode` attribute – advice to keep the tibbles from
+  [`propose_roles()`](https://max578.github.io/masque/reference/propose_roles.md)
+  through a `data.table()` or
+  [`saveRDS()`](https://rdrr.io/r/base/readRDS.html) round-trip – before
+  the call was refused for the real reason, which is that the argument
+  was never a roles table at all. The misdiagnosing warning is gone; the
+  refusal is unchanged and now arrives first.
+
+- A `roles` that is not a data frame is refused by
+  [`mask()`](https://max578.github.io/masque/reference/mask.md) with the
+  typed `masque_bad_roles_refusal` class, as
+  [`mask_set()`](https://max578.github.io/masque/reference/mask_set.md)
+  already did. It previously aborted without a class, so a cross-member
+  caller could not catch it as a refusal.
+
 ## masque 0.12.0
 
 - [`conform_table()`](https://max578.github.io/masque/reference/conform_table.md)
