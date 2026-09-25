@@ -50,7 +50,11 @@ synthesise_geospatial(
   Named list keyed by anchor levels; each element is a length-2 numeric
   named `c(lat, lon)`. The user supplies plausible centroids (e.g.,
   state centroids); the function never infers them from the original to
-  avoid leaking position information.
+  avoid leaking position information. Any other shape (a data frame, an
+  unnamed list, an element that is not a `c(lat, lon)` pair, or a list
+  naming none of the anchor levels) is refused with a
+  `masque_bad_anchor_centroids_refusal` error. A level absent from an
+  otherwise well-formed list is warned about and its rows get `NA`.
 
 - site_spread_deg:
 

@@ -19,8 +19,10 @@ mask(
   clean = c("auto", "report", "off"),
   alias_names = FALSE,
   conditional = FALSE,
+  ladder = c("hierarchy", "levels"),
   coords = NULL,
   allow_unmasked_coords = FALSE,
+  quiet = FALSE,
   .shared_maps = list(),
   ...
 )
@@ -30,7 +32,9 @@ mask(
 
 - df:
 
-  A data frame.
+  A data frame, or the `masque_conformance` object returned by
+  [`conform_table()`](https://max578.github.io/masque/reference/conform_table.md),
+  whose `data` element is then masked.
 
 - roles:
 
@@ -97,15 +101,42 @@ mask(
   The stratum is chosen by a **coarsening ladder**. Treatment crossed
   with every retained design column is the finest rung, but on a
   replicated factorial that rung holds one row per cell, which is too
-  thin to synthesise. The ladder then drops design columns, finest
-  first, until the cells hold at least five rows; treatment columns are
-  never dropped. Whatever remains below that floor is pooled into a
-  global fallback. The rung reached is recorded on the recipe as
-  `conditioning_used`, the pooled share as `fallback_frac`, and any
-  coarsening or residual pooling raises a classed
-  `masque_conditional_degraded` warning – including the case where no
-  treatment or design column survives at all, in which case the clone is
-  the pooled copula.
+  thin to synthesise. The ladder then drops design columns, in the order
+  set by `ladder`, until the cells hold at least five rows; treatment
+  columns are never dropped. Whatever remains below that floor is pooled
+  into a global fallback. The rung reached is recorded on the recipe as
+  `conditioning_used`, the columns given up as `conditioning_dropped`,
+  the pooled share as `fallback_frac`, and any coarsening or residual
+  pooling raises a classed `masque_conditional_degraded` warning –
+  including the case where no treatment or design column survives at
+  all, in which case the clone is the pooled copula.
+
+- ladder:
+
+  How the coarsening ladder orders the design columns it may drop, and
+  what it keeps of a dropped one. `"hierarchy"` (the default) drops plot
+  coordinates (`row`, `col`, `range`, `plot`) first, then blocking
+  columns, then environment columns (`site`, `year`, `county`, `trial`,
+  ...), so an environment is never dropped before the replicates inside
+  it; within the last two tiers the column explaining the least variance
+  in the numeric block (adjusted for its number of levels) goes first.
+  The main effect of every dropped column, and of each pair of dropped
+  blocking or environment columns (the replicate inside a county is a
+  different block from the same label in the next county), is estimated
+  by least squares beside the stratum that was kept, removed before the
+  within-stratum copula and added back after it, so a clone that
+  conditions on genotype alone still carries the original's environment,
+  replicate and block means. Rows the stratum floor pools into the
+  fallback keep the stratum columns' main effects the same way, so a
+  three-replicate variety trial keeps its genotype means. A level with a
+  single row is pooled with the other singletons before the fit, so no
+  row's own outcome is ever carried. The terms carried are recorded on
+  the recipe as `conditioning_shifted`. This makes each carried term's
+  level means a stated property of the clone, in the same way that
+  `conditional = TRUE` already makes the treatment means one. `"levels"`
+  is the ladder of masque 0.11.1 to 0.12.0: columns are dropped in
+  decreasing order of distinct values and a dropped column leaves no
+  trace in the clone.
 
 - coords:
 
@@ -136,6 +167,14 @@ mask(
   (coarsened), giving the column a masking action (`drop` or
   `scramble`), or – having decided the coordinate is not sensitive –
   setting this to `TRUE`, which is recorded on the recipe.
+
+- quiet:
+
+  Single logical. `TRUE` silences the `masque_mode_downgrade` warning
+  raised when a roles table prepared for `"collaborate"` is used in
+  `"local"` mode, for a plan that is deliberately shared across both
+  modes. No other warning is affected; a HIGH-leakage finding is always
+  raised.
 
 - .shared_maps:
 

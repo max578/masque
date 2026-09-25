@@ -17,7 +17,7 @@ tables goes through mask_set()."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">masque</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.12.0.9000</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.13.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -30,6 +30,7 @@ tables goes through mask_set()."></head><body>
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/getting_started.html">Getting started with masque</a></li>
     <li><a class="dropdown-item" href="../articles/confidentiality.html">Confidentiality and the threat model</a></li>
+    <li><a class="dropdown-item" href="../articles/design_preservation.html">What a conditional clone keeps of the design</a></li>
     <li><a class="dropdown-item" href="../articles/recipe_anatomy.html">Recipe anatomy and the round-trip</a></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
@@ -67,6 +68,7 @@ tables goes through <code><a href="mask_set.html">mask_set()</a></code>.</p>
 <span>  clean <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"auto"</span>, <span class="st">"report"</span>, <span class="st">"off"</span><span class="op">)</span>,</span>
 <span>  alias_names <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  conditional <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  ladder <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"hierarchy"</span>, <span class="st">"levels"</span><span class="op">)</span>,</span>
 <span>  ask <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/interactive.html" class="external-link">interactive</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  overwrite <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  quiet <span class="op">=</span> <span class="cn">FALSE</span>,</span>
@@ -119,6 +121,11 @@ clone mode passed through to <code><a href="mask.html">mask()</a></code> / <code
 numeric columns are re-simulated within each treatment-by-design
 stratum so the treatment-to-outcome relationship survives the clone.
 See <code><a href="mask.html">mask()</a></code> for the full account.</p></dd>
+
+
+<dt id="arg-ladder">ladder<a class="anchor" aria-label="anchor" href="#arg-ladder"></a></dt>
+<dd><p>Drop order of the conditioning ladder, <code>"hierarchy"</code> (default)
+or <code>"levels"</code>; passed through to <code><a href="mask.html">mask()</a></code> / <code><a href="mask_set.html">mask_set()</a></code>.</p></dd>
 
 
 <dt id="arg-ask">ask<a class="anchor" aria-label="anchor" href="#arg-ask"></a></dt>

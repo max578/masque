@@ -315,11 +315,23 @@ them. Treatment crossed with every retained design column on a
 replicated factorial – six N rates by three varieties by four replicates
 – is seventy-two cells of one row. Rather than pool that wholesale,
 [`mask()`](https://max578.github.io/masque/reference/mask.md) walks a
-**coarsening ladder**: it drops design columns, the finest first, until
-the cells hold at least five rows. Treatment columns are never dropped,
-because the assignment is the thing the conditional clone exists to
-preserve. Whatever is still too thin at the bottom rung is pooled into a
-global fallback, as before.
+**coarsening ladder**: it drops design columns until the cells hold at
+least five rows. Treatment columns are never dropped, because the
+assignment is the thing the conditional clone exists to preserve.
+Whatever is still too thin at the bottom rung is pooled into a global
+fallback, as before.
+
+The default ladder (`ladder = "hierarchy"`) drops plot coordinates
+first, then blocking columns, then environment columns, so a site or a
+county is never given up before the replicates inside it, and it carries
+the main effect of every dropped column into the clone as an additive
+shift: the county means, the replicate means and the block means of the
+original survive even when the stratum the copula is fitted in is the
+treatment alone. Those means are therefore a stated property of the
+clone, in the same way the treatment means are. The recipe lists them as
+`conditioning_shifted`. The ladder of 0.11.1 to 0.12.0, which drops the
+column with the most levels first and keeps nothing of it, is still
+available as `ladder = "levels"`.
 
 Any coarsening, and any residual pooling, raises a classed
 `masque_conditional_degraded` warning naming the columns given up and
@@ -811,7 +823,7 @@ sessionInfo()
 #> [1] stats     graphics  grDevices utils     datasets  methods   base     
 #> 
 #> other attached packages:
-#> [1] masque_0.12.0.9000
+#> [1] masque_0.13.0
 #> 
 #> loaded via a namespace (and not attached):
 #>  [1] vctrs_0.7.3         cli_3.6.6           knitr_1.52          rlang_1.3.0        

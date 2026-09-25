@@ -15,7 +15,7 @@ masque_recipe."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">masque</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.12.0.9000</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.13.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -28,6 +28,7 @@ masque_recipe."></head><body>
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/getting_started.html">Getting started with masque</a></li>
     <li><a class="dropdown-item" href="../articles/confidentiality.html">Confidentiality and the threat model</a></li>
+    <li><a class="dropdown-item" href="../articles/design_preservation.html">What a conditional clone keeps of the design</a></li>
     <li><a class="dropdown-item" href="../articles/recipe_anatomy.html">Recipe anatomy and the round-trip</a></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
@@ -63,8 +64,10 @@ a synthetic clone according to each column's <code>action</code>. Returns a
 <span>  clean <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"auto"</span>, <span class="st">"report"</span>, <span class="st">"off"</span><span class="op">)</span>,</span>
 <span>  alias_names <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  conditional <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  ladder <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"hierarchy"</span>, <span class="st">"levels"</span><span class="op">)</span>,</span>
 <span>  coords <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  allow_unmasked_coords <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  quiet <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  .shared_maps <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span></code></pre></div>
@@ -75,7 +78,8 @@ a synthetic clone according to each column's <code>action</code>. Returns a
 
 
 <dl><dt id="arg-df">df<a class="anchor" aria-label="anchor" href="#arg-df"></a></dt>
-<dd><p>A data frame.</p></dd>
+<dd><p>A data frame, or the <code>masque_conformance</code> object returned by
+<code><a href="conform_table.html">conform_table()</a></code>, whose <code>data</code> element is then masked.</p></dd>
 
 
 <dt id="arg-roles">roles<a class="anchor" aria-label="anchor" href="#arg-roles"></a></dt>
@@ -136,15 +140,42 @@ are recorded on the recipe.</p>
 <p>The stratum is chosen by a <strong>coarsening ladder</strong>. Treatment crossed
 with every retained design column is the finest rung, but on a
 replicated factorial that rung holds one row per cell, which is too
-thin to synthesise. The ladder then drops design columns, finest
-first, until the cells hold at least five rows; treatment columns are
-never dropped. Whatever remains below that floor is pooled into a
-global fallback. The rung reached is recorded on the recipe as
-<code>conditioning_used</code>, the pooled share as <code>fallback_frac</code>, and any
-coarsening or residual pooling raises a classed
-<code>masque_conditional_degraded</code> warning – including the case where no
-treatment or design column survives at all, in which case the clone is
-the pooled copula.</p></dd>
+thin to synthesise. The ladder then drops design columns, in the order
+set by <code>ladder</code>, until the cells hold at least five rows; treatment
+columns are never dropped. Whatever remains below that floor is pooled
+into a global fallback. The rung reached is recorded on the recipe as
+<code>conditioning_used</code>, the columns given up as <code>conditioning_dropped</code>,
+the pooled share as <code>fallback_frac</code>, and any coarsening or residual
+pooling raises a classed <code>masque_conditional_degraded</code> warning –
+including the case where no treatment or design column survives at
+all, in which case the clone is the pooled copula.</p></dd>
+
+
+<dt id="arg-ladder">ladder<a class="anchor" aria-label="anchor" href="#arg-ladder"></a></dt>
+<dd><p>How the coarsening ladder orders the design columns it may
+drop, and what it keeps of a dropped one. <code>"hierarchy"</code> (the default)
+drops plot coordinates (<code>row</code>, <code>col</code>, <code>range</code>, <code>plot</code>) first, then
+blocking columns, then environment columns (<code>site</code>, <code>year</code>, <code>county</code>,
+<code>trial</code>, ...), so an environment is never dropped before the replicates
+inside it; within the last two tiers the column explaining the least
+variance in the numeric block (adjusted for its number of levels) goes
+first. The main effect of every dropped column, and of each pair of
+dropped blocking or environment columns (the replicate inside a county
+is a different block from the same label in the next county), is
+estimated by least squares beside the stratum that was kept, removed
+before the within-stratum copula and added back after it, so a clone
+that conditions on genotype alone still carries the original's
+environment, replicate and block means. Rows the stratum floor pools
+into the fallback keep the stratum columns' main effects the same way,
+so a three-replicate variety trial keeps its genotype means. A level
+with a single row is pooled with the other singletons before the fit,
+so no row's own outcome is ever carried. The terms carried are recorded
+on the recipe as <code>conditioning_shifted</code>. This makes each carried term's
+level means a stated property of the clone, in the same way that
+<code>conditional = TRUE</code> already makes the treatment means one. <code>"levels"</code>
+is the ladder of masque 0.11.1 to 0.12.0: columns are dropped in
+decreasing order of distinct values and a dropped column leaves no
+trace in the clone.</p></dd>
 
 
 <dt id="arg-coords">coords<a class="anchor" aria-label="anchor" href="#arg-coords"></a></dt>
@@ -171,6 +202,14 @@ shape of its values would be. State otherwise by declaring the pair to
 <code>coords</code> (coarsened), giving the column a masking action (<code>drop</code> or
 <code>scramble</code>), or – having decided the coordinate is not sensitive –
 setting this to <code>TRUE</code>, which is recorded on the recipe.</p></dd>
+
+
+<dt id="arg-quiet">quiet<a class="anchor" aria-label="anchor" href="#arg-quiet"></a></dt>
+<dd><p>Single logical. <code>TRUE</code> silences the <code>masque_mode_downgrade</code>
+warning raised when a roles table prepared for <code>"collaborate"</code> is used
+in <code>"local"</code> mode, for a plan that is deliberately shared across both
+modes. No other warning is affected; a HIGH-leakage finding is always
+raised.</p></dd>
 
 
 <dt id="arg--shared-maps">.shared_maps<a class="anchor" aria-label="anchor" href="#arg--shared-maps"></a></dt>

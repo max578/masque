@@ -19,7 +19,7 @@ nothing more."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">masque</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.12.0.9000</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.13.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -32,6 +32,7 @@ nothing more."></head><body>
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/getting_started.html">Getting started with masque</a></li>
     <li><a class="dropdown-item" href="../articles/confidentiality.html">Confidentiality and the threat model</a></li>
+    <li><a class="dropdown-item" href="../articles/design_preservation.html">What a conditional clone keeps of the design</a></li>
     <li><a class="dropdown-item" href="../articles/recipe_anatomy.html">Recipe anatomy and the round-trip</a></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
@@ -102,7 +103,11 @@ fields to overwrite in <code>synth</code>.</p></dd>
 element is a length-2 numeric named <code>c(lat, lon)</code>. The user supplies
 plausible centroids (e.g., state centroids); the function never
 infers them from the original to avoid leaking position
-information.</p></dd>
+information. Any other shape (a data frame, an unnamed list, an
+element that is not a <code>c(lat, lon)</code> pair, or a list naming none of
+the anchor levels) is refused with a
+<code>masque_bad_anchor_centroids_refusal</code> error. A level absent from an
+otherwise well-formed list is warned about and its rows get <code>NA</code>.</p></dd>
 
 
 <dt id="arg-site-spread-deg">site_spread_deg<a class="anchor" aria-label="anchor" href="#arg-site-spread-deg"></a></dt>

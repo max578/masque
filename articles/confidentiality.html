@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">masque</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.12.0.9000</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.13.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -35,6 +35,7 @@
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
 <li><a class="dropdown-item" href="../articles/getting_started.html">Getting started with masque</a></li>
     <li><a class="dropdown-item" href="../articles/confidentiality.html">Confidentiality and the threat model</a></li>
+    <li><a class="dropdown-item" href="../articles/design_preservation.html">What a conditional clone keeps of the design</a></li>
     <li><a class="dropdown-item" href="../articles/recipe_anatomy.html">Recipe anatomy and the round-trip</a></li>
   </ul>
 </li>
@@ -480,11 +481,22 @@ available is rarely the one that has them. Treatment crossed with every
 retained design column on a replicated factorial – six N rates by three
 varieties by four replicates – is seventy-two cells of one row. Rather
 than pool that wholesale, <code><a href="../reference/mask.html">mask()</a></code> walks a <strong>coarsening
-ladder</strong>: it drops design columns, the finest first, until the
-cells hold at least five rows. Treatment columns are never dropped,
-because the assignment is the thing the conditional clone exists to
-preserve. Whatever is still too thin at the bottom rung is pooled into a
-global fallback, as before.</p>
+ladder</strong>: it drops design columns until the cells hold at least
+five rows. Treatment columns are never dropped, because the assignment
+is the thing the conditional clone exists to preserve. Whatever is still
+too thin at the bottom rung is pooled into a global fallback, as
+before.</p>
+<p>The default ladder (<code>ladder = "hierarchy"</code>) drops plot
+coordinates first, then blocking columns, then environment columns, so a
+site or a county is never given up before the replicates inside it, and
+it carries the main effect of every dropped column into the clone as an
+additive shift: the county means, the replicate means and the block
+means of the original survive even when the stratum the copula is fitted
+in is the treatment alone. Those means are therefore a stated property
+of the clone, in the same way the treatment means are. The recipe lists
+them as <code>conditioning_shifted</code>. The ladder of 0.11.1 to
+0.12.0, which drops the column with the most levels first and keeps
+nothing of it, is still available as <code>ladder = "levels"</code>.</p>
 <p>Any coarsening, and any residual pooling, raises a classed
 <code>masque_conditional_degraded</code> warning naming the columns
 given up and the pooled share, and both facts are written onto the
@@ -1025,7 +1037,7 @@ follow.</p>
 <span><span class="co">#&gt; [1] stats     graphics  grDevices utils     datasets  methods   base     </span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; other attached packages:</span></span>
-<span><span class="co">#&gt; [1] masque_0.12.0.9000</span></span>
+<span><span class="co">#&gt; [1] masque_0.13.0</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; loaded via a namespace (and not attached):</span></span>
 <span><span class="co">#&gt;  [1] vctrs_0.7.3         cli_3.6.6           knitr_1.52          rlang_1.3.0        </span></span>

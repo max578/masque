@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">masque</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.12.0.9000</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.13.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -35,6 +35,7 @@
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
 <li><a class="dropdown-item" href="../articles/getting_started.html">Getting started with masque</a></li>
     <li><a class="dropdown-item" href="../articles/confidentiality.html">Confidentiality and the threat model</a></li>
+    <li><a class="dropdown-item" href="../articles/design_preservation.html">What a conditional clone keeps of the design</a></li>
     <li><a class="dropdown-item" href="../articles/recipe_anatomy.html">Recipe anatomy and the round-trip</a></li>
   </ul>
 </li>
@@ -818,8 +819,9 @@ when domain knowledge is stronger than the recorded names:</p>
 </h3>
 <p><code>plot.design_summary()</code> draws a compact environment
 overview by default, in base graphics or, with
-<code>engine = "ggplot2"</code>, as a <code>ggplot2</code> object – this
-is the figure below. It shows something the two console values above
+<code>engine = "ggplot2"</code>, returns a <code>ggplot2</code> object
+that you can save with <code><a href="https://ggplot2.tidyverse.org/reference/ggsave.html" class="external-link">ggplot2::ggsave()</a></code> – printed, it is
+the figure below. It shows something the two console values above
 cannot: whether coverage is <em>even</em> across environments, which a
 bare connectivity flag does not distinguish from one environment barely
 scraping in.</p>
@@ -968,7 +970,7 @@ follow.</p>
 <span><span class="co">#&gt; [1] stats     graphics  grDevices utils     datasets  methods   base     </span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; other attached packages:</span></span>
-<span><span class="co">#&gt; [1] masque_0.12.0.9000</span></span>
+<span><span class="co">#&gt; [1] masque_0.13.0</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; loaded via a namespace (and not attached):</span></span>
 <span><span class="co">#&gt;  [1] vctrs_0.7.3         cli_3.6.6           knitr_1.52          rlang_1.3.0        </span></span>

@@ -41,11 +41,11 @@ m <- mask(iris, r, seed = 1)
 recipe(m)
 #> 
 #> ── masque_recipe ───────────────────────────────────────────────────────────────
-#> • Created: 2026-09-25 05:01:13 UTC
+#> • Created: 2026-09-25 23:38:42 UTC
 #> • Mode: local
 #> • Clone fidelity: marginal / structural (global copula)
 #> • Seed: present (redacted)
-#> • masque version: 0.12.0.9000
+#> • masque version: 0.13.0
 #> • Integrity fingerprint: 62a4affb7e41...
 #> 
 #> ── Columns (5 total; 0 level-map(s); 0 column-name map(s)) ──

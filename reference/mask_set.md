@@ -21,6 +21,7 @@ mask_set(
   clean = c("auto", "report", "off"),
   alias_names = FALSE,
   conditional = FALSE,
+  ladder = c("hierarchy", "levels"),
   quiet = FALSE
 )
 ```
@@ -80,6 +81,12 @@ mask_set(
   relationship survives the clone. See
   [`mask()`](https://max578.github.io/masque/reference/mask.md) for the
   full account.
+
+- ladder:
+
+  Drop order of the conditioning ladder, `"hierarchy"` (default) or
+  `"levels"`; passed through to each
+  [`mask()`](https://max578.github.io/masque/reference/mask.md) call.
 
 - quiet:
 

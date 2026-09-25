@@ -28,7 +28,7 @@ still joins.
 and [`unmask()`](https://max578.github.io/masque/reference/unmask.md)
 re-target a finished pipeline onto the original data.
 
-## Honest claim
+## Scope and limits
 
 `masque` is **not** a differential-privacy or anonymisation tool. Its
 outputs are development surrogates: structurally faithful enough that

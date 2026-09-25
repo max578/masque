@@ -119,11 +119,11 @@ vocabularies themselves:
 rec
 #> 
 #> ── masque_recipe ───────────────────────────────────────────────────────────────────────────────────
-#> • Created: 2026-09-25 05:01:27 UTC
+#> • Created: 2026-09-25 23:39:32 UTC
 #> • Mode: collaborate
 #> • Clone fidelity: marginal / structural (global copula)
 #> • Seed: present (redacted)
-#> • masque version: 0.12.0.9000
+#> • masque version: 0.13.0
 #> • Integrity fingerprint: 0cec319ba9e2...
 #> 
 #> ── Columns (7 total; 1 level-map(s); 0 column-name map(s)) ──
@@ -391,7 +391,7 @@ sessionInfo()
 #> [1] stats     graphics  grDevices utils     datasets  methods   base     
 #> 
 #> other attached packages:
-#> [1] masque_0.12.0.9000
+#> [1] masque_0.13.0
 #> 
 #> loaded via a namespace (and not attached):
 #>  [1] gtable_0.3.6        jsonlite_2.0.0      compiler_4.6.1      maps_3.4.3         

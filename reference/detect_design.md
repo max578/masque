@@ -128,8 +128,8 @@ detect_design(mtcars)
 #> • Top rule scores all below 0.5. Treat as observational.
 #> ── Alternates (top rule scores) ────────────────────────────────────────────────
 #> <factorial > score = 0.46
-#> <IBD/alpha-lattice > score = 0.30
 #> <CRD > score = 0.00
+#> <RCBD > score = 0.00
 #> ℹ Use `plot(x)` for a sanity-check visualisation; pass to `propose_roles(df, detect = TRUE)` to seed role hints.
 
 # Explicit two-environment trial.

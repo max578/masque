@@ -49,7 +49,11 @@ plot_design_summary(
 
 ## Value
 
-The input `x`, invisibly. Called for the plot side-effect.
+With `engine = "ggplot2"`, the `ggplot` object, so it can be modified or
+saved with
+[`ggplot2::ggsave()`](https://ggplot2.tidyverse.org/reference/ggsave.html);
+nothing is drawn until it is printed. With `engine = "base"`, the input
+`x` invisibly, after the plot has been drawn.
 
 ## Details
 

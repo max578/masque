@@ -446,11 +446,13 @@ ds_explicit <- detect_design(met, env = "env")
 ### Figure: the multi-environment coverage plot
 
 `plot.design_summary()` draws a compact environment overview by default,
-in base graphics or, with `engine = "ggplot2"`, as a `ggplot2` object –
-this is the figure below. It shows something the two console values
-above cannot: whether coverage is *even* across environments, which a
-bare connectivity flag does not distinguish from one environment barely
-scraping in.
+in base graphics or, with `engine = "ggplot2"`, returns a `ggplot2`
+object that you can save with
+[`ggplot2::ggsave()`](https://ggplot2.tidyverse.org/reference/ggsave.html)
+– printed, it is the figure below. It shows something the two console
+values above cannot: whether coverage is *even* across environments,
+which a bare connectivity flag does not distinguish from one environment
+barely scraping in.
 
 ``` r
 
@@ -594,7 +596,7 @@ sessionInfo()
 #> [1] stats     graphics  grDevices utils     datasets  methods   base     
 #> 
 #> other attached packages:
-#> [1] masque_0.12.0.9000
+#> [1] masque_0.13.0
 #> 
 #> loaded via a namespace (and not attached):
 #>  [1] vctrs_0.7.3         cli_3.6.6           knitr_1.52          rlang_1.3.0        
