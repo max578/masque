@@ -38,6 +38,7 @@ Imports:
     withr
 Suggests:
     agridat,
+    callr,
     fst,
     ggplot2,
     knitr,

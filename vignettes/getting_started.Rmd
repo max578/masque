@@ -294,8 +294,9 @@ ds_explicit <- detect_design(met, env = "env")
 ### Figure: the multi-environment coverage plot
 
 `plot.design_summary()` draws a compact environment overview by default,
-in base graphics or, with `engine = "ggplot2"`, as a `ggplot2` object --
-this is the figure below. It shows something the two console values above
+in base graphics or, with `engine = "ggplot2"`, returns a `ggplot2` object
+that you can save with `ggplot2::ggsave()` -- printed, it is the figure
+below. It shows something the two console values above
 cannot: whether coverage is *even* across environments, which a bare
 connectivity flag does not distinguish from one environment barely
 scraping in.

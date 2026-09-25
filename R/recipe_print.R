@@ -12,7 +12,8 @@
 #' @noRd
 NULL
 
-S7::method(print, masque_recipe) <- function(x, ...) {
+# local(): see the plot method in detect_plot.R.
+local(S7::method(print, masque_recipe) <- function(x, ...) {
   cli::cli_h1("masque_recipe")
   fidelity <- .recipe_fidelity_line(x)
   cli::cli_bullets(c(
@@ -81,17 +82,19 @@ S7::method(print, masque_recipe) <- function(x, ...) {
     "Use {.code reveal_maps(rec)} to inspect level maps explicitly."
   )
 
-  invisible(x)
-}
+  invisible(x)})
 
-S7::method(format, masque_recipe) <- function(x, ...) {
+
+# local(): see the plot method in detect_plot.R.
+local(S7::method(format, masque_recipe) <- function(x, ...) {
   sprintf(
     "<masque_recipe: mode=%s, cols=%d, level-maps=%d>",
     x@mode, nrow(x@roles), length(x@level_maps)
-  )
-}
+  )})
 
-S7::method(print, masque_obj) <- function(x, ...) {
+
+# local(): see the plot method in detect_plot.R.
+local(S7::method(print, masque_obj) <- function(x, ...) {
   cli::cli_h1("masque")
   cli::cli_bullets(c(
     "*" = sprintf("Mode: %s", x@mode),
@@ -134,8 +137,8 @@ S7::method(print, masque_obj) <- function(x, ...) {
   cli::cli_text("")
   print(x@recipe)
 
-  invisible(x)
-}
+  invisible(x)})
+
 
 #' Reveal the level maps held inside a recipe
 #'

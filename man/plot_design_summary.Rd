@@ -29,7 +29,10 @@ the selected environment's field layout or legacy design diagnostic.}
 \item{...}{Ignored.}
 }
 \value{
-The input \code{x}, invisibly. Called for the plot side-effect.
+With \code{engine = "ggplot2"}, the \code{ggplot} object, so it can be
+modified or saved with \code{ggplot2::ggsave()}; nothing is drawn until it is
+printed. With \code{engine = "base"}, the input \code{x} invisibly, after the plot
+has been drawn.
 }
 \description{
 Plots the structure that drove the \code{\link[=detect_design]{detect_design()}} verdict. A detected MET

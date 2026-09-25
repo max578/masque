@@ -117,3 +117,52 @@ test_that("one selected environment draws a field-layout diagnostic", {
   )
   expect_error(plot(ds, df = d, environment = "not-a-county"), "Unknown")
 })
+
+test_that("the ggplot2 engine returns the plot, and ggsave() writes it", {
+  skip_if_not_installed("ggplot2")
+  skip_if_not_installed("agridat")
+  d <- agridat::yates.oats
+  ds <- detect_design(d)
+  p <- plot_design_summary(ds, d, engine = "ggplot2")
+  expect_true(inherits(p, "ggplot"))
+  expect_true(withVisible(plot_design_summary(ds, d, engine = "ggplot2"))$visible)
+
+  met <- agridat::besag.met
+  ds_met <- detect_design(met, env = "county")
+  expect_true(inherits(
+    plot_design_summary(ds_met, met, engine = "ggplot2"), "ggplot"
+  ))
+  expect_true(inherits(
+    plot_design_summary(ds_met, met, engine = "ggplot2", environment = "C1"),
+    "ggplot"
+  ))
+
+  png_path <- withr::local_tempfile(fileext = ".png")
+  ggplot2::ggsave(png_path, p, width = 5, height = 4, dpi = 72)
+  expect_gt(file.size(png_path), 5000)
+
+  # The base engine still draws and hands the summary back invisibly.
+  pdf(NULL)
+  on.exit(dev.off(), add = TRUE)
+  v <- withVisible(plot_design_summary(ds, d, engine = "base"))
+  expect_false(v$visible)
+  expect_true(inherits(v$value, "masque::design_summary"))
+})
+
+test_that("every design class returns a ggplot under the ggplot2 engine", {
+  skip_if_not_installed("ggplot2")
+  skip_if_not_installed("agridat")
+  cases <- list(
+    CRD = iris, factorial = ToothGrowth, none = mtcars,
+    `IBD/alpha-lattice` = agridat::john.alpha,
+    `split-plot` = agridat::yates.oats
+  )
+  for (nm in names(cases)) {
+    ds <- detect_design(cases[[nm]])
+    expect_identical(ds@class_label, nm)
+    expect_true(
+      inherits(plot_design_summary(ds, cases[[nm]], engine = "ggplot2"), "ggplot"),
+      info = nm
+    )
+  }
+})

@@ -42,7 +42,10 @@ utils::globalVariables(".data")
 #'   the selected environment's field layout or legacy design diagnostic.
 #' @param ... Ignored.
 #'
-#' @returns The input `x`, invisibly. Called for the plot side-effect.
+#' @returns With `engine = "ggplot2"`, the `ggplot` object, so it can be
+#'   modified or saved with `ggplot2::ggsave()`; nothing is drawn until it is
+#'   printed. With `engine = "base"`, the input `x` invisibly, after the plot
+#'   has been drawn.
 #'
 #' @examples
 #' if (requireNamespace("agridat", quietly = TRUE)) {
@@ -87,7 +90,7 @@ plot_design_summary <- function(x, df, engine = c("base", "ggplot2"),
     .plot_legacy_design(x, df, engine)
   }
   if (inherits(plot_result, "ggplot")) {
-    print(plot_result)
+    return(plot_result)
   }
 
   invisible(x)
@@ -106,13 +109,16 @@ plot_design_summary <- function(x, df, engine = c("base", "ggplot2"),
   )
 }
 
-S7::method(plot, design_summary) <- function(
+# `local()` keeps the generic out of the namespace: a bare assignment binds a
+# copy of it there, and the package's S3 methods for the same generic then
+# register on that copy, where dispatch never looks.
+local(S7::method(plot, design_summary) <- function(
   x, df, engine = c("base", "ggplot2"), environment = NULL, ...
 ) {
   plot_design_summary(
     x, df = df, engine = engine, environment = environment, ...
-  )
-}
+  )})
+
 
 # --- panel: multi-environment overview -----------------------------------
 
@@ -434,6 +440,9 @@ S7::method(plot, design_summary) <- function(
 # --- panel: split-plot tree + replication --------------------------------
 
 .plot_split_plot <- function(x, df, engine) {
+  if (engine == "ggplot2") {
+    return(.gg_split_plot(x, df))
+  }
   op <- graphics::par(mfrow = c(1, 2))
   on.exit(graphics::par(op), add = TRUE)
 
@@ -463,6 +472,20 @@ S7::method(plot, design_summary) <- function(
       }
     }
   }
+}
+
+# Whole-plot x sub-plot replication tile; the nesting is named in the
+# subtitle because one ggplot holds one panel.
+.gg_split_plot <- function(x, df) {
+  if (length(x@whole_plot_col) == 0L || length(x@sub_plot_col) == 0L) {
+    return(.gg_freq_and_na(x, df))
+  }
+  m <- as.matrix(table(df[[x@whole_plot_col]], df[[x@sub_plot_col]],
+    useNA = "no"
+  ))
+  layers <- c(x@block_cols, x@whole_plot_col, x@sub_plot_col)
+  .gg_replication_tile(m, x@sub_plot_col, x@whole_plot_col, x@class_label) +
+    ggplot2::labs(subtitle = paste(layers, collapse = " > "))
 }
 
 # Simple top-down tree: layers is character vector of column names
@@ -513,6 +536,9 @@ S7::method(plot, design_summary) <- function(
 # --- panel: frequency + NA-pattern (CRD / none / fallback) ---------------
 
 .plot_freq_and_na <- function(x, df, engine) {
+  if (engine == "ggplot2") {
+    return(.gg_freq_and_na(x, df))
+  }
   op <- graphics::par(mfrow = c(1, 2))
   on.exit(graphics::par(op), add = TRUE)
 
@@ -534,6 +560,38 @@ S7::method(plot, design_summary) <- function(
 
   # 2) NA pattern (column x NA-rate).
   .plot_na_pattern(df)
+}
+
+# Treatment replication and missingness side by side as two free-scale
+# facets of one ggplot.
+.gg_freq_and_na <- function(x, df) {
+  na_pct <- vapply(df, function(v) mean(is.na(v)) * 100, numeric(1L))
+  panels <- data.frame(
+    panel = "Missingness by column (% NA)",
+    key = names(na_pct), value = unname(na_pct),
+    stringsAsFactors = FALSE
+  )
+  if (length(x@treatment_col) > 0L && x@treatment_col[1L] %in% names(df)) {
+    trt <- x@treatment_col[1L]
+    tbl <- sort(table(df[[trt]], useNA = "no"), decreasing = TRUE)
+    panels <- rbind(
+      data.frame(
+        panel = sprintf("Replication: %s (n observations)", trt),
+        key = names(tbl), value = as.numeric(tbl),
+        stringsAsFactors = FALSE
+      ),
+      panels
+    )
+  }
+  panels$panel <- factor(panels$panel, levels = unique(panels$panel))
+  panels$key <- factor(panels$key, levels = rev(unique(panels$key)))
+  ggplot2::ggplot(panels, ggplot2::aes(.data$value, .data$key)) +
+    ggplot2::geom_col(fill = "#0072B2", width = 0.8) +
+    ggplot2::facet_wrap(~ .data$panel, scales = "free") +
+    ggplot2::labs(
+      title = sprintf("Design: %s", x@class_label), x = NULL, y = NULL
+    ) +
+    ggplot2::theme_minimal()
 }
 
 .plot_na_pattern <- function(df) {

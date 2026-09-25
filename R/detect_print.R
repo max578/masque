@@ -4,7 +4,8 @@
 # alternates (top-3 rule scores so the user can see runners-up), and
 # recommended roles. Long evidence lists are summarised.
 
-S7::method(print, design_summary) <- function(x, ...) {
+# local(): see the plot method in detect_plot.R.
+local(S7::method(print, design_summary) <- function(x, ...) {
   if (is.na(x@is_met)) {
     .print_scope_uncertainty(x)
   } else if (isTRUE(x@is_met)) {
@@ -145,8 +146,8 @@ S7::method(print, design_summary) <- function(x, ...) {
     )
   )
 
-  invisible(x)
-}
+  invisible(x)})
+
 
 .print_scope_uncertainty <- function(x) {
   cli::cli_rule(left = "Environment scope  <uncertain>")

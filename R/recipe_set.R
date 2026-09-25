@@ -40,7 +40,8 @@ masque_set <- S7::new_class(
   )
 )
 
-S7::method(print, masque_set) <- function(x, ...) {
+# local(): see the plot method in detect_plot.R.
+local(S7::method(print, masque_set) <- function(x, ...) {
   cli::cli_h1("masque_set")
   cli::cli_bullets(c(
     "*" = sprintf("Mode: %s", x@mode),
@@ -74,5 +75,5 @@ S7::method(print, masque_set) <- function(x, ...) {
   cli::cli_alert_danger(
     "The recipe bundle is PRIVATE - never share it with the synthetic set."
   )
-  invisible(x)
-}
+  invisible(x)})
+
