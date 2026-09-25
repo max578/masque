@@ -174,10 +174,13 @@ synthesise_numeric_conditional <- function(x_num, groups, min_stratum = 5L) {
     }
   }
   dropped <- setdiff(droppable, used)
+  # Rows in the pooled fallback have lost their stratum, so under the
+  # hierarchy ladder the stratum columns' main effects are carried for them
+  # as shifts as well.
   shifted <- if (identical(ladder, "hierarchy")) {
-    dropped[vapply(dropped, function(cl) {
-      length(unique(stats::na.omit(as.character(df[[cl]])))) >= 2L
-    }, logical(1L))]
+    cand <- c(dropped, if (isTRUE(frac > 0)) used)
+    cand <- cand[vapply(cand, function(cl) .shiftable(df[[cl]]), logical(1L))]
+    c(cand, .nested_pairs(intersect(cand, dropped)))
   } else {
     character()
   }
@@ -250,45 +253,148 @@ synthesise_numeric_conditional <- function(x_num, groups, min_stratum = 5L) {
   }, numeric(1))
 }
 
-# Internal: per row and numeric column, the least-squares main effect of
-# each dropped design column, estimated beside the kept stratum. Subtracted
-# before the within-stratum copula and added back after it. A row with a
-# missing value in any dropped column gets a zero shift.
+# A column can carry a shift when at least two of its levels hold two or
+# more rows; a level with one row is pooled with the other singletons
+# (see `.collapse_singletons()`), so a column of singletons has no effect
+# to estimate.
+.shiftable <- function(v) {
+  tab <- table(as.character(v))
+  sum(tab >= 2L) >= 2L
+}
+
+# Every pair among the dropped blocking and environment columns, written
+# "a:b": a replicate label inside one county is a different block from the
+# same label in another, so the pair carries what the two main effects
+# cannot. Plot coordinates form no pairs; a row-by-column pair is the plot.
+.nested_pairs <- function(cols) {
+  cols <- cols[!grepl(.COORD_PATTERN, cols, ignore.case = TRUE)]
+  if (length(cols) < 2L) {
+    return(character())
+  }
+  pairs <- utils::combn(cols, 2L, simplify = FALSE)
+  vapply(pairs, paste, character(1L), collapse = ":")
+}
+
+# The factor a shift term names: a column, or the interaction of a pair.
+.shift_term <- function(df, term) {
+  parts <- strsplit(term, ":", fixed = TRUE)[[1L]]
+  if (length(parts) == 1L) {
+    return(df[[parts]])
+  }
+  interaction(lapply(df[parts], as.character), drop = TRUE, sep = ":")
+}
+
+# Levels with a single row share one pooled level, so the shift a row
+# receives is never that row's own outcome.
+.collapse_singletons <- function(v) {
+  v <- as.character(v)
+  tab <- table(v)
+  single <- names(tab)[tab < 2L]
+  v[v %in% single] <- ".singleton"
+  factor(v)
+}
+
+# Internal: per row and numeric column, the effect of each shifted term,
+# estimated by least squares beside the kept stratum. Subtracted before the
+# within-stratum copula and added back after it. A row with a missing
+# value in any shifted term gets a zero shift. Returns the matrix, the
+# terms kept within the parameter budget, and per numeric column the
+# factor `sqrt((n - 1) / (n - 1 - p))` that restores the error variance
+# the fit removed, `p` counting the stratum and each term's degrees of
+# freedom weighted by its shrinkage.
+#
+# A blocking, environment or coordinate term is shrunk toward zero by its
+# signal share `tau2 / (tau2 + sigma2 / m)` (`tau2` the between-level
+# variance of its estimated effects net of sampling noise, `m` the rows per
+# level), so a term that is noise carries nothing and a strong one carries
+# its full effect. A stratum column shifted for rows in the pooled fallback
+# carries its treatment means unshrunk, as the copula would have.
 .design_shifts <- function(x_num, df, used, shifted) {
   shift <- matrix(
     0, nrow(x_num), ncol(x_num), dimnames = list(NULL, names(x_num))
   )
+  inflate <- stats::setNames(rep(1, ncol(x_num)), names(x_num))
+  none <- list(shift = shift, shifted = character(), inflate = inflate)
   if (!length(shifted) || !ncol(x_num) || nrow(x_num) < 3L) {
-    return(shift)
+    return(none)
   }
-  rhs <- lapply(df[shifted], function(v) factor(as.character(v)))
-  names(rhs) <- shifted
+  # The stratum enters the fit so a dropped column's effect is estimated
+  # beside it, unless a stratum column is itself being shifted (rows in the
+  # pooled fallback), when the stratum term would absorb that effect.
   key <- factor(.conditioning_groups(df, used))
-  if (nlevels(key) >= 2L) {
-    rhs <- c(list(.stratum = key), rhs)
+  with_stratum <- nlevels(key) >= 2L && !any(used %in% shifted)
+  terms <- lapply(shifted, function(term) .shift_term(df, term))
+  names(terms) <- shifted
+  shifted <- shifted[vapply(terms, .shiftable, logical(1L))]
+  n_fit <- min(vapply(x_num, function(y) sum(!is.na(y)), integer(1L)))
+  # Over the parameter budget, pairs go first (last pair first), then
+  # columns in the ladder's drop order.
+  repeat {
+    if (!length(shifted)) {
+      return(none)
+    }
+    rhs <- lapply(terms[shifted], .collapse_singletons)
+    if (with_stratum) {
+      rhs <- c(list(.stratum = key), rhs)
+    }
+    rhs <- as.data.frame(rhs, check.names = FALSE, stringsAsFactors = FALSE)
+    n_par <- 1L + sum(vapply(rhs, nlevels, integer(1L)) - 1L)
+    if (n_par < n_fit) {
+      break
+    }
+    is_pair <- grepl(":", shifted, fixed = TRUE)
+    shifted <- if (any(is_pair)) {
+      shifted[-max(which(is_pair))]
+    } else {
+      shifted[-1L]
+    }
   }
-  rhs <- as.data.frame(rhs, check.names = FALSE, stringsAsFactors = FALSE)
   ok <- stats::complete.cases(rhs)
-  if (sum(ok) < 3L) {
-    return(shift)
-  }
   form <- stats::as.formula(paste(
     "~", paste(sprintf("`%s`", names(rhs)), collapse = " + ")
   ))
   mm <- stats::model.matrix(form, data = rhs[ok, , drop = FALSE])
   term_of <- attr(mm, "assign")
-  labels <- attr(stats::terms(form), "term.labels")
-  is_shift <- term_of > 0L & labels[pmax(term_of, 1L)] != ".stratum"
-  if (!any(is_shift)) {
-    return(shift)
-  }
+  labels <- gsub("`", "", attr(stats::terms(form), "term.labels"), fixed = TRUE)
+  shift_terms <- which(labels != ".stratum")
+  n_lev <- vapply(rhs, nlevels, integer(1L))[labels]
   for (col in names(x_num)) {
     y <- x_num[[col]][ok]
     fit_rows <- !is.na(y)
     if (sum(fit_rows) <= ncol(mm)) next
-    beta <- stats::lm.fit(mm[fit_rows, , drop = FALSE], y[fit_rows])$coefficients
+    fit <- stats::lm.fit(mm[fit_rows, , drop = FALSE], y[fit_rows])
+    beta <- fit$coefficients
     beta[is.na(beta)] <- 0
-    shift[ok, col] <- as.numeric(mm[, is_shift, drop = FALSE] %*% beta[is_shift])
+    sigma2 <- sum(fit$residuals^2) / max(sum(fit_rows) - fit$rank, 1L)
+    p_eff <- if (with_stratum) nlevels(key) - 1 else 0
+    for (t in shift_terms) {
+      idx <- which(term_of == t)
+      lambda <- if (labels[t] %in% used) {
+        1
+      } else {
+        .shrinkage(c(0, beta[idx]), sigma2, sum(fit_rows) / n_lev[t])
+      }
+      shift[ok, col] <- shift[ok, col] +
+        lambda * as.numeric(mm[, idx, drop = FALSE] %*% beta[idx])
+      p_eff <- p_eff + lambda * (n_lev[t] - 1)
+    }
+    n <- sum(fit_rows)
+    if (n - 1 > p_eff) {
+      inflate[[col]] <- sqrt((n - 1) / (n - 1 - p_eff))
+    }
   }
-  shift
+  list(shift = shift, shifted = shifted, inflate = inflate)
+}
+
+# The share of a term's estimated level effects that is signal: the
+# between-level variance net of the sampling variance `sigma2 / m` of a
+# level mean, over the between-level variance. 0 for a term whose spread
+# is no more than noise; 1 for a strong effect.
+.shrinkage <- function(effects, sigma2, m) {
+  if (length(effects) < 2L || !is.finite(sigma2) || m <= 0) {
+    return(0)
+  }
+  noise <- sigma2 / m
+  tau2 <- max(0, stats::var(effects) - noise)
+  if (tau2 <= 0) 0 else tau2 / (tau2 + noise)
 }

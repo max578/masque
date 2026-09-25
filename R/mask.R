@@ -107,17 +107,23 @@
 #'   `trial`, ...), so an environment is never dropped before the replicates
 #'   inside it; within the last two tiers the column explaining the least
 #'   variance in the numeric block (adjusted for its number of levels) goes
-#'   first. The main effect of every
-#'   dropped column is estimated by least squares beside the stratum that
-#'   was kept, removed before the within-stratum copula and added back after
-#'   it, so a clone that conditions on genotype alone still carries the
-#'   original's environment, replicate and block means; the columns carried
-#'   this way are recorded on the recipe as `conditioning_shifted`. This
-#'   makes each dropped column's level means a stated property of the
-#'   clone, in the same way that `conditional = TRUE` already makes the
-#'   treatment means one. `"levels"` is the ladder of masque 0.11.1 to
-#'   0.12.0: columns are dropped in decreasing order of distinct values and a
-#'   dropped column leaves no trace in the clone.
+#'   first. The main effect of every dropped column, and of each pair of
+#'   dropped blocking or environment columns (the replicate inside a county
+#'   is a different block from the same label in the next county), is
+#'   estimated by least squares beside the stratum that was kept, removed
+#'   before the within-stratum copula and added back after it, so a clone
+#'   that conditions on genotype alone still carries the original's
+#'   environment, replicate and block means. Rows the stratum floor pools
+#'   into the fallback keep the stratum columns' main effects the same way,
+#'   so a three-replicate variety trial keeps its genotype means. A level
+#'   with a single row is pooled with the other singletons before the fit,
+#'   so no row's own outcome is ever carried. The terms carried are recorded
+#'   on the recipe as `conditioning_shifted`. This makes each carried term's
+#'   level means a stated property of the clone, in the same way that
+#'   `conditional = TRUE` already makes the treatment means one. `"levels"`
+#'   is the ladder of masque 0.11.1 to 0.12.0: columns are dropped in
+#'   decreasing order of distinct values and a dropped column leaves no
+#'   trace in the clone.
 #' @param coords Optional geographic-coordinate declaration. Supply one or more
 #'   latitude/longitude pairs and each is coarsened in place by an on-land
 #'   jitter (see [jitter_coordinates()]) instead of being copula-scrambled into
@@ -647,11 +653,16 @@ mask <- function(df,
         ladder       = ladder,
         x_num        = x_num
       )
-      shift <- .design_shifts(
+      shifts <- .design_shifts(
         x_num, df, conditional_report$used, conditional_report$shifted
       )
+      shift <- shifts$shift
+      conditional_report$shifted <- shifts$shifted
       x_num_new <- synthesise_numeric_conditional(
-        x_num - shift, conditional_report$groups,
+        .inflate_deviations(
+          x_num - shift, conditional_report$groups, shifts$inflate
+        ),
+        conditional_report$groups,
         min_stratum = .MIN_STRATUM
       )
       for (col in names(x_num_new)) {
@@ -769,6 +780,22 @@ mask <- function(df,
     warnings    = warnings,
     conditional = conditional_report
   )
+}
+
+# Internal: scale each column's deviations from its stratum mean by that
+# column's factor, leaving the stratum means and the NA cells where they
+# are.
+.inflate_deviations <- function(x_num, groups, factor) {
+  g <- as.character(groups)
+  g[is.na(g)] <- ".__na_group__"
+  for (col in names(x_num)) {
+    f <- factor[[col]]
+    if (!is.finite(f) || f == 1) next
+    v <- x_num[[col]]
+    mu <- stats::ave(v, g, FUN = function(z) mean(z, na.rm = TRUE))
+    x_num[[col]] <- mu + (v - mu) * f
+  }
+  x_num
 }
 
 # Minimum rows a stratum needs before the conditional clone will fit a

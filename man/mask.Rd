@@ -89,17 +89,23 @@ blocking columns, then environment columns (\code{site}, \code{year}, \code{coun
 \code{trial}, ...), so an environment is never dropped before the replicates
 inside it; within the last two tiers the column explaining the least
 variance in the numeric block (adjusted for its number of levels) goes
-first. The main effect of every
-dropped column is estimated by least squares beside the stratum that
-was kept, removed before the within-stratum copula and added back after
-it, so a clone that conditions on genotype alone still carries the
-original's environment, replicate and block means; the columns carried
-this way are recorded on the recipe as \code{conditioning_shifted}. This
-makes each dropped column's level means a stated property of the
-clone, in the same way that \code{conditional = TRUE} already makes the
-treatment means one. \code{"levels"} is the ladder of masque 0.11.1 to
-0.12.0: columns are dropped in decreasing order of distinct values and a
-dropped column leaves no trace in the clone.}
+first. The main effect of every dropped column, and of each pair of
+dropped blocking or environment columns (the replicate inside a county
+is a different block from the same label in the next county), is
+estimated by least squares beside the stratum that was kept, removed
+before the within-stratum copula and added back after it, so a clone
+that conditions on genotype alone still carries the original's
+environment, replicate and block means. Rows the stratum floor pools
+into the fallback keep the stratum columns' main effects the same way,
+so a three-replicate variety trial keeps its genotype means. A level
+with a single row is pooled with the other singletons before the fit,
+so no row's own outcome is ever carried. The terms carried are recorded
+on the recipe as \code{conditioning_shifted}. This makes each carried term's
+level means a stated property of the clone, in the same way that
+\code{conditional = TRUE} already makes the treatment means one. \code{"levels"}
+is the ladder of masque 0.11.1 to 0.12.0: columns are dropped in
+decreasing order of distinct values and a dropped column leaves no
+trace in the clone.}
 
 \item{coords}{Optional geographic-coordinate declaration. Supply one or more
 latitude/longitude pairs and each is coarsened in place by an on-land
