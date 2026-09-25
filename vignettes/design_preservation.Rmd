@@ -1,0 +1,425 @@
+---
+title: "What a conditional clone keeps of the design"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{What a conditional clone keeps of the design}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+<!-- Render time: ~25 s under rmarkdown::render(); macOS arm64, R 4.6.1, one
+     core. Eight designs are masked twenty times each under two ladders; the
+     multi-environment trial (1,188 rows) accounts for most of it. -->
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 7,
+  fig.height = 4.5,
+  dpi = 150
+)
+options(width = 100)
+set.seed(1)
+has_agridat <- requireNamespace("agridat", quietly = TRUE)
+has_ggplot2 <- requireNamespace("ggplot2", quietly = TRUE)
+```
+
+```{r library}
+library(masque)
+```
+
+## Why
+
+A biometrician is asked to develop a yield model on a synthetic clone of a
+multi-environment variety trial, and asks a fair question before starting:
+*which parts of the experiment will still be in the clone?* The allocation,
+every design column and the treatment labels, is returned as it was. The
+outcomes are re-simulated. The question is what a model fitted on those
+re-simulated outcomes will find: the treatment effect, the block effect,
+the environment effect, or only their marginal histograms.
+
+This vignette answers it for eight design classes with a public exemplar of
+each, all from the `agridat` package. Each is masked as a conditional clone
+twenty times, the model that the design calls for is fitted on the original
+and on every clone, and one pass rule is applied to all eight. The rule is
+stated before the table.
+
+## What
+
+`mask(conditional = TRUE)` re-simulates the numeric block within each
+treatment-by-design stratum, and coarsens that stratum by a ladder until
+every cell holds at least five rows. Two ladders are available.
+
+The default, `ladder = "hierarchy"`, drops plot coordinates first, then
+blocking columns, then environment columns, so a county is never dropped
+before the replicates inside it, and it carries the main effect of every
+dropped column, and of each pair of dropped blocking or environment
+columns, into the clone as an additive shift. Rows that even the
+treatment-only rung pools into the fallback keep the treatment means the
+same way. A level with a single row is pooled with the other singletons
+before any effect is estimated, so no row's own outcome is ever carried. A
+term that is noise is shrunk to nothing; a strong one is carried in full.
+The recipe names what was kept as the stratum (`conditioning_used`), what
+was dropped (`conditioning_dropped`) and what was carried as a shift
+(`conditioning_shifted`).
+
+`ladder = "levels"` is the ladder of masque 0.11.1 to 0.12.0: it drops the
+column with the most distinct values first and keeps nothing of a dropped
+column. It is kept so that a clone made under it can be reproduced.
+
+### The pass rule
+
+For each design, over twenty seeds:
+
+* **Allocation.** Every treatment and design column is byte-identical to
+  the original in every clone.
+* **NA mask.** The outcome's missing cells are the same cells in every
+  clone.
+* **Blocking and environment terms.** For each such term the original can
+  detect (F at or above 2), the median F over the clones is at least half
+  the original's.
+* **Treatment.** Over the treatment levels with two or more plots, the
+  median correlation between the clone's level means and the original's is
+  at least 0.7 when the original detects the treatment (F at or above 2); a
+  two-level treatment keeps the same top level in most seeds; and the
+  spread of the level means stays within a factor of two of the original
+  in every case.
+
+The same rule runs in the package's tests on three seeds, and on twenty
+when the tests are run off CRAN.
+
+## Do
+
+### The eight designs
+
+```{r specs, eval = has_agridat}
+design_specs <- function() {
+  augmented <- agridat::kling.augmented[, c("block", "gen", "tsw", "row", "col")]
+  n_gen <- table(augmented$gen)
+  augmented$check <- factor(ifelse(
+    n_gen[as.character(augmented$gen)] > 1L, as.character(augmented$gen), "new"
+  ))
+  rcbd <- agridat::besag.elbatan
+  rcbd$block <- factor(rcbd$col)
+  list(
+    CRD = list(
+      data = agridat::cochran.crd, outcome = "inf", treatment = "trt",
+      design = c("row", "col"),
+      formula = inf ~ trt, terms = c(trt = "treatment")
+    ),
+    RCBD = list(
+      data = rcbd, outcome = "yield", treatment = "gen",
+      design = c("block", "row", "col"),
+      formula = yield ~ block + gen,
+      terms = c(block = "block", gen = "treatment")
+    ),
+    `Latin square` = list(
+      data = agridat::fisher.latin, outcome = "yield", treatment = "trt",
+      design = c("row", "col"),
+      formula = yield ~ factor(row) + factor(col) + trt,
+      terms = c(`factor(row)` = "block", `factor(col)` = "block",
+        trt = "treatment")
+    ),
+    `split-plot` = list(
+      data = agridat::yates.oats[, c("block", "row", "col", "gen", "nitro", "yield")],
+      outcome = "yield", treatment = c("gen", "nitro"),
+      design = c("block", "row", "col"),
+      formula = yield ~ block + gen * nitro,
+      terms = c(block = "block", gen = "treatment", nitro = "treatment")
+    ),
+    `alpha lattice` = list(
+      data = agridat::john.alpha[, c("rep", "block", "gen", "yield", "row", "col")],
+      outcome = "yield", treatment = "gen",
+      design = c("rep", "block", "row", "col"),
+      formula = yield ~ rep + rep:block + gen,
+      terms = c(rep = "block", `rep:block` = "block", gen = "treatment")
+    ),
+    augmented = list(
+      data = augmented, outcome = "tsw", treatment = c("gen", "check"),
+      design = c("block", "row", "col"),
+      formula = tsw ~ block + check,
+      terms = c(block = "block", check = "treatment")
+    ),
+    MET = list(
+      data = agridat::besag.met, outcome = "yield", treatment = "gen",
+      design = c("county", "rep", "block", "row", "col"),
+      formula = yield ~ county + county:rep + gen,
+      terms = c(county = "environment", `county:rep` = "block",
+        gen = "treatment")
+    ),
+    `repeated measures` = list(
+      data = agridat::kenward.cattle, outcome = "weight", treatment = "trt",
+      design = c("animal", "day"),
+      formula = weight ~ trt + animal + factor(day),
+      terms = c(trt = "treatment", animal = "block", `factor(day)` = "block")
+    )
+  )
+}
+```
+
+The augmented design is analysed the classical way: the replicated checks
+are fixed levels and every unreplicated entry is one class, `new`. A clone
+cannot carry an unreplicated entry's own value, by construction, so that is
+the comparison the design allows.
+
+The RCBD exemplar records its three complete blocks as the column of the
+field; the block factor is made from it and the column kept as a
+coordinate.
+
+### Masking and measuring
+
+The roles are the ones a custodian would set: the outcome, the treatment
+columns kept as they are, and every design column kept as it is. Local mode
+keeps the treatment labels, so the allocation check is a byte comparison.
+
+```{r runner, eval = has_agridat}
+design_roles <- function(spec) {
+  r <- propose_roles(spec$data, mode = "local", detect = FALSE)
+  r <- set_role(r, spec$outcome, role = "outcome")
+  r <- set_role(r, spec$treatment, role = "treatment", action = "keep")
+  set_role(r, spec$design, role = "design", action = "keep")
+}
+
+level_means <- function(d, col, outcome) {
+  tab <- table(d[[col]])
+  m <- tapply(d[[outcome]], d[[col]], mean, na.rm = TRUE)
+  m[names(tab)[tab >= 2L]]
+}
+
+design_run <- function(spec, seeds, ladder = "hierarchy") {
+  d <- spec$data
+  r <- design_roles(spec)
+  f_orig <- anova(lm(spec$formula, data = d))
+  terms <- names(spec$terms)
+  alloc <- c(spec$treatment, spec$design)
+  per_seed <- lapply(seeds, function(s) {
+    m <- suppressWarnings(
+      mask(d, r, mode = "local", seed = s, conditional = TRUE, ladder = ladder)
+    )
+    sy <- as.data.frame(synthetic(m))
+    f_clone <- anova(lm(spec$formula, data = sy))
+    trt <- t(vapply(spec$treatment, function(tc) {
+      mo <- level_means(d, tc, spec$outcome)
+      ms <- level_means(sy, tc, spec$outcome)[names(mo)]
+      c(
+        corr = if (length(mo) > 2L) cor(mo, ms) else NA_real_,
+        ratio = sd(ms) / sd(mo),
+        order = as.numeric(identical(names(which.max(mo)), names(which.max(ms))))
+      )
+    }, numeric(3)))
+    list(
+      alloc = all(vapply(alloc, function(cn) identical(sy[[cn]], d[[cn]]), logical(1))),
+      na = identical(is.na(sy[[spec$outcome]]), is.na(d[[spec$outcome]])),
+      F = setNames(f_clone[terms, "F value"], terms),
+      trt = trt,
+      used = paste(recipe(m)@conditioning_used, collapse = " x "),
+      shifted = paste(recipe(m)@conditioning_shifted, collapse = ", ")
+    )
+  })
+  F_clone <- do.call(rbind, lapply(per_seed, `[[`, "F"))
+  trt <- simplify2array(lapply(per_seed, `[[`, "trt"))
+  list(
+    n = nrow(d),
+    F_orig = setNames(f_orig[terms, "F value"], terms),
+    F_clone = apply(F_clone, 2, median),
+    alloc = all(vapply(per_seed, `[[`, logical(1), "alloc")),
+    na = all(vapply(per_seed, `[[`, logical(1), "na")),
+    trt_corr = apply(trt[, "corr", , drop = FALSE], 1, median),
+    trt_ratio = apply(trt[, "ratio", , drop = FALSE], 1, median),
+    trt_order = apply(trt[, "order", , drop = FALSE], 1, mean),
+    used = per_seed[[1]]$used,
+    shifted = per_seed[[1]]$shifted
+  )
+}
+
+design_verdict <- function(spec, res, f_floor = 0.5, corr_floor = 0.7) {
+  kind <- spec$terms
+  block_terms <- names(kind)[kind != "treatment"]
+  block_ok <- vapply(block_terms, function(tm) {
+    res$F_orig[[tm]] < 2 || res$F_clone[[tm]] >= f_floor * res$F_orig[[tm]]
+  }, logical(1))
+  trt_detected <- any(res$F_orig[names(kind)[kind == "treatment"]] >= 2)
+  trt_ok <- vapply(seq_along(spec$treatment), function(i) {
+    corr <- res$trt_corr[[i]]
+    signal <- if (is.na(corr)) res$trt_order[[i]] > 0.5 else corr >= corr_floor
+    (signal || !trt_detected) && res$trt_ratio[[i]] >= 0.5 && res$trt_ratio[[i]] <= 2
+  }, logical(1))
+  c(allocation = res$alloc, na_mask = res$na,
+    blocking = all(block_ok), treatment = all(trt_ok))
+}
+```
+
+```{r run, eval = has_agridat}
+specs <- design_specs()
+seeds <- 1:20
+runs <- lapply(specs, design_run, seeds = seeds)
+runs_levels <- lapply(specs, design_run, seeds = seeds, ladder = "levels")
+```
+
+### The table
+
+```{r table, eval = has_agridat}
+verdicts <- t(mapply(design_verdict, specs, runs))
+summary_tbl <- data.frame(
+  design = names(specs),
+  rows = vapply(runs, `[[`, numeric(1), "n"),
+  stratum = vapply(runs, `[[`, character(1), "used"),
+  carried = vapply(runs, `[[`, character(1), "shifted"),
+  allocation = verdicts[, "allocation"],
+  na_mask = verdicts[, "na_mask"],
+  blocking = verdicts[, "blocking"],
+  treatment = verdicts[, "treatment"],
+  verdict = ifelse(rowSums(!verdicts) == 0, "pass", "fail"),
+  row.names = NULL
+)
+knitr::kable(summary_tbl)
+```
+
+```{r terms, eval = has_agridat}
+term_tbl <- do.call(rbind, lapply(names(specs), function(nm) {
+  data.frame(
+    design = nm,
+    term = names(specs[[nm]]$terms),
+    kind = unname(specs[[nm]]$terms),
+    F_original = round(runs[[nm]]$F_orig, 2),
+    F_levels = round(runs_levels[[nm]]$F_clone, 2),
+    F_hierarchy = round(runs[[nm]]$F_clone, 2),
+    row.names = NULL
+  )
+}))
+knitr::kable(term_tbl)
+```
+
+```{r treatment, eval = has_agridat}
+trt_tbl <- do.call(rbind, lapply(names(specs), function(nm) {
+  data.frame(
+    design = nm,
+    treatment = specs[[nm]]$treatment,
+    corr_levels = round(runs_levels[[nm]]$trt_corr, 2),
+    corr_hierarchy = round(runs[[nm]]$trt_corr, 2),
+    spread_ratio = round(runs[[nm]]$trt_ratio, 2),
+    row.names = NULL
+  )
+}))
+knitr::kable(trt_tbl)
+```
+
+### Figure: the F statistic per term, clone against original
+
+```{r figure, eval = has_agridat && has_ggplot2, fig.height = 5.5, fig.cap = "F statistic of each model term on the clone as a share of the original, median over twenty seeds, by ladder. Points on the dashed line are terms the clone reproduces exactly; the levels ladder loses every blocking and environment term, the hierarchy ladder keeps them.", fig.alt = "Dot plot of clone-to-original F ratios for every design term, two ladders side by side."}
+plot_df <- rbind(
+  data.frame(term_tbl[, c("design", "term", "kind")], ladder = "levels",
+    ratio = term_tbl$F_levels / term_tbl$F_original),
+  data.frame(term_tbl[, c("design", "term", "kind")], ladder = "hierarchy",
+    ratio = term_tbl$F_hierarchy / term_tbl$F_original)
+)
+plot_df <- plot_df[term_tbl$F_original >= 2, ]
+plot_df$label <- paste(plot_df$design, plot_df$term, sep = ": ")
+ggplot2::ggplot(plot_df, ggplot2::aes(x = ratio, y = label, colour = ladder)) +
+  ggplot2::geom_vline(xintercept = 1, linetype = "dashed", colour = "grey50") +
+  ggplot2::geom_vline(xintercept = 0.5, linetype = "dotted", colour = "grey50") +
+  ggplot2::geom_point(size = 2.5) +
+  ggplot2::scale_x_log10() +
+  ggplot2::scale_colour_manual(values = c(levels = "#E69F00", hierarchy = "#0072B2")) +
+  ggplot2::facet_grid(kind ~ ., scales = "free_y", space = "free_y") +
+  ggplot2::labs(x = "F on the clone / F on the original (log scale)", y = NULL) +
+  ggplot2::theme_minimal() +
+  ggplot2::theme(
+    legend.position = "bottom",
+    strip.text.y = ggplot2::element_text(angle = 0)
+  )
+```
+
+```{r no-agridat, eval = !has_agridat, echo = FALSE, results = "asis"}
+cat("The agridat package is not installed on this build, so the designs",
+    "are not masked here; the tables and the figure are omitted.\n")
+```
+
+## Read
+
+```{r read-values, eval = has_agridat, include = FALSE}
+n_pass <- sum(summary_tbl$verdict == "pass")
+met <- runs$MET
+met_levels <- runs_levels$MET
+oats <- runs$`split-plot`
+oats_levels <- runs_levels$`split-plot`
+```
+
+`r if (has_agridat) sprintf("All %d of the %d designs pass the rule under the hierarchy ladder.", n_pass, nrow(summary_tbl))`
+The allocation and the NA mask come back identical in every clone of every
+design, under both ladders; that part of the claim does not depend on the
+ladder at all. What the ladder decides is what a model finds.
+
+The multi-environment trial is the case the hierarchy ladder was built
+for. Its county effect has an F of
+`r if (has_agridat) round(met$F_orig[["county"]])` on the original; the
+levels ladder drops `county` before `rep`, and the clone's county F is
+`r if (has_agridat) round(met_levels$F_clone[["county"]], 1)`. The
+hierarchy ladder conditions on genotype alone and carries `county`,
+`rep`, `block` and their pairs as shifts; the clone's county F is
+`r if (has_agridat) round(met$F_clone[["county"]])`, the nested
+`county:rep` term is at
+`r if (has_agridat) round(met$F_clone[["county:rep"]], 1)` against
+`r if (has_agridat) round(met$F_orig[["county:rep"]], 1)`, and the
+genotype means correlate at
+`r if (has_agridat) round(met$trt_corr[["gen"]], 2)` with the original
+(`r if (has_agridat) round(met_levels$trt_corr[["gen"]], 2)` under the
+levels ladder).
+
+Yates' oats shows the same thing on a single trial: the block F is
+`r if (has_agridat) round(oats_levels$F_clone[["block"]], 1)` under the
+levels ladder and
+`r if (has_agridat) round(oats$F_clone[["block"]], 1)` under the hierarchy
+ladder, against `r if (has_agridat) round(oats$F_orig[["block"]], 1)` on
+the original, while the nitrogen response is kept by both.
+
+The alpha lattice and the RCBD are three-replicate variety trials, and
+there the treatment-only rung is itself below the floor of five rows: every
+row is pooled. Under the levels ladder that clone is the marginal clone,
+with a genotype correlation near zero; under the hierarchy ladder the
+genotype means are carried as a shift and the correlation is
+`r if (has_agridat) round(runs[["alpha lattice"]]$trt_corr[["gen"]], 2)` on
+the lattice and `r if (has_agridat) round(runs$RCBD$trt_corr[["gen"]], 2)`
+on the RCBD.
+
+The augmented design is the one where the rule has the least to say: its
+block and check terms are not detectable on the original (F below 2), so
+only the allocation, the NA mask and the spread of the check means are
+tested. The clone does not, and cannot, carry the unreplicated entries'
+values.
+
+## Limits
+
+The rule tests fixed-effects F statistics from `lm()`. A split-plot or a
+repeated-measures analysis would normally use a mixed model with the right
+error strata; the F ratios here compare the same fixed-effects model on
+both sides and say nothing about variance components. The treatment check
+compares level means over replicated levels, so it does not see a
+treatment-by-environment interaction, which the clone does not preserve:
+the copula is fitted within the stratum the ladder reached, and once
+`county` has been dropped the genotype-by-county pattern is gone. What the
+clone carries of a dropped column is an additive main effect, shrunk toward
+zero when the column explains little; a spatial trend recorded only as row
+and column numbers is carried as row and column means, not as a surface.
+The floors in the rule (half the original F, a correlation of 0.7, a
+spread within a factor of two) are the tolerances this vignette states,
+not properties of the method; a stricter reader should tighten them and
+re-run the chunk.
+
+## What to read next
+
+*Confidentiality and the threat model* explains what carrying a level mean
+into the clone means for disclosure, and why `conditional = TRUE` is a
+statement about what the clone reproduces. *Getting started with masque*
+is the custodian's path from a table to a synthetic and a recipe.
+
+## Reproduce
+
+`set.seed(1)` is set once for the document; every `mask()` call passes its
+own `seed`, one to twenty, so each clone is reproducible on its own.
+Package versions follow.
+
+```{r session-info}
+sessionInfo()
+```

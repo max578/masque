@@ -65,6 +65,7 @@ articles:
   contents:
   - getting_started
   - confidentiality
+  - design_preservation
   - recipe_anatomy
 
 navbar:
