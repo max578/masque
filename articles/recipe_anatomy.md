@@ -119,7 +119,7 @@ vocabularies themselves:
 rec
 #> 
 #> ── masque_recipe ───────────────────────────────────────────────────────────────────────────────────
-#> • Created: 2026-09-12 12:19:15 UTC
+#> • Created: 2026-09-25 05:01:27 UTC
 #> • Mode: collaborate
 #> • Clone fidelity: marginal / structural (global copula)
 #> • Seed: present (redacted)
@@ -399,7 +399,7 @@ sessionInfo()
 #>  [9] yaml_2.3.12         fastmap_1.2.0       ggplot2_4.0.3       R6_2.6.1           
 #> [13] labeling_0.4.3      knitr_1.52          tibble_3.3.1        desc_1.4.3         
 #> [17] bslib_0.12.0        pillar_1.11.1       RColorBrewer_1.1-3  rlang_1.3.0        
-#> [21] cachem_1.1.0        xfun_0.60           fs_2.1.0            sass_0.4.10        
+#> [21] cachem_1.1.0        xfun_0.61           fs_2.1.0            sass_0.4.10        
 #> [25] S7_0.2.2            otel_0.2.0          viridisLite_0.4.3   cli_3.6.6          
 #> [29] pkgdown_2.2.1       withr_3.0.3         magrittr_2.0.5      digest_0.6.39      
 #> [33] grid_4.6.1          lifecycle_1.0.5     vctrs_0.7.3         evaluate_1.0.5     

@@ -62,7 +62,7 @@ Each row of the returned tibble holds:
 
 - `notes`: short human summary.
 
-Classification heuristics (CODEX-aligned):
+Classification heuristics:
 
 - Retained PII-pattern column -\> `high`.
 
