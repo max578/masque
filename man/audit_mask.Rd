@@ -43,7 +43,7 @@ on every row).
 \item \code{notes}: short human summary.
 }
 
-Classification heuristics (CODEX-aligned):
+Classification heuristics:
 
 \itemize{
 \item Retained PII-pattern column -> \code{high}.

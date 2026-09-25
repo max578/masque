@@ -141,8 +141,8 @@ test_that("seed gives reproducible output", {
   expect_equal(o1$lon, o2$lon)
 })
 
-# v0.4.1: NA-mask authority is the *original*, not the *synth* (CODEX
-# finding 6). Constructs a case where synth has full coords but original
+# v0.4.1: NA-mask authority is the *original*, not the *synth*.
+# Constructs a case where synth has full coords but original
 # has missing ones, and asserts the output preserves the original's NAs.
 
 test_that("synthesise_geospatial uses original's NA mask, not synth's", {
