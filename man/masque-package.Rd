@@ -27,7 +27,7 @@ joins. \code{\link[=apply_recipe]{apply_recipe()}} and \code{\link[=unmask]{unma
 onto the original data.
 }
 
-\section{Honest claim}{
+\section{Scope and limits}{
 
 \code{masque} is \strong{not} a differential-privacy or anonymisation tool. Its outputs
 are development surrogates: structurally faithful enough that pipeline code

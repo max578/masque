@@ -20,7 +20,7 @@
 #' joins. [apply_recipe()] and [unmask()] re-target a finished pipeline
 #' onto the original data.
 #'
-#' @section Honest claim:
+#' @section Scope and limits:
 #' `masque` is **not** a differential-privacy or anonymisation tool. Its outputs
 #' are development surrogates: structurally faithful enough that pipeline code
 #' runs unchanged, controlled enough that raw values are not exposed in
