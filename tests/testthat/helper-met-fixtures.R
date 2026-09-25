@@ -206,7 +206,7 @@ legacy_base_oracle <- function() {
       sub_plot_col = character(),
       spatial_cols = character(),
       scores = c(
-        CRD = 0, RCBD = 0, `IBD/alpha-lattice` = 0.3,
+        CRD = 0, RCBD = 0, `IBD/alpha-lattice` = 0,
         `row-column` = 0, `split-plot` = 0,
         factorial = 0.463048879864784
       ),

@@ -57,6 +57,12 @@
   if (length(x) < 2L) 0 else stats::sd(x)
 }
 
+# The most frequent value of an integer vector; the smallest on a tie.
+.mode_int <- function(x) {
+  tab <- table(x)
+  as.integer(names(tab)[which.max(tab)])
+}
+
 # --- rules -----------------------------------------------------------------
 
 # Rule 1: Completely Randomised Design.
@@ -252,15 +258,21 @@
     block_sizes <- rowSums(inc > 0L)
     rep_counts <- colSums(inc > 0L)
 
-    k_constant <- .sd0(block_sizes) == 0
-    r_constant <- .sd0(rep_counts) == 0
-    k_ <- block_sizes[1L]
-    r_ <- rep_counts[1L]
+    # Regularity is graded by the share of blocks at the modal block size and
+    # of treatments at the modal replication, so one filler plot or one extra
+    # replicate of a check does not turn a lattice into a CRD.
+    k_ <- .mode_int(block_sizes)
+    r_ <- .mode_int(rep_counts)
+    k_share <- mean(block_sizes == k_)
+    r_share <- mean(rep_counts == r_)
+    k_constant <- k_share == 1
+    r_constant <- r_share == 1
 
     if (!isTRUE(k_ < T_)) next
-    if (k_ < 2L) next
+    if (k_ < 2L || r_ < 2L) next
+    if (k_share < 0.9 || r_share < 0.9) next
 
-    regularity <- (k_constant + r_constant) / 2
+    regularity <- (k_share + r_share) / 2
     incidence_check <- if (isTRUE(T_ * r_ == B_ * k_)) 0.15 else 0
     incomplete_room <- if (k_ / T_ < 0.9) 0.1 else 0
     name_bonus <- if (all(cb$basis %in% cands$block_named)) 0.1 else 0
@@ -283,6 +295,8 @@
           block_is_pairwise = cb$pairwise,
           n_treatments = T_, n_blocks = B_,
           k = k_, r = r_,
+          k_share = k_share,
+          r_share = r_share,
           k_constant = k_constant,
           r_constant = r_constant,
           incidence_balanced = isTRUE(T_ * r_ == B_ * k_)

@@ -170,3 +170,26 @@ test_that("single-trial agridat negatives are not auto-promoted", {
     expect_equal(ds@env_cols, character(), info = nm)
   }
 })
+
+test_that("a blocked MET reports the within-environment incomplete-block design", {
+  skip_if_not_installed("agridat")
+  ds <- detect_design(agridat::besag.met)
+  expect_true(isTRUE(ds@is_met))
+  expect_identical(ds@env_cols, "county")
+  expect_identical(unique(ds@per_env$class_label), "IBD/alpha-lattice")
+  expect_identical(unique(ds@per_env$block_cols), "rep : block")
+  expect_identical(ds@within_design_label, "IBD/alpha-lattice")
+  txt <- paste(capture.output(print(ds), type = "message"), collapse = "\n")
+  expect_match(txt, "IBD/alpha-lattice=6")
+})
+
+test_that("one irregular block does not turn an alpha-lattice into a CRD", {
+  skip_if_not_installed("agridat")
+  # Without its first plot, one block is short a genotype and that genotype
+  # is short a replicate.
+  d <- agridat::john.alpha[-1L, ]
+  ds <- detect_design(d)
+  expect_identical(ds@class_label, "IBD/alpha-lattice")
+  expect_lt(ds@evidence$k_share, 1)
+  expect_lt(ds@evidence$r_share, 1)
+})
