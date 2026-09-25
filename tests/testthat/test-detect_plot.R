@@ -139,7 +139,9 @@ test_that("the ggplot2 engine returns the plot, and ggsave() writes it", {
 
   png_path <- withr::local_tempfile(fileext = ".png")
   ggplot2::ggsave(png_path, p, width = 5, height = 4, dpi = 72)
-  expect_gt(file.size(png_path), 5000)
+  header <- readBin(png_path, "raw", 24L)
+  expect_identical(rawToChar(header[2:4]), "PNG")
+  expect_identical(readBin(header[17:24], "integer", 2L, endian = "big"), c(360L, 288L))
 
   # The base engine still draws and hands the summary back invisibly.
   pdf(NULL)

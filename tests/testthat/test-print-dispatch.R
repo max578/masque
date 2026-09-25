@@ -23,16 +23,22 @@ test_that("print methods for the cleaning and conformance records resolve", {
 test_that("print methods dispatch from an installed copy of the package", {
   skip_on_cran()
   skip_if_not_installed("callr")
+  # Under R CMD check there is no source tree; the checked copy is installed.
   pkg <- normalizePath(testthat::test_path("..", ".."))
+  from_source <- file.exists(file.path(pkg, "DESCRIPTION"))
   lib <- withr::local_tempdir()
   res <- callr::r(
-    function(pkg, lib) {
-      install.packages(
-        pkg, lib = lib, repos = NULL, type = "source",
-        INSTALL_opts = c("--no-docs", "--no-multiarch", "--no-test-load"),
-        quiet = TRUE
-      )
-      library(masque, lib.loc = lib)
+    function(pkg, lib, from_source) {
+      if (from_source) {
+        install.packages(
+          pkg, lib = lib, repos = NULL, type = "source",
+          INSTALL_opts = c("--no-docs", "--no-multiarch", "--no-test-load"),
+          quiet = TRUE
+        )
+        library(masque, lib.loc = lib)
+      } else {
+        library(masque)
+      }
       cf <- conform_table(
         data.frame(s = c("a", "b", "a", "b", "c")), quiet = TRUE
       )
@@ -57,7 +63,7 @@ test_that("print methods dispatch from an installed copy of the package", {
         ))
       )
     },
-    args = list(pkg = pkg, lib = lib)
+    args = list(pkg = pkg, lib = lib, from_source = from_source)
   )
   expect_true(res$conformance)
   expect_true(res$cleaning)
