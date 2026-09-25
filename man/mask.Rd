@@ -12,6 +12,7 @@ mask(
   clean = c("auto", "report", "off"),
   alias_names = FALSE,
   conditional = FALSE,
+  ladder = c("hierarchy", "levels"),
   coords = NULL,
   allow_unmasked_coords = FALSE,
   quiet = FALSE,
@@ -71,15 +72,34 @@ are recorded on the recipe.
 The stratum is chosen by a \strong{coarsening ladder}. Treatment crossed
 with every retained design column is the finest rung, but on a
 replicated factorial that rung holds one row per cell, which is too
-thin to synthesise. The ladder then drops design columns, finest
-first, until the cells hold at least five rows; treatment columns are
-never dropped. Whatever remains below that floor is pooled into a
-global fallback. The rung reached is recorded on the recipe as
-\code{conditioning_used}, the pooled share as \code{fallback_frac}, and any
-coarsening or residual pooling raises a classed
-\code{masque_conditional_degraded} warning -- including the case where no
-treatment or design column survives at all, in which case the clone is
-the pooled copula.}
+thin to synthesise. The ladder then drops design columns, in the order
+set by \code{ladder}, until the cells hold at least five rows; treatment
+columns are never dropped. Whatever remains below that floor is pooled
+into a global fallback. The rung reached is recorded on the recipe as
+\code{conditioning_used}, the columns given up as \code{conditioning_dropped},
+the pooled share as \code{fallback_frac}, and any coarsening or residual
+pooling raises a classed \code{masque_conditional_degraded} warning --
+including the case where no treatment or design column survives at
+all, in which case the clone is the pooled copula.}
+
+\item{ladder}{How the coarsening ladder orders the design columns it may
+drop, and what it keeps of a dropped one. \code{"hierarchy"} (the default)
+drops plot coordinates (\code{row}, \code{col}, \code{range}, \code{plot}) first, then
+blocking columns, then environment columns (\code{site}, \code{year}, \code{county},
+\code{trial}, ...), so an environment is never dropped before the replicates
+inside it; within the last two tiers the column explaining the least
+variance in the numeric block (adjusted for its number of levels) goes
+first. The main effect of every
+dropped column is estimated by least squares beside the stratum that
+was kept, removed before the within-stratum copula and added back after
+it, so a clone that conditions on genotype alone still carries the
+original's environment, replicate and block means; the columns carried
+this way are recorded on the recipe as \code{conditioning_shifted}. This
+makes each dropped column's level means a stated property of the
+clone, in the same way that \code{conditional = TRUE} already makes the
+treatment means one. \code{"levels"} is the ladder of masque 0.11.1 to
+0.12.0: columns are dropped in decreasing order of distinct values and a
+dropped column leaves no trace in the clone.}
 
 \item{coords}{Optional geographic-coordinate declaration. Supply one or more
 latitude/longitude pairs and each is coarsened in place by an on-land

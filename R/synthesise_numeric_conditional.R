@@ -140,44 +140,25 @@ synthesise_numeric_conditional <- function(x_num, groups, min_stratum = 5L) {
   .resolve_strata(groups, min_stratum)$fallback_frac
 }
 
-# Internal: the conditioning ladder.
-#
-# The finest conditioning set -- treatment crossed with every retained
-# design column -- is the one a caller means by `conditional = TRUE`, but
-# on a replicated factorial it is also the one that puts a single row in
-# every cell. Pooling that wholesale hands back the marginal clone under a
-# conditional label. Instead, coarsen: drop design columns one at a time,
-# finest first, until the cells reach `min_stratum`.
-#
-# Two rules govern the ladder:
-#
-#   * Treatment columns are never dropped. They carry the assignment whose
-#     effect the conditional clone exists to preserve, so if even the
-#     treatment-only rung leaves cells below `min_stratum` the ladder stops
-#     there and reports the residual fallback fraction rather than
-#     conditioning on nothing.
-#   * Design columns are dropped in decreasing order of distinct values.
-#     The finest column is the one fragmenting the cells, and dropping it
-#     buys the largest gain in cell size per unit of conditional structure
-#     given up. Ties are broken by column order, so the ladder is
-#     deterministic.
-#
-# Coarsening can only merge cells, so the fallback fraction is
-# non-increasing down the ladder: the first rung that reaches zero is also
-# the finest one that does.
-#
-# Returns the rung used, the columns given up, the fallback fraction at
-# that rung, and the row-wise stratum labels it implies.
+# Internal: the conditioning ladder. Drops design columns one at a time,
+# in the order `ladder` sets (`.order_by_levels()` or
+# `.order_by_hierarchy()`), until every cell holds `min_stratum` rows.
+# Treatment columns are never dropped: if the treatment-only rung is still
+# below the floor the ladder stops there and reports the residual fallback
+# fraction. Under "hierarchy" every dropped column is also listed in
+# `shifted`, for `.design_shifts()`.
 .conditioning_ladder <- function(df, cond_cols, protect_cols,
-                                 min_stratum = 5L) {
+                                 min_stratum = 5L, ladder = "levels",
+                                 x_num = NULL) {
   cond_cols <- intersect(names(df), cond_cols)
   protect <- intersect(cond_cols, protect_cols)
   droppable <- setdiff(cond_cols, protect)
   if (length(droppable) > 1L) {
-    n_lev <- vapply(droppable, function(cl) {
-      length(unique(as.character(df[[cl]])))
-    }, integer(1))
-    droppable <- droppable[order(-n_lev, match(droppable, names(df)))]
+    droppable <- if (identical(ladder, "hierarchy")) {
+      .order_by_hierarchy(df, droppable, x_num)
+    } else {
+      .order_by_levels(df, droppable)
+    }
   }
 
   used <- cond_cols
@@ -192,12 +173,122 @@ synthesise_numeric_conditional <- function(x_num, groups, min_stratum = 5L) {
       break
     }
   }
+  dropped <- setdiff(droppable, used)
+  shifted <- if (identical(ladder, "hierarchy")) {
+    dropped[vapply(dropped, function(cl) {
+      length(unique(stats::na.omit(as.character(df[[cl]])))) >= 2L
+    }, logical(1L))]
+  } else {
+    character()
+  }
 
   list(
     used          = used,
-    dropped       = setdiff(cond_cols, used),
+    dropped       = dropped,
+    shifted       = shifted,
     fallback_frac = frac,
     min_stratum   = as.integer(min_stratum),
     groups        = .conditioning_groups(df, used)
   )
+}
+
+.order_by_levels <- function(df, cols) {
+  n_lev <- vapply(cols, function(cl) {
+    length(unique(as.character(df[[cl]])))
+  }, integer(1))
+  cols[order(-n_lev, match(cols, names(df)))]
+}
+
+# Column names read as a plot coordinate or as an environment. Anything
+# else in the conditioning set is a blocking column.
+.COORD_PATTERN <- "^(row|col|column|range|plot|plotno|x|y)$"
+.ENV_PATTERN <- paste0(
+  "^(env|environment|site|loc|location|year|season|county|region|state|",
+  "trial|site_?year|loc_?year)$"
+)
+
+.order_by_hierarchy <- function(df, cols, x_num = NULL) {
+  tier <- ifelse(
+    grepl(.COORD_PATTERN, cols, ignore.case = TRUE), 1L,
+    ifelse(grepl(.ENV_PATTERN, cols, ignore.case = TRUE), 3L, 2L)
+  )
+  n_lev <- vapply(cols, function(cl) {
+    length(unique(as.character(df[[cl]])))
+  }, integer(1))
+  eta2 <- .variance_explained(df, cols, x_num)
+  # Coordinates: finest first. Blocks and environments: least explained
+  # variance first. Ties by column order.
+  key <- ifelse(tier == 1L, -n_lev, eta2)
+  cols[order(tier, key, match(cols, names(df)))]
+}
+
+# Mean over the numeric block of the share of each numeric column's sum of
+# squares that a conditioning column explains, adjusted for its number of
+# levels (twelve null blocks explain a sixth of the variance by chance)
+# and floored at 0. 0 when there is no numeric block to explain.
+.variance_explained <- function(df, cols, x_num = NULL) {
+  if (is.null(x_num) || !ncol(x_num) || !nrow(x_num)) {
+    return(stats::setNames(rep(0, length(cols)), cols))
+  }
+  vapply(cols, function(cl) {
+    g <- as.character(df[[cl]])
+    share <- vapply(x_num, function(y) {
+      ok <- !is.na(y) & !is.na(g)
+      n <- sum(ok)
+      if (n < 3L) return(0)
+      y <- y[ok]
+      ss_tot <- sum((y - mean(y))^2)
+      if (ss_tot <= 0) return(0)
+      mu <- tapply(y, g[ok], mean)
+      nn <- tapply(y, g[ok], length)
+      k <- length(mu)
+      if (k >= n) return(0)
+      eta2 <- sum(nn * (mu - mean(y))^2) / ss_tot
+      max(0, 1 - (1 - eta2) * (n - 1) / (n - k))
+    }, numeric(1))
+    mean(share)
+  }, numeric(1))
+}
+
+# Internal: per row and numeric column, the least-squares main effect of
+# each dropped design column, estimated beside the kept stratum. Subtracted
+# before the within-stratum copula and added back after it. A row with a
+# missing value in any dropped column gets a zero shift.
+.design_shifts <- function(x_num, df, used, shifted) {
+  shift <- matrix(
+    0, nrow(x_num), ncol(x_num), dimnames = list(NULL, names(x_num))
+  )
+  if (!length(shifted) || !ncol(x_num) || nrow(x_num) < 3L) {
+    return(shift)
+  }
+  rhs <- lapply(df[shifted], function(v) factor(as.character(v)))
+  names(rhs) <- shifted
+  key <- factor(.conditioning_groups(df, used))
+  if (nlevels(key) >= 2L) {
+    rhs <- c(list(.stratum = key), rhs)
+  }
+  rhs <- as.data.frame(rhs, check.names = FALSE, stringsAsFactors = FALSE)
+  ok <- stats::complete.cases(rhs)
+  if (sum(ok) < 3L) {
+    return(shift)
+  }
+  form <- stats::as.formula(paste(
+    "~", paste(sprintf("`%s`", names(rhs)), collapse = " + ")
+  ))
+  mm <- stats::model.matrix(form, data = rhs[ok, , drop = FALSE])
+  term_of <- attr(mm, "assign")
+  labels <- attr(stats::terms(form), "term.labels")
+  is_shift <- term_of > 0L & labels[pmax(term_of, 1L)] != ".stratum"
+  if (!any(is_shift)) {
+    return(shift)
+  }
+  for (col in names(x_num)) {
+    y <- x_num[[col]][ok]
+    fit_rows <- !is.na(y)
+    if (sum(fit_rows) <= ncol(mm)) next
+    beta <- stats::lm.fit(mm[fit_rows, , drop = FALSE], y[fit_rows])$coefficients
+    beta[is.na(beta)] <- 0
+    shift[ok, col] <- as.numeric(mm[, is_shift, drop = FALSE] %*% beta[is_shift])
+  }
+  shift
 }

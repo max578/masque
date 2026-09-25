@@ -13,6 +13,7 @@ masque(
   clean = c("auto", "report", "off"),
   alias_names = FALSE,
   conditional = FALSE,
+  ladder = c("hierarchy", "levels"),
   ask = interactive(),
   overwrite = FALSE,
   quiet = FALSE,
@@ -46,6 +47,9 @@ clone mode passed through to \code{\link[=mask]{mask()}} / \code{\link[=mask_set
 numeric columns are re-simulated within each treatment-by-design
 stratum so the treatment-to-outcome relationship survives the clone.
 See \code{\link[=mask]{mask()}} for the full account.}
+
+\item{ladder}{Drop order of the conditioning ladder, \code{"hierarchy"} (default)
+or \code{"levels"}; passed through to \code{\link[=mask]{mask()}} / \code{\link[=mask_set]{mask_set()}}.}
 
 \item{ask}{Whether to pause for interactive review when \code{roles} is not
 supplied. Defaults to \code{\link[=interactive]{interactive()}}. Set \code{FALSE} to proceed with

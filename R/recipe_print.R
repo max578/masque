@@ -232,6 +232,13 @@ reveal_maps <- function(rec) {
       line, paste(dropped, collapse = ", ")
     )
   }
+  shifted <- tryCatch(x@conditioning_shifted, error = function(e) character())
+  if (length(shifted)) {
+    line <- sprintf(
+      "%s [main effects carried as shifts: %s]",
+      line, paste(shifted, collapse = ", ")
+    )
+  }
   if (isTRUE(is.finite(frac)) && frac > 0) {
     line <- sprintf("%s [%.1f%% of rows pooled]", line, 100 * frac)
   }

@@ -91,15 +91,33 @@
 #'   The stratum is chosen by a **coarsening ladder**. Treatment crossed
 #'   with every retained design column is the finest rung, but on a
 #'   replicated factorial that rung holds one row per cell, which is too
-#'   thin to synthesise. The ladder then drops design columns, finest
-#'   first, until the cells hold at least five rows; treatment columns are
-#'   never dropped. Whatever remains below that floor is pooled into a
-#'   global fallback. The rung reached is recorded on the recipe as
-#'   `conditioning_used`, the pooled share as `fallback_frac`, and any
-#'   coarsening or residual pooling raises a classed
-#'   `masque_conditional_degraded` warning -- including the case where no
-#'   treatment or design column survives at all, in which case the clone is
-#'   the pooled copula.
+#'   thin to synthesise. The ladder then drops design columns, in the order
+#'   set by `ladder`, until the cells hold at least five rows; treatment
+#'   columns are never dropped. Whatever remains below that floor is pooled
+#'   into a global fallback. The rung reached is recorded on the recipe as
+#'   `conditioning_used`, the columns given up as `conditioning_dropped`,
+#'   the pooled share as `fallback_frac`, and any coarsening or residual
+#'   pooling raises a classed `masque_conditional_degraded` warning --
+#'   including the case where no treatment or design column survives at
+#'   all, in which case the clone is the pooled copula.
+#' @param ladder How the coarsening ladder orders the design columns it may
+#'   drop, and what it keeps of a dropped one. `"hierarchy"` (the default)
+#'   drops plot coordinates (`row`, `col`, `range`, `plot`) first, then
+#'   blocking columns, then environment columns (`site`, `year`, `county`,
+#'   `trial`, ...), so an environment is never dropped before the replicates
+#'   inside it; within the last two tiers the column explaining the least
+#'   variance in the numeric block (adjusted for its number of levels) goes
+#'   first. The main effect of every
+#'   dropped column is estimated by least squares beside the stratum that
+#'   was kept, removed before the within-stratum copula and added back after
+#'   it, so a clone that conditions on genotype alone still carries the
+#'   original's environment, replicate and block means; the columns carried
+#'   this way are recorded on the recipe as `conditioning_shifted`. This
+#'   makes each dropped column's level means a stated property of the
+#'   clone, in the same way that `conditional = TRUE` already makes the
+#'   treatment means one. `"levels"` is the ladder of masque 0.11.1 to
+#'   0.12.0: columns are dropped in decreasing order of distinct values and a
+#'   dropped column leaves no trace in the clone.
 #' @param coords Optional geographic-coordinate declaration. Supply one or more
 #'   latitude/longitude pairs and each is coarsened in place by an on-land
 #'   jitter (see [jitter_coordinates()]) instead of being copula-scrambled into
@@ -152,6 +170,7 @@ mask <- function(df,
                  clean = c("auto", "report", "off"),
                  alias_names = FALSE,
                  conditional = FALSE,
+                 ladder = c("hierarchy", "levels"),
                  coords = NULL,
                  allow_unmasked_coords = FALSE,
                  quiet = FALSE,
@@ -195,6 +214,14 @@ mask <- function(df,
       class = c("masque_bad_conditional_refusal", "orchestra_refusal")
     )
   }
+  if (!is.character(ladder) || !length(ladder) ||
+    !all(ladder %in% c("hierarchy", "levels"))) {
+    cli::cli_abort(
+      "`ladder` must be {.val hierarchy} or {.val levels}.",
+      class = c("masque_bad_ladder_refusal", "orchestra_refusal")
+    )
+  }
+  ladder <- ladder[1L]
   # Shape-check `roles` before reading its mode provenance, for the same
   # reason as in `mask_set()`: something that is not a roles table has no
   # provenance to carry, so inferring mode from it first warns the caller
@@ -313,7 +340,9 @@ mask <- function(df,
 
   result <- with_rng_state(
     seed,
-    .mask_orchestrate(df, roles, mode, opts, .shared_maps, conditional)
+    .mask_orchestrate(
+      df, roles, mode, opts, .shared_maps, conditional, ladder
+    )
   )
   synth <- result$synth
   level_maps <- result$level_maps
@@ -329,6 +358,16 @@ mask <- function(df,
     conditioning_cols
   } else {
     cond_report$used
+  }
+  conditioning_dropped <- if (is.null(cond_report)) {
+    setdiff(conditioning_cols, conditioning_used)
+  } else {
+    cond_report$dropped
+  }
+  conditioning_shifted <- if (is.null(cond_report)) {
+    character()
+  } else {
+    cond_report$shifted
   }
   fallback_frac <- if (is.null(cond_report)) {
     if (isTRUE(conditional)) 0 else NA_real_
@@ -449,8 +488,11 @@ mask <- function(df,
     seed              = if (is.null(seed)) NULL else as.integer(seed),
     roles             = .strip_roles_provenance(as.data.frame(roles)),
     conditional       = conditional,
+    ladder            = ladder,
     conditioning_cols = conditioning_cols,
     conditioning_used = conditioning_used,
+    conditioning_dropped = conditioning_dropped,
+    conditioning_shifted = conditioning_shifted,
     fallback_frac     = fallback_frac,
     column_name_map   = column_name_map,
     level_maps        = level_maps,
@@ -534,6 +576,13 @@ mask <- function(df,
         "nothing (pooled copula)"
       }
     ))
+    shifted <- report$shifted
+    if (length(shifted)) {
+      parts <- c(parts, sprintf(
+        "The main effect of %s is carried into the clone as an additive shift.",
+        paste(shifted, collapse = ", ")
+      ))
+    }
   }
   if (is.finite(frac) && frac > 0) {
     parts <- c(parts, sprintf(
@@ -554,7 +603,7 @@ mask <- function(df,
 # `conditional = TRUE` re-routes the numeric block through the stratified
 # synthesiser so the treatment -> outcome map survives the clone.
 .mask_orchestrate <- function(df, roles, mode, opts, shared_maps = list(),
-                              conditional = FALSE) {
+                              conditional = FALSE, ladder = "hierarchy") {
   synth <- df
   level_maps <- list()
   warnings <- character()
@@ -594,12 +643,25 @@ mask <- function(df,
         df,
         cond_cols    = .conditioning_cols(roles),
         protect_cols = roles$col[role == "treatment" & action != "drop"],
-        min_stratum  = .MIN_STRATUM
+        min_stratum  = .MIN_STRATUM,
+        ladder       = ladder,
+        x_num        = x_num
+      )
+      shift <- .design_shifts(
+        x_num, df, conditional_report$used, conditional_report$shifted
       )
       x_num_new <- synthesise_numeric_conditional(
-        x_num, conditional_report$groups,
+        x_num - shift, conditional_report$groups,
         min_stratum = .MIN_STRATUM
       )
+      for (col in names(x_num_new)) {
+        v <- x_num_new[[col]] + shift[, col]
+        x_num_new[[col]] <- if (is.integer(x_num[[col]])) {
+          as.integer(round(v))
+        } else {
+          v
+        }
+      }
     } else {
       x_num_new <- synthesise_numeric_local(x_num)
     }

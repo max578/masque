@@ -172,3 +172,138 @@ test_that("a stratum that already holds enough rows is not degraded", {
   expect_identical(rec@conditioning_used, rec@conditioning_cols)
   expect_equal(rec@fallback_frac, 0)
 })
+
+# --- the hierarchy ladder (0.13.0) -------------------------------------------
+
+# A two-environment trial with six replicates per environment: enough rows
+# for site x treatment to satisfy the stratum floor, so the drop order is
+# visible in the rung reached.
+ladder_met <- function(seed = 20260925L) {
+  set.seed(seed)
+  d <- expand.grid(
+    trt = factor(c("T1", "T2", "T3")),
+    rep = factor(sprintf("R%d", 1:6)),
+    site = factor(c("North", "South")),
+    KEEP.OUT.ATTRS = FALSE
+  )
+  d$row <- rep(seq_len(18L), times = 2L)
+  d$yield <- 10 + c(T1 = 0, T2 = 2, T3 = 4)[as.character(d$trt)] +
+    c(North = 0, South = 6)[as.character(d$site)] +
+    c(R1 = 0, R2 = 1, R3 = 2, R4 = 3, R5 = 4, R6 = 5)[as.character(d$rep)] +
+    stats::rnorm(nrow(d), sd = 0.8)
+  d
+}
+
+ladder_met_roles <- function(d) {
+  r <- propose_roles(d, detect = FALSE)
+  r$role[r$col == "trt"] <- "treatment"
+  r$action[r$col == "trt"] <- "keep"
+  r$role[r$col %in% c("rep", "site", "row")] <- "design"
+  r$action[r$col %in% c("rep", "site", "row")] <- "keep"
+  r$role[r$col == "yield"] <- "outcome"
+  r
+}
+
+test_that("the hierarchy ladder drops coordinates, then blocks, then environments", {
+  d <- ladder_met()
+  lad <- masque:::.conditioning_ladder(
+    d, c("site", "rep", "row", "trt"), protect_cols = "trt",
+    min_stratum = 5L, ladder = "hierarchy", x_num = d["yield"]
+  )
+  expect_identical(lad$used, c("trt", "site"))
+  expect_identical(lad$dropped, c("row", "rep"))
+  expect_setequal(lad$shifted, c("rep", "row"))
+  expect_equal(lad$fallback_frac, 0)
+
+  ord <- masque:::.order_by_hierarchy(d, c("rep", "row", "site"), d["yield"])
+  expect_identical(ord, c("row", "rep", "site"))
+  expect_identical(masque:::.order_by_levels(d, c("rep", "row", "site")),
+    c("row", "rep", "site")
+  )
+})
+
+test_that("within a tier the column explaining the least variance goes first", {
+  d <- ladder_met()
+  # Two blocking columns: `rep` carries a planted effect, `block` none.
+  d$block <- factor(rep(c("B1", "B2"), length.out = nrow(d)))
+  eta <- masque:::.variance_explained(d, c("rep", "block"), d["yield"])
+  expect_gt(eta[["rep"]], eta[["block"]])
+  expect_identical(
+    masque:::.order_by_hierarchy(d, c("rep", "block"), d["yield"]),
+    c("block", "rep")
+  )
+})
+
+test_that("an environment is never dropped before its replicates", {
+  d <- ladder_met()
+  ord <- masque:::.order_by_hierarchy(d, c("site", "rep"), d["yield"])
+  expect_identical(ord, c("rep", "site"))
+  ord2 <- masque:::.order_by_hierarchy(d, c("county", "block"), NULL)
+  expect_identical(ord2, c("block", "county"))
+})
+
+test_that("the design shifts reproduce the dropped columns' main effects", {
+  d <- ladder_met()
+  shift <- masque:::.design_shifts(d["yield"], d, used = "trt",
+    shifted = c("site", "rep")
+  )
+  expect_identical(dim(shift), c(nrow(d), 1L))
+  # The site contrast in the shift matches the planted 6 within tolerance.
+  site_gap <- diff(tapply(shift[, "yield"], d$site, mean))
+  expect_equal(unname(site_gap), 6, tolerance = 0.15)
+  # A row with a missing design value gets no shift.
+  d2 <- d
+  d2$site[1L] <- NA
+  shift2 <- masque:::.design_shifts(d2["yield"], d2, "trt", c("site", "rep"))
+  expect_equal(unname(shift2[1L, "yield"]), 0)
+  # No shifted column: a zero matrix.
+  expect_true(all(masque:::.design_shifts(d["yield"], d, "trt", character()) == 0))
+})
+
+test_that("mask(ladder = 'hierarchy') keeps the environment effect of a MET", {
+  d <- ladder_met()
+  r <- ladder_met_roles(d)
+  fit <- function(x) anova(stats::lm(yield ~ site + site:rep + trt, data = x))
+  f_orig <- fit(d)
+  m <- suppressWarnings(
+    mask(d, r, mode = "local", seed = 3L, conditional = TRUE)
+  )
+  rec <- recipe(m)
+  expect_identical(rec@ladder, "hierarchy")
+  expect_identical(rec@conditioning_used, c("trt", "site"))
+  expect_identical(rec@conditioning_dropped, c("row", "rep"))
+  expect_setequal(rec@conditioning_shifted, c("rep", "row"))
+  f_clone <- fit(as.data.frame(synthetic(m)))
+  expect_gt(f_clone["site", "F value"], 0.5 * f_orig["site", "F value"])
+  expect_gt(f_clone["site:rep", "F value"], 0.5 * f_orig["site:rep", "F value"])
+  expect_gt(f_clone["trt", "F value"], 0.5 * f_orig["trt", "F value"])
+  # The degradation warning names the shift.
+  expect_warning(
+    mask(d, r, mode = "local", seed = 3L, conditional = TRUE),
+    "carried into the clone as an additive shift"
+  )
+})
+
+test_that("ladder = 'levels' is the 0.12.0 ladder and records no shift", {
+  d <- ladder_met()
+  r <- ladder_met_roles(d)
+  m <- suppressWarnings(
+    mask(d, r, mode = "local", seed = 3L, conditional = TRUE, ladder = "levels")
+  )
+  rec <- recipe(m)
+  expect_identical(rec@ladder, "levels")
+  expect_identical(rec@conditioning_used, c("trt", "site"))
+  expect_identical(rec@conditioning_shifted, character())
+  # With no shift, the dropped rep effect is gone from the clone.
+  f_clone <- anova(stats::lm(yield ~ site + site:rep + trt, data = synthetic(m)))
+  f_orig <- anova(stats::lm(yield ~ site + site:rep + trt, data = d))
+  expect_lt(f_clone["site:rep", "F value"], 0.5 * f_orig["site:rep", "F value"])
+})
+
+test_that("a bad ladder value is a typed refusal", {
+  d <- ladder_met()
+  r <- ladder_met_roles(d)
+  err <- tryCatch(mask(d, r, seed = 1L, ladder = "steps"), error = function(e) e)
+  expect_true(inherits(err, "masque_bad_ladder_refusal"))
+  expect_true(inherits(err, "orchestra_refusal"))
+})

@@ -13,6 +13,7 @@ mask_set(
   clean = c("auto", "report", "off"),
   alias_names = FALSE,
   conditional = FALSE,
+  ladder = c("hierarchy", "levels"),
   quiet = FALSE
 )
 }
@@ -48,6 +49,9 @@ each per-table \code{\link[=mask]{mask()}} call: when \code{TRUE}, every table's
 block is re-simulated within its own treatment-by-design strata so
 the treatment-to-outcome relationship survives the clone. See
 \code{\link[=mask]{mask()}} for the full account.}
+
+\item{ladder}{Drop order of the conditioning ladder, \code{"hierarchy"} (default)
+or \code{"levels"}; passed through to each \code{\link[=mask]{mask()}} call.}
 
 \item{quiet}{Logical; suppress the link / hygiene report.}
 }

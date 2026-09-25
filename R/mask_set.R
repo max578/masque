@@ -43,6 +43,8 @@
 #'   block is re-simulated within its own treatment-by-design strata so
 #'   the treatment-to-outcome relationship survives the clone. See
 #'   [mask()] for the full account.
+#' @param ladder Drop order of the conditioning ladder, `"hierarchy"` (default)
+#'   or `"levels"`; passed through to each [mask()] call.
 #' @param quiet Logical; suppress the link / hygiene report.
 #'
 #' @return A `masque_set` S7 object. Use [synthetic()] for the named list
@@ -74,8 +76,10 @@ mask_set <- function(input,
                      clean = c("auto", "report", "off"),
                      alias_names = FALSE,
                      conditional = FALSE,
+                     ladder = c("hierarchy", "levels"),
                      quiet = FALSE) {
   withr::local_preserve_seed()
+  ladder <- match.arg(ladder)
   # Shape-check `roles` before reading its mode provenance: a malformed
   # `roles` has no provenance to read, and inferring mode from it first
   # would advise the caller about `propose_roles()` round-trips when the
@@ -158,6 +162,7 @@ mask_set <- function(input,
       clean = "off", # already cleaned at set level
       alias_names = aln,
       conditional = conditional,
+      ladder = ladder,
       .shared_maps = shared_by_table[[nm]]
     )
     synth_tables[[nm]] <- synthetic(m)

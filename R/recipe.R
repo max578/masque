@@ -26,6 +26,11 @@ masque_recipe <- S7::new_class(
     conditional = S7::new_property(
       class   = S7::class_logical, default = FALSE
     ),
+    # Which ladder ordered the coarsening. A recipe written before 0.13.0
+    # has no such record and was made with the "levels" ladder.
+    ladder = S7::new_property(
+      class = S7::class_character, default = "levels"
+    ),
     conditioning_cols = S7::new_property(
       class = S7::class_character, default = character()
     ),
@@ -34,6 +39,15 @@ masque_recipe <- S7::new_class(
     # shorter when the ladder had to coarsen. Absent on a recipe written
     # before 0.11.1.
     conditioning_used = S7::new_property(
+      class = S7::class_character, default = character()
+    ),
+    # The columns the ladder gave up, in the order it dropped them, and the
+    # subset whose main effect the clone still carries as an additive shift
+    # (the "hierarchy" ladder only). Both absent before 0.13.0.
+    conditioning_dropped = S7::new_property(
+      class = S7::class_character, default = character()
+    ),
+    conditioning_shifted = S7::new_property(
       class = S7::class_character, default = character()
     ),
     # Fraction of rows pooled into the global fallback stratum at that

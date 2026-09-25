@@ -59,6 +59,8 @@
 #'   numeric columns are re-simulated within each treatment-by-design
 #'   stratum so the treatment-to-outcome relationship survives the clone.
 #'   See [mask()] for the full account.
+#' @param ladder Drop order of the conditioning ladder, `"hierarchy"` (default)
+#'   or `"levels"`; passed through to [mask()] / [mask_set()].
 #' @param ask Whether to pause for interactive review when `roles` is not
 #'   supplied. Defaults to [interactive()]. Set `FALSE` to proceed with
 #'   the proposed plan without prompting.
@@ -92,22 +94,26 @@ masque <- function(input,
                    clean = c("auto", "report", "off"),
                    alias_names = FALSE,
                    conditional = FALSE,
+                   ladder = c("hierarchy", "levels"),
                    ask = interactive(),
                    overwrite = FALSE,
                    quiet = FALSE,
                    allow_high = FALSE) {
   mode <- match.arg(mode)
   clean <- match.arg(clean)
+  ladder <- match.arg(ladder)
 
   is_set <- .masque_is_set(input)
 
   if (is_set) {
     m <- .masque_guided_set(
-      input, roles, mode, seed, clean, alias_names, conditional, ask, quiet
+      input, roles, mode, seed, clean, alias_names, conditional, ladder,
+      ask, quiet
     )
   } else {
     m <- .masque_guided_one(
-      input, roles, mode, seed, clean, alias_names, conditional, ask, quiet
+      input, roles, mode, seed, clean, alias_names, conditional, ladder,
+      ask, quiet
     )
   }
 
@@ -143,12 +149,12 @@ masque <- function(input,
 }
 
 .masque_guided_one <- function(input, roles, mode, seed, clean,
-                               alias_names, conditional, ask, quiet) {
+                               alias_names, conditional, ladder, ask, quiet) {
   df <- if (is.data.frame(input)) input else .read_one_file(input)
   if (!is.null(roles)) {
     return(mask(
       df, roles, mode = mode, seed = seed, clean = clean,
-      alias_names = alias_names, conditional = conditional
+      alias_names = alias_names, conditional = conditional, ladder = ladder
     ))
   }
 
@@ -156,16 +162,17 @@ masque <- function(input,
   proposed <- .masque_review(proposed, ask, quiet, label = NULL)
   mask(
     df, proposed, mode = mode, seed = seed, clean = clean,
-    alias_names = alias_names, conditional = conditional
+    alias_names = alias_names, conditional = conditional, ladder = ladder
   )
 }
 
 .masque_guided_set <- function(input, roles, mode, seed, clean,
-                               alias_names, conditional, ask, quiet) {
+                               alias_names, conditional, ladder, ask, quiet) {
   if (!is.null(roles)) {
     return(mask_set(
       input, roles = roles, mode = mode, seed = seed, clean = clean,
-      alias_names = alias_names, conditional = conditional, quiet = quiet
+      alias_names = alias_names, conditional = conditional, ladder = ladder,
+      quiet = quiet
     ))
   }
 
@@ -178,7 +185,8 @@ masque <- function(input,
 
   mask_set(
     tables, roles = proposed, mode = mode, seed = seed, clean = clean,
-    alias_names = alias_names, conditional = conditional, quiet = quiet
+    alias_names = alias_names, conditional = conditional, ladder = ladder,
+    quiet = quiet
   )
 }
 
