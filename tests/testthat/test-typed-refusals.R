@@ -244,3 +244,32 @@ test_that("audit_mask() refuses a local-mode masque with no stored audit and no 
   m <- mask(iris, r, mode = "local", seed = 1)
   .expect_refusal(audit_mask(m), "masque_audit_missing_refusal")
 })
+
+test_that("mask() without roles is a typed refusal", {
+  .expect_refusal(mask(iris), "masque_missing_roles_refusal")
+})
+
+test_that("mask() takes a conformance record and masks its data", {
+  df <- data.frame(
+    state = c("NSW", "Nsw", "NSW", "VIC", "VIC", "vic", "NSW", "VIC"),
+    yield = c("3.1", "2.9", "5.0", "4.2", "3.8", "4.4", "3.9", "4.1"),
+    stringsAsFactors = FALSE
+  )
+  cf <- conform_table(df, merge_labels = "auto", types = "auto", quiet = TRUE)
+  r <- propose_roles(cf$data, detect = FALSE)
+  r$role[r$col == "yield"] <- "outcome"
+  m <- mask(cf, r, seed = 1L)
+  expect_identical(names(synthetic(m)), names(cf$data))
+  expect_identical(levels(synthetic(m)$state), c("NSW", "VIC"))
+})
+
+test_that("quiet = TRUE silences only the mode-downgrade warning", {
+  r <- propose_roles(iris, mode = "collaborate", detect = FALSE)
+  r$role[r$col == "Sepal.Length"] <- "outcome"
+  expect_warning(
+    mask(iris, r, mode = "local", seed = 1L),
+    class = "masque_mode_downgrade"
+  )
+  expect_no_warning(mask(iris, r, mode = "local", seed = 1L, quiet = TRUE))
+  .expect_refusal(mask(iris, r, quiet = NA), "masque_bad_quiet_refusal")
+})

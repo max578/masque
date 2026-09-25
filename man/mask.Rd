@@ -14,12 +14,14 @@ mask(
   conditional = FALSE,
   coords = NULL,
   allow_unmasked_coords = FALSE,
+  quiet = FALSE,
   .shared_maps = list(),
   ...
 )
 }
 \arguments{
-\item{df}{A data frame.}
+\item{df}{A data frame, or the \code{masque_conformance} object returned by
+\code{\link[=conform_table]{conform_table()}}, whose \code{data} element is then masked.}
 
 \item{roles}{A roles table from \code{\link[=propose_roles]{propose_roles()}} (possibly edited).
 Tables from masque <= 0.5.0 are upgraded with a deprecation
@@ -100,6 +102,12 @@ shape of its values would be. State otherwise by declaring the pair to
 \code{coords} (coarsened), giving the column a masking action (\code{drop} or
 \code{scramble}), or -- having decided the coordinate is not sensitive --
 setting this to \code{TRUE}, which is recorded on the recipe.}
+
+\item{quiet}{Single logical. \code{TRUE} silences the \code{masque_mode_downgrade}
+warning raised when a roles table prepared for \code{"collaborate"} is used
+in \code{"local"} mode, for a plan that is deliberately shared across both
+modes. No other warning is affected; a HIGH-leakage finding is always
+raised.}
 
 \item{.shared_maps}{Internal. A named list of pre-computed
 \code{original -> alias} level maps for cross-table linked columns, set

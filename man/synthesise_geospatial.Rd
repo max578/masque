@@ -32,7 +32,11 @@ fields to overwrite in \code{synth}.}
 element is a length-2 numeric named \code{c(lat, lon)}. The user supplies
 plausible centroids (e.g., state centroids); the function never
 infers them from the original to avoid leaking position
-information.}
+information. Any other shape (a data frame, an unnamed list, an
+element that is not a \code{c(lat, lon)} pair, or a list naming none of
+the anchor levels) is refused with a
+\code{masque_bad_anchor_centroids_refusal} error. A level absent from an
+otherwise well-formed list is warned about and its rows get \code{NA}.}
 
 \item{site_spread_deg}{Half-width of the box (in decimal degrees)
 around each anchor centroid within which fake site centroids are

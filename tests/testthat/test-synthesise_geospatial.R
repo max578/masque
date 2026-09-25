@@ -175,3 +175,28 @@ test_that("synthesise_geospatial errors on row-count mismatch", {
     "same number of rows"
   )
 })
+
+test_that("a wrong-shaped anchor_centroids is refused, not warned per level", {
+  df <- .toy_df()
+  as_df <- data.frame(lat = c(-32.5, -36.5), lon = c(147, 144),
+    row.names = c("NSW", "VIC")
+  )
+  bad_shapes <- list(
+    as_df,
+    list(NSW = c(-32.5, 147), VIC = c(-36.5, 144)),
+    list(NSW = c(lat = -32.5, lon = 147), VIC = c(lat = -36.5)),
+    list(NSW = c(lat = "-32.5", lon = "147")),
+    list(QLD = c(lat = -20, lon = 145), SA = c(lat = -30, lon = 135))
+  )
+  for (ctr in bad_shapes) {
+    err <- tryCatch(
+      synthesise_geospatial(df, df, "state", "lat", "lon",
+        anchor_centroids = ctr, seed = 1L
+      ),
+      error = function(e) e, warning = function(w) w
+    )
+    expect_s3_class(err, "error")
+    expect_true(inherits(err, "masque_bad_anchor_centroids_refusal"))
+    expect_true(inherits(err, "orchestra_refusal"))
+  }
+})

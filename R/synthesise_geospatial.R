@@ -47,7 +47,11 @@
 #'   element is a length-2 numeric named `c(lat, lon)`. The user supplies
 #'   plausible centroids (e.g., state centroids); the function never
 #'   infers them from the original to avoid leaking position
-#'   information.
+#'   information. Any other shape (a data frame, an unnamed list, an
+#'   element that is not a `c(lat, lon)` pair, or a list naming none of
+#'   the anchor levels) is refused with a
+#'   `masque_bad_anchor_centroids_refusal` error. A level absent from an
+#'   otherwise well-formed list is warned about and its rows get `NA`.
 #' @param site_spread_deg Half-width of the box (in decimal degrees)
 #'   around each anchor centroid within which fake site centroids are
 #'   uniformly placed. Default `0.6`.
@@ -105,9 +109,7 @@ synthesise_geospatial <- function(synth, original,
       )
     }
   }
-  if (!is.list(anchor_centroids) || is.null(names(anchor_centroids))) {
-    cli::cli_abort("`anchor_centroids` must be a named list.")
-  }
+  .check_anchor_centroids(anchor_centroids, synth[[anchor_col]])
   if (nrow(synth) != nrow(original)) {
     cli::cli_abort(c(
       "`synth` and `original` must have the same number of rows.",
@@ -199,4 +201,46 @@ synthesise_geospatial <- function(synth, original,
   synth[[lat_col]] <- out_lat
   synth[[lon_col]] <- out_lon
   synth
+}
+
+# A data frame passes `is.list()` with names, so it is refused by name; a
+# list naming none of the anchor levels would return every coordinate NA.
+.check_anchor_centroids <- function(anchor_centroids, anchor_values) {
+  refuse <- function(...) {
+    cli::cli_abort(
+      c(...,
+        i = paste0(
+          "Supply a named list, one element per anchor level, each a ",
+          "numeric `c(lat = , lon = )`."
+        )
+      ),
+      class = c("masque_bad_anchor_centroids_refusal", "orchestra_refusal")
+    )
+  }
+  if (is.data.frame(anchor_centroids)) {
+    refuse("`anchor_centroids` is a data frame, not a named list of `c(lat, lon)` pairs.")
+  }
+  if (!is.list(anchor_centroids) || is.null(names(anchor_centroids)) ||
+    !length(anchor_centroids) || any(!nzchar(names(anchor_centroids)))) {
+    refuse("`anchor_centroids` must be a non-empty named list.")
+  }
+  well_formed <- vapply(anchor_centroids, function(ctr) {
+    is.numeric(ctr) && length(ctr) == 2L &&
+      all(c("lat", "lon") %in% names(ctr)) && !anyNA(ctr)
+  }, logical(1L))
+  if (!all(well_formed)) {
+    refuse(
+      "{sum(!well_formed)} element{?s} of `anchor_centroids` {?is/are} not a numeric `c(lat = , lon = )` pair: ",
+      x = "{.val {names(anchor_centroids)[!well_formed]}}"
+    )
+  }
+  present <- unique(as.character(stats::na.omit(anchor_values)))
+  if (length(present) && !any(present %in% names(anchor_centroids))) {
+    refuse(
+      "No anchor level of `synth` has a centroid in `anchor_centroids`.",
+      x = "Levels in `synth`: {.val {present}}",
+      x = "Names supplied: {.val {names(anchor_centroids)}}"
+    )
+  }
+  invisible(TRUE)
 }

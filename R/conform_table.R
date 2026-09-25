@@ -289,11 +289,24 @@ MIN_EDIT_NCHAR <- 4L   # below this, a one-character difference means nothing
       next
     }
 
+    # Left as text: the reason names the first of the three cases that holds.
+    n_bad <- sum(is.na(num))
+    reason <- if (n_bad < length(ok) - n_bad) {
+      sprintf(
+        "%d of %d values do not parse as a number (first: \"%s\"); left as text",
+        n_bad, length(ok), ok[is.na(num)][1L]
+      )
+    } else if (n_u == length(ok)) {
+      sprintf("all %d labels are distinct; left as text", n_u)
+    } else {
+      sprintf(
+        "%d distinct labels is above max_levels = %d; left as text",
+        n_u, as.integer(max_levels)
+      )
+    }
     rows[[length(rows) + 1L]] <- data.frame(
       col = nm, from = "character", to = "character", applied = FALSE,
-      reason = sprintf("%d distinct labels is above max_levels = %d; left as text",
-                       n_u, as.integer(max_levels)),
-      stringsAsFactors = FALSE
+      reason = reason, stringsAsFactors = FALSE
     )
   }
   if (!length(rows)) return(.empty_types())

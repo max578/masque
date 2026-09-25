@@ -65,3 +65,20 @@ test_that("off means off", {
   expect_equal(nrow(cf$types), 0L)
   expect_identical(cf$data$state, c("NSW", "Nsw"))
 })
+
+test_that("a column left as text names the reason that applies to it", {
+  df <- data.frame(
+    id = c("a1", "b2", "c3", "d4"),
+    n_applied = c("1.5", "2.0", "n/a", "3.5", "4.0", "5.5", "6.0", "7.5")[1:4],
+    stringsAsFactors = FALSE
+  )
+  df$id <- sprintf("id_%02d", 1:4)
+  cf <- conform_table(df, quiet = TRUE)
+  r <- setNames(cf$types$reason, cf$types$col)
+  expect_match(r[["id"]], "^all 4 labels are distinct")
+  expect_match(r[["n_applied"]], "^1 of 4 values do not parse as a number \\(first: \"n/a\"\\)")
+
+  wide <- data.frame(g = rep(sprintf("L%02d", 1:25), 2), stringsAsFactors = FALSE)
+  cw <- conform_table(wide, quiet = TRUE)
+  expect_match(cw$types$reason, "above max_levels = 20")
+})

@@ -46,7 +46,8 @@
 #' The NA mask of every retained column is preserved cell-by-cell. RNG
 #' state is preserved across the call.
 #'
-#' @param df A data frame.
+#' @param df A data frame, or the `masque_conformance` object returned by
+#'   [conform_table()], whose `data` element is then masked.
 #' @param roles A roles table from [propose_roles()] (possibly edited).
 #'   Tables from masque <= 0.5.0 are upgraded with a deprecation
 #'   warning; see [roles_validate()].
@@ -120,6 +121,11 @@
 #'   `coords` (coarsened), giving the column a masking action (`drop` or
 #'   `scramble`), or -- having decided the coordinate is not sensitive --
 #'   setting this to `TRUE`, which is recorded on the recipe.
+#' @param quiet Single logical. `TRUE` silences the `masque_mode_downgrade`
+#'   warning raised when a roles table prepared for `"collaborate"` is used
+#'   in `"local"` mode, for a plan that is deliberately shared across both
+#'   modes. No other warning is affected; a HIGH-leakage finding is always
+#'   raised.
 #' @param .shared_maps Internal. A named list of pre-computed
 #'   `original -> alias` level maps for cross-table linked columns, set
 #'   by [mask_set()]. Not for direct use.
@@ -148,6 +154,7 @@ mask <- function(df,
                  conditional = FALSE,
                  coords = NULL,
                  allow_unmasked_coords = FALSE,
+                 quiet = FALSE,
                  .shared_maps = list(),
                  ...) {
   # A misspelled argument silently swallowed by `...` looks like success;
@@ -172,6 +179,9 @@ mask <- function(df,
   # it. The inner with_rng_state still controls per-step reproducibility.
   withr::local_preserve_seed()
 
+  if (inherits(df, "masque_conformance")) {
+    df <- df$data
+  }
   if (!is.data.frame(df)) {
     cli::cli_abort(
       "`df` must be a data frame; got {.cls {class(df)[1]}}.",
@@ -190,10 +200,22 @@ mask <- function(df,
   # provenance to carry, so inferring mode from it first warns the caller
   # about a missing `mode` attribute when the real fault is the argument.
   # `roles_validate()` repeats this check for its own callers.
+  if (missing(roles)) {
+    cli::cli_abort(c(
+      "`roles` is missing.",
+      i = "Build one with {.fn propose_roles}, or call {.fn masque} for the guided path."
+    ), class = c("masque_missing_roles_refusal", "orchestra_refusal"))
+  }
   if (!is.data.frame(roles)) {
     cli::cli_abort(
       "`roles` must be a data frame / tibble; got {.cls {class(roles)[1]}}.",
       class = c("masque_bad_roles_refusal", "orchestra_refusal")
+    )
+  }
+  if (!is.logical(quiet) || length(quiet) != 1L || is.na(quiet)) {
+    cli::cli_abort(
+      "`quiet` must be a single `TRUE` or `FALSE`.",
+      class = c("masque_bad_quiet_refusal", "orchestra_refusal")
     )
   }
   if (missing(mode)) {
@@ -236,7 +258,12 @@ mask <- function(df,
     warnings_acc <- c(warnings_acc, .name_repair_message(cl$name_map))
   }
 
-  roles <- roles_validate(roles, df, mode = mode)
+  roles <- withCallingHandlers(
+    roles_validate(roles, df, mode = mode),
+    masque_mode_downgrade = function(w) {
+      if (isTRUE(quiet)) invokeRestart("muffleWarning")
+    }
+  )
   roles <- roles[match(names(df), roles$col), , drop = FALSE]
 
   # Coordinate columns declared in `coords` are coarsened by an on-land jitter
