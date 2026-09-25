@@ -20,3 +20,6 @@
 ^CONSTELLATION_MEMBER\.md$
 ^data-raw$
 ^Rplots\.pdf$
+^\.claude$
+^\.positai$
+^\.cursor$

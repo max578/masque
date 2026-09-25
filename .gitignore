@@ -35,3 +35,4 @@ AGENTS.md
 # Local-only dev fixtures (CC-BY-SA + PII residue — never ship)
 *.fst
 fst_00_dataset_tab_*.fst
+.positai/

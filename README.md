@@ -147,6 +147,14 @@ API stability policy: see `API_STABILITY.md`.
 
 ---
 
+## Contributing
+
+Bug reports and suggestions are welcome as
+[GitHub issues](https://github.com/max578/masque/issues). See
+`CONTRIBUTING.md` before opening a pull request.
+
+---
+
 ## Citation
 
 ```r
