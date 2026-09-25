@@ -1,17 +1,95 @@
-# masque 0.12.0.9000 (development)
+# masque 0.13.0
 
-* `mask()` and `mask_set()` now check the shape of `roles` before they read its
-  mode provenance. Passing something that is not a roles table used to draw a
-  warning about a missing `mode` attribute -- advice to keep the tibbles from
-  `propose_roles()` through a `data.table()` or `saveRDS()` round-trip -- before
-  the call was refused for the real reason, which is that the argument was never
-  a roles table at all. The misdiagnosing warning is gone; the refusal is
-  unchanged and now arrives first.
+## Breaking changes
 
-* A `roles` that is not a data frame is refused by `mask()` with the typed
-  `masque_bad_roles_refusal` class, as `mask_set()` already did. It previously
-  aborted without a class, so a cross-member caller could not catch it as a
-  refusal.
+* **The conditioning ladder follows the design hierarchy.** The ladder
+  that coarsens the stratum of a conditional clone used to drop design
+  columns by level count, so on a multi-environment trial it dropped the
+  environment before the replicate inside it and the clone lost the
+  environment effect: on `agridat::besag.met` the county F statistic went
+  from 987 on the original to about 1 on the clone, and the genotype
+  ranking went with it. `mask()`, `mask_set()` and `masque()` take a
+  `ladder` argument. The new default, `"hierarchy"`, drops plot coordinates
+  first, then blocking columns, then environment columns, ordering within a
+  tier by the level-adjusted share of variance a column explains, and
+  carries the main effect of every dropped column, and of each pair of
+  dropped blocking or environment columns, into the clone as an additive
+  shift estimated beside the stratum that was kept. Rows the stratum floor
+  pools into the fallback keep the stratum columns' main effects the same
+  way, so a three-replicate variety trial keeps its genotype means. A level
+  with a single row is pooled with the other singletons before the fit, so
+  no row's own outcome is ever carried; a term that is noise is shrunk to
+  nothing and the residual spread is rescaled for the degrees of freedom
+  the fit removed. Over twenty seeds the county F on `besag.met` is 952
+  against 987 and the nested county:rep F 28 against 33; on
+  `agridat::yates.oats` the block F is 11.3 against 13.2 where it was 0.8.
+  The ladder of 0.11.1 to 0.12.0 is available as `ladder = "levels"`, and
+  a recipe records which one made it.
+
+  The recipe gains `ladder`, `conditioning_dropped` (in drop order) and
+  `conditioning_shifted`; the `masque_conditional_degraded` warning and the
+  recipe print name the shifts. The new vignette *What a conditional clone
+  keeps of the design* runs eight `agridat` designs through one stated pass
+  rule under both ladders.
+
+## Bug fixes
+
+* **`print()` on the records from `clean_table()` and `conform_table()`
+  dispatches from an installed package.** The S7 method assignments for
+  `print()`, `format()` and `plot()` left a copy of each generic in the
+  namespace, so the two S3 print methods registered on that copy and an
+  installed masque printed the raw list, `attr(,"class")` and all. The
+  assignments now run inside `local()`. A test installs the package into a
+  temporary library in a subprocess and prints both records.
+
+* **`plot_design_summary(engine = "ggplot2")` returns the plot.** It
+  returned the summary invisibly after printing, so `ggplot2::ggsave()`
+  failed and the *Getting started* vignette's description was wrong. The
+  ggplot2 engine now returns the `ggplot` object for every design class;
+  the split-plot and CRD panels, which had only a base-graphics branch,
+  gained one. The base engine still draws and returns the summary
+  invisibly.
+
+* `detect_design()` reads a blocked multi-environment trial as the
+  incomplete-block design it is. The lattice rule required every block to
+  hold the same number of treatments and every treatment the same number of
+  blocks, so one filler plot in `agridat::besag.met` failed both tests and
+  each county was reported as CRD with `rep` and `block` never mentioned.
+  Regularity is now the share of blocks at the modal size and of treatments
+  at the modal replication, floored at 0.9 each; `besag.met` reads as an
+  alpha-lattice on `rep:block` in every county.
+
+* `conform_table()` names the reason a character column is left as text: a
+  few values that do not parse as numbers, labels that are all distinct, or
+  a vocabulary wider than `max_levels`. The last was reported for all three.
+
+* `mask()` and `mask_set()` check the shape of `roles` before they read its
+  mode provenance, so something that is not a roles table is refused for
+  that reason, with the typed `masque_bad_roles_refusal` class, and no
+  warning about a missing `mode` attribute precedes the refusal.
+
+## Features
+
+* `mask()` refuses a missing `roles` with `masque_missing_roles_refusal`
+  instead of R's bare missing-argument error, accepts the record from
+  `conform_table()` and masks its `data`, and takes `quiet = TRUE` to
+  silence only the `masque_mode_downgrade` warning for a plan that is
+  deliberately shared across both modes.
+
+* `synthesise_geospatial()` refuses a wrong-shaped `anchor_centroids` (a
+  data frame, an unnamed list, an element that is not a `c(lat, lon)`
+  pair, or a list naming none of the anchor levels) with
+  `masque_bad_anchor_centroids_refusal`, instead of warning once per level
+  and returning every coordinate `NA`.
+
+## Testing
+
+* A design-preservation matrix over eight `agridat` exemplars (CRD, RCBD,
+  Latin square, split-plot, alpha lattice, augmented, blocked MET, repeated
+  measures): allocation byte-identical, NA mask identical, blocking and
+  environment F at half the original or better where the original detects
+  the term, treatment level means correlated at 0.7 or better and within a
+  factor of two in spread. Three seeds on CRAN, twenty off it.
 
 # masque 0.12.0
 
