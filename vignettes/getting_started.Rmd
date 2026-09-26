@@ -62,7 +62,8 @@ column is: `design`, `treatment`, `outcome`, `covariate`, `date`, `id`,
 * `keep` passes it through unchanged;
 * `scramble` re-simulates numerics through a Gaussian copula, or shuffles
   categories and dates between rows;
-* `alias` scrambles and then replaces the labels with opaque codes;
+* `alias` replaces the labels with opaque codes (a categorical covariate
+  is shuffled between rows first);
 * `drop` leaves it out.
 
 `role_options()` lists every role and action pair the package accepts.

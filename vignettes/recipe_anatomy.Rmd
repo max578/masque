@@ -155,9 +155,8 @@ labels_recovered <- identical(as.character(back$gen), as.character(df$gen))
 labels_recovered
 ```
 
-Columns whose action is `keep` pass through all three verbs unchanged.
-Numeric columns and numeric predictions pass through both functions
-unchanged.
+Columns whose action is `keep`, numeric columns and numeric predictions
+pass through both functions unchanged.
 
 ### Fail-closed translation
 
