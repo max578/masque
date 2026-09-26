@@ -61,10 +61,8 @@ column is -- `design`, `treatment`, `outcome`, `covariate`, `date`, `id`,
 passes a column through byte-for-byte, `scramble` re-simulates numerics
 through a Gaussian copula or row-permutes categoricals and dates, `alias`
 scrambles and then replaces the labels with opaque codes, and `drop`
-leaves the column out entirely). `role_options()` renders the full grid
-the validator accepts, so an incompatible pairing -- a design column
-`masque` refuses to scramble, for instance -- can be checked before it is
-attempted.
+leaves the column out entirely). `role_options()` lists every role and
+action pair the package accepts.
 
 The `mode` argument sets the defaults for both axes at once:
 
@@ -171,12 +169,12 @@ knitr::kable(
 )
 ```
 
-The `kind` column is derived from the column's class, never chosen;
-editing it changes nothing, and the column should be converted in the data
-and re-proposed if the kind is wrong.
+The `kind` column comes from the column's class and cannot be edited. If
+it is wrong, convert the column in the data and run `propose_roles()`
+again.
 
-`role_options()` renders the full grid the validator accepts, filtered by
-a column's storage kind:
+`role_options()` lists the pairs the package accepts, here for a factor
+column:
 
 ```{r role-options}
 knitr::kable(
@@ -213,9 +211,8 @@ head(levels(synth$gen))
 
 ### A refusal you can rely on
 
-Not every role and action pairing makes sense -- `plot` is a `design`
-column, and a design column is structure rather than content, so asking
-`mask()` to scramble it is a request the package will not carry out:
+`plot` is a `design` column. Scrambling it would break the trial's layout,
+and `mask()` refuses:
 
 ```{r fail-closed, error = TRUE}
 bad_roles <- set_role(roles, "plot", role = "design", action = "scramble")
@@ -339,9 +336,10 @@ and an aliased treatment comes back as `trt_001` to `trt_024`; a plan that
 asks for something the package cannot do is refused before it runs. Related
 tables are masked together and still join.
 
-The agronomist can therefore hand over a clone the statistician can build a
-full pipeline on, with the plot layout, genotype identities and linked
-tables kept together and the labels aliased. How the finished pipeline runs
+The agronomist can therefore hand over a clone that keeps the plot layout
+and the links between tables, with the genotype labels aliased, and the
+statistician can build a full pipeline on it without seeing the real
+genotype names. How the finished pipeline runs
 on the real data is covered in *Recipe anatomy and the round-trip*.
 
 ## Limits

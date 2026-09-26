@@ -64,9 +64,9 @@ in full. On the recipe, `conditioning_used` is the stratum kept,
 `conditioning_dropped` the columns dropped and `conditioning_shifted` the
 terms carried as shifts.
 
-`ladder = "levels"` is the ladder of masque 0.11.1 to 0.12.0: it drops the
-column with the most distinct values first and keeps nothing of a dropped
-column. It remains so that clones made with it can be reproduced.
+`ladder = "levels"` reproduces clones made with masque 0.11.1 to 0.12.0: it
+drops the column with the most distinct values first and keeps nothing of
+a dropped column.
 
 ### The pass rule
 

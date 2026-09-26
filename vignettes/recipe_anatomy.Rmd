@@ -40,12 +40,11 @@ happens when the original holds a value the recipe has never seen.
 
 The `masque_recipe` object returned by `mask()` is the only artefact
 that *must* stay confidential alongside the original -- it is an S7
-object, accessed through `recipe()`, never touched directly. Two verbs
-carry the round-trip: `apply_recipe()` translates a data frame from the
-original namespace into the synthetic namespace (the direction a
-custodian uses to re-target an analyst's finished pipeline), and
-`unmask()` translates the other way (the direction that recovers
-original-namespace labels from a synthetic-namespace result).
+object, accessed through `recipe()`, never touched directly. Two functions
+make the round-trip. `apply_recipe()` recodes the original data into the
+clone's labels and column names, which is how a custodian runs an
+analyst's finished pipeline on it. `unmask()` goes the other way and turns
+a result in the clone's labels back into the original ones.
 `save_recipe()`/`read_recipe()` persist a recipe to a single `.rds`
 file, and `reveal_maps()` is the one explicit, warning-gated call that
 shows the level maps a redacted `print()` withholds.
@@ -68,7 +67,8 @@ A recipe carries only what the round-trip needs:
   part.
 - `column_name_map` -- the column-name aliases, when `alias_names` was
   used (otherwise `NULL`).
-- `cleaning` -- the hygiene record (name legalisation, whitespace trims)
+- `cleaning` -- the tidying done before masking (column names made valid
+  R names, whitespace trimmed)
   so `apply_recipe()` re-applies the identical tidying.
 - `storage_classes`, `factor_meta` -- the original column classes and
   factor metadata, for faithful reconstruction.
@@ -132,9 +132,8 @@ reveal_maps(rec)
 
 ### The round-trip
 
-The recipe is a bidirectional translator. `apply_recipe()` carries the
-original *into* the synthetic namespace. `unmask()` carries results *back*.
-The usual pattern is to fit on the synthetic, then score the original:
+The usual pattern is to fit on the synthetic, recode the original with
+`apply_recipe()`, and predict on it:
 
 ```{r roundtrip-pipeline}
 # Analyst trains on the synthetic clone.
@@ -147,7 +146,7 @@ preds_match_nrow <- length(preds) == nrow(df)
 preds_match_nrow
 ```
 
-Recovering original-namespace labels is symmetric:
+`unmask()` recovers the original labels:
 
 ```{r roundtrip-labels}
 fwd <- apply_recipe(df, rec)
@@ -157,9 +156,9 @@ labels_recovered
 ```
 
 Columns whose action is `keep` pass through all three verbs unchanged.
-Numeric columns are passed through `apply_recipe()` and `unmask()` without
-an inverse map -- the synthetic and original namespaces coincide for
-them -- so `unmask()` on a numeric prediction vector is a safe no-op.
+Numeric columns have no label map, so `apply_recipe()` and `unmask()` leave
+them unchanged, and `unmask()` on a numeric prediction vector returns it as
+it is.
 
 ### Fail-closed translation, and reading the refusal
 
@@ -253,15 +252,13 @@ the real data without changing it.
 ## Limits
 
 This vignette uses one recipe built from one clean public trial, with one
-planted drift. A table with inconsistent historical vocabularies will be
-refused more often. The round-trip verbs invert only what the recipe
+planted drift. A table whose category labels changed over time (renamed
+treatments, retired sites) will be refused more often. The round-trip verbs invert only what the recipe
 recorded: numeric columns pass through unchanged, so `unmask()` cannot undo
 a numeric transformation a pipeline made, and a recipe cannot repair a join
-that was broken before masking. This vignette does not exercise the leakage audit,
-the conditional clone, or the geographic-coordinate masking controls in
-depth; those, and what the recipe alone cannot protect against a
-determined reader of the synthetic, are *Confidentiality and the threat
-model*'s subject.
+that was broken before masking. The leakage audit, the conditional clone
+and the coordinate controls are covered in *Confidentiality and the threat
+model*.
 
 ## What to read next
 

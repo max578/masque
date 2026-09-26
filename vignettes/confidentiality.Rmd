@@ -49,18 +49,16 @@ the custodian:
 | Recipe only | Original raw values | Nothing useful -- the recipe is meaningless without the synthetic |
 | Synthetic + external side information | Identity of treatments / sites | The label vocabulary and the order it was in. A preserved design footprint or a `keep` column is recognisable, level frequencies are unchanged, and side information wins |
 
-What `masque` does: it preserves enough structure for pipelines to run
-unchanged, exposes the privacy-versus-fidelity trade-off through two
-explicit modes, records every translation in a private recipe that
-round-trips, and audits its own output before it is shared.
+`masque` keeps enough structure for a pipeline to run unchanged. Two modes
+set the balance between privacy and fidelity, every translation is written
+to a private recipe that round-trips, and the output is audited before it
+is shared.
 
-What `masque` does not do: it gives no differential-privacy guarantee, it
-does not make output safe for public release, it does not hide rare
-strata, small designs, or operational metadata such as small
-site-by-year combinations or contact names, and it does not rewrite
-pipeline source code.
+It gives no differential-privacy guarantee and does not make output safe
+for public release. It does not hide rare strata, small designs, thin
+site-by-year cells or contact names, and it does not change pipeline code.
 
-Since version 0.6.0, every column carries a `role` (what it is) and an
+Every column carries a `role` (what it is) and an
 `action` (how deeply it is masked, from `role_options()`'s validated
 grid: `keep`, `scramble`, `alias`, `drop`). `mask()`'s `mode` argument
 chooses sensible defaults for both, so the common case is safe without
@@ -136,9 +134,9 @@ Two limits go with that, and they are the custodian's to manage:
   `audit_mask()` reports those counts so the exposure is visible rather
   than implicit.
 
-An alias therefore raises the cost of re-identification; it is not a
-cryptographic commitment, and none of it is a differential-privacy
-guarantee.
+An alias therefore raises the cost of re-identification. It cannot be
+relied on against a determined attacker, and none of it is a
+differential-privacy guarantee.
 
 ### The conditional clone: preserving the treatment effect
 
@@ -291,9 +289,9 @@ the county means, the replicate means and the block means of the
 original survive even when the stratum the copula is fitted in is the
 treatment alone. Those means are therefore a stated property of the
 clone, in the same way the treatment means are. The recipe lists them as
-`conditioning_shifted`. The ladder of 0.11.1 to 0.12.0, which drops the
-column with the most levels first and keeps nothing of it, is still
-available as `ladder = "levels"`.
+`conditioning_shifted`. `ladder = "levels"` reproduces clones made with
+masque 0.11.1 to 0.12.0: it drops the column with the most levels first and
+keeps nothing of it.
 
 Any coarsening, and any residual pooling, raises a classed
 `masque_conditional_degraded` warning naming the columns given up and the
@@ -414,11 +412,10 @@ knitr::kable(
 ```
 
 `contact_email` (real values kept across the trust boundary) and
-`rare_treatment` (a frequency-one level) are flagged, and `masque` acts
-twice. `mask()` raised a classed `masque_high_leakage` warning above and
-recorded the findings in `recipe@warnings`; the guided `masque()` flow
-never silences it. The package's writers then refuse to write while a HIGH
-finding stands:
+`rare_treatment` (a frequency-one level) are flagged. `mask()` raised a
+classed `masque_high_leakage` warning above and recorded the findings in
+`recipe@warnings`; the guided `masque()` flow never silences it. While a
+HIGH finding stands, the package will not write the synthetic to disk:
 
 ```{r leaky-write, error = TRUE}
 out_dir <- tempfile()
