@@ -212,7 +212,7 @@ test_that(
   r$role[r$col == "yield"] <- "outcome"
   r$role[r$col == "bv"] <- "covariate"
 
-  arm_means <- function(d) tapply(d$yield, d$nf, mean)
+  arm_means <- function(d) tapply(d$yield, d$nf, mean)[levels(df$nf)]
   true_means <- arm_means(df)
 
   m_cond <- suppressWarnings(
@@ -224,8 +224,12 @@ test_that(
 
   # Correlation of per-arm synthetic means with the real per-arm means:
   # the conditional clone tracks them; the marginal clone does not.
-  cor_cond <- stats::cor(arm_means(synthetic(m_cond)), true_means)
-  cor_marg <- stats::cor(arm_means(synthetic(m_marg)), true_means)
+  cor_cond <- stats::cor(
+    arm_means(unmask(synthetic(m_cond), recipe(m_cond))), true_means
+  )
+  cor_marg <- stats::cor(
+    arm_means(unmask(synthetic(m_marg), recipe(m_marg))), true_means
+  )
   expect_gt(cor_cond, 0.9)
   expect_lt(cor_marg, 0.5)
   }

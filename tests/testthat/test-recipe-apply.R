@@ -229,3 +229,56 @@ test_that("apply_recipe integrity check passes on the unmodified original df", {
   f <- make_collab_fixture_for_apply()
   expect_silent(apply_recipe(f$df, f$rec)) # default check_integrity = TRUE
 })
+
+test_that("apply_recipe returns aliased factors with the clone's level order", {
+  f <- make_collab_fixture_for_apply()
+  s <- synthetic(f$m)
+  out <- apply_recipe(f$df, f$rec)
+
+  expect_identical(levels(out$Genotype), levels(s$Genotype))
+  expect_identical(levels(out$Genotype), sprintf("trt_%03d", 1:5))
+  fit_s <- stats::lm(yield ~ Genotype, data = s)
+  fit_o <- stats::lm(yield ~ Genotype, data = out)
+  expect_identical(names(stats::coef(fit_o)), names(stats::coef(fit_s)))
+})
+
+test_that("a scrambled treatment keeps its original level order", {
+  df <- data.frame(
+    gen = factor(rep(c("Victory", "Marvellous", "GoldenRain"), each = 6),
+      levels = c("Victory", "Marvellous", "GoldenRain")
+    ),
+    yield = stats::rnorm(18)
+  )
+  r <- propose_roles(df, mode = "local", detect = FALSE)
+  r <- set_role(r, "yield", role = "outcome")
+  r <- set_role(r, "gen", role = "treatment", action = "scramble")
+  m <- suppressWarnings(mask(df, r, mode = "local", seed = 11))
+
+  expect_false(identical(
+    as.character(synthetic(m)$gen), as.character(df$gen)
+  ))
+  expect_identical(levels(synthetic(m)$gen), levels(df$gen))
+  expect_identical(
+    levels(apply_recipe(df, recipe(m))$gen), levels(df$gen)
+  )
+})
+
+test_that("a linked factor's level order does not reveal its alias map", {
+  site <- factor(rep(c("Alpha", "Bravo", "Charlie", "Delta", "Echo"), each = 4))
+  tables <- list(
+    a = data.frame(site = site, y = seq_len(20) / 3),
+    b = data.frame(site = site, z = seq_len(20) / 7)
+  )
+  roles <- lapply(tables, function(tab) {
+    set_role(propose_roles(tab, detect = FALSE), "site",
+      role = "design", action = "alias"
+    )
+  })
+  ms <- suppressWarnings(mask_set(tables, roles = roles, seed = 7, quiet = TRUE))
+  s <- synthetic(ms)$a
+
+  expect_identical(levels(s$site), sprintf("site_K%03d", 1:5))
+  expect_identical(
+    levels(apply_recipe(tables, recipe(ms))$a$site), levels(s$site)
+  )
+})

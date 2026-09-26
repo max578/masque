@@ -323,13 +323,23 @@ unmask <- function(x, rec, column = NULL) {
     }
     new_chr <- ifelse(is.na(val_chr), NA_character_, unname(map[val_chr]))
     if (is.factor(val)) {
-      factor(new_chr, levels = unname(map))
+      factor(new_chr, levels = .clone_levels(map))
     } else {
       new_chr
     }
   } else {
     val
   }
+}
+
+# Internal: level order of a relabelled factor in the clone, which must not
+# reveal the map. A permutation keeps the original order; aliases sort.
+.clone_levels <- function(map) {
+  labels <- unname(map)
+  if (setequal(labels, names(map))) {
+    return(names(map))
+  }
+  sort(labels, method = "radix")
 }
 
 # Internal: synthetic-label -> original-label. Fail-closed (see forward).

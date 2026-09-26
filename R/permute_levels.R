@@ -26,8 +26,7 @@ permute_levels <- function(x) {
     }
     perm <- sample(lvls, length(lvls), replace = FALSE)
     map <- stats::setNames(perm, lvls)
-    # Re-label the factor: each value gets its mapped label, levels updated
-    out <- factor(map[as.character(x)], levels = unname(perm))
+    out <- factor(unname(map[as.character(x)]), levels = lvls)
     return(list(x = out, map = map))
   }
   if (is.character(x)) {

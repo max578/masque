@@ -813,7 +813,7 @@ mask <- function(df,
 .relabel_with_map <- function(x, map) {
   if (is.factor(x)) {
     new_chr <- unname(map[as.character(x)])
-    return(factor(new_chr, levels = unname(map)))
+    return(factor(new_chr, levels = .clone_levels(map)))
   }
   x_chr <- if (is.numeric(x)) as.character(x) else as.character(x)
   ifelse(is.na(x_chr), NA_character_, unname(map[x_chr]))
