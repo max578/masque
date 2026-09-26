@@ -1,5 +1,15 @@
 # masque 0.14.0
 
+## Security
+
+* Clones made with masque 0.13.0 or earlier can reveal their label maps. A
+  scrambled treatment listed its levels in the scrambled order, so
+  `levels()` of the clone showed the whole map. In 0.12.0 and 0.13.0, a
+  join key aliased by `mask_set()` listed its aliases in the original
+  level order, which undid their random assignment. If you shared such a
+  clone, make it again with 0.14.0 and share the new one in its place. The
+  same seed gives the same values. Only the level order changes.
+
 ## Bug fixes
 
 * **A relabelled factor no longer gives its map away through its level
