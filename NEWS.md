@@ -12,14 +12,6 @@
 
 ## Bug fixes
 
-* **A relabelled factor no longer gives its map away through its level
-  order.** A treatment scrambled in local mode listed its levels in the
-  order of the permutation, so the whole map could be read from `levels()`
-  of the clone, and a join key aliased by `mask_set()` listed its aliases
-  in the original level order. A permuted factor now keeps the original
-  level order and aliases sort by code. Clones made with the same seed hold
-  the same values as before; only the level order differs.
-
 * **`apply_recipe()` returns an aliased factor with the clone's levels.**
   It kept the original level order, so a model fitted on the translated
   original had a different reference level from the same model fitted on
