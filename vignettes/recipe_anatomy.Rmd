@@ -39,8 +39,8 @@ happens when the original holds a value the recipe has never seen.
 ## What
 
 The `masque_recipe` object returned by `mask()` is the only artefact
-that *must* stay confidential alongside the original -- it is an S7
-object, accessed through `recipe()`, never touched directly. Two functions
+that *must* stay confidential alongside the original; get it with
+`recipe()`. Two functions
 make the round-trip. `apply_recipe()` recodes the original data into the
 clone's labels and column names, which is how a custodian runs an
 analyst's finished pipeline on it. `unmask()` goes the other way and turns
@@ -156,11 +156,10 @@ labels_recovered
 ```
 
 Columns whose action is `keep` pass through all three verbs unchanged.
-Numeric columns have no label map, so `apply_recipe()` and `unmask()` leave
-them unchanged, and `unmask()` on a numeric prediction vector returns it as
-it is.
+Numeric columns and numeric predictions pass through both functions
+unchanged.
 
-### Fail-closed translation, and reading the refusal
+### Fail-closed translation
 
 If the data drifts, for example a new treatment level the recipe has never
 seen, `apply_recipe()` stops with an error:

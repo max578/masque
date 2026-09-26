@@ -54,15 +54,18 @@ lets a pipeline written against the synthetic re-target to the original
 later with no code change; its internals and the round-trip verbs are the
 subject of *Recipe anatomy and the round-trip*.
 
-Every column in the masking plan carries two independent decisions, built
-by `propose_roles()` and adjusted with `set_role()`: a `role` (what the
-column is -- `design`, `treatment`, `outcome`, `covariate`, `date`, `id`,
-`text`, or `other`) and an `action` (how deeply it is masked -- `keep`
-passes a column through byte-for-byte, `scramble` re-simulates numerics
-through a Gaussian copula or row-permutes categoricals and dates, `alias`
-scrambles and then replaces the labels with opaque codes, and `drop`
-leaves the column out entirely). `role_options()` lists every role and
-action pair the package accepts.
+Every column in the masking plan has a `role` and an `action`, proposed by
+`propose_roles()` and changed with `set_role()`. The role says what the
+column is: `design`, `treatment`, `outcome`, `covariate`, `date`, `id`,
+`text` or `other`. The action says what happens to it:
+
+* `keep` passes it through unchanged;
+* `scramble` re-simulates numerics through a Gaussian copula, or shuffles
+  categories and dates between rows;
+* `alias` scrambles and then replaces the labels with opaque codes;
+* `drop` leaves it out.
+
+`role_options()` lists every role and action pair the package accepts.
 
 The `mode` argument sets the defaults for both axes at once:
 
@@ -209,7 +212,7 @@ gen_levels_changed
 head(levels(synth$gen))
 ```
 
-### A refusal you can rely on
+### A plan the package refuses
 
 `plot` is a `design` column. Scrambling it would break the trial's layout,
 and `mask()` refuses:
@@ -309,8 +312,9 @@ artefact of how the table was put together.
 
 High-confidence environment recommendations feed the masking plan directly.
 Local mode keeps environment values byte-identical; collaborate mode
-aliases categorical environment labels in place, preserving row
-assignment, factor codes, the NA mask, and recipe inversion. A numeric
+aliases categorical environment labels in place, keeping each row in its
+environment and the missing values where they were, and the recipe can
+turn the aliases back into the real labels. A numeric
 environment such as year remains `keep` and raises a disclosure warning
 because its values are still visible:
 
