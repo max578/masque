@@ -594,9 +594,8 @@ jitter_coordinates <- function(df, lat_col, lon_col,
   )
   extra <- character()
   if (length(rep$consolidated)) {
-    n_consolidated <- length(rep$consolidated)
     extra <- c(extra, cli::pluralize(
-      "{n_consolidated} site{?s} consolidated to a centroid"
+      "{length(rep$consolidated)} site{?s} consolidated to a centroid"
     ))
   }
   if (rep$unplaced > 0L) {

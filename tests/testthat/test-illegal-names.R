@@ -26,7 +26,7 @@ test_that("mask() warns (classed) and records the name repair on the recipe", {
   r <- propose_roles(d, detect = FALSE)
   expect_warning(mask(d, r, seed = 1), class = "masque_name_repaired")
   m <- suppressWarnings(mask(d, r, seed = 1))
-  expect_true(any(grepl("not valid R names", recipe(m)@warnings)))
+  expect_true(any(grepl("R does not accept", recipe(m)@warnings)))
 })
 
 test_that("illegal names legalise without duplication or leak, in every mode", {

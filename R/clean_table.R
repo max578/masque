@@ -145,10 +145,11 @@ print.masque_cleaning <- function(x, ...) {
     sprintf("`%s` -> `%s`", names(name_map), unname(name_map)),
     collapse = ", "
   )
-  n <- length(name_map)
   paste0(
-    cli::pluralize("Renamed {n} column name{?s} that {?is/are} not valid R "),
-    "names: ", pairs, ". ",
+    cli::pluralize(
+      "Renamed {length(name_map)} column name{?s} that R does not accept: "
+    ),
+    pairs, ". ",
     "The map is recorded in the recipe and reversed on the round-trip."
   )
 }
