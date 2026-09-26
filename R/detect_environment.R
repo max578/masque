@@ -753,7 +753,7 @@ GROUP_MAX_SHARED_FRACTION <- 0.05
   }
   pattern <- "^(trial|experiment|study|panel|population|cohort)$"
   candidates <- setdiff(
-    names(df)[grepl(pattern, names(df), ignore.case = TRUE, perl = TRUE)],
+    grep(pattern, names(df), ignore.case = TRUE, perl = TRUE, value = TRUE),
     env_cols
   )
   if (length(candidates) == 0L) {

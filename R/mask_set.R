@@ -122,7 +122,7 @@ mask_set <- function(input,
 
   # Hygiene per table (names legalised, whitespace trimmed) up front, so
   # link detection and roles see the cleaned schema.
-  cleaned <- lapply(tables, function(tab) clean_table(tab, clean, quiet = TRUE))
+  cleaned <- lapply(tables, clean_table, clean = clean, quiet = TRUE)
   tables <- lapply(cleaned, `[[`, "data")
 
   # Roles: proposed per table unless supplied.

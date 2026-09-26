@@ -389,7 +389,7 @@ summarise_kind <- function(x, kind) {
     "numeric" = ,
     "integer" = {
       r <- suppressWarnings(range(x, na.rm = TRUE))
-      if (!all(is.finite(r))) "[all NA]" else sprintf("[%g, %g]", r[1], r[2])
+      if (all(is.finite(r))) sprintf("[%g, %g]", r[1], r[2]) else "[all NA]"
     },
     "factor" = sprintf("n=%d levels", nlevels(x)),
     "character" = sprintf("n=%d unique", length(unique(stats::na.omit(x)))),
@@ -400,10 +400,10 @@ summarise_kind <- function(x, kind) {
     "date" = ,
     "datetime" = {
       r <- suppressWarnings(range(x, na.rm = TRUE))
-      if (!all(is.finite(unclass(r)))) {
-        "[all NA]"
-      } else {
+      if (all(is.finite(unclass(r)))) {
         sprintf("[%s, %s]", format(r[1]), format(r[2]))
+      } else {
+        "[all NA]"
       }
     },
     "other" = paste(class(x), collapse = "/")

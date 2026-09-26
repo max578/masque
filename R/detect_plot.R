@@ -534,7 +534,7 @@ local(S7::method(plot, design_summary) <- function(
   op <- graphics::par(mfrow = c(1, 2))
   on.exit(graphics::par(op), add = TRUE)
 
-  # 1) Treatment frequency (or "no factor" placeholder).
+  # 1) Treatment frequency, or an empty panel when there is no treatment.
   if (length(x@treatment_col) > 0L && x@treatment_col[1L] %in% names(df)) {
     trt <- x@treatment_col[1L]
     tbl <- sort(table(df[[trt]], useNA = "no"), decreasing = TRUE)
