@@ -424,7 +424,7 @@
   under `clean = "off"` an invalid name such as `GY_%VARMAX` was silently
   rewritten by `make.names()` inside numeric synthesis with no map
   recorded, so the synthesised column no longer matched its source: the
-  original column survived **un-masked** alongside the synthetic copy --
+  original column survived **unmasked** alongside the synthetic copy --
   a leak -- and the round-trip broke. `mask()` now legalises names up
   front in all modes, remaps the `roles` table, records the map, and
   `synthesise_numeric_local()` no longer rewrites names.
@@ -713,7 +713,7 @@ split-plot trials).
   `covariate` rather than `ignore`. Date/time covariates are row-permuted,
   retain their original class, and preserve the cell-level NA mask.
 * Unsupported column classes now default to `keep` with a clear note,
-  avoiding a confusing attempt to synthesize objects masque does not know
+  avoiding a confusing attempt to synthesise objects masque does not know
   how to mask.
 
 ## Masking and recipes
