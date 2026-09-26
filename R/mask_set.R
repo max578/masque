@@ -80,10 +80,8 @@ mask_set <- function(input,
                      quiet = FALSE) {
   withr::local_preserve_seed()
   ladder <- match.arg(ladder)
-  # Shape-check `roles` before reading its mode provenance: a malformed
-  # `roles` has no provenance to read, and inferring mode from it first
-  # would advise the caller about `propose_roles()` round-trips when the
-  # real fault is the shape of the argument.
+  # Check the shape of `roles` before reading its mode, so a wrong argument
+  # is reported as such.
   if (!is.null(roles)) .check_roles_shape(roles)
   if (missing(mode)) {
     mode <- "local"
@@ -102,11 +100,15 @@ mask_set <- function(input,
         mode <- role_modes[[1L]]
       } else {
         cli::cli_warn(c(
-          "No {.arg mode} was supplied and no supplied {.arg roles} table carries mode provenance.",
+          paste0(
+            "No {.arg mode} was supplied and no supplied {.arg roles} table ",
+            "carries mode provenance."
+          ),
           "i" = paste0(
-            "Defaulting to {.val local}. Pass {.code mode =} explicitly, or keep ",
-            "the tibbles from {.fn propose_roles} (a {.fn data.table} or ",
-            "{.fn saveRDS} round-trip strips the mode attribute)."
+            "Defaulting to {.val local}. Pass {.code mode =} explicitly, ",
+            "or keep the tibbles from {.fn propose_roles} (a ",
+            "{.fn data.table} or {.fn saveRDS} round-trip strips the mode ",
+            "attribute)."
           )
         ), class = "masque_mode_unset")
       }
@@ -142,9 +144,8 @@ mask_set <- function(input,
 
   if (!quiet) .report_links(link_groups)
 
-  # Column-name aliasing target per table: when alias_names = TRUE, alias
-  # every column except the linked join keys (which must keep stable
-  # names so the synthetic set stays joinable).
+  # With alias_names = TRUE every column is aliased except the linked join
+  # keys, which keep their names so the set stays joinable.
   linked_cols <- unique(unlist(lapply(link_groups, `[[`, "name")))
 
   recipes <- vector("list", length(tables))
@@ -207,16 +208,14 @@ mask_set <- function(input,
   missing <- setdiff(names(tables), names(roles))
   if (length(missing)) {
     cli::cli_abort(
-      "`roles` is missing table(s): {.val {missing}}.",
+      "`roles` is missing table{?s}: {.val {missing}}.",
       class = c("masque_roles_missing_table_refusal", "orchestra_refusal")
     )
   }
 }
 
-# Decide which columns are cross-table links. A candidate is a column
-# name present in >= 2 tables with a compatible kind and at least one
-# shared value. The user can force a set via `links` or disable with
-# FALSE.
+# Cross-table links: a column name in two or more tables with a compatible
+# kind and a shared value. `links` forces a set; FALSE turns links off.
 .resolve_links <- function(tables, roles, links, mode) {
   if (isFALSE(links)) {
     return(list())
@@ -234,7 +233,7 @@ mask_set <- function(input,
     unknown <- setdiff(links, multi)
     if (length(unknown)) {
       cli::cli_abort(c(
-        "`links` names column(s) not shared across tables: {.val {unknown}}.",
+        "`links` names column{?s} not shared across tables: {.val {unknown}}.",
         i = "Columns appearing in >= 2 tables: {.val {multi}}."
       ), class = c("masque_bad_links_refusal", "orchestra_refusal"))
     }
@@ -266,11 +265,8 @@ mask_set <- function(input,
     all(u %in% .numeric_kinds())
 }
 
-# Build the shared alias map for each link group (over the union of
-# values across its tables). Returns the link groups with their `$map`
-# filled, plus the maps indexed by table -> col -> map for the mask()
-# calls. A link whose column the user kept unmasked in every table is
-# dropped (no shared map needed).
+# Shared alias map per link group, over the union of its values. A link kept
+# unmasked in every table gets no map.
 .build_shared_maps <- function(tables, roles, link_groups, mode) {
   shared_by_table <- stats::setNames(
     rep(list(list()), length(tables)), names(tables)
@@ -295,10 +291,11 @@ mask_set <- function(input,
     aliases <- sprintf(
       paste0("%s_K%0", width, "d"), col, seq_along(union_vals)
     )
-    # Which level receives which alias is a draw from the seeded stream, as
-    # in alias_levels(): a lexicographic map is invertible from a public
-    # vocabulary alone (M-01, 2026-08-25 audit).
-    map <- stats::setNames(aliases[.alias_order(length(union_vals))], union_vals)
+    # Random assignment, as in alias_levels(): a sorted map could be inverted
+    # from a public vocabulary.
+    map <- stats::setNames(
+      aliases[.alias_order(length(union_vals))], union_vals
+    )
 
     g$map <- map
     kept_groups[[col]] <- g

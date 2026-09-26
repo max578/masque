@@ -1,8 +1,5 @@
-# Joint-treatment masking: factorial / split-plot designs carry two or more
-# treatment factors. Each is masked independently; in collaborate mode the
-# column name is folded into the alias prefix (`<col>_trt_NNN`) so the opaque
-# labels stay distinct, while a single treatment keeps the historical
-# `trt_NNN` prefix.
+# Each treatment factor is aliased separately as `<col>_trt_NNN`; a single
+# treatment keeps `trt_NNN`.
 
 make_factorial_fixture <- function(reps = 6, seed = 0) {
   set.seed(seed)

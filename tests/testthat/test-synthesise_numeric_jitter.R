@@ -73,11 +73,8 @@ test_that("Collaborate mode lowers numeric exact-match in mask()", {
   r <- propose_roles(df)
   r$role[r$col == "yield"] <- "outcome"
 
-  # Rep is a numeric design-like covariate that audit_mask() flags HIGH
-  # by design (collaborate-mode integer pass-through). The warning is
-  # expected here; the assignment lives *inside* expect_warning() so
-  # that testthat 3e returns the warning condition (rather than the
-  # masque object) without breaking the downstream code.
+  # audit_mask() flags Rep (integer design column) HIGH in collaborate mode.
+  # The assignment sits inside expect_warning() so `m` is the masque object.
   expect_warning(
     m <- mask(df, r, mode = "collaborate", seed = 1),
     "HIGH leakage"

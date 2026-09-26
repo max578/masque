@@ -113,17 +113,13 @@
 ) {
   collab <- identical(mode, "collaborate")
 
-  # 0. A coordinate coarsened in place by the geomask is retained but not
-  #    disclosed: the value is displaced by the requested radius and shared
-  #    across the site. Retention is still worth reporting, so this is
-  #    MEDIUM rather than the HIGH that bare PII retention earns.
+  # 0. A coordinate jittered in place is retained but displaced: MEDIUM.
   if (isTRUE(coarsened) && in_synth) {
     return(if (collab) "medium" else "low")
   }
 
-  # 1. PII pattern retained in the synthetic: HIGH across the trust
-  #    boundary (even aliased - retention itself is the finding),
-  #    MEDIUM when the surrogate stays with the owner.
+  # 1. PII retained in the synthetic, even aliased: HIGH across the trust
+  #    boundary, MEDIUM when the synthetic stays with the owner.
   if (pii && in_synth) {
     return(if (collab) "high" else "medium")
   }
@@ -153,9 +149,8 @@
     return("medium")
   }
 
-  # 6. Non-design column kept as-is in collaborate: MEDIUM. Real values
-  #    cross the trust boundary; design exposure is the documented
-  #    exception (structural fidelity is the package contract).
+  # 6. Non-design column kept as-is in collaborate mode: MEDIUM. Design
+  #    columns are exempt, since keeping them is the point of the package.
   if (collab && !is.na(action) && action == "keep" && role != "design" &&
     in_synth) {
     return("medium")

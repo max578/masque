@@ -1,6 +1,4 @@
-# plot(design_summary, df = ...): smoke tests across every design class.
-# No vdiffr snapshots — keep test deps lean. We assert no error + that
-# the device wrote something.
+# Smoke tests for plot(design_summary, df = ...) across every design class.
 
 # Helper: render to a null PDF device and confirm zero errors.
 plot_smoke <- function(ds, df, engine = "base", environment = NULL) {
@@ -55,9 +53,7 @@ test_that("plot() handles split-plot without error", {
 
 test_that("plot() falls back to base when ggplot2 requested but absent", {
   ds <- detect_design(iris)
-  # Force engine = "ggplot2" with ggplot2 actually installed in suggests.
-  # When ggplot2 IS installed, this exercises the ggplot2 dispatch
-  # without erroring.
+  # Runs only with ggplot2 installed: checks the ggplot2 path, not the fallback.
   skip_if_not_installed("ggplot2")
   pdf(NULL)
   on.exit(dev.off(), add = TRUE)

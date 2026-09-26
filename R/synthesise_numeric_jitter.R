@@ -48,12 +48,8 @@ synthesise_numeric_collaborate <- function(x_obs, x_new) {
   x_new
 }
 
-# Internal: per-column measurement resolution.
-#
-# For integer columns: 1.
-# For numeric: the minimum positive gap between sorted unique observed
-# values, floored at a small fraction of the data range to avoid
-# degenerate near-zero values from floating-point representation.
+# Internal: measurement resolution per column: 1 for integers, else the
+# smallest gap between sorted unique values, floored at a share of the range.
 .detect_resolution <- function(x) {
   x_clean <- x[!is.na(x)]
   if (length(x_clean) == 0L) {
@@ -74,13 +70,8 @@ synthesise_numeric_collaborate <- function(x_obs, x_new) {
   res
 }
 
-# Internal: round to integer in [lo, hi], stochastically.
-#
-# For each x_i:
-#   floor(x_i)     with probability 1 - frac
-#   floor(x_i) + 1 with probability frac
-# where frac = x_i - floor(x_i). Result is clipped to [lo, hi]
-# and cast to integer.
+# Internal: stochastic rounding to integer in [lo, hi]: up with probability
+# x - floor(x), else down.
 .bounded_stochastic_round <- function(x, lo, hi) {
   floor_x <- floor(x)
   frac <- x - floor_x

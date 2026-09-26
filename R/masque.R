@@ -238,11 +238,8 @@ masque <- function(input,
   }
 }
 
-# The spreadsheet editor when the platform provides one, else a console
-# fallback. utils::edit() on a data frame needs the X11 dataentry widget
-# on macOS terminal R (XQuartz) and is unavailable on headless systems;
-# an editor failure must return the user to the review loop with their
-# proposal intact, never destroy the guided session.
+# The spreadsheet editor where available, else the console editor. An editor
+# failure returns to the review loop with the proposal intact.
 .masque_edit <- function(roles) {
   edited <- tryCatch(.masque_edit_gui(roles), error = function(e) e)
   if (inherits(edited, "error")) {
@@ -264,12 +261,8 @@ masque <- function(input,
   utils::edit(as.data.frame(roles))
 }
 
-# Dependency-free console editor: pick a column, then a role and an
-# action from numbered menus. Every change flows through set_role(), so
-# validation, vocabulary, and default-action re-resolution match the
-# scriptable path exactly (a re-roled column never carries a stale
-# action). Blank input finishes; attributes survive because set_role()
-# never drops them.
+# Console editor: pick a column, then a role and action from numbered menus.
+# Every change goes through set_role(). Blank input finishes.
 .masque_edit_console <- function(roles) {
   repeat {
     shown <- roles[, intersect(c("col", "role", "action", "kind"),
@@ -352,9 +345,8 @@ masque <- function(input,
 }
 
 .masque_write <- function(m, out, overwrite, quiet, allow_high = FALSE) {
-  # Safety gate first: aborts on unresolved HIGH findings (nothing
-  # written); with allow_high = TRUE the override is warned and recorded
-  # on the recipe so the exception survives with the private artefact.
+  # Safety gate: abort on unresolved HIGH findings; allow_high = TRUE warns
+  # and records the override on the recipe.
   overridden <- .gate_release(m, allow_high)
   m <- .record_override(m, overridden)
   if (S7::S7_inherits(m, masque_set)) {
@@ -376,7 +368,7 @@ masque <- function(input,
   }
   if (grepl("\\.xlsx$", out, ignore.case = TRUE)) {
     if (!requireNamespace("writexl", quietly = TRUE)) {
-      cli::cli_abort("Writing {.file {out}} needs the {.pkg writexl} package.")
+      cli::cli_abort("Writing {.file {out}} needs {.pkg writexl}.")
     }
     writexl::write_xlsx(df, path = out)
   } else {
@@ -412,7 +404,7 @@ masque <- function(input,
       "BLOCKED: unresolved HIGH leakage on {flagged}."
     )
     cli::cli_alert_info(
-      "Next: re-role, alias, or drop the flagged column(s), then mask again."
+      "Next: re-role, alias, or drop each flagged column, then mask again."
     )
     return(invisible(m))
   }

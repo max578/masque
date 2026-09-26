@@ -172,9 +172,8 @@ propose_roles <- function(df, mode = c("local", "collaborate"),
   roles
 }
 
-# Apply detect_design()'s recommended_roles on top of the name-based
-# tibble. Overrides role, re-resolves the default action for the new
-# role, and extends the notes string. Never introduces or drops rows.
+# Apply detect_design()'s recommended roles: set the role, re-resolve its
+# default action and extend the notes. Rows are never added or dropped.
 .overlay_recommended_roles <- function(roles, rec, mode) {
   for (i in seq_len(nrow(rec))) {
     if ("auto_apply" %in% names(rec) && !isTRUE(rec$auto_apply[i])) next
@@ -240,7 +239,7 @@ propose_roles <- function(df, mode = c("local", "collaborate"),
   }
   cli::cli_warn(c(
     paste0(
-      "Numeric environment column(s) {.field {env_cols}} remain ",
+      "Numeric environment column{?s} {.field {env_cols}} remain{?s/} ",
       "{.val keep} in collaborate mode."
     ),
     "i" = paste0(
@@ -391,9 +390,9 @@ summarise_kind <- function(x, kind) {
     "numeric" = ,
     "integer" = {
       r <- suppressWarnings(range(x, na.rm = TRUE))
-      if (any(!is.finite(r))) "[all NA]" else sprintf("[%g, %g]", r[1], r[2])
+      if (!all(is.finite(r))) "[all NA]" else sprintf("[%g, %g]", r[1], r[2])
     },
-    "factor" = sprintf("n=%d levels", length(levels(x))),
+    "factor" = sprintf("n=%d levels", nlevels(x)),
     "character" = sprintf("n=%d unique", length(unique(stats::na.omit(x)))),
     "logical" = {
       tbl <- table(x, useNA = "no")
@@ -402,7 +401,7 @@ summarise_kind <- function(x, kind) {
     "date" = ,
     "datetime" = {
       r <- suppressWarnings(range(x, na.rm = TRUE))
-      if (any(!is.finite(unclass(r)))) {
+      if (!all(is.finite(unclass(r)))) {
         "[all NA]"
       } else {
         sprintf("[%s, %s]", format(r[1]), format(r[2]))

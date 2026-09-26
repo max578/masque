@@ -1,6 +1,5 @@
-# Explicit and conservative automatic environment handling for detect_design().
-# User-supplied bases bypass name priors; automatic candidates remain bounded
-# to the validated Phase 2 vocabulary and abstain on weak or competing evidence.
+# Explicit and automatic environment handling for detect_design(). Automatic
+# candidates come from a fixed vocabulary and abstain on weak evidence.
 
 ENVIRONMENT_MIN_COVERAGE <- 0.8
 SITE_MIN_REPLICATED_LEVEL_FRACTION <- 0.5
@@ -77,11 +76,11 @@ GROUP_MAX_SHARED_FRACTION <- 0.05
     return(list(mode = "disabled", cols = character()))
   }
   if (!is.character(env) || length(env) == 0L || anyNA(env) ||
-    any(!nzchar(env))) {
+    !all(nzchar(env))) {
     .abort_invalid_environment(c(
       "`env` must be `NULL`, `FALSE`, or one or more column names.",
       "i" = paste0(
-        "Supply a character vector such as {.val env} or ",
+        "Supply a character vector, for example {.val env} or ",
         "{.val {c('site', 'year')}}."
       )
     ))
@@ -89,21 +88,21 @@ GROUP_MAX_SHARED_FRACTION <- 0.05
   if (anyDuplicated(env)) {
     duplicates <- unique(env[duplicated(env)])
     .abort_invalid_environment(
-      "`env` contains duplicate column name(s): {.field {duplicates}}."
+      "`env` contains duplicate column name{?s}: {.field {duplicates}}."
     )
   }
 
   missing_cols <- setdiff(env, names(df))
   if (length(missing_cols) > 0L) {
     .abort_invalid_environment(
-      "Environment column(s) not found in `df`: {.field {missing_cols}}."
+      "Environment column{?s} not found in `df`: {.field {missing_cols}}."
     )
   }
 
   all_missing <- env[vapply(df[env], function(x) all(is.na(x)), logical(1L))]
   if (length(all_missing) > 0L) {
     .abort_invalid_environment(
-      "Environment column(s) are all-missing: {.field {all_missing}}."
+      "Environment column{?s} {?is/are} all-missing: {.field {all_missing}}."
     )
   }
 
@@ -421,10 +420,8 @@ GROUP_MAX_SHARED_FRACTION <- 0.05
   }
   kinds <- vapply(df[cols], col_kind, character(1L))
   categorical <- kinds %in% .categorical_kinds()
-  # `preserve_only` is the fail-safe for a suspected-but-unconfirmed
-  # environment (review-required or ambiguous): keep the column byte-identical
-  # in both modes rather than aliasing it. Aliasing a weak candidate is never
-  # automatic; only a high-confidence environment is aliased in collaborate.
+  # `preserve_only`: a suspected environment is kept unchanged in both modes;
+  # only a high-confidence environment is aliased in collaborate mode.
   action_collaborate <- if (preserve_only) {
     rep("keep", length(cols))
   } else {

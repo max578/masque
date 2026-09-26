@@ -1,7 +1,5 @@
-# Deterministic fixtures for the MET-scope detection contract.
-#
-# These fixtures encode structure only. Outcomes are deterministic and must
-# not influence environment resolution.
+# Fixtures for MET-scope detection. Outcomes are deterministic and play no
+# part in environment resolution.
 
 met_complete_fixture <- function() {
   out <- expand.grid(

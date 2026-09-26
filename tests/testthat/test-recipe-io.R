@@ -43,10 +43,8 @@ test_that("save_recipe file is much smaller than the raw data (1000x20 fixture)"
   tmp <- tempfile(fileext = ".rds")
   save_recipe(recipe(m), tmp)
   sz <- file.info(tmp)$size
-  # The recipe is metadata, not the data: it must serialize much smaller than the
-  # raw data. Comparing against the data via the SAME serializer keeps this
-  # robust to the absolute serialization-size changes that differ across R
-  # versions (R-devel serialises this object several times larger than release R).
+  # Compared with the data under the same serialiser: absolute sizes differ
+  # across R versions (R-devel is several times larger).
   data_rds <- tempfile(fileext = ".rds")
   saveRDS(df, data_rds)
   expect_lt(sz, file.info(data_rds)$size)

@@ -127,9 +127,7 @@ test_that("write_set mirrors folder format and never writes the recipe", {
 
 test_that("write_set refuses to overwrite without overwrite = TRUE", {
   tables <- make_set()
-  # trt_roles() keeps every non-treatment column, so mask() legitimately
-  # warns that nothing will be masked; the warning is not this test's
-  # subject.
+  # mask() warns that nothing will be masked; that is expected here.
   m <- suppressWarnings(mask_set(tables, roles = trt_roles(tables),
     mode = "local", seed = 1, quiet = TRUE
   ))

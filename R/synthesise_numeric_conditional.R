@@ -1,21 +1,5 @@
-# synthesise_numeric_conditional.R -- Stratified numeric synthesis that
-# preserves the conditional treatment -> outcome map.
-#
-# The default numeric path (synthesise_numeric_local) draws from one
-# global Gaussian copula fitted on the pooled covariance. That preserves
-# marginals and the global covariance, but it severs the treatment ->
-# outcome relationship: outcomes are simulated independently of which
-# treatment a row carries, and treatment labels are relabelled by a
-# separate permutation. A causal model fitted on such a clone recovers a
-# null effect even when the real data carry a strong one.
-#
-# This file fits and samples the copula *within each conditioning
-# stratum* (the cross of treatment and design columns), so the synthetic
-# outcomes inherit each stratum's own mean and spread. The synthetic
-# rows stay in their original stratum positions, and treatment relabelling
-# is bijective, so a model of outcome ~ treatment fitted on the clone
-# recovers the real effect within sampling tolerance -- the same idea as
-# preserving a conditional mean embedding rather than a pooled marginal.
+# Numeric synthesis within each treatment-by-design stratum, so a model of
+# outcome ~ treatment fitted on the clone recovers the real effect.
 
 #' Conditional Gaussian-copula synthesis for numeric columns
 #'
@@ -36,11 +20,8 @@
 #' fallback rows still receive synthetic values; only their conditional
 #' fidelity degrades gracefully toward the pooled behaviour.
 #'
-#' The stratum this function is handed is chosen upstream by
-#' `.conditioning_ladder()`, which coarsens the conditioning set until the
-#' cells are large enough rather than letting a fine cross fall wholesale
-#' into the fallback. This function is therefore the last rung of that
-#' ladder, not the first line of defence.
+#' The stratum is chosen upstream by `.conditioning_ladder()`, which coarsens
+#' the conditioning set until the cells are large enough.
 #'
 #' @param x_num A data frame whose columns are all numeric or integer
 #'   (the scrambled numeric block).
@@ -94,16 +75,8 @@ synthesise_numeric_conditional <- function(x_num, groups, min_stratum = 5L) {
   out
 }
 
-# Internal: build the per-row conditioning stratum label from the
-# treatment and retained design columns.
-#
-# The stratum is the interaction of every conditioning column, encoded as
-# a single character key. Conditioning columns absent from the data
-# (none survived, or none were nominated) yield a single "all rows"
-# stratum, in which case the conditional path collapses to the global
-# copula and the caller can fall back cleanly. The labels here are the
-# *original* values; because treatment relabelling later is bijective,
-# the stratum identity is unchanged by it.
+# Internal: per-row stratum key from the treatment and retained design
+# columns, on original values. No conditioning columns gives one stratum.
 .conditioning_groups <- function(df, cond_cols) {
   cond_cols <- intersect(cond_cols, names(df))
   if (!length(cond_cols)) {
@@ -113,13 +86,8 @@ synthesise_numeric_conditional <- function(x_num, groups, min_stratum = 5L) {
   do.call(paste, c(parts, list(sep = "\r")))
 }
 
-# Internal: resolve a vector of stratum labels into the strata actually
-# synthesised, and report how many rows lost their own stratum on the way.
-#
-# A row whose group label is NA cannot be pooled into a real stratum, so
-# it is keyed separately; that key is then subject to the same size test
-# as any other. Strata below `min_stratum` are merged into one fallback
-# stratum, which is synthesised from its own pooled rows.
+# Internal: resolve stratum labels into the strata synthesised. NA labels form
+# their own key; strata below `min_stratum` merge into one fallback stratum.
 .resolve_strata <- function(groups, min_stratum = 5L) {
   grp <- as.character(groups)
   if (!length(grp)) {
@@ -133,20 +101,20 @@ synthesise_numeric_conditional <- function(x_num, groups, min_stratum = 5L) {
   list(strata = grp, fallback_frac = mean(is_fallback))
 }
 
-# Internal: the fraction of rows that would be pooled into the fallback
-# under a given stratum labelling. 0 means every row is conditioned on its
-# own stratum; 1 means the conditional clone is the pooled clone.
+# Internal: fraction of rows pooled into the fallback under a labelling
+# (0: all conditioned; 1: the pooled clone).
 .stratum_fallback_frac <- function(groups, min_stratum = 5L) {
   .resolve_strata(groups, min_stratum)$fallback_frac
 }
 
-# Internal: the conditioning ladder. Drops design columns one at a time,
-# in the order `ladder` sets (`.order_by_levels()` or
-# `.order_by_hierarchy()`), until every cell holds `min_stratum` rows.
-# Treatment columns are never dropped: if the treatment-only rung is still
-# below the floor the ladder stops there and reports the residual fallback
-# fraction. Under "hierarchy" every dropped column is also listed in
-# `shifted`, for `.design_shifts()`.
+#' The conditioning ladder
+#'
+#' Drops design columns one at a time, in the order `ladder` sets, until every
+#' cell holds `min_stratum` rows. Treatment columns are never dropped: if the
+#' treatment-only rung is still too small, the ladder stops there and reports
+#' the fallback fraction. Under `"hierarchy"` each dropped column is also
+#' listed in `shifted` for `.design_shifts()`.
+#' @noRd
 .conditioning_ladder <- function(df, cond_cols, protect_cols,
                                  min_stratum = 5L, ladder = "levels",
                                  x_num = NULL) {
@@ -174,9 +142,8 @@ synthesise_numeric_conditional <- function(x_num, groups, min_stratum = 5L) {
     }
   }
   dropped <- setdiff(droppable, used)
-  # Rows in the pooled fallback have lost their stratum, so under the
-  # hierarchy ladder the stratum columns' main effects are carried for them
-  # as shifts as well.
+  # Fallback rows have lost their stratum, so under the hierarchy ladder the
+  # stratum columns' main effects are carried for them as shifts too.
   shifted <- if (identical(ladder, "hierarchy")) {
     cand <- c(dropped, if (isTRUE(frac > 0)) used)
     cand <- cand[vapply(cand, function(cl) .shiftable(df[[cl]]), logical(1L))]
@@ -225,10 +192,8 @@ synthesise_numeric_conditional <- function(x_num, groups, min_stratum = 5L) {
   cols[order(tier, key, match(cols, names(df)))]
 }
 
-# Mean over the numeric block of the share of each numeric column's sum of
-# squares that a conditioning column explains, adjusted for its number of
-# levels (twelve null blocks explain a sixth of the variance by chance)
-# and floored at 0. 0 when there is no numeric block to explain.
+# Mean share of each numeric column's sum of squares a column explains,
+# adjusted for its number of levels and floored at 0.
 .variance_explained <- function(df, cols, x_num = NULL) {
   if (is.null(x_num) || !ncol(x_num) || !nrow(x_num)) {
     return(stats::setNames(rep(0, length(cols)), cols))
@@ -253,19 +218,15 @@ synthesise_numeric_conditional <- function(x_num, groups, min_stratum = 5L) {
   }, numeric(1))
 }
 
-# A column can carry a shift when at least two of its levels hold two or
-# more rows; a level with one row is pooled with the other singletons
-# (see `.collapse_singletons()`), so a column of singletons has no effect
-# to estimate.
+# A column can carry a shift when two or more levels hold two or more rows;
+# single-row levels are pooled by `.collapse_singletons()`.
 .shiftable <- function(v) {
   tab <- table(as.character(v))
   sum(tab >= 2L) >= 2L
 }
 
-# Every pair among the dropped blocking and environment columns, written
-# "a:b": a replicate label inside one county is a different block from the
-# same label in another, so the pair carries what the two main effects
-# cannot. Plot coordinates form no pairs; a row-by-column pair is the plot.
+# Pairs of dropped blocking and environment columns, as "a:b" (rep R1 in one
+# county is not R1 in another). Coordinates form no pairs.
 .nested_pairs <- function(cols) {
   cols <- cols[!grepl(.COORD_PATTERN, cols, ignore.case = TRUE)]
   if (length(cols) < 2L) {
@@ -294,21 +255,22 @@ synthesise_numeric_conditional <- function(x_num, groups, min_stratum = 5L) {
   factor(v)
 }
 
-# Internal: per row and numeric column, the effect of each shifted term,
-# estimated by least squares beside the kept stratum. Subtracted before the
-# within-stratum copula and added back after it. A row with a missing
-# value in any shifted term gets a zero shift. Returns the matrix, the
-# terms kept within the parameter budget, and per numeric column the
-# factor `sqrt((n - 1) / (n - 1 - p))` that restores the error variance
-# the fit removed, `p` counting the stratum and each term's degrees of
-# freedom weighted by its shrinkage.
-#
-# A blocking, environment or coordinate term is shrunk toward zero by its
-# signal share `tau2 / (tau2 + sigma2 / m)` (`tau2` the between-level
-# variance of its estimated effects net of sampling noise, `m` the rows per
-# level), so a term that is noise carries nothing and a strong one carries
-# its full effect. A stratum column shifted for rows in the pooled fallback
-# carries its treatment means unshrunk, as the copula would have.
+#' Shifts for the dropped terms
+#'
+#' Per row and numeric column, the least-squares effect of each shifted term,
+#' fitted beside the kept stratum. It is subtracted before the within-stratum
+#' copula and added back after; a row missing any shifted term gets no shift.
+#'
+#' Blocking, environment and coordinate terms are shrunk by
+#' `tau2 / (tau2 + sigma2 / m)`, with `tau2` the between-level variance of the
+#' effects net of noise and `m` the rows per level. A stratum column shifted
+#' for fallback rows carries its treatment means unshrunk.
+#'
+#' @returns A list: the shift matrix, the terms kept within the parameter
+#'   budget, and per numeric column the factor `sqrt((n - 1) / (n - 1 - p))`
+#'   that restores the error variance the fit removed (`p` counts the stratum
+#'   and each term's degrees of freedom, weighted by its shrinkage).
+#' @noRd
 .design_shifts <- function(x_num, df, used, shifted) {
   shift <- matrix(
     0, nrow(x_num), ncol(x_num), dimnames = list(NULL, names(x_num))
@@ -318,9 +280,8 @@ synthesise_numeric_conditional <- function(x_num, groups, min_stratum = 5L) {
   if (!length(shifted) || !ncol(x_num) || nrow(x_num) < 3L) {
     return(none)
   }
-  # The stratum enters the fit so a dropped column's effect is estimated
-  # beside it, unless a stratum column is itself being shifted (rows in the
-  # pooled fallback), when the stratum term would absorb that effect.
+  # The stratum enters the fit, except when a stratum column is itself
+  # shifted (fallback rows), where it would absorb that effect.
   key <- factor(.conditioning_groups(df, used))
   with_stratum <- nlevels(key) >= 2L && !any(used %in% shifted)
   terms <- lapply(shifted, function(term) .shift_term(df, term))
@@ -386,10 +347,8 @@ synthesise_numeric_conditional <- function(x_num, groups, min_stratum = 5L) {
   list(shift = shift, shifted = shifted, inflate = inflate)
 }
 
-# The share of a term's estimated level effects that is signal: the
-# between-level variance net of the sampling variance `sigma2 / m` of a
-# level mean, over the between-level variance. 0 for a term whose spread
-# is no more than noise; 1 for a strong effect.
+# Signal share of a term's level effects: between-level variance net of the
+# noise `sigma2 / m`, over the between-level variance (0 noise, 1 strong).
 .shrinkage <- function(effects, sigma2, m) {
   if (length(effects) < 2L || !is.finite(sigma2) || m <= 0) {
     return(0)

@@ -1,7 +1,5 @@
-# M-01 (2026-08-25 audit): the cross-table join-key alias map must be drawn
-# from the seeded permutation like every other alias map. A lexicographic,
-# seed-invariant map lets a holder of the synthetic plus a candidate
-# vocabulary (a variety roster) invert the assignment with no recipe.
+# The cross-table join-key alias map must come from the seeded permutation,
+# not sort order.
 
 
 # Self-contained fixtures (mirrors test-mask-set.R; a test file must not

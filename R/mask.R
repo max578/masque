@@ -83,10 +83,8 @@
 #'   each treatment-by-design stratum*, so a row's synthetic outcome
 #'   inherits the location of the treatment that row carries. A causal
 #'   model fitted on the conditional clone recovers the real treatment
-#'   effect within sampling tolerance - the data-side analogue of
-#'   preserving a conditional mean embedding rather than a pooled
-#'   marginal. The conditioning columns (treatment plus retained design)
-#'   are recorded on the recipe.
+#'   effect within sampling tolerance. The conditioning columns (treatment
+#'   plus retained design) are recorded on the recipe.
 #'
 #'   The stratum is chosen by a **coarsening ladder**. Treatment crossed
 #'   with every retained design column is the finest rung, but on a
@@ -153,8 +151,8 @@
 #' @param .shared_maps Internal. A named list of pre-computed
 #'   `original -> alias` level maps for cross-table linked columns, set
 #'   by [mask_set()]. Not for direct use.
-#' @param ... Must be empty. An unused argument (for example a
-#'   misspelled name) errors rather than being silently ignored.
+#' @param ... Must be empty. An unused argument, for example a misspelled
+#'   name, is an error.
 #'
 #' @return A `masque` S7 object. Use [synthetic()] and [recipe()] to
 #'   extract the components.
@@ -199,9 +197,7 @@ mask <- function(df,
     ), class = c("masque_unused_arg_refusal", "orchestra_refusal"))
   }
 
-  # Belt-and-braces RNG hygiene: any RNG perturbation inside mask() is
-  # rolled back when the function exits, regardless of which path produced
-  # it. The inner with_rng_state still controls per-step reproducibility.
+  # Undo any RNG change made inside mask() on exit, whichever path made it.
   withr::local_preserve_seed()
 
   if (inherits(df, "masque_conformance")) {
@@ -228,15 +224,15 @@ mask <- function(df,
     )
   }
   ladder <- ladder[1L]
-  # Shape-check `roles` before reading its mode provenance, for the same
-  # reason as in `mask_set()`: something that is not a roles table has no
-  # provenance to carry, so inferring mode from it first warns the caller
-  # about a missing `mode` attribute when the real fault is the argument.
-  # `roles_validate()` repeats this check for its own callers.
+  # Check the shape of `roles` before reading its mode, so a wrong argument
+  # is reported as such and not as a missing `mode` attribute.
   if (missing(roles)) {
     cli::cli_abort(c(
       "`roles` is missing.",
-      i = "Build one with {.fn propose_roles}, or call {.fn masque} for the guided path."
+      i = paste0(
+        "Build one with {.fn propose_roles}, or call {.fn masque} for the ",
+        "guided path."
+      )
     ), class = c("masque_missing_roles_refusal", "orchestra_refusal"))
   }
   if (!is.data.frame(roles)) {
@@ -255,7 +251,10 @@ mask <- function(df,
     roles_mode <- attr(roles, "mode")
     if (is.null(roles_mode)) {
       cli::cli_warn(c(
-        "No {.arg mode} was supplied and {.arg roles} carries no mode provenance.",
+        paste0(
+          "No {.arg mode} was supplied and {.arg roles} carries no mode ",
+          "provenance."
+        ),
         "i" = paste0(
           "Defaulting to {.val local}. If this table was prepared for ",
           "{.val collaborate} or lost its attributes (for example via ",
@@ -271,13 +270,8 @@ mask <- function(df,
   clean <- match.arg(clean)
   warnings_acc <- character()
 
-  # Hygiene first. Column-name legalisation is applied in EVERY clean mode
-  # (an invalid name silently rewritten during synthesis corrupts the clone
-  # and breaks the round-trip), so `cl$data` always carries legal names and
-  # the roles table's column references are remapped to match. Whitespace
-  # trimming stays governed by the mode. clean_table() raises the
-  # `masque_name_repaired` warning; the repair is also recorded here so it
-  # lands in `recipe@warnings`.
+  # Names are legalised in every clean mode, since a rewritten name breaks the
+  # round trip; whitespace trimming follows `clean`.
   cl <- clean_table(df, clean = clean, quiet = TRUE)
   df <- cl$data
   roles <- .remap_roles_cols(roles, cl$name_map)
@@ -299,18 +293,15 @@ mask <- function(df,
   )
   roles <- roles[match(names(df), roles$col), , drop = FALSE]
 
-  # Coordinate columns declared in `coords` are coarsened by an on-land jitter
-  # after synthesis, so they must survive it: force them to `keep` (bypassing
-  # the copula, which would smear a lat/lon pair into implausible locations).
+  # Declared coordinates skip the copula; they are jittered after synthesis.
   coord_specs <- .normalise_coords(coords, df)
   coord_cols <- .coord_cols(coord_specs)
   if (length(coord_cols)) {
     roles$action[roles$col %in% coord_cols] <- "keep"
   }
 
-  # A masked table must not carry a real coordinate unless the caller has
-  # said so. Runs after `coords` is resolved, so a declared pair -- which is
-  # coarsened below -- is not caught by its own declaration.
+  # Refuse a real coordinate the caller has not declared; declared pairs are
+  # jittered below.
   if (!is.logical(allow_unmasked_coords) ||
     length(allow_unmasked_coords) != 1L) {
     cli::cli_abort(
@@ -322,10 +313,7 @@ mask <- function(df,
 
   opts <- mode_defaults(mode)
 
-  # Conditional clone bookkeeping: resolve the conditioning columns once
-  # so they can be recorded on the recipe, and warn early if a conditional
-  # clone was requested but nothing is available to condition on (it then
-  # degrades to the global copula, which is the non-conditional default).
+  # With nothing to condition on, a conditional clone uses the global copula.
   conditioning_cols <- if (isTRUE(conditional)) {
     .conditioning_cols(roles)
   } else {
@@ -336,10 +324,7 @@ mask <- function(df,
       "conditional = TRUE but no treatment or design column survives to ",
       "condition on; numeric synthesis falls back to the global copula."
     )
-    # Classed, like every other degradation in the package, so a caller
-    # (or an orchestration node) can catch the loss of conditional
-    # fidelity instead of matching on the message text. The ladder's own
-    # degradation below carries the same class.
+    # Classed, so a caller can catch the loss of conditional fidelity.
     warning(warningCondition(msg, class = "masque_conditional_degraded"))
     warnings_acc <- c(warnings_acc, msg)
   }
@@ -354,11 +339,8 @@ mask <- function(df,
   level_maps <- result$level_maps
   warnings_acc <- c(warnings_acc, result$warnings)
 
-  # Conditional clone: report what the conditioning ladder actually
-  # reached. A dropped rung or a residual pooled fraction means the clone
-  # is less conditional than the call asked for, and that has to be said
-  # out loud -- the recipe would otherwise assert `conditional = TRUE`
-  # over a pooled copula.
+  # Warn when the ladder dropped a rung or pooled rows: the clone is then less
+  # conditional than requested.
   cond_report <- result$conditional
   conditioning_used <- if (is.null(cond_report)) {
     conditioning_cols
@@ -400,10 +382,8 @@ mask <- function(df,
     }
   }
 
-  # Coarsen declared coordinate columns in place, before the audit sees them
-  # and before any column-name aliasing. The jitter is irreversible by design;
-  # the recipe records that it happened (in `warnings`), and `apply_recipe()`
-  # retargets a pipeline to the real coordinates.
+  # Jitter declared coordinates before the audit and name aliasing. The jitter
+  # cannot be undone and is recorded in the recipe's warnings.
   coord_reports <- list()
   if (length(coord_specs)) {
     coord_out <- .apply_coord_jitter(synth, coord_specs, seed, original = df)
@@ -418,11 +398,8 @@ mask <- function(df,
     ))
   }
 
-  # Local mode: the owner-development reminder is recorded on the recipe
-  # and shown when the object prints / summarises. It is deliberately NOT
-  # a warning() - an unconditional advisory on every call trains callers
-  # to blanket-suppress, which then also swallows the genuine
-  # HIGH-leakage warning below (the v0.7.x guided-flow defect).
+  # Local mode records its reminder on the recipe, not as a warning, so callers
+  # do not learn to suppress warnings and miss the HIGH-leakage one below.
   if (identical(mode, "local")) {
     warnings_acc <- c(warnings_acc, paste0(
       "local mode: synthetic data is for owner development only, ",
@@ -453,7 +430,8 @@ mask <- function(df,
     high_leaks <- audit_tbl$col[audit_tbl$leakage_class == "high"]
     if (length(high_leaks)) {
       msg <- sprintf(
-        "audit_mask() flagged HIGH leakage on column(s): %s",
+        "audit_mask() flagged HIGH leakage on %s: %s",
+        ngettext(length(high_leaks), "column", "columns"),
         paste(high_leaks, collapse = ", ")
       )
       # Classed so callers can handle it programmatically; safety
@@ -463,9 +441,7 @@ mask <- function(df,
     }
   }
 
-  # Column-name aliasing (after the audit, which is keyed on the real
-  # column names). Renames the synthetic's columns to opaque aliases and
-  # records the map so apply_recipe() / unmask() invert it.
+  # Alias column names after the audit, which reads the real names.
   column_name_map <- .build_column_name_map(names(synth), alias_names)
   if (!is.null(column_name_map)) {
     nm <- names(synth)
@@ -475,7 +451,7 @@ mask <- function(df,
   }
 
   # Build the recipe.
-  storage_classes <- lapply(df, function(col) class(col))
+  storage_classes <- lapply(df, class)
 
   factor_meta <- list()
   for (col in names(df)) {
@@ -519,9 +495,8 @@ mask <- function(df,
   )
 }
 
-# Internal: resolve the alias_names argument to an original -> alias
-# named list (or NULL when no columns are aliased). Aliases are
-# `col_001`, `col_002`, ... in the order the columns appear in `cols`.
+# Internal: `alias_names` as an original -> alias list (NULL when none are
+# aliased); aliases are `col_001`, `col_002`, ... in the order of `cols`.
 .build_column_name_map <- function(cols, alias_names) {
   target <- if (isTRUE(alias_names)) {
     cols
@@ -529,7 +504,10 @@ mask <- function(df,
     unknown <- setdiff(alias_names, cols)
     if (length(unknown)) {
       cli::cli_abort(c(
-        "`alias_names` names column(s) not in the synthetic output: ",
+        paste0(
+          "`alias_names` names {cli::qty(length(unknown))}column{?s} not in ",
+          "the synthetic output:"
+        ),
         x = "{.field {unknown}}",
         i = paste0(
           "Dropped columns cannot be aliased. Available: ",
@@ -556,10 +534,8 @@ mask <- function(df,
   as.list(stats::setNames(aliases, target))
 }
 
-# Internal: the advisory for a conditional clone that did not get the
-# stratum it asked for. Returns NULL when the finest conditioning set was
-# used and no row fell into the pooled fallback -- the only case in which
-# `conditional = TRUE` means exactly what it says.
+# Internal: advisory for a conditional clone that did not reach the finest
+# stratum or pooled some rows; NULL when neither happened.
 .conditional_degrade_message <- function(report) {
   dropped <- report$dropped
   frac <- report$fallback_frac
@@ -603,11 +579,8 @@ mask <- function(df,
   paste(parts, collapse = " ")
 }
 
-# Internal: orchestrate the per-action synthesis with the RNG state
-# already set. The action column is the authority; mode only modulates
-# the numeric-jitter layer (via opts) and downstream audit behaviour.
-# `conditional = TRUE` re-routes the numeric block through the stratified
-# synthesiser so the treatment -> outcome map survives the clone.
+# Internal: per-action synthesis, with the RNG already seeded. The action
+# column decides what happens to each column; mode only adds numeric jitter.
 .mask_orchestrate <- function(df, roles, mode, opts, shared_maps = list(),
                               conditional = FALSE, ladder = "hierarchy") {
   synth <- df
@@ -618,9 +591,7 @@ mask <- function(df,
   role <- roles$role
   kind <- roles$kind
 
-  # Cross-table linked columns carry a pre-computed alias map (shared
-  # across every table in the set so joins survive). Apply it in place
-  # and exclude these columns from the per-table alias / permute blocks.
+  # Linked columns share one alias map across the set, so joins survive.
   shared_cols <- intersect(roles$col, names(shared_maps))
   for (col in shared_cols) {
     res <- .relabel_with_map(df[[col]], shared_maps[[col]])
@@ -629,16 +600,8 @@ mask <- function(df,
   }
   is_shared <- roles$col %in% shared_cols
 
-  # Numeric block: every scrambled numeric column jointly via the
-  # Gaussian copula. No outcome is required - role only orders the
-  # audit's expectations, not the simulation.
-  #
-  # Conditional clone: when `conditional = TRUE`, fit and sample the
-  # copula within each treatment x design stratum instead of pooling.
-  # The synthetic outcomes then inherit each stratum's own location, so
-  # the treatment -> outcome relationship a causal model reads survives
-  # the clone. Plain (pooled) synthesis still runs when no conditioning
-  # column is present, so the path degrades cleanly to the global copula.
+  # All scrambled numeric columns go through one Gaussian copula, fitted within
+  # each treatment x design stratum when `conditional = TRUE`.
   num_idx <- which(action == "scramble" & kind %in% .numeric_kinds() &
     !is_shared)
   conditional_report <- NULL
@@ -690,9 +653,8 @@ mask <- function(df,
     }
   }
 
-  # Row-permutation block: scrambled categorical / date / text columns
-  # (treatment label permutation is handled separately - treatment
-  # values never move rows).
+  # Scrambled categorical, date and text columns are row-permuted; treatment
+  # labels never move rows.
   perm_idx <- which(
     action == "scramble" &
       kind %in% c(.categorical_kinds(), .date_kinds()) &
@@ -713,14 +675,8 @@ mask <- function(df,
     level_maps[[col]] <- res$map
   }
 
-  # Alias block. Treatments and design / id / text columns are aliased
-  # in place (assignment, structure, and row linkage never move);
-  # categorical covariates are row-permuted first, then aliased.
-  #
-  # Treatment prefix convention: a single aliased treatment keeps the
-  # historical `trt_NNN` prefix for recipe stability; with two or more,
-  # the column name is folded in (`<col>_trt_NNN`) so the opaque labels
-  # stay distinct and self-documenting.
+  # Treatment, design, id and text columns are aliased in place; categorical
+  # covariates are row-permuted first. Two or more treatments get `<col>_trt_`.
   trt_alias_idx <- which(role == "treatment" & action == "alias" &
     !is_shared)
   n_trt_alias <- length(trt_alias_idx)
@@ -758,9 +714,7 @@ mask <- function(df,
     level_maps[[col]] <- res$map
   }
 
-  # Drop block: explicit user intent, honoured in both modes. A linked
-  # column (shared across the set) is never dropped here - it was already
-  # aliased in place by the shared block so joins survive.
+  # Linked columns were aliased by the shared block and are never dropped.
   drop_idx <- which(action == "drop" & !is_shared)
   if (length(drop_idx)) {
     dropped <- roles$col[drop_idx]
@@ -768,8 +722,9 @@ mask <- function(df,
     warnings <- c(
       warnings,
       sprintf(
-        "Dropped %d column(s) with action \"drop\": %s",
-        length(dropped), paste(dropped, collapse = ", ")
+        "Dropped %d %s with action \"drop\": %s",
+        length(dropped), ngettext(length(dropped), "column", "columns"),
+        paste(dropped, collapse = ", ")
       )
     )
   }
@@ -782,9 +737,8 @@ mask <- function(df,
   )
 }
 
-# Internal: scale each column's deviations from its stratum mean by that
-# column's factor, leaving the stratum means and the NA cells where they
-# are.
+# Internal: scale each column's deviations from its stratum mean; stratum
+# means and NA cells are unchanged.
 .inflate_deviations <- function(x_num, groups, factor) {
   g <- as.character(groups)
   g[is.na(g)] <- ".__na_group__"
@@ -798,18 +752,12 @@ mask <- function(df,
   x_num
 }
 
-# Minimum rows a stratum needs before the conditional clone will fit a
-# stratum-local copula in it. Four rows cannot support an empirical
-# marginal, let alone a joint one; the ladder in
-# .conditioning_ladder() coarsens the conditioning set rather than
-# accepting cells below this floor.
+# Minimum rows for a stratum-local copula; smaller cells are coarsened by
+# .conditioning_ladder().
 .MIN_STRATUM <- 5L
 
-# Internal: relabel a vector through an explicit `original -> alias` map,
-# preserving factor / character / logical type. Used for cross-table
-# linked columns, where the map is shared rather than freshly generated.
-# Numeric columns are stringified (their original numerals are the map
-# keys), matching the in-place id-alias convention.
+# Internal: relabel through a shared `original -> alias` map, keeping the
+# type. Numeric values are matched by their character form.
 .relabel_with_map <- function(x, map) {
   if (is.factor(x)) {
     new_chr <- unname(map[as.character(x)])

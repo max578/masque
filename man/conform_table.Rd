@@ -55,8 +55,8 @@ An object of class \code{masque_conformance}: a list with
 \description{
 \code{\link[=clean_table]{clean_table()}} makes the fixes that are unambiguously safe: it legalises
 column names and trims whitespace, and it \emph{reports} near-duplicate labels
-without merging them. \code{conform_table()} is the next step, and it handles the
-two jobs that are judgement calls rather than hygiene: deciding that
+without merging them. \code{conform_table()} is the next step and makes the two
+decisions that need judgement: deciding that
 \code{"NSW"} and \code{"Nsw"} are one category, and deciding that a character column
 holding six labels is a factor.
 }
@@ -78,13 +78,14 @@ plainly different things.
 What it deliberately does not do: merge two labels that differ by an edit
 when neither spelling is the more common, coerce a column whose values do not
 all parse, or touch a numeric column's storage. Each is reported as a
-\verb{not applied} row with the reason, so the gap is visible rather than silent.
+\verb{not applied} row with the reason.
 }
 \examples{
 df <- data.frame(
   state = c("NSW", "Nsw", "NSW", "VIC", "VIC"),
   yield = c("3.1", "2.9", "5.0", "4.2", "3.8"),
-  sown  = c("2024-05-01", "2024-05-03", "2024-05-01", "2024-05-08", "2024-05-08"),
+  sown  = c("2024-05-01", "2024-05-03", "2024-05-01", "2024-05-08",
+            "2024-05-08"),
   stringsAsFactors = FALSE
 )
 # report only: nothing is changed

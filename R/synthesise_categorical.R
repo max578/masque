@@ -17,9 +17,7 @@ synthesise_categorical_local <- function(x) {
     return(x)
   }
 
-  # Permute only within the non-NA positions so the NA pattern is preserved
-  # automatically. `mask()` re-applies the original NA mask at orchestration
-  # level, but doing it here keeps the per-column contract clean.
+  # Permute only the non-NA positions, so the NA pattern is kept.
   na_idx <- is.na(x)
   if (all(na_idx)) {
     return(x)

@@ -1,8 +1,5 @@
-# One exemplar per design class from agridat, masked as a conditional
-# clone under the hierarchy ladder: the allocation must come back
-# byte-identical, the NA mask cell for cell, and the model's terms within
-# the pass rule in helper-design-preservation.R. Three seeds everywhere;
-# twenty off CRAN.
+# Allocation and NA pattern must come back byte-identical, model terms within
+# the pass rule in helper-design-preservation.R. 3 seeds on CRAN, 20 off.
 
 design_seeds <- function() {
   if (identical(Sys.getenv("NOT_CRAN"), "true")) 1:20 else 1:3

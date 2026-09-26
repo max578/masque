@@ -77,17 +77,17 @@
 #'
 #' @section Choosing the magnitude:
 #'
-#' The right displacement is not a universal constant: it is calibrated to the
-#' density of the entities you are protecting, so that the masked point is
-#' spatially k-anonymous (roughly, at least k comparable entities lie closer to
-#' the masked point than the true one). Individual-level urban health data is
+#' The right displacement depends on the density of the entities you are
+#' protecting: the masked point should be spatially k-anonymous (roughly, at
+#' least k comparable entities lie closer to the masked point than the true
+#' one). Individual-level urban health data is
 #' typically masked with a standard deviation of about 1 km, because cities are
 #' dense. Agricultural fields and farms are orders of magnitude sparser, so a
 #' comparable level of protection needs a much larger displacement -- a donut of
 #' roughly 5 to 20 km (the default) moves a point across several properties
 #' while keeping it in the same agroclimatic region. For a formal guarantee,
-#' calibrate `min_km` / `max_km` to the local field density to hit a target
-#' k-anonymity rather than relying on the default.
+#' calibrate `min_km` / `max_km` to the local field density to reach a target
+#' k-anonymity.
 #'
 #' @param df A data frame containing the coordinate columns.
 #' @param lat_col,lon_col Column names of the latitude and longitude (numeric,
@@ -162,9 +162,8 @@ jitter_coordinates <- function(df, lat_col, lon_col,
   res$df
 }
 
-# Internal worker behind jitter_coordinates(). Returns both the jittered frame
-# and a structured report (site count, consolidated sites, unplaced sites) so
-# mask() can record what happened on the recipe instead of re-parsing warnings.
+# Worker behind jitter_coordinates(). Also returns a report (sites,
+# consolidated, unplaced) that mask() records on the recipe.
 .jitter_coords_impl <- function(df, lat_col, lon_col,
                                 by = NULL,
                                 method = c("donut", "gaussian"),
@@ -217,9 +216,7 @@ jitter_coordinates <- function(df, lat_col, lon_col,
 
   lat_v <- lat[valid]
   lon_v <- lon[valid]
-  # Exact pair identity: match() on doubles compares values, not formatted
-  # text, so two rows are one site only when their coordinates are truly
-  # identical.
+  # Rows are one site only when their coordinates are identical as doubles.
   pair_key <- paste(
     match(lat_v, unique(lat_v)), match(lon_v, unique(lon_v)),
     sep = "\r"
@@ -252,10 +249,8 @@ jitter_coordinates <- function(df, lat_col, lon_col,
     ), class = "masque_geo_ungrouped")
   }
 
-  # One source coordinate per site. In coordinate and row mode every row of a
-  # site already carries the same pair, so the first row's value is exact. In
-  # column mode a site whose rows disagree is consolidated to its row-weighted
-  # centroid, which is reported because it discards real variation.
+  # One source coordinate per site. In column mode a site whose rows disagree
+  # is moved to its row-weighted centroid, and this is reported.
   first_idx <- match(seq_len(n_sites), gi)
   src_lat <- lat_v[first_idx]
   src_lon <- lon_v[first_idx]
@@ -331,7 +326,7 @@ jitter_coordinates <- function(df, lat_col, lon_col,
         "{length(pending)} site{?s} could not be placed on land in ",
         "{max_tries} tries."
       ),
-      x = "Set to NA on both axes rather than left at the true coordinate.",
+      x = "Set to NA on both axes; the true coordinate is not kept.",
       i = paste0(
         "Increase {.arg max_tries}, widen the radii, or pass a finer ",
         "{.arg on_land} test."
@@ -364,9 +359,8 @@ jitter_coordinates <- function(df, lat_col, lon_col,
   )
 }
 
-# Resolve `by` / `.group` into a grouping mode plus, for column mode, the
-# grouping vectors themselves. `.group` (pre-computed by mask() from the
-# ORIGINAL table) takes precedence over `by`.
+# Resolve `by` / `.group` into a grouping mode and, in column mode, the
+# grouping vectors. `.group` (built by mask() on the original) wins over `by`.
 .resolve_coord_grouping <- function(by, .group, df) {
   if (!is.null(.group)) {
     if (length(.group) != nrow(df)) {
@@ -439,8 +433,11 @@ jitter_coordinates <- function(df, lat_col, lon_col,
   if (isTRUE(on_land)) {
     if (!requireNamespace("maps", quietly = TRUE)) {
       cli::cli_abort(c(
-        "`on_land = TRUE` needs the {.pkg maps} package.",
-        i = "Install {.pkg maps}, pass your own {.code function(lon, lat)} test, or set {.code on_land = FALSE}."
+        "`on_land = TRUE` needs {.pkg maps}.",
+        i = paste0(
+          "Install {.pkg maps}, pass your own {.code function(lon, lat)} ",
+          "test, or set {.code on_land = FALSE}."
+        )
       ))
     }
     return(function(lo, la) !is.na(maps::map.where("world", lo, la)))
@@ -448,11 +445,8 @@ jitter_coordinates <- function(df, lat_col, lon_col,
   function(lo, la) rep(TRUE, length(lo))
 }
 
-# Normalise the `coords` argument of mask() into a list of fully-specified
-# coordinate-pair jitter specs. Accepts a single named vector
-# `c(lat = "a", lon = "b")`, a named list `list(lat = , lon = , ...)`, or a list
-# of either. Jitter parameters default to a donut of 5-20 km on land, grouped
-# by identical input coordinate.
+# Normalise mask()'s `coords` into a list of full jitter specs. Defaults: a
+# 5-20 km donut on land, grouped by identical input coordinate.
 .normalise_coords <- function(coords, df) {
   if (is.null(coords)) {
     return(list())
@@ -505,11 +499,8 @@ jitter_coordinates <- function(df, lat_col, lon_col,
   })
 }
 
-# Normalise one spec's `by`. NULL keeps the default (group by identical input
-# coordinate); FALSE is the legacy per-row draw; a character vector names site
-# columns, which must exist in the ORIGINAL table because that is where the
-# site structure lives. The `c()` form stringifies everything, so "FALSE"
-# coming back as text is read as the logical it was written as.
+# Normalise one spec's `by`. NULL: identical coordinate; FALSE (also the text
+# "FALSE" left by c()): per row; character: site columns in the original.
 .normalise_coord_by <- function(by, df) {
   if (is.null(by)) {
     return(NULL)
@@ -553,16 +544,8 @@ jitter_coordinates <- function(df, lat_col, lon_col,
   unique(unlist(lapply(specs, function(s) c(s$lat, s$lon)), use.names = FALSE))
 }
 
-# Apply each spec's jitter to the synthetic frame, in place, and return the
-# frame alongside one report per spec.
-#
-# `original` supplies the site grouping: a `by` column may be aliased, permuted
-# or dropped in the synthetic, but the site structure being preserved is a
-# property of the source table, so the grouping key is built there.
-#
-# Each spec draws from its own sub-stream. Passing one seed to every spec (as
-# masque did before 0.10.0) gave two declared coordinate pairs in one table
-# identical displacement vectors.
+# Jitter each spec in place and return the frame with one report per spec.
+# Sites are grouped on `original`; each spec draws from its own sub-stream.
 .apply_coord_jitter <- function(synth, specs, seed, original = NULL) {
   n <- length(specs)
   if (!n) {
@@ -611,18 +594,19 @@ jitter_coordinates <- function(df, lat_col, lon_col,
   )
   extra <- character()
   if (length(rep$consolidated)) {
-    extra <- c(extra, sprintf(
-      "%d site(s) consolidated to a centroid", length(rep$consolidated)
+    n_consolidated <- length(rep$consolidated)
+    extra <- c(extra, cli::pluralize(
+      "{n_consolidated} site{?s} consolidated to a centroid"
     ))
   }
   if (rep$unplaced > 0L) {
-    extra <- c(extra, sprintf(
-      "%d site(s) unplaceable on land, set to NA", rep$unplaced
+    extra <- c(extra, cli::pluralize(
+      "{rep$unplaced} site{?s} unplaceable on land, set to NA"
     ))
   }
   sprintf(
-    "coords %s/%s: %s, %d site(s) over %d row(s)%s.",
-    rep$lat, rep$lon, grouped, rep$n_sites, rep$n_rows,
+    "coords %s/%s: %s, %s%s.",
+    rep$lat, rep$lon, grouped, .sites_over_rows(rep),
     if (length(extra)) paste0("; ", paste(extra, collapse = "; ")) else ""
   )
 }
@@ -644,14 +628,18 @@ jitter_coordinates <- function(df, lat_col, lon_col,
     extra <- c(extra, sprintf("%d unplaceable, set to NA", rep$unplaced))
   }
   sprintf(
-    "%s / %s: %s jitter %s, %s, %d site(s) over %d row(s)%s",
+    "%s / %s: %s jitter %s, %s, %s%s",
     rep$lat, rep$lon, rep$method,
     if (identical(rep$method, "donut")) {
       sprintf("%g-%g km", rep$min_km, rep$max_km)
     } else {
       sprintf("sd %g km", rep$sd_km)
     },
-    grouped, rep$n_sites, rep$n_rows,
+    grouped, .sites_over_rows(rep),
     if (length(extra)) paste0(" (", paste(extra, collapse = "; "), ")") else ""
   )
+}
+
+.sites_over_rows <- function(rep) {
+  cli::pluralize("{rep$n_sites} site{?s} over {rep$n_rows} row{?s}")
 }

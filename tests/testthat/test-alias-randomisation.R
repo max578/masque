@@ -1,23 +1,5 @@
-# Audit finding M-01 -- the collaborate-mode alias map must not be the
-# sort order.
-#
-# Aliasing used to assign `<prefix>001`, `<prefix>002`, ... in lexicographic
-# order of the levels, invariant to `seed`. Anyone holding the synthetic and
-# a candidate vocabulary -- a public variety roster, a published N-rate
-# ladder -- inverted the map exactly, with no recipe: the k-th alias was
-# always the k-th level in sort order. The map is now drawn from a random
-# permutation taken from the same seeded RNG stream `mask()` already uses.
-#
-# ORACLE. The null the fix must satisfy is that the level receiving the
-# first alias is uniform over the k levels. Its reference distribution is
-# the discrete uniform on k categories, and the test statistic is Pearson's
-# chi-squared goodness-of-fit, computed by `stats::chisq.test()` -- R Core's
-# implementation, with the null and its p-value derived from the chi-squared
-# distribution, not from anything masque produces.
-#
-# BEFORE THIS FIX: three seeds produced byte-identical maps, and the
-# first-alias counts over 600 seeds were (600, 0, 0, 0, 0, 0), i.e.
-# chi-squared = 3000 on 5 degrees of freedom, p < 1e-16.
+# Alias order must be random: the level given the first alias should be uniform
+# over the k levels (chi-squared goodness-of-fit test).
 
 alias_vocab <- function() {
   factor(

@@ -1,6 +1,5 @@
 # One agridat exemplar per design class, with the model whose terms the
-# conditional clone is expected to keep. The same specification is in
-# vignette("design_preservation").
+# conditional clone must keep (same as vignette("design_preservation")).
 
 design_specs <- function() {
   augmented <- agridat::kling.augmented[, c("block", "gen", "tsw", "row", "col")]
@@ -128,12 +127,8 @@ design_run <- function(spec, seeds, ladder = "hierarchy") {
   )
 }
 
-# The pass rule, one verdict per design. A blocking or environment term
-# counts only when the original detects it (F >= 2); its clone F must reach
-# half the original. A treatment's level means must correlate at 0.7 or
-# above with the original when the original detects the treatment, keep
-# the top level in most seeds when it has two levels, and keep their spread
-# within a factor of two in every case.
+# Only terms the original detects (F >= 2) are graded. Treatments also keep the
+# top level in most seeds (two levels only) and level spread within a factor 2.
 design_verdict <- function(spec, res, f_floor = 0.5, corr_floor = 0.7) {
   kind <- spec$terms
   block_terms <- names(kind)[kind != "treatment"]

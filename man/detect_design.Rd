@@ -56,7 +56,7 @@ cannot be recovered from the recorded columns.
 With \code{env = NULL}, exact environment names and a bounded set of site-year
 patterns are assessed conservatively. A site-only candidate auto-resolves
 only when treatments are replicated across sites. Weak or competing
-evidence produces an explicit uncertain result rather than a guessed single
+evidence gives an explicit uncertain result, never a guessed single
 trial. Supply \code{env} to define the environment basis, or use \code{env = FALSE}
 to run the pre-0.9 whole-table path exactly.
 

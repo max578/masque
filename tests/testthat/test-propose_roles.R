@@ -89,10 +89,7 @@ test_that("Design patterns assign role = design (case-insensitive)", {
     yield = c(1, 2, 3, 4),
     stringsAsFactors = FALSE
   )
-  # detect = FALSE: this test exercises the name-pattern logic only.
-  # With detect on, a 4-row toy frame is too small for design detection
-  # to fire meaningfully (and small toys can give surprising structural
-  # matches).
+  # A 4-row toy frame is too small for design detection.
   r <- propose_roles(df, detect = FALSE)
   design_cols <- r$col[r$role == "design"]
   expect_setequal(

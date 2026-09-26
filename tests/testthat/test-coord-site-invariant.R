@@ -1,11 +1,5 @@
-# Regression contract for the site-coordinate invariant (0.10.0).
-#
-# "Within each site unit, every row carries an identical coordinate pair."
-#
-# Before 0.10.0 jitter_coordinates() displaced every row independently. That
-# fabricated within-site variation in every coordinate-joined covariate, made
-# coordinate join keys accidentally unique, and -- because donut displacement
-# is isotropic -- let the true site be recovered by averaging a site's rows.
+# Within each site unit, every row must carry the same coordinate pair.
+# Per-row jitter would let the true site be recovered by averaging its rows.
 
 .hav_km <- function(lon1, lat1, lon2, lat2) {
   r <- 6371

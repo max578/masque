@@ -78,7 +78,7 @@ read_set <- function(input, sheets = NULL, pattern = NULL) {
   if (anyDuplicated(nms)) {
     dup <- nms[duplicated(nms)]
     cli::cli_abort(
-      "Duplicate table name(s) from differing extensions: {.val {dup}}."
+      "Duplicate table name{?s} from differing extensions: {.val {dup}}."
     )
   }
   tables <- lapply(files, .read_one_file)
@@ -91,7 +91,7 @@ read_set <- function(input, sheets = NULL, pattern = NULL) {
   if (ext == "fst") {
     if (!requireNamespace("fst", quietly = TRUE)) {
       cli::cli_abort(c(
-        "Reading {.file {path}} needs the {.pkg fst} package.",
+        "Reading {.file {path}} needs {.pkg fst}.",
         i = "Install it, or export the table to CSV first."
       ))
     }
@@ -106,7 +106,7 @@ read_set <- function(input, sheets = NULL, pattern = NULL) {
 .read_set_excel <- function(path, sheets) {
   if (!requireNamespace("readxl", quietly = TRUE)) {
     cli::cli_abort(c(
-      "Reading {.file {path}} needs the {.pkg readxl} package.",
+      "Reading {.file {path}} needs {.pkg readxl}.",
       i = "Install it, or export each sheet to CSV first."
     ))
   }
@@ -115,7 +115,10 @@ read_set <- function(input, sheets = NULL, pattern = NULL) {
   unknown <- setdiff(use, all_sheets)
   if (length(unknown)) {
     cli::cli_abort(c(
-      "Sheet(s) not in {.file {path}}: {.val {unknown}}.",
+      paste0(
+        "{cli::qty(length(unknown))}Sheet{?s} not in {.file {path}}: ",
+        "{.val {unknown}}."
+      ),
       i = "Available: {.val {all_sheets}}."
     ))
   }
@@ -133,11 +136,11 @@ read_set <- function(input, sheets = NULL, pattern = NULL) {
     cli::cli_abort("The set is empty (no tables).")
   }
   nms <- names(tables)
-  if (is.null(nms) || any(!nzchar(nms))) {
+  if (is.null(nms) || !all(nzchar(nms))) {
     cli::cli_abort("Every table in the set must be named.")
   }
   if (anyDuplicated(nms)) {
-    cli::cli_abort("Duplicate table name(s): {.val {nms[duplicated(nms)]}}.")
+    cli::cli_abort("Duplicate table name{?s}: {.val {nms[duplicated(nms)]}}.")
   }
   for (nm in nms) {
     tab <- tables[[nm]]
@@ -158,7 +161,10 @@ read_set <- function(input, sheets = NULL, pattern = NULL) {
     auto <- grep("^\\.{3}[0-9]+$", names(tab), value = TRUE)
     if (length(auto)) {
       cli::cli_abort(c(
-        "Table {.field {nm}} has auto-named column(s): {.val {auto}}.",
+        paste0(
+          "Table {.field {nm}} has auto-named ",
+          "{cli::qty(length(auto))}column{?s}: {.val {auto}}."
+        ),
         i = paste0(
           "This usually means a missing header row or a non-rectangular ",
           "sheet. Tidy the source - masque reads clean rectangles only."

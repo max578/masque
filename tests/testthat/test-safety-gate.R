@@ -1,8 +1,5 @@
-# Safety-gate regressions: the guided flow must surface HIGH leakage
-# findings, and package-managed writers must refuse to write a blocked
-# collaborate-mode object. Guards against the v0.7.x defect where
-# masque() / mask_set() wrapped mask() in suppressWarnings() and then
-# printed share-ready language.
+# The guided flow must show HIGH leakage findings, and package writers must
+# refuse to write a blocked collaborate-mode object.
 
 # Trips the "retained PII-pattern column" HIGH rule in collaborate mode.
 high_fixture <- function() {

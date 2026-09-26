@@ -1,32 +1,8 @@
-# Audit finding M-02 -- the conditioning ladder.
-#
-# `conditional = TRUE` used to take the finest available stratum (treatment
-# crossed with EVERY surviving design column) and, when that stratum was too
-# thin, pool the whole numeric block into one global fallback. On a replicated
-# factorial -- the package's own anchor design -- every cell holds a single
-# row, so 100 per cent of rows took the fallback and the clone became the
-# pooled copula while the recipe still asserted `conditional = TRUE`.
-#
-# The gate below is the treatment sum-of-squares fraction (eta-squared) of the
-# clone measured against the source.
-#
-# ORACLE. The numeric block here holds a single column, so masque's
-# conditional path reduces to drawing, within each stratum, an independent
-# sample with replacement from that stratum's observed values (an
-# empirical-quantile inverse at `type = 1` on uniform probabilities is
-# exactly a draw from the stratum's empirical distribution). The reference
-# distribution of eta-squared under that mechanism is therefore the
-# stratified nonparametric bootstrap, implemented below in base R
-# (`sample()`), independently of any masque code. The source eta-squared is
-# computed by `stats::aov()` -- R Core's implementation, not masque's.
-#
-# BEFORE THIS FIX, on the fixture below: source eta-squared 0.8588, clone
-# 0.0042, oracle envelope [0.780, 0.925]. The audit measured the same
-# collapse as 0.804 -> 0.019 on its own 6 x 3 x 4 fixture.
+# On a replicated factorial each finest cell holds one row. Clone eta-squared is
+# checked against a stratified bootstrap of the source in base R.
 
-# A replicated 2 x 3 factorial with a planted treatment effect: three N
-# rates crossed with two varieties in twelve blocks, 72 rows. The finest
-# conditioning stratum (n_rate x variety x block) holds exactly one row.
+# 3 N rates x 2 varieties x 12 blocks (72 rows) with a planted effect; the
+# finest stratum n_rate x variety x block holds one row.
 ladder_factorial <- function(n_block = 12L, effect = 4, sd = 1.5,
                              seed = 20260825L) {
   set.seed(seed)
@@ -69,9 +45,7 @@ ladder_roles <- function(df) {
   sum(nn * (mu - gm)^2) / sum((y - gm)^2)
 }
 
-# Stratified nonparametric bootstrap: resample the response with
-# replacement within each conditioning cell, leaving the design columns
-# in place. Base R only.
+# Resamples the response within each cell; design columns stay in place.
 .strat_boot_eta2 <- function(d, cells, B = 2000L, seed = 99L) {
   set.seed(seed)
   idx <- split(seq_len(nrow(d)), interaction(d[cells], drop = TRUE))
@@ -104,13 +78,8 @@ test_that(
     )
     eta_clone <- .eta2_aov(as.data.frame(synthetic(m)))
 
-    # Oracle envelope from the stratified nonparametric bootstrap at the
-    # ladder rung the fix settles on (n_rate x variety). Two-sided at the
-    # 0.1 / 99.9 percentiles: both the clone and the envelope are drawn
-    # under fixed seeds, so the gate is deterministic, and the envelope is
-    # a 998-per-mille interval rather than a 95 per cent one so that an
-    # honest implementation has room to differ from the idealised
-    # resampler without tripping the gate.
+    # Envelope at the n_rate x variety rung. 0.1 / 99.9 percentiles leave room
+    # for masque to differ from the idealised resampler.
     env <- stats::quantile(
       .strat_boot_eta2(d, c("n_rate", "variety")),
       probs = c(0.001, 0.999), names = FALSE
@@ -175,9 +144,8 @@ test_that("a stratum that already holds enough rows is not degraded", {
 
 # --- the hierarchy ladder (0.13.0) -------------------------------------------
 
-# A two-environment trial with eight replicates per environment: enough
-# rows for site x treatment to satisfy the stratum floor, so the drop order
-# is visible in the rung reached.
+# Two environments, eight replicates each: enough rows for site x treatment
+# to meet the stratum floor.
 ladder_met <- function(seed = 20260925L) {
   set.seed(seed)
   d <- expand.grid(

@@ -1,10 +1,5 @@
-# role_options.R -- The role x action option grid, rendered as data.
-#
-# Presentation layer over the compatibility rules roles_validate()
-# enforces at mask() time (.action_problem() in roles_actions.R). The
-# grid is generated from those rules on every call, so the catalogue a
-# user reads and the validator that judges their table cannot drift
-# apart.
+# The role x action option grid, generated on each call from the rules
+# roles_validate() applies, so the two cannot disagree.
 
 #' List every role and action combination masque accepts
 #'
@@ -67,9 +62,8 @@ role_options <- function(kind = NULL) {
     ok <- is.na(problems)
     kinds_ok[[i]] <- kinds[ok]
 
-    # The note is the constraint explanation. Prefer the role-level
-    # message over the generic unsupported-class one, which fires for
-    # kind "other" under every synthesising action.
+    # Prefer the role-level note to the generic unsupported-class one, which
+    # fires for kind "other" under every synthesising action.
     specific <- problems[!ok & kinds != "other"]
     notes[i] <- if (all(ok)) {
       ""

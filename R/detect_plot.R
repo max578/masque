@@ -1,17 +1,10 @@
-# plot() method for the S7 design_summary class.
-#
-# Silence R CMD check's "no visible binding" NOTE for `.data` (the
-# rlang pronoun used inside ggplot2 aes()). `.data` is only referenced
-# from inside Suggests-only ggplot2 code paths.
+# plot() method for the S7 design_summary class. `.data` is the rlang pronoun
+# used by the optional ggplot2 engine.
 utils::globalVariables(".data")
 
 #
-# Sanity-check visualisations in base graphics. Four atoms -- replication
-# tile, spatial layout tile, factor-nesting tree, frequency + NA-pattern
-# tile -- composed differently per design class. Borrowing the desplot
-# `out1` outline idiom and dae's structure-formula nesting view, but
-# implemented from scratch in base graphics to keep `Imports:` lean.
-# `ggplot2`, if installed, is offered as an alternative engine.
+# Base-graphics panels (replication, spatial layout, factor nesting, frequency
+# and NA pattern), after desplot's outlines and dae's nesting view.
 
 #' Sanity-check visualisation for detected scope and design
 #'
@@ -109,9 +102,8 @@ plot_design_summary <- function(x, df, engine = c("base", "ggplot2"),
   )
 }
 
-# `local()` keeps the generic out of the namespace: a bare assignment binds a
-# copy of it there, and the package's S3 methods for the same generic then
-# register on that copy, where dispatch never looks.
+# `local()` keeps a copy of the generic out of the namespace, where the S3
+# methods would register on it and dispatch would never find them.
 local(S7::method(plot, design_summary) <- function(
   x, df, engine = c("base", "ggplot2"), environment = NULL, ...
 ) {
@@ -215,7 +207,7 @@ local(S7::method(plot, design_summary) <- function(
   missing_cols <- setdiff(x@env_cols, names(df))
   if (length(missing_cols) > 0L) {
     cli::cli_abort(
-      "`df` is missing environment column(s): {.field {missing_cols}}."
+      "`df` is missing environment column{?s}: {.field {missing_cols}}."
     )
   }
   env_key <- .interaction_key(df, x@env_cols)
@@ -224,7 +216,7 @@ local(S7::method(plot, design_summary) <- function(
     available <- utils::head(levels(env_key), 8L)
     cli::cli_abort(c(
       "Unknown environment label {.val {env_label}}.",
-      "i" = "Available label(s) include {.val {available}}."
+      "i" = "Available label{?s}: {.val {available}}."
     ))
   }
   rows <- !is.na(env_key) & as.character(env_key) == env_label

@@ -39,9 +39,8 @@ preds_synth         <- predict(fit, orig_in_synth_space)
 preds_orig          <- unmask(preds_synth, recipe(m))    # inverse
 }
 
-Unknown levels (synthetic aliases not in the recipe's map) fail
-closed with an informative error rather than silently coercing to
-\code{NA}.
+An unknown level (a synthetic alias not in the recipe's map) is an
+error; it is never coerced to \code{NA}.
 }
 \examples{
 r <- propose_roles(iris)

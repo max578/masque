@@ -1,8 +1,4 @@
-# detect_design(): public verb + S7 design_summary class.
-#
-# Pure orchestration: gather candidates (R/detect_candidates.R), run the
-# rule engine (R/detect_rules.R), apply a simpler-design tie-break, and
-# wrap the result in an S7 design_summary object.
+# detect_design() and the S7 design_summary class it returns.
 
 #' Detect environment scope and experimental-design structure
 #'
@@ -15,7 +11,7 @@
 #' With `env = NULL`, exact environment names and a bounded set of site-year
 #' patterns are assessed conservatively. A site-only candidate auto-resolves
 #' only when treatments are replicated across sites. Weak or competing
-#' evidence produces an explicit uncertain result rather than a guessed single
+#' evidence gives an explicit uncertain result, never a guessed single
 #' trial. Supply `env` to define the environment basis, or use `env = FALSE`
 #' to run the pre-0.9 whole-table path exactly.
 #'
@@ -213,9 +209,7 @@ detect_design <- function(df,
   contenders_ord[1L]
 }
 
-# Interactive disambiguation between two near-tied classes. Uses
-# utils::menu() so we keep cli as a hard runtime dep but don't need any
-# cli function that isn't part of the stable surface.
+# Interactive choice between two near-tied classes, via utils::menu().
 .interactive_tie_break <- function(top2, scores, results, df) {
   if (!interactive()) {
     return(top2[1L])
@@ -334,12 +328,7 @@ detect_design <- function(df,
   if (is.null(a) || (is.atomic(a) && length(a) == 0L)) b else a
 }
 
-# S7 design_summary class -- returned by detect_design().
-# Internal constructor; users get instances via detect_design() and
-# interact via slot access (e.g., ds@class_label). Following the
-# masque_recipe pattern: no Rd is generated and the class is not
-# auto-exported. Tests use `inherits(ds, "masque::design_summary")`.
-#
+# S7 design_summary class returned by detect_design(); not exported, no Rd.
 #' @keywords internal
 #' @noRd
 design_summary <- S7::new_class(

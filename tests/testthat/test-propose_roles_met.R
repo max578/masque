@@ -1,10 +1,5 @@
-# Aliased columns are compared by the partition they induce, not by their
-# integer codes. Since the M-01 fix the alias assignment is a random
-# permutation, so `as.integer()` of an aliased factor is a relabelling of
-# the original codes -- preserving the code order would itself hand back
-# the level ordering the aliasing is meant to hide. Recoding both sides by
-# order of first appearance tests the invariant that actually matters: the
-# same rows are grouped together, in the same row order.
+# Aliases are a random permutation, so aliased columns are compared by the
+# row grouping they induce, recoded by order of first appearance.
 .partition_code <- function(x) {
   chr <- as.character(x)
   as.integer(factor(chr, levels = unique(chr)))

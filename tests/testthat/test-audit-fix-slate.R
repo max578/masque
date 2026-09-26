@@ -133,10 +133,8 @@ test_that("a pinned action prevents automatic role promotion", {
 })
 
 test_that("a suspected but unconfirmed environment is preserved, not scrambled", {
-  # Unreplicated MET whose environment column carries a site token outside
-  # propose_roles()'s design-name heuristic (county / location / farm). It
-  # resolves to review_required; the fail-safe keeps it byte-identical rather
-  # than letting it fall through to a covariate row-permutation.
+  # Unreplicated MET with a county column: it resolves to review_required and
+  # must stay byte-identical rather than be row-permuted as a covariate.
   u <- data.frame(
     county = factor(rep(paste0("C", seq_len(6L)), each = 8L)),
     gen = factor(rep(paste0("G", seq_len(8L)), times = 6L)),

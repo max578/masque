@@ -76,13 +76,15 @@ roles_validate <- function(roles, df = NULL, mode = NULL) {
   required <- c("col", "role")
   missing <- setdiff(required, names(roles))
   if (length(missing)) {
-    cli::cli_abort("`roles` is missing required column(s): {.field {missing}}.")
+    cli::cli_abort(
+      "`roles` is missing required column{?s}: {.field {missing}}."
+    )
   }
 
-  if (any(is.na(roles$role))) {
+  if (anyNA(roles$role)) {
     cli::cli_abort(
       paste0(
-        "`roles$role` has NA value(s) for: ",
+        "`roles$role` is NA for: ",
         "{.field {roles$col[is.na(roles$role)]}}."
       )
     )
@@ -92,7 +94,7 @@ roles_validate <- function(roles, df = NULL, mode = NULL) {
   if (!("action" %in% names(roles))) {
     if (!("kind" %in% names(roles))) {
       cli::cli_abort(
-        "`roles` is missing required column(s): {.field {c('action', 'kind')}}."
+        "`roles` is missing required columns: {.field {c('action', 'kind')}}."
       )
     }
     v1_vocab <- c(
@@ -102,7 +104,7 @@ roles_validate <- function(roles, df = NULL, mode = NULL) {
     bad_v1 <- setdiff(unique(roles$role), v1_vocab)
     if (length(bad_v1)) {
       cli::cli_abort(c(
-        "Unknown role(s) in `roles$role`: {.val {bad_v1}}.",
+        "Unknown role{?s} in `roles$role`: {.val {bad_v1}}.",
         i = "Valid roles: {.val {role_vocab}}."
       ))
     }
@@ -118,7 +120,7 @@ roles_validate <- function(roles, df = NULL, mode = NULL) {
   }
 
   if (!("kind" %in% names(roles))) {
-    cli::cli_abort("`roles` is missing required column(s): {.field kind}.")
+    cli::cli_abort("`roles` is missing required column {.field kind}.")
   }
 
   role_vocab <- .roles_vocab()
@@ -135,7 +137,7 @@ roles_validate <- function(roles, df = NULL, mode = NULL) {
       "Valid roles: {.val {role_vocab}}."
     }
     cli::cli_abort(c(
-      "Unknown role(s) in `roles$role`: {.val {bad_role}}.",
+      "Unknown role{?s} in `roles$role`: {.val {bad_role}}.",
       i = hint
     ))
   }
@@ -145,7 +147,7 @@ roles_validate <- function(roles, df = NULL, mode = NULL) {
   )
   if (length(bad_action)) {
     cli::cli_abort(c(
-      "Unknown action(s) in `roles$action`: {.val {bad_action}}.",
+      "Unknown action{?s} in `roles$action`: {.val {bad_action}}.",
       i = "Valid actions: {.val {action_vocab}}."
     ))
   }
@@ -155,7 +157,7 @@ roles_validate <- function(roles, df = NULL, mode = NULL) {
 
   if (anyDuplicated(roles$col)) {
     dups <- roles$col[duplicated(roles$col)]
-    cli::cli_abort("Duplicate column name(s) in `roles$col`: {.field {dups}}.")
+    cli::cli_abort("Duplicate column name{?s} in `roles$col`: {.field {dups}}.")
   }
 
   if (!is.null(df)) {
@@ -166,12 +168,12 @@ roles_validate <- function(roles, df = NULL, mode = NULL) {
     extra_in_roles <- setdiff(roles$col, names(df))
     if (length(missing_in_roles)) {
       cli::cli_abort(
-        "`df` column(s) not in `roles`: {.field {missing_in_roles}}."
+        "`df` column{?s} not in `roles`: {.field {missing_in_roles}}."
       )
     }
     if (length(extra_in_roles)) {
       cli::cli_abort(
-        "`roles` column(s) not in `df`: {.field {extra_in_roles}}."
+        "`roles` column{?s} not in `df`: {.field {extra_in_roles}}."
       )
     }
   }
@@ -193,7 +195,10 @@ roles_validate <- function(roles, df = NULL, mode = NULL) {
   if (length(problems)) {
     names(problems) <- rep("x", length(problems))
     cli::cli_abort(c(
-      "Incompatible role / action / kind combination(s):",
+      paste0(
+        "{cli::qty(length(problems))}Incompatible role, action and kind ",
+        "combination{?s}:"
+      ),
       problems
     ))
   }
@@ -208,12 +213,8 @@ roles_validate <- function(roles, df = NULL, mode = NULL) {
   invisible(roles)
 }
 
-# When a table proposed for one mode is used with the other, columns
-# whose action still equals their proposed default follow the new
-# mode's default (with an inform); explicitly edited columns - via
-# set_role(action = ) or a direct action edit - are pinned and win.
-# Tables without provenance attributes (hand-built) get a warning and
-# are taken as-is.
+# A table proposed for the other mode: columns still on their proposed default
+# take the new mode's default, edited ones keep theirs; hand-built ones warn.
 .reresolve_for_mode <- function(roles, mode) {
   proposed_mode <- attr(roles, "mode")
   if (is.null(proposed_mode) || identical(proposed_mode, mode)) {

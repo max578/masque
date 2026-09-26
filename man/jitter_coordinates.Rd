@@ -145,17 +145,17 @@ variation would be as wrong as inventing it.
 \section{Choosing the magnitude}{
 
 
-The right displacement is not a universal constant: it is calibrated to the
-density of the entities you are protecting, so that the masked point is
-spatially k-anonymous (roughly, at least k comparable entities lie closer to
-the masked point than the true one). Individual-level urban health data is
+The right displacement depends on the density of the entities you are
+protecting: the masked point should be spatially k-anonymous (roughly, at
+least k comparable entities lie closer to the masked point than the true
+one). Individual-level urban health data is
 typically masked with a standard deviation of about 1 km, because cities are
 dense. Agricultural fields and farms are orders of magnitude sparser, so a
 comparable level of protection needs a much larger displacement -- a donut of
 roughly 5 to 20 km (the default) moves a point across several properties
 while keeping it in the same agroclimatic region. For a formal guarantee,
-calibrate \code{min_km} / \code{max_km} to the local field density to hit a target
-k-anonymity rather than relying on the default.
+calibrate \code{min_km} / \code{max_km} to the local field density to reach a target
+k-anonymity.
 }
 
 \examples{

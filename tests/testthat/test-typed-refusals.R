@@ -1,19 +1,7 @@
-# Typed-refusal completion (2026-08-25 fleet audit, D1 abstention finding).
-#
-# Every orchestra-facing decline in mask(), mask_set(), unmask() and
-# audit_mask() that used to be a bare cli::cli_abort() without a class now
-# carries a class ending in `_refusal` plus the shared `orchestra_refusal`
-# marker (the naming convention +  opt-in marker defined by
-# `ORCHESTRA_dev/integration/refusal_contract.R`), so a conductoR node -- or
-# any cross-member caller -- can catch the decline programmatically instead
-# of string-matching the message. `masque_unmasked_coords` and
-# `masque_conditional_degraded` were already classed and are untouched here.
+# Declines in mask(), mask_set(), unmask() and audit_mask() carry a `_refusal`
+# class plus the shared `orchestra_refusal` marker.
 
-# A typed refusal must also fire *cleanly*. A warning emitted on the way
-# to the abort means some step read the malformed argument before it was
-# validated, and so advised the caller about the wrong fault -- exactly
-# what `mask_set(roles = list(1, 2))` did until the roles shape-check was
-# hoisted above mode inference.
+# A warning before the abort means an argument was read before it was checked.
 .expect_refusal <- function(expr, class) {
   err <- expect_no_warning(tryCatch(expr, error = function(e) e))
   expect_s3_class(err, "error")
@@ -119,9 +107,8 @@ test_that("mask() refuses a `roles` that is not a roles table", {
 })
 
 test_that("mode provenance is still read from a well-formed roles table", {
-  # The shape checks hoisted above mode inference must not shadow the
-  # inference itself: a roles table prepared for "collaborate" still
-  # carries its mode, and one stripped of the attribute still advises.
+  # Shape checks must not block mode inference: a collaborate roles table keeps
+  # its mode, and one without the attribute still warns.
   r <- propose_roles(iris, mode = "collaborate", detect = FALSE)
   expect_identical(mask(iris, roles = r, seed = 1)@mode, "collaborate")
 

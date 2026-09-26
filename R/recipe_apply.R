@@ -65,9 +65,7 @@ apply_recipe <- function(original, rec, check_integrity = TRUE) {
     cli::cli_abort("`check_integrity` must be a single logical.")
   }
 
-  # Re-apply the recipe's hygiene (name legalisation + whitespace trim) so
-  # a pipeline written against the cleaned synthetic lines up with the
-  # original. Idempotent if the caller already passed a clean frame.
+  # Re-apply the recipe's cleaning (legal names, trimmed whitespace).
   original <- .apply_cleaning_forward(original, rec@cleaning)
 
   dropped <- .recipe_dropped_cols(rec)
@@ -77,7 +75,7 @@ apply_recipe <- function(original, rec, check_integrity = TRUE) {
   if (length(missing_in_orig)) {
     cli::cli_abort(c(
       paste0(
-        "`original` is missing column(s) required by the recipe: ",
+        "`original` is missing column{?s} required by the recipe: ",
         "{.field {missing_in_orig}}."
       ),
       i = "Was the recipe built from a different schema?"
@@ -127,9 +125,8 @@ apply_recipe <- function(original, rec, check_integrity = TRUE) {
 #' preds_orig          <- unmask(preds_synth, recipe(m))    # inverse
 #' }
 #'
-#' Unknown levels (synthetic aliases not in the recipe's map) fail
-#' closed with an informative error rather than silently coercing to
-#' `NA`.
+#' An unknown level (a synthetic alias not in the recipe's map) is an
+#' error; it is never coerced to `NA`.
 #'
 #' @param x A data frame or an atomic vector to translate from
 #'   synthetic-namespace to original-namespace.
@@ -159,7 +156,10 @@ unmask <- function(x, rec, column = NULL) {
   }
   if (!S7::S7_inherits(rec, masque_recipe)) {
     cli::cli_abort(
-      "`rec` must be a {.cls masque_recipe} object; got {.cls {class(rec)[1]}}.",
+      paste0(
+        "`rec` must be a {.cls masque_recipe} object; ",
+        "got {.cls {class(rec)[1]}}."
+      ),
       class = c("masque_bad_recipe_refusal", "orchestra_refusal")
     )
   }
@@ -184,9 +184,8 @@ unmask <- function(x, rec, column = NULL) {
         target_class = rec@storage_classes[[col]]
       )
     }
-    # Restore the original (pre-legalisation) column names last, after the
-    # level maps have matched on the legalised names. Reverses the name
-    # repair clean_table() applied at mask() time.
+    # Restore the original column names last, after the level maps have
+    # matched on the legalised names.
     if (!is.null(rec@cleaning) && length(rec@cleaning$name_map)) {
       inv <- stats::setNames(
         names(rec@cleaning$name_map), unname(rec@cleaning$name_map)
@@ -200,9 +199,7 @@ unmask <- function(x, rec, column = NULL) {
   }
 
   if (is.atomic(x) && is.null(dim(x))) {
-    # Pass-through for non-categorical atomic input (numeric, integer,
-    # logical, Date, POSIXct, ...); these are unchanged by apply_recipe()
-    # so they cannot need an inverse map.
+    # Numeric, logical and date input passes through unchanged.
     if (!is.character(x) && !is.factor(x)) {
       if (!is.null(column) && length(rec@roles$col) > 0L &&
         !(column %in% rec@roles$col)) {
@@ -259,9 +256,8 @@ unmask <- function(x, rec, column = NULL) {
   )
 }
 
-# Internal: apply a recipe bundle to a named list of original tables.
-# Shared link maps live on the per-table recipes already (they were
-# injected at mask time), so each table retargets with its own recipe.
+# Internal: apply a recipe bundle to a named list of original tables. The
+# shared link maps are already on each table's recipe.
 .apply_recipe_set <- function(original, rec, check_integrity) {
   if (!is.list(original) || is.data.frame(original)) {
     cli::cli_abort(
@@ -271,7 +267,7 @@ unmask <- function(x, rec, column = NULL) {
   missing <- setdiff(names(rec@recipes), names(original))
   if (length(missing)) {
     cli::cli_abort(c(
-      "`original` is missing table(s) the bundle expects: {.val {missing}}.",
+      "`original` is missing table{?s} the bundle expects: {.val {missing}}.",
       i = "Bundle tables: {.val {names(rec@recipes)}}."
     ))
   }
@@ -294,9 +290,8 @@ unmask <- function(x, rec, column = NULL) {
   stats::setNames(out, shared)
 }
 
-# Internal: which columns did mask() drop? Two-axis recipes record the
-# user's explicit action; recipes written by masque <= 0.5.0 carry the
-# v1 semantics (ignore columns dropped under collaborate only).
+# Internal: columns mask() dropped. Recipes from masque 0.5.0 and earlier
+# have no action column; `ignore` was dropped in collaborate mode only.
 .recipe_dropped_cols <- function(rec) {
   roles <- rec@roles
   if ("action" %in% names(roles)) {
@@ -397,14 +392,14 @@ as_logical_labels <- function(x) {
 
 .fail_unmapped <- function(bad, col, direction) {
   hint <- if (direction == "forward") {
-    "Schema drift or new original-namespace level(s)."
+    "Schema drift, or original levels the recipe has never seen."
   } else {
-    "Schema drift or new synthetic-namespace alias(es)."
+    "Schema drift, or synthetic aliases the recipe has never seen."
   }
   bad_preview <- utils::head(bad, 5L)
   if (is.null(col)) {
     cli::cli_abort(c(
-      "Value(s) not in the recipe's level map: {.val {bad_preview}}.",
+      "Value{?s} not in the recipe's level map: {.val {bad_preview}}.",
       i = paste(hint, "Unknown values are not coerced to NA (fail-closed)."),
       "*" = paste0(
         "Rebuild the recipe from a dataset that contains these values, ",
@@ -414,8 +409,8 @@ as_logical_labels <- function(x) {
   } else {
     cli::cli_abort(c(
       paste0(
-        "Value(s) not in the recipe's level map in column ",
-        "{.field {col}}: {.val {bad_preview}}."
+        "{cli::qty(length(bad_preview))}Value{?s} not in the recipe's ",
+        "level map in column {.field {col}}: {.val {bad_preview}}."
       ),
       i = paste(hint, "Unknown values are not coerced to NA (fail-closed)."),
       "*" = paste0(

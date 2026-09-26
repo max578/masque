@@ -1,29 +1,13 @@
-# Candidate column sets for design detection.
-#
-# Pure (no message / no plotting); consumed by the rule engine in
-# detect_rules. Reuses col_kind() and matches_pattern() from
-# propose_roles.
-
-# Propose candidate column sets for `detect_design()`.
-#
-# @param df    A data frame.
-# @param roles Optional roles tibble (as returned by `propose_roles()`).
-#              When provided, columns already roled `outcome` / `keep` /
-#              `ignore` are excluded from factor / numeric candidates, and
-#              any column roled `treatment` is forced into `trt_user`.
-#
-# @return Named list with at minimum:
-#   * `n_rows`, `cols`, `kinds`, `cardinality`
-#   * `factors`   character -- factor-like cols (factor / character / integer /
-#                 logical with 2 <= cardinality <= ceiling(sqrt(n)))
-#   * `numerics`  character -- numeric / integer cols that are NOT factor-like
-#                 (probable outcomes / numeric covariates)
-#   * `spatial`   list(row, col, n_row, n_col) or NULL
-#   * `trt_named` character -- factor-like cols whose names match the
-#                 treatment regex from `propose_roles()`
-#   * `block_named` character -- factor-like cols whose names match a
-#                 design / block regex
-#   * `trt_user`  character -- columns the user has already roled as treatment
+#' Candidate column sets for `detect_design()`
+#'
+#' @param df A data frame.
+#' @param roles Optional roles table from `propose_roles()`. Columns roled as
+#'   outcome, id, text or unsupported, or dropped, are left out of the
+#'   candidates; a column roled `treatment` goes into `trt_user`.
+#' @returns A named list: `n_rows`, `cols`, `kinds`, `cardinality`, and the
+#'   candidate sets `factors`, `numerics`, `spatial` (row and column
+#'   coordinates, or `NULL`), `trt_named`, `block_named` and `trt_user`.
+#' @noRd
 .propose_candidates <- function(df, roles = NULL) {
   n <- nrow(df)
   cols <- names(df)
@@ -34,15 +18,8 @@
     integer(1L)
   )
 
-  # Factor-like classification, tier-aware:
-  #   * factor      -> always (no cardinality test)
-  #   * logical     -> always (2 levels)
-  #   * integer /
-  #     numeric     -> cardinality 2..sqrt(n) (low-card integers are
-  #                   plausible labels / dose levels; high-card integers
-  #                   are measurements)
-  #   * character   -> cardinality 2..n/2 (allow more -- text labels like
-  #                   variety names commonly exceed sqrt(n))
+  # Factor-like: factors and logicals always; integer or numeric with 2 to
+  # sqrt(n) values; character with 2 to n/2 (variety names often pass sqrt(n)).
   half_n <- max(2L, floor(n / 2L))
   small_card_cap <- max(2L, ceiling(sqrt(max(n, 1L))))
 
@@ -54,10 +31,8 @@
       (kinds %in% c("integer", "numeric") & in_small_range) |
       (kinds == "character" & in_half_range)
 
-  # Honour user roles: outcomes, ids, free text, unsupported classes,
-  # and columns the user is dropping never become design candidates.
-  # The v1 vocabulary (keep / ignore) is honoured for tables produced
-  # by masque <= 0.5.0.
+  # Columns roled outcome, id, text, unsupported or drop never become design
+  # candidates (keep / ignore in roles tables from masque 0.5.0 and earlier).
   drop_candidates <- character(0L)
   if (!is.null(roles) && "role" %in% names(roles)) {
     drop_candidates <- roles$col[

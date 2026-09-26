@@ -61,12 +61,8 @@ clean_table <- function(df, clean = c("auto", "report", "off"), quiet = FALSE) {
   }
   clean <- match.arg(clean)
 
-  # Column-name legalisation is applied in EVERY mode. An invalid column
-  # name silently rewritten during synthesis (via make.names() inside a
-  # downstream data.frame build) corrupts the clone and breaks the
-  # round-trip, so legalising it is a correctness fix, not optional
-  # hygiene. The `clean` mode governs only the whitespace and
-  # near-duplicate handling below.
+  # Names are legalised in every mode, since a name rewritten later by
+  # make.names() breaks the round trip. `clean` governs only the steps below.
   orig_names <- names(df)
   legal <- .legalise_names(orig_names)
   name_map <- stats::setNames(legal, orig_names)
@@ -139,9 +135,7 @@ print.masque_cleaning <- function(x, ...) {
   )
 }
 
-# Trim, make.names, then uniquify. make.names handles the illegal-name
-# and reserved-word cases; make.unique resolves collisions the trimming
-# or legalisation introduced.
+# Trim, make.names(), then make.unique() for any collisions this introduces.
 .legalise_names <- function(nms) {
   trimmed <- trimws(nms)
   legal <- make.names(trimmed)
@@ -155,12 +149,11 @@ print.masque_cleaning <- function(x, ...) {
     sprintf("`%s` -> `%s`", names(name_map), unname(name_map)),
     collapse = ", "
   )
-  sprintf(
-    paste0(
-      "Renamed %d column name(s) that are not valid R names: %s. ",
-      "The map is recorded in the recipe and reversed on the round-trip."
-    ),
-    length(name_map), pairs
+  n <- length(name_map)
+  paste0(
+    cli::pluralize("Renamed {n} column name{?s} that {?is/are} not valid R "),
+    "names: ", pairs, ". ",
+    "The map is recorded in the recipe and reversed on the round-trip."
   )
 }
 
@@ -194,9 +187,8 @@ print.masque_cleaning <- function(x, ...) {
   }
 }
 
-# Report-only near-duplicate detection: pairs of distinct labels that
-# differ by case only, or by a single edit (insertion / deletion /
-# substitution). Uses base utils::adist - no dependency.
+# Report only: pairs of distinct labels that differ by case or by one edit
+# (utils::adist()).
 .near_duplicate_pairs <- function(x) {
   vals <- sort(unique(stats::na.omit(as.character(x))))
   if (length(vals) < 2L) {
@@ -239,9 +231,8 @@ print.masque_cleaning <- function(x, ...) {
   )
 }
 
-# Re-apply a recipe's cleaning record to a fresh copy of the original so
-# a pipeline written against the (cleaned) synthetic can run against the
-# original. Idempotent: cleaning an already-clean frame is a no-op.
+# Re-apply a recipe's cleaning record to the original, so a pipeline written
+# against the cleaned synthetic runs on it. A clean frame is left as it is.
 .apply_cleaning_forward <- function(df, cleaning) {
   if (is.null(cleaning)) {
     return(df)
@@ -249,9 +240,7 @@ print.masque_cleaning <- function(x, ...) {
   name_map <- cleaning$name_map
   level_fixes <- cleaning$level_fixes
 
-  # Trim levels first (keyed on the post-rename column names), but the
-  # incoming `original` still carries the dirty names, so trim by mapping
-  # through name_map where present.
+  # `original` still has the uncleaned names, so trim through `name_map`.
   for (clean_nm in names(level_fixes)) {
     orig_nm <- names(name_map)[match(clean_nm, unname(name_map))]
     src_nm <- if (!is.na(orig_nm) && length(orig_nm)) orig_nm else clean_nm
@@ -326,12 +315,12 @@ trimws_keep_class <- function(x) {
   if (n_levels) {
     total <- sum(vapply(cl$level_fixes, length, integer(1L)))
     cli::cli_alert_info(
-      "Whitespace {verb} in {n_levels} column(s) ({total} label(s))."
+      "Whitespace {verb} in {n_levels} column{?s} ({total} label{?s})."
     )
   }
   if (n_dups) {
     cli::cli_alert_warning(
-      "{n_dups} near-duplicate label pair(s) found - NOT changed:"
+      "{n_dups} near-duplicate label pair{?s} found - NOT changed:"
     )
     for (i in seq_len(n_dups)) {
       row <- cl$near_duplicates[i, ]

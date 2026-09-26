@@ -1,9 +1,5 @@
-# Contract for the unmasked-coordinate guard (0.11.0).
-#
-# A masked table must not carry a real coordinate. The caller may state
-# otherwise three ways -- declare the pair to `coords`, give the column a
-# masking action, or pass `allow_unmasked_coords = TRUE` -- and nothing else
-# gets a coordinate through.
+# Coordinates pass unmasked only via `coords`, a masking action, or
+# allow_unmasked_coords = TRUE.
 
 .coord_fixture <- function(lat_name = "gps_s", lon_name = "gps_e", n = 40L) {
   d <- data.frame(

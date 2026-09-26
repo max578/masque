@@ -167,10 +167,7 @@ test_that("mask() runs end-to-end on MET tab_04 (skip if fixture absent)", {
   )
 
   df <- fst::read_fst(fpath, as.data.table = FALSE)
-  # detect = FALSE: v0.2.x byte-stable role proposal, kept here so this
-  # fixture exercises the single-treatment path. With detect = TRUE (the
-  # v0.3+ default) the MET fixture's design-detection labels several columns
-  # as treatment-like; joint-treatment masking handles that and is covered in
+  # detect = FALSE keeps a single treatment; multiple treatments are tested in
   # test-mask-multi-treatment.R.
   r <- propose_roles(df, detect = FALSE)
   r$role[r$col == "G_Yield_Tn_ha"] <- "outcome"

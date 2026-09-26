@@ -1,10 +1,7 @@
-# Conditional clone mode: the synthetic must preserve the
-# treatment -> outcome relationship, where the default (marginal /
-# structural) clone provably does not.
+# Conditional clones keep the treatment -> outcome effect; default ones do not.
 
-# A two-arm trial with a strong, known treatment effect on a numeric
-# outcome, plus a numeric covariate that is genuinely unrelated to the
-# arm. Returns the frame, a roles table, and the true OLS effect.
+# Two-arm trial with a known effect plus an unrelated covariate. Returns the
+# frame, a roles table and the true OLS effect.
 make_effect_fixture <- function(n = 600, effect = 5, sd = 2, seed = 42) {
   set.seed(seed)
   trt <- factor(rep(c("ctrl", "treat"), each = n / 2))
@@ -128,9 +125,7 @@ test_that(
   r <- propose_roles(df, detect = FALSE)
   r$role[r$col == "y"] <- "outcome"
   r$role[r$col == "z"] <- "covariate"
-  # The conditional-degrade advisory fires alongside the routine
-  # local-mode notice; collect every warning, then assert the advisory
-  # is among them (without tripping testthat on the expected second one).
+  # A routine local-mode warning fires alongside the advisory.
   warned <- character()
   m <- withCallingHandlers(
     mask(df, r, mode = "local", seed = 1, conditional = TRUE),

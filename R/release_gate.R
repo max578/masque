@@ -1,14 +1,9 @@
 # Release gate ---------------------------------------------------------------
 #
-# The package's safety contract: generation never implies release. A
-# collaborate-mode object carries the mask-time audit; any unresolved
-# HIGH finding blocks every package-managed writer unless the caller
-# passes an explicit, recorded `allow_high = TRUE` override. Local mode
-# is the owner-only path and is never gated.
+# Generation never implies release: package writers refuse a collaborate-mode
+# object with unresolved HIGH findings unless `allow_high = TRUE`.
 
-# Columns flagged HIGH by the mask-time audit. For a masque_set the
-# audit is a named list of per-table tibbles; flagged columns are
-# reported as "<table>$<col>" so the remedy is unambiguous.
+# Columns flagged HIGH at mask time; for a masque_set, as "<table>$<col>".
 .audit_high_cols <- function(m) {
   audit <- m@audit
   if (is.null(audit)) {
@@ -47,9 +42,8 @@
   )
 }
 
-# Release status derived from the mask-time audit. `"local"` for
-# local-mode objects (owner-only, never gated); otherwise `"blocked"`,
-# `"review"`, or `"clear"`.
+# Release status from the mask-time audit: "local" (never gated), "blocked",
+# "review" or "clear".
 .release_status <- function(m) {
   if (!identical(m@mode, "collaborate")) {
     return("local")
@@ -67,13 +61,8 @@
   "clear"
 }
 
-# Gate a package-managed write. Aborts (class "masque_blocked_write",
-# nothing written) when a collaborate-mode object carries unresolved
-# HIGH findings and no override was given. With `allow_high = TRUE` the
-# write proceeds, but the override is signalled as a classed warning
-# ("masque_high_override") so it is visible and catchable. Returns the
-# flagged columns invisibly (empty when nothing was gated) so callers
-# can record the override on the recipe.
+# Gate a package-managed write: abort ("masque_blocked_write") on unresolved
+# HIGH findings, or warn ("masque_high_override") under `allow_high = TRUE`.
 .gate_release <- function(m, allow_high = FALSE) {
   high <- if (identical(m@mode, "collaborate")) {
     .audit_high_cols(m)
@@ -92,7 +81,7 @@
           "{length(high)} column{?s}."
         ),
         x = "Flagged: {flagged}.",
-        i = "Re-role, alias, or drop the flagged column(s), then mask again.",
+        i = "Re-role, alias, or drop each flagged column, then mask again.",
         i = paste0(
           "Or pass `allow_high = TRUE` to write anyway after your own ",
           "review - the override is recorded."
@@ -103,17 +92,16 @@
   }
   warning(warningCondition(
     sprintf(
-      "allow_high = TRUE: writing despite HIGH leakage on column(s): %s.",
-      flagged
+      "allow_high = TRUE: writing despite HIGH leakage on %s: %s.",
+      ngettext(length(high), "column", "columns"), flagged
     ),
     class = "masque_high_override"
   ))
   invisible(high)
 }
 
-# Record an allow_high override on the recipe's warnings so the
-# exception survives with the private artefact. Returns the updated
-# object (R copy semantics - callers must use the return value).
+# Record an allow_high override in the recipe's warnings; returns the updated
+# object.
 .record_override <- function(m, high) {
   if (!length(high)) {
     return(m)

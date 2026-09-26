@@ -64,10 +64,8 @@ a null effect. When \code{TRUE}, the numeric block is re-simulated \emph{within
 each treatment-by-design stratum}, so a row's synthetic outcome
 inherits the location of the treatment that row carries. A causal
 model fitted on the conditional clone recovers the real treatment
-effect within sampling tolerance - the data-side analogue of
-preserving a conditional mean embedding rather than a pooled
-marginal. The conditioning columns (treatment plus retained design)
-are recorded on the recipe.
+effect within sampling tolerance. The conditioning columns (treatment
+plus retained design) are recorded on the recipe.
 
 The stratum is chosen by a \strong{coarsening ladder}. Treatment crossed
 with every retained design column is the finest rung, but on a
@@ -139,8 +137,8 @@ raised.}
 \code{original -> alias} level maps for cross-table linked columns, set
 by \code{\link[=mask_set]{mask_set()}}. Not for direct use.}
 
-\item{...}{Must be empty. An unused argument (for example a
-misspelled name) errors rather than being silently ignored.}
+\item{...}{Must be empty. An unused argument, for example a misspelled
+name, is an error.}
 }
 \value{
 A \code{masque} S7 object. Use \code{\link[=synthetic]{synthetic()}} and \code{\link[=recipe]{recipe()}} to

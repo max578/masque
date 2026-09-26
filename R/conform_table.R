@@ -2,8 +2,8 @@
 #'
 #' [clean_table()] makes the fixes that are unambiguously safe: it legalises
 #' column names and trims whitespace, and it *reports* near-duplicate labels
-#' without merging them. `conform_table()` is the next step, and it handles the
-#' two jobs that are judgement calls rather than hygiene: deciding that
+#' without merging them. `conform_table()` is the next step and makes the two
+#' decisions that need judgement: deciding that
 #' `"NSW"` and `"Nsw"` are one category, and deciding that a character column
 #' holding six labels is a factor.
 #'
@@ -24,7 +24,7 @@
 #' What it deliberately does not do: merge two labels that differ by an edit
 #' when neither spelling is the more common, coerce a column whose values do not
 #' all parse, or touch a numeric column's storage. Each is reported as a
-#' `not applied` row with the reason, so the gap is visible rather than silent.
+#' `not applied` row with the reason.
 #'
 #' @param df A data frame.
 #' @param merge_labels One of `"report"` (default), `"auto"` or `"off"`.
@@ -62,7 +62,8 @@
 #' df <- data.frame(
 #'   state = c("NSW", "Nsw", "NSW", "VIC", "VIC"),
 #'   yield = c("3.1", "2.9", "5.0", "4.2", "3.8"),
-#'   sown  = c("2024-05-01", "2024-05-03", "2024-05-01", "2024-05-08", "2024-05-08"),
+#'   sown  = c("2024-05-01", "2024-05-03", "2024-05-01", "2024-05-08",
+#'             "2024-05-08"),
 #'   stringsAsFactors = FALSE
 #' )
 #' # report only: nothing is changed
@@ -95,9 +96,8 @@ conform_table <- function(df,
   cl <- clean_table(df, clean = clean, quiet = TRUE)
   out_df <- cl$data
 
-  # Storage is decided FIRST. A column of numbers or dates held as text is not
-  # a set of categories, and proposing to merge "4.2" into "4.4" because they
-  # differ by one character is how an automatic cleaner destroys data.
+  # Storage first: numbers or dates held as text are not categories, and
+  # merging "4.2" into "4.4" would destroy data.
   tps <- .conform_types(out_df, types, max_levels)
 
   cat_cols <- .categorical_cols(out_df, tps, max_levels)
@@ -131,10 +131,8 @@ print.masque_conformance <- function(x, ...) {
 
 # --- which columns hold categories ------------------------------------------
 
-# A column is categorical when it is already a factor, or when the storage pass
-# concluded it should become one. Anything parsing as a number or a date is
-# not, and neither is a column whose labels are nearly all distinct: that is an
-# identifier or free text wearing a character class.
+# Categorical: a factor, or text the storage pass would make one. Numbers,
+# dates and columns of nearly all distinct labels (ids, free text) are not.
 .categorical_cols <- function(df, tps, max_levels) {
   out <- character(0)
   for (nm in names(df)) {
@@ -156,11 +154,8 @@ print.masque_conformance <- function(x, ...) {
   )
 }
 
-# Decide, for each near-duplicate pair clean_table() reported and that sits in a
-# genuinely categorical column, which spelling survives. Frequency decides. A
-# case-only tie is broken by first appearance (the pair IS one category; only
-# the spelling is open); an edit-distance tie is refused, because those may be
-# two different things.
+# For each near-duplicate pair in a categorical column the commoner spelling
+# wins. A case-only tie goes to the first seen; an edit-distance tie is refused.
 MIN_EDIT_NCHAR <- 4L   # below this, a one-character difference means nothing
 
 .conform_merges <- function(df, near_dups, mode, cat_cols) {
@@ -246,9 +241,8 @@ MIN_EDIT_NCHAR <- 4L   # below this, a one-character difference means nothing
   )
 }
 
-# Storage decisions, one per character column. Only a column whose values ALL
-# parse is proposed for conversion; a single unparseable value blocks it and
-# says so, because a coercion that quietly produces NA loses data.
+# One storage decision per character column. A column converts only if every
+# value parses; a single failure blocks it and is reported.
 .conform_types <- function(df, mode, max_levels) {
   if (identical(mode, "off")) return(.empty_types())
   rows <- list()
@@ -274,7 +268,8 @@ MIN_EDIT_NCHAR <- 4L   # below this, a one-character difference means nothing
       rows[[length(rows) + 1L]] <- data.frame(
         col = nm, from = "character", to = "Date",
         applied = identical(mode, "auto"),
-        reason = "every value parses as an ISO-8601 date", stringsAsFactors = FALSE
+        reason = "every value parses as an ISO-8601 date",
+        stringsAsFactors = FALSE
       )
       next
     }
@@ -293,7 +288,10 @@ MIN_EDIT_NCHAR <- 4L   # below this, a one-character difference means nothing
     n_bad <- sum(is.na(num))
     reason <- if (n_bad < length(ok) - n_bad) {
       sprintf(
-        "%d of %d values do not parse as a number (first: \"%s\"); left as text",
+        paste0(
+          "%d of %d values do not parse as a number (first: \"%s\"); ",
+          "left as text"
+        ),
         n_bad, length(ok), ok[is.na(num)][1L]
       )
     } else if (n_u == length(ok)) {
@@ -351,7 +349,7 @@ MIN_EDIT_NCHAR <- 4L   # below this, a one-character difference means nothing
       txt <- if (identical(tps$from[i], tps$to[i])) {
         sprintf("left as %s: %s", tps$from[i], tps$reason[i])
       } else {
-        sprintf("stored as %s rather than %s, because %s",
+        sprintf("stored as %s (was %s): %s",
                 tps$to[i], tps$from[i], tps$reason[i])
       }
       rows[[length(rows) + 1L]] <- data.frame(
@@ -385,7 +383,10 @@ MIN_EDIT_NCHAR <- 4L   # below this, a one-character difference means nothing
     if (identical(unname(x$modes["merge_labels"]), "report") ||
         identical(unname(x$modes["types"]), "report")) {
       cli::cli_text(
-        "Re-run with {.code merge_labels = \"auto\"} / {.code types = \"auto\"} to apply."
+        paste0(
+          "Re-run with {.code merge_labels = \"auto\"} / ",
+          "{.code types = \"auto\"} to apply."
+        )
       )
     }
   }

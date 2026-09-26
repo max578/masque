@@ -1,7 +1,5 @@
-# The guided review's edit path. utils::edit() needs the X11 dataentry
-# widget on macOS terminal R (XQuartz); when it cannot start, the guided
-# session must survive - the console fallback takes over, and every edit
-# flows through set_role().
+# utils::edit() needs XQuartz on macOS terminal R. Without it the guided session
+# falls back to the console, and every edit goes through set_role().
 
 # A readline stub serving a fixed queue of answers.
 queue_readline <- function(answers) {

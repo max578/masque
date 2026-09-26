@@ -1,8 +1,5 @@
-# print() method for the S7 design_summary class.
-#
-# Compact, cli-styled. Always shows: header (class + treatment),
-# alternates (top-3 rule scores so the user can see runners-up), and
-# recommended roles. Long evidence lists are summarised.
+# print() method for the S7 design_summary class: class, treatment, the top
+# three rule scores and the recommended roles.
 
 # local(): see the plot method in detect_plot.R.
 local(S7::method(print, design_summary) <- function(x, ...) {
@@ -112,10 +109,8 @@ local(S7::method(print, design_summary) <- function(x, ...) {
       cli::cli_text(text)
     }
     if (nrow(x@recommended_roles) > length(shown)) {
-      cli::cli_text(sprintf(
-        "  ... %d additional recommendation(s)",
-        nrow(x@recommended_roles) - length(shown)
-      ))
+      n_more <- nrow(x@recommended_roles) - length(shown)
+      cli::cli_text("  ... {n_more} additional recommendation{?s}")
     }
     if (has_actions && "source" %in% names(x@recommended_roles)) {
       retained <- x@recommended_roles$col[
@@ -125,7 +120,7 @@ local(S7::method(print, design_summary) <- function(x, ...) {
       ]
       if (length(retained) > 0L) {
         cli::cli_alert_warning(paste0(
-          "Collaborate mode retains environment value(s) for: ",
+          "Collaborate mode retains the environment values of: ",
           paste(retained, collapse = ", "),
           "; review disclosure."
         ))

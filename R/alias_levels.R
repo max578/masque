@@ -31,8 +31,8 @@
 #' * Randomising the assignment hides the ordering, not the level
 #'   frequencies, which are preserved by design. A vocabulary whose
 #'   frequencies are known and distinct is still matchable one level at a
-#'   time; `audit_mask()` reports the per-column level counts so that
-#'   exposure is visible rather than implicit. This is a re-identification
+#'   time; `audit_mask()` reports the per-column level counts, so this
+#'   exposure can be checked. This is a re-identification
 #'   cost, not a differential-privacy guarantee.
 #'
 #' @param x A factor, character, or logical vector.
@@ -82,9 +82,8 @@ alias_levels <- function(x, prefix) {
   )
 }
 
-# The sorted alias vocabulary for `n` levels. Width is at least three
-# digits so the historical `trt_001` spelling is unchanged, and grows with
-# the level count so the codes sort in numeric order.
+# The sorted alias vocabulary for `n` levels, zero-padded to at least three
+# digits so the codes sort in numeric order.
 .alias_pool <- function(prefix, n) {
   width <- max(3L, nchar(as.character(n)))
   pool <- sprintf(paste0("%s%0", width, "d"), prefix, seq_len(n))
@@ -94,10 +93,8 @@ alias_levels <- function(x, prefix) {
   pool
 }
 
-# Uniform random permutation of the alias index. Drawn from the ambient
-# RNG stream, which mask() has seeded via with_rng_state(); a one-level
-# column needs no draw and takes none, so adding an alias to a
-# single-level column does not move the stream for the columns after it.
+# Uniform random permutation of the alias index from mask()'s seeded stream.
+# A one-level column takes no draw, so it does not shift later columns.
 .alias_order <- function(n) {
   if (n <= 1L) {
     return(seq_len(n))

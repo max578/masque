@@ -1,7 +1,4 @@
-# Phase 0 contract for conservative MET-scope detection.
-#
-# Fixture truth and the explicit-environment API are green in Phase 1.
-# Automatic resolution and role integration remain contracts for Phases 2-3.
+# Contract for conservative MET-scope detection.
 
 test_that("hand-built MET fixtures encode the intended scope", {
   complete <- met_complete_fixture()
@@ -173,7 +170,7 @@ test_that("trial alone is grouping evidence, not environment evidence", {
   expect_length(ds@env_cols, 0L)
 })
 
-test_that("exact scope survives ambiguous treatment evidence honestly", {
+test_that("exact scope survives ambiguous treatment evidence", {
   d <- expand.grid(
     env = factor(c("E1", "E2", "E3")),
     arm_a = factor(c("A1", "A2")),

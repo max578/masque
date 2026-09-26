@@ -11,8 +11,8 @@
 #'   high confidence. Kept, undeclared and unaliased, it aborts.
 #' - A column detected only by the **shape of its values** -- a numeric pair
 #'   inside plausible latitude / longitude ranges, carrying real decimal
-#'   precision -- is lower confidence. It warns rather than aborts, because a
-#'   false positive would block a legitimate mask.
+#'   precision -- is lower confidence and only warns, since a false positive
+#'   would otherwise block a legitimate mask.
 #'
 #' Either way the caller can state otherwise, three ways: declare the pair to
 #' `coords` so it is coarsened, give the column a masking action (`drop` or
@@ -97,14 +97,8 @@ COORD_NAME_PATTERN <- paste0(
   "\\butm\\b|wgs ?84|decimal_?(lat|lon))"
 )
 
-# Numeric columns that look like a coordinate pair by value alone.
-#
-# Deliberately strict, because a false positive interrupts a legitimate mask.
-# A candidate must be a real-valued (not whole-number) numeric, inside the
-# plausible range for its axis, carrying at least four decimal places on some
-# value -- coordinates are recorded to metres, whereas a temperature or a yield
-# is not -- and there must be at least two such columns, since a coordinate
-# travels as a pair.
+# Numeric columns that look like a coordinate pair by value: two or more
+# non-integer columns in range for their axis, with four or more decimals.
 .coordinate_shaped_pairs <- function(df, cols) {
   cand <- character()
   for (cn in cols) {
@@ -121,10 +115,8 @@ COORD_NAME_PATTERN <- paste0(
   if (length(cand) < 2L) character() else cand
 }
 
-# TRUE when some value needs at least `k` decimal places to be written down.
-# A value with k-1 decimals is a whole number once scaled by 10^(k-1); one that
-# needs more is not. The tolerance is relative, because 18.3 * 1000 is not
-# exactly 18300 in double precision and must still read as two decimals.
+# TRUE when some value needs at least `k` decimal places. The tolerance is
+# relative, since 18.3 * 1000 is not exactly 18300 in double precision.
 .has_decimal_precision <- function(v, k) {
   z <- v * 10^(k - 1L)
   any(abs(z - round(z)) > 1e-6 * pmax(1, abs(z)))

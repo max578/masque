@@ -34,26 +34,21 @@ masque_recipe <- S7::new_class(
     conditioning_cols = S7::new_property(
       class = S7::class_character, default = character()
     ),
-    # The rung of the conditioning ladder actually used. Equal to
-    # `conditioning_cols` when the finest stratum was large enough;
-    # shorter when the ladder had to coarsen. Absent on a recipe written
-    # before 0.11.1.
+    # The ladder rung actually used; shorter than `conditioning_cols` when the
+    # ladder coarsened. Absent before 0.11.1.
     conditioning_used = S7::new_property(
       class = S7::class_character, default = character()
     ),
-    # The columns the ladder gave up, in the order it dropped them, and the
-    # subset whose main effect the clone still carries as an additive shift
-    # (the "hierarchy" ladder only). Both absent before 0.13.0.
+    # Columns the ladder dropped, in order, and those carried as an additive
+    # shift (hierarchy ladder only). Both absent before 0.13.0.
     conditioning_dropped = S7::new_property(
       class = S7::class_character, default = character()
     ),
     conditioning_shifted = S7::new_property(
       class = S7::class_character, default = character()
     ),
-    # Fraction of rows pooled into the global fallback stratum at that
-    # rung. 0 means every row was conditioned on its own stratum; 1 means
-    # the conditional clone is the marginal clone. NA when the clone was
-    # not conditional.
+    # Fraction of rows pooled into the fallback stratum: 0 all conditioned,
+    # 1 the marginal clone, NA when the clone was not conditional.
     fallback_frac = S7::new_property(
       class = S7::class_double, default = NA_real_
     ),
@@ -70,9 +65,8 @@ masque_recipe <- S7::new_class(
       class   = S7::new_union(S7::class_list, NULL),
       default = NULL
     ),
-    # One entry per declared coordinate pair: the jitter parameters, the site
-    # grouping it was masked under, and how many sites the grouping produced.
-    # Empty for a recipe written before 0.10.0, which had no such record.
+    # One entry per declared coordinate pair: jitter parameters, site grouping
+    # and site count. Empty before 0.10.0.
     coords = S7::new_property(class = S7::class_list, default = list()),
     # TRUE when the caller deliberately wrote a real coordinate through
     # unmasked. FALSE, and absent on a recipe written before 0.11.0.

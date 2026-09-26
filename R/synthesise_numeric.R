@@ -37,7 +37,7 @@ synthesise_numeric_local <- function(
   if (!all(num_ok)) {
     cli::cli_abort(
       paste0(
-        "Non-numeric column(s) passed to numeric synthesiser: ",
+        "Non-numeric column{?s} passed to numeric synthesiser: ",
         "{.field {names(x_obs)[!num_ok]}}."
       )
     )
@@ -119,9 +119,7 @@ synthesise_numeric_local <- function(
     )
   })
 
-  # Assign names explicitly (never via col.names, whose default check.names
-  # would run make.names() and silently rewrite a non-syntactic name here).
-  # Name legalisation is handled once, up front, by clean_table().
+  # Names set directly: col.names would run make.names() and rewrite them.
   out <- as.data.frame(out_cols, stringsAsFactors = FALSE)
   names(out) <- names(x_obs)
 
@@ -133,10 +131,8 @@ synthesise_numeric_local <- function(
   out
 }
 
-# Cholesky factor with a ridge fallback: nearPD() upstream guarantees
-# positive semi-definiteness, but a numerically singular Sigma can still
-# defeat chol(); a tiny diagonal inflation restores it without visibly
-# moving the correlation structure.
+# Cholesky factor with a ridge fallback, since a numerically singular Sigma
+# can still defeat chol() after nearPD().
 .chol_safe <- function(sigma) {
   ch <- tryCatch(chol(sigma), error = function(e) NULL)
   if (is.null(ch)) {

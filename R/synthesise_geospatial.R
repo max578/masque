@@ -154,7 +154,7 @@ synthesise_geospatial <- function(synth, original,
         "Anchor level {.val {a}} has no centroid in {.arg anchor_centroids}.",
         i = paste0(
           "Coordinates for {sum(synth_anchor == a, na.rm = TRUE)} ",
-          "synthetic row(s) will be NA."
+          "synthetic row{?s} will be NA."
         )
       ))
       next
@@ -169,15 +169,12 @@ synthesise_geospatial <- function(synth, original,
     )
   }
 
-  # 3. Assign each synthetic row to a fake site within its anchor,
-  # preserving the original's per-site replication distribution; then add
-  # a small within-site jitter.
+  # 3. Assign each synthetic row to a fake site within its anchor, keeping the
+  # original's rows per site, then add a small within-site jitter.
   out_lat <- rep(NA_real_, nrow(synth))
   out_lon <- rep(NA_real_, nrow(synth))
-  # Preserve the *original*'s NA pattern cell-by-cell: rows whose
-  # original lat / lon are NA stay NA in the synthetic, regardless of
-  # what `synth` currently holds. The original is the authority because
-  # the synthetic may have been coordinate-filled by an earlier step.
+  # NA cells follow the original, since `synth` may already have been filled
+  # by an earlier step.
   na_in_original <- is.na(original[[lat_col]]) | is.na(original[[lon_col]])
 
   for (a in unique(stats::na.omit(synth_anchor))) {
@@ -218,10 +215,13 @@ synthesise_geospatial <- function(synth, original,
     )
   }
   if (is.data.frame(anchor_centroids)) {
-    refuse("`anchor_centroids` is a data frame, not a named list of `c(lat, lon)` pairs.")
+    refuse(paste0(
+      "`anchor_centroids` is a data frame, not a named list of ",
+      "`c(lat, lon)` pairs."
+    ))
   }
   if (!is.list(anchor_centroids) || is.null(names(anchor_centroids)) ||
-    !length(anchor_centroids) || any(!nzchar(names(anchor_centroids)))) {
+    !length(anchor_centroids) || !all(nzchar(names(anchor_centroids)))) {
     refuse("`anchor_centroids` must be a non-empty named list.")
   }
   well_formed <- vapply(anchor_centroids, function(ctr) {
@@ -230,7 +230,10 @@ synthesise_geospatial <- function(synth, original,
   }, logical(1L))
   if (!all(well_formed)) {
     refuse(
-      "{sum(!well_formed)} element{?s} of `anchor_centroids` {?is/are} not a numeric `c(lat = , lon = )` pair: ",
+      paste0(
+        "{sum(!well_formed)} element{?s} of `anchor_centroids` {?is/are} ",
+        "not a numeric `c(lat = , lon = )` pair: "
+      ),
       x = "{.val {names(anchor_centroids)[!well_formed]}}"
     )
   }

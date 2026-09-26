@@ -1,9 +1,5 @@
-# Regression suite for illegal (non-syntactic) column names. They must be
-# legalised in every clean mode, warned about with a classed condition,
-# recorded on the recipe, masked (never leaked, never duplicated), and
-# reversed on the round-trip. Guards the 0.8.x silent-rename / leak defect
-# where a "%" name was sanitised inside numeric synthesis with no map, so
-# the original column survived un-masked alongside the synthesised copy.
+# Non-syntactic names such as "%" must be legalised, warned about, recorded,
+# masked without leaking the original column, and restored on the round-trip.
 
 illegal_frame <- function(n = 60L) {
   set.seed(1)

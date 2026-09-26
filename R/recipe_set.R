@@ -49,9 +49,9 @@ local(S7::method(print, masque_set) <- function(x, ...) {
   ))
   for (nm in names(x@synthetic)) {
     tab <- x@synthetic[[nm]]
-    cli::cli_li(sprintf(
-      "{.field %s}: %d row(s) x %d column(s)", nm, nrow(tab), ncol(tab)
-    ))
+    cli::cli_li(
+      "{.field {nm}}: {nrow(tab)} row{?s} x {ncol(tab)} column{?s}"
+    )
   }
   n_links <- length(x@recipe@links)
   if (n_links) {

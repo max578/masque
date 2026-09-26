@@ -65,7 +65,7 @@ write_set <- function(m, path, overwrite = FALSE, allow_high = FALSE) {
 .write_set_excel <- function(tables, path, overwrite) {
   if (!requireNamespace("writexl", quietly = TRUE)) {
     cli::cli_abort(c(
-      "Writing {.file {path}} needs the {.pkg writexl} package.",
+      "Writing {.file {path}} needs {.pkg writexl}.",
       i = "Install it, or write to a folder of CSVs instead."
     ))
   }
@@ -83,7 +83,7 @@ write_set <- function(m, path, overwrite = FALSE, allow_high = FALSE) {
     existing <- list.files(dir, pattern = "\\.csv$", ignore.case = TRUE)
     if (length(existing) && !overwrite) {
       cli::cli_abort(c(
-        "{.file {dir}} already contains CSV file(s).",
+        "{.file {dir}} already contains {length(existing)} CSV file{?s}.",
         i = "Pass {.code overwrite = TRUE} to replace them."
       ))
     }

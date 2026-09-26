@@ -1,6 +1,4 @@
-# Hygiene layer: legal names, whitespace trim, near-duplicate reporting,
-# the clean = "auto" / "report" / "off" switch, and the cleaning
-# round-trip through mask() / apply_recipe().
+# Cleaning: legal names, whitespace, near-duplicates, clean modes, round-trip.
 
 make_dirty <- function() {
   data.frame(

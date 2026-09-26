@@ -1,7 +1,5 @@
 .onLoad <- function(libname, pkgname) {
-  # Wire up S7 methods at package load. Without this, `print(masque_recipe)`
-  # and friends fall back to S4-style default printing, which leaks the
-  # private level maps in `R CMD check`'s installed environment (devtools::test
-  # works because load_all() auto-registers).
+  # Register S7 methods on load; otherwise print(masque_recipe) falls back to
+  # the S4 default and shows the private level maps.
   S7::methods_register()
 }

@@ -1,21 +1,5 @@
-# Audit finding M-18 -- grade `min_stratum` at a non-null value.
-#
-# `min_stratum` decides whether the conditional clone conditions at all: a
-# stratum below it is pooled into the fallback and loses its conditional
-# fidelity. Before this file the parameter was never passed any value in the
-# suite, which is why M-02's total collapse survived to 0.11.0. It is graded
-# here at 2, 5 and 20 on one layout whose cells straddle all three.
-#
-# ORACLE. Within a stratum masque draws an independent sample with
-# replacement from that stratum's observed values, so the synthetic stratum
-# mean has expectation equal to the observed stratum mean and standard
-# deviation `sigma_hat / sqrt(n)`, where `sigma_hat` is the stratum's
-# plug-in standard deviation -- the elementary identity for the mean of an
-# i.i.d. sample drawn from a finite population with replacement. Both the
-# observed stratum means and `sigma_hat` are computed here with `stats`
-# functions on the source data, never from masque's output. A pooled
-# stratum has no such guarantee: its rows are drawn from the union of the
-# pooled cells, so its mean is pulled toward the pooled mean.
+# A stratum smaller than min_stratum is pooled. Within a stratum the synthetic
+# mean has expectation equal to the observed mean and SD sigma_hat / sqrt(n).
 
 # Four cells with means 0, 10, 20, 30 and sizes 3, 3, 10, 10. The cell
 # sizes straddle min_stratum = 5 and all lie below min_stratum = 20.
@@ -53,9 +37,7 @@ test_that("min_stratum = 2 stratifies every cell in the layout", {
   obs <- .cell_means(f$x$y, f$cell)
   syn <- .cell_means(out$y, f$cell)
   se <- .cell_se(f$x$y, f$cell)
-  # Every cell mean stays inside a four-standard-deviation band of its own
-  # observed mean, which the pooled behaviour cannot achieve for cells whose
-  # means are ten units apart.
+  # Cell means are ten units apart; pooled cells cannot stay inside this band.
   expect_true(all(abs(syn - obs) <= 4 * se))
 
   expect_equal(
@@ -83,9 +65,7 @@ test_that("min_stratum = 5 pools only the cells below it", {
   # The two cells above the threshold are still conditioned on.
   expect_true(all(abs(syn[c("c", "d")] - obs[c("c", "d")]) <=
     4 * se[c("c", "d")]))
-  # The two cells below it are pooled together, so their means are pulled
-  # toward the mean of the pooled block (cells a and b, mean about 5) and
-  # leave the band their own cell would have held them in.
+  # Cells a and b are pooled (mean about 5), pulling their means out of band.
   expect_true(any(abs(syn[c("a", "b")] - obs[c("a", "b")]) >
     4 * se[c("a", "b")]))
 })
@@ -108,20 +88,15 @@ test_that("min_stratum = 20 pools the whole layout", {
   obs <- .cell_means(f$x$y, f$cell)
   se <- .cell_se(f$x$y, f$cell)
   mae <- function(y) mean(abs(.cell_means(y, f$cell) - obs))
-  # Averaging the per-cell oracle band gives one scalar gate: a properly
-  # stratified clone cannot exceed `4 * mean(se)` on the mean absolute
-  # error of its cell means, and a pooled one -- every cell drawn from the
-  # union, whose mean is 20.4 -- is nowhere near it.
+  # Pooled cells all share the union mean of 20.4, far outside this bound.
   band <- 4 * mean(se)
   expect_lt(mae(out_2$y), band)
   expect_gt(mae(out_20$y), band)
 })
 
 test_that("the ladder honours min_stratum when choosing a rung", {
-  # Cells of 5, 5, 10, 10 rows, each split in half by a second design
-  # column: the fine rung holds cells of 2 and 3, the coarse rung cells
-  # of 5 and 10. min_stratum = 2, 5 and 20 therefore land on three
-  # different rungs of the same ladder.
+  # Cells of 5, 5, 10, 10 rows, each halved by a second design column, put
+  # min_stratum = 2, 5 and 20 on three different rungs.
   sizes <- c(a = 5L, b = 5L, c = 10L, d = 10L)
   cell <- factor(rep(names(sizes), times = sizes), levels = names(sizes))
   half <- factor(unlist(lapply(
@@ -145,9 +120,8 @@ test_that("the ladder honours min_stratum when choosing a rung", {
   expect_identical(lad_5$dropped, "half")
   expect_equal(lad_5$fallback_frac, 0)
 
-  # A treatment column is never dropped: at min_stratum = 20 the ladder
-  # bottoms out on the protected column and reports the residual fallback
-  # rather than pooling the treatment away.
+  # At min_stratum = 20 the ladder stops at the treatment column and reports
+  # the residual fallback.
   lad_20 <- masque:::.conditioning_ladder(
     df, c("cell", "half"), protect_cols = "cell", min_stratum = 20L
   )

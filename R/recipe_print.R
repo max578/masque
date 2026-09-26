@@ -32,9 +32,7 @@ local(S7::method(print, masque_recipe) <- function(x, ...) {
   ))
 
   if (length(x@coords)) {
-    cli::cli_h2(sprintf(
-      "Coordinates (%d pair(s), coarsened)", length(x@coords)
-    ))
+    cli::cli_h2("Coordinates ({length(x@coords)} pair{?s}, coarsened)")
     for (cr in x@coords) {
       line <- .coord_print_line(cr)
       cli::cli_bullets(c("*" = "{line}"))
@@ -43,9 +41,9 @@ local(S7::method(print, masque_recipe) <- function(x, ...) {
 
   n_lvl_maps <- length(x@level_maps)
   n_col_map <- if (is.null(x@column_name_map)) 0L else length(x@column_name_map)
-  cli::cli_h2(sprintf(
-    "Columns (%d total; %d level-map(s); %d column-name map(s))",
-    nrow(x@roles), n_lvl_maps, n_col_map
+  cli::cli_h2(paste0(
+    "Columns ({nrow(x@roles)} total; {n_lvl_maps} level map{?s}; ",
+    "{n_col_map} column-name map{?s})"
   ))
 
   marker <- ifelse(x@roles$col %in% names(x@level_maps), "*", "=")
@@ -98,9 +96,8 @@ local(S7::method(print, masque_obj) <- function(x, ...) {
   cli::cli_h1("masque")
   cli::cli_bullets(c(
     "*" = sprintf("Mode: %s", x@mode),
-    "*" = sprintf(
-      "Synthetic: %d row(s) x %d column(s)",
-      nrow(x@synthetic), ncol(x@synthetic)
+    "*" = cli::pluralize(
+      "Synthetic: {nrow(x@synthetic)} row{?s} x {ncol(x@synthetic)} column{?s}"
     ),
     "*" = sprintf(
       "Audit: %s",
@@ -200,11 +197,8 @@ reveal_maps <- function(rec) {
   invisible(rec)
 }
 
-# Internal: the one-line clone-fidelity summary printed for a recipe. It
-# reports the conditioning rung the ladder reached, not the one that was
-# requested, and names the pooled fraction when the two differ -- a
-# recipe that says "conditional" over a pooled copula is the M-02 defect
-# this line exists to make visible.
+# Internal: one-line clone-fidelity summary. Reports the rung the ladder
+# reached, and the pooled fraction when it differs from the one requested.
 .recipe_fidelity_line <- function(x) {
   if (!isTRUE(x@conditional)) {
     return("marginal / structural (global copula)")

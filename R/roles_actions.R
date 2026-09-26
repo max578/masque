@@ -43,7 +43,7 @@ set_role <- function(roles, cols, role = NULL, action = NULL) {
   }
   unknown <- setdiff(cols, roles$col)
   if (length(unknown)) {
-    cli::cli_abort("Column(s) not in `roles`: {.field {unknown}}.")
+    cli::cli_abort("Column{?s} not in `roles`: {.field {unknown}}.")
   }
   if (is.null(role) && is.null(action)) {
     cli::cli_abort("Supply at least one of `role` or `action`.")
@@ -123,13 +123,8 @@ set_role <- function(roles, cols, role = NULL, action = NULL) {
   )
 }
 
-# Strip the heavy provenance attributes a roles table accumulates during
-# proposal (the full detect_design() S7 object under "design", plus the
-# "proposed_actions" and "mode" provenance) before it is stored on a
-# recipe. The recipe contract is runtime-minimal: it needs the role and
-# action assignment per column, not the design-detection artefact, which
-# can be large and whose serialised size varies across R versions. The
-# returned data.frame keeps only the base data-frame attributes.
+# Strip the provenance attributes ("design", "proposed_actions", "mode")
+# before a roles table is stored on a recipe; the design object can be large.
 .strip_roles_provenance <- function(roles) {
   for (a in c("design", "proposed_actions", "mode")) {
     attr(roles, a) <- NULL
@@ -137,22 +132,16 @@ set_role <- function(roles, cols, role = NULL, action = NULL) {
   roles
 }
 
-# Columns that define a conditioning stratum for the conditional clone
-# (mask(conditional = TRUE)). The treatment columns carry the assignment
-# whose effect must survive the clone; retained design columns (blocks,
-# sites, years) are the structural strata a MET model conditions on. Both
-# are preserved in place by mask(), so the stratum a row sits in is the
-# same before and after relabelling. Dropped columns are excluded - they
-# do not appear in the synthetic, so they cannot index it.
+# Columns that define the conditional clone's strata: treatments and retained
+# design columns. Dropped columns are not in the synthetic and are left out.
 .conditioning_cols <- function(roles) {
   keep <- roles$role %in% c("treatment", "design") &
     roles$action != "drop"
   roles$col[keep]
 }
 
-# Per-mode default action for a (role, kind) pair. This is the single
-# source of truth that propose_roles(), set_role(), the v1 upgrade, and
-# NA-action resolution all consult.
+# Per-mode default action for a (role, kind) pair, used by propose_roles(),
+# set_role(), the v1 upgrade and NA-action resolution.
 .default_action <- function(role, kind, mode) {
   collab <- identical(mode, "collaborate")
   switch(role,
@@ -180,10 +169,8 @@ set_role <- function(roles, cols, role = NULL, action = NULL) {
   )
 }
 
-# Compatibility check for one (role, action, kind) triple. Returns
-# NA_character_ when the combination is workable, otherwise a short
-# explanation for the validation error. `keep` and `drop` are always
-# workable; only the synthesising actions are constrained.
+# Check one (role, action, kind) triple: NA_character_ when workable, else a
+# short reason. `keep` and `drop` always work.
 .action_problem <- function(role, action, kind) {
   if (action %in% c("keep", "drop")) {
     return(NA_character_)
@@ -285,16 +272,8 @@ set_role <- function(roles, cols, role = NULL, action = NULL) {
   NA_character_
 }
 
-# Upgrade a v1 (<= 0.5.0) roles table - one with no `action` column and
-# the v1 vocabulary (design / keep / treatment / outcome / covariate /
-# ignore, plus the optional `mask_levels` column) - to the two-axis
-# schema, preserving the v1 mode semantics exactly:
-#   * v1 keep         -> action keep (role re-derived from kind)
-#   * v1 ignore       -> id / text / other role; keep in local, drop in
-#                        collaborate
-#   * v1 treatment    -> keep in local (scramble when mask_levels was
-#                        "permute"), alias in collaborate
-#   * everything else -> the v2 default action for the mapped role
+# Upgrade a roles table from masque 0.5.0 or earlier (no `action` column) to
+# role + action, keeping the old mode behaviour of keep, ignore and treatment.
 .roles_upgrade <- function(roles, mode) {
   kind <- if ("kind" %in% names(roles)) {
     roles$kind

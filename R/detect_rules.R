@@ -1,25 +1,10 @@
-# Rule engine for design detection.
-#
-# Each rule is a pure function with signature
-#
-#   .rule_X(df, cands) -> list(
-#     class_label       = character(1),     # e.g. "RCBD"
-#     score             = numeric(1) in [0, 1],
-#     evidence          = named list,
-#     recommended_roles: a data frame of col + role, or NULL
-#   )
-#
-# The orchestrator (detect_design.R) runs all six and picks the max above
-# a threshold.
+# Design-detection rules. Each `.rule_X(df, cands)` returns `class_label`,
+# `score` in [0, 1], `evidence` and `recommended_roles` (or NULL).
 
 # --- helpers ---------------------------------------------------------------
 
-# Pick a working treatment column from the candidate set.
-# Priority:
-#   1. User-roled treatment column (if propose_roles() result was supplied).
-#   2. Name-pattern treatment (treatment / variety / cultivar / genotype...).
-#   3. Highest-cardinality non-block, non-spatial factor.
-#   4. Fallback: first factor.
+# Working treatment column: the user's treatment role, else a treatment-like
+# name, else the widest non-block, non-spatial factor, else the first factor.
 .pick_treatment <- function(cands) {
   if (length(cands$trt_user) > 0L) {
     return(cands$trt_user[1L])
@@ -65,9 +50,8 @@
 
 # --- rules -----------------------------------------------------------------
 
-# Rule 1: Completely Randomised Design.
-# One treatment factor; reasonably balanced replication; no block structure
-# that splits each treatment uniquely.
+# Rule 1, completely randomised: one treatment factor, roughly balanced
+# replication, no block structure.
 .rule_crd <- function(df, cands) {
   trt <- .pick_treatment(cands)
   if (is.na(trt)) {
@@ -122,11 +106,8 @@
   )
 }
 
-# Rule 2: Randomised Complete Blocks.
-# Each treatment appears the same number of times in each block AND the
-# block factor has a design-pattern name (rep / block / site / env /
-# trial / year / season / row / col / range / plot). Without the name
-# check, a 2-factor factorial would falsely fire here.
+# Rule 2, RCBD: each treatment equally often in each block, and a block with
+# a design-type name (without it, a two-factor factorial would match).
 .rule_rcbd <- function(df, cands) {
   trt <- .pick_treatment(cands)
   if (is.na(trt)) {
@@ -195,12 +176,8 @@
   )
 }
 
-# Rule 3: Incomplete Block Design / alpha-lattice.
-# Treatments appear in subsets of blocks; incidence is regular
-# (constant block size k < T, constant replication r per treatment).
-# Tries single factor blocks AND pairwise factor interactions, since
-# alpha-lattice block labels are commonly reused across reps
-# (the effective block is `rep:block`).
+# Rule 3, incomplete blocks / alpha-lattice: regular incidence in one block
+# factor or a pair, since lattice block labels repeat across reps.
 .rule_ibd_alpha <- function(df, cands) {
   trt <- .pick_treatment(cands)
   if (is.na(trt)) {
@@ -258,9 +235,8 @@
     block_sizes <- rowSums(inc > 0L)
     rep_counts <- colSums(inc > 0L)
 
-    # Regularity is graded by the share of blocks at the modal block size and
-    # of treatments at the modal replication, so one filler plot or one extra
-    # replicate of a check does not turn a lattice into a CRD.
+    # Regularity is the share of blocks at the modal size and of treatments at
+    # the modal replication, so one filler plot does not make a lattice a CRD.
     k_ <- .mode_int(block_sizes)
     r_ <- .mode_int(rep_counts)
     k_share <- mean(block_sizes == k_)
@@ -327,11 +303,8 @@
   )
 }
 
-# Rule 4: Row-Column design.
-# Spatial pair (row, col) exists AND treatment is structurally balanced
-# WITHIN rows and WITHIN columns (Latin-square / Youden / row-column
-# lattice signature). Bare presence of (row, col) is not enough -- it just
-# means plot positions were recorded, which is also true of CRD trials.
+# Rule 4, row-column: treatments balanced within rows and within columns.
+# Recorded plot positions alone are not enough; CRD trials have them too.
 .rule_row_column <- function(df, cands) {
   if (is.null(cands$spatial)) {
     return(list(
@@ -414,11 +387,8 @@
   )
 }
 
-# Rule 5: Split-plot.
-# A block B contains multiple whole-plot units, each holding all sub-plot
-# levels. Identified by: B is a design-named factor; W and S are both
-# treatment-like (NOT design-named); lw < ls; within each (B, W) cell,
-# every S level appears exactly once.
+# Rule 5, split-plot: in each design-named block and whole plot, every
+# sub-plot level appears once; both factors treatment-like, fewer whole plots.
 .rule_split_plot <- function(df, cands) {
   if (length(cands$factors) < 3L) {
     return(list(
@@ -505,11 +475,8 @@
   )
 }
 
-# Rule 6: Factorial.
-# Two or more treatment-named (or at least non-block-named) factors are
-# fully crossed and roughly balanced. Hard-excludes block-named factors:
-# we explicitly require BOTH factors to look like treatments, otherwise
-# a blocked single-treatment design would fire here.
+# Rule 6, factorial: two or more treatment-like factors, fully crossed and
+# roughly balanced. Block-named factors are excluded, or blocked designs match.
 .rule_factorial <- function(df, cands) {
   trt_like <- setdiff(cands$factors, cands$block_named)
   if (length(trt_like) < 2L) {

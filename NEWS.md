@@ -149,7 +149,7 @@
   vignette states both.
 
   This changes the integer codes of an aliased factor, which are now a
-  relabelling rather than a copy of the original codes. Code that compared
+  relabelling, not a copy of the original codes. Code that compared
   `as.integer()` of an aliased column against the source should compare the
   partition instead (recode both by order of first appearance); the
   incidence structure itself is unchanged.
@@ -219,8 +219,7 @@
   `lat`, `lon`, `easting`, `northing`, `utm`, `wgs84`, ...) would be written
   through with `action = "keep"`. A position locates the site and often the
   operator with it, so the burden is on the caller to say what should happen
-  to it, and the default when nothing is said is to refuse rather than to
-  emit.
+  to it, and when nothing is said the default is to refuse.
 
   Three ways to state otherwise, all unchanged in spelling:
 
@@ -236,7 +235,7 @@
   numeric pair inside plausible latitude and longitude ranges carrying at
   least four decimal places, which is metre-scale precision no temperature or
   yield column has -- raises the classed warning `masque_coords_suspected`
-  rather than stopping. Confidence is lower there, and a false positive should
+  and does not stop. Confidence is lower there, and a false positive should
   not block a legitimate mask. Ordinary numeric covariates do not trip it:
   whole numbers, low-precision values and unpaired columns are all excluded.
 
@@ -290,7 +289,7 @@
   earlier version can be reproduced.
 
 * A site that cannot be placed on land within `max_tries` re-draws is now set
-  to `NA` on both axes rather than left unchanged. Leaving it unchanged shipped
+  to `NA` on both axes. Leaving it unchanged shipped
   the **true** coordinate inside a table the caller believed was masked, behind
   a warning. The `masque_geo_unplaced` warning is unchanged in class and still
   names the count.
@@ -388,7 +387,7 @@
 ## Bug fixes
 
 * Omitting `mode` from `mask()` or `mask_set()` now inherits the mode stored
-  by `propose_roles()`, rather than silently falling back to local defaults.
+  by `propose_roles()`; it no longer falls back silently to local defaults.
   An explicit collaborate-to-local change raises a classed
   `masque_mode_downgrade` warning. `mask_set()` rejects role plans carrying
   mixed mode provenance.
@@ -400,7 +399,7 @@
   turns a silent local-mode downgrade into a recoverable one.
 * Site-only environment candidates now require replicated treatment evidence
   across sites for automatic promotion. A block nested within one farm is
-  left for review rather than being misclassified as an environment.
+  left for review and not classified as an environment.
 * Environment connectivity diagnostics now guard both dense incidence and
   environment-adjacency allocations. Oversized problems return an explicit
   `not_computed` diagnostic instead of attempting an unsafe allocation.
@@ -411,7 +410,7 @@
   environment recommendation promotes a column to the `design` role.
 
 * A medium-confidence or ambiguous environment candidate is now preserved as
-  `design/keep` in both modes rather than falling through to a `covariate`
+  `design/keep` in both modes; it no longer falls through to a `covariate`
   default. Previously an unreplicated environment named with a site token
   outside the design-name heuristic (for example `county`, `location` or
   `farm`) could be silently row-permuted by a default `mask()`, moving
@@ -421,7 +420,7 @@
 * Invalid (non-syntactic) column names are now legalised in **every**
   `clean` mode, not only `"auto"`, and the repair is raised as a classed
   `masque_name_repaired` warning and recorded in the recipe. Previously,
-  under `clean = "off"` an invalid name such as `GY_%VARMAX` was silently
+  under `clean = "off"` an invalid name like `GY_%VARMAX` was silently
   rewritten by `make.names()` inside numeric synthesis with no map
   recorded, so the synthesised column no longer matched its source: the
   original column survived **unmasked** alongside the synthetic copy --
@@ -536,7 +535,7 @@ real treatment effect -- not just the marginal distribution.
 
 * `mask()`, `mask_set()`, and `masque()` gain a `conditional` argument
   (default `FALSE`). With `conditional = TRUE`, the numeric block is
-  re-simulated *within each treatment-by-design stratum* rather than from
+  re-simulated *within each treatment-by-design stratum*, not from
   one global Gaussian copula, so a row's synthetic outcome inherits the
   location of the treatment that row carries. The treatment-to-outcome
   map -- the quantity a causal model reads -- survives the clone, within
@@ -549,9 +548,7 @@ real treatment effect -- not just the marginal distribution.
   and the global covariance can still sever the relationship between an
   arm and its response, because the outcomes are drawn from the pooled
   distribution and the treatment labels are relabelled independently. A
-  model fitted on such a clone returns a null effect. Conditional cloning
-  is the data-side analogue of preserving a conditional mean embedding
-  rather than a pooled marginal.
+  model fitted on such a clone returns a null effect.
 
 ## Minor improvements and fixes
 
@@ -611,8 +608,8 @@ end-to-end tool for confidential tabular data.
   first-class `date` role (date/time columns are row-permuted with
   class and NA pattern preserved), and the explicit "retain untouched"
   and "skip entirely" choices are now the `keep` and `drop` *actions*,
-  available on any column rather than only the old `keep` / `ignore`
-  roles.
+  available on any column, where they were once only the `keep` and
+  `ignore` roles.
 * `propose_roles()` gains a `mode` argument. The proposed actions
   differ between `local` and `collaborate` (for example a treatment is
   kept locally but aliased for collaboration); the table records the
@@ -710,7 +707,7 @@ split-plot trials).
   distinct from `design`, which remains for experimental-design structure,
   and from `ignore`, which is still dropped in collaborate mode.
 * `propose_roles()` now proposes Date / POSIX / difftime columns as
-  `covariate` rather than `ignore`. Date/time covariates are row-permuted,
+  `covariate`, where they were `ignore`. Date/time covariates are row-permuted,
   retain their original class, and preserve the cell-level NA mask.
 * Unsupported column classes now default to `keep` with a clear note,
   avoiding a confusing attempt to synthesise objects masque does not know
@@ -733,10 +730,10 @@ split-plot trials).
   two or more, the column name is folded into the prefix
   (`<col>_trt_NNN`, e.g. `variety_trt_001`) so the opaque labels stay
   distinct and self-documenting, mirroring the categorical-covariate
-  `<col>_LNN` convention. Aliasing each factor separately (rather than
-  the treatment *combination*) preserves the per-factor structure that
-  factorial models fit, and keeps each column's alias namespace — and
-  therefore `audit_mask()`'s leakage accounting — unchanged.
+  `<col>_LNN` convention. Aliasing each factor separately, not
+  the treatment *combination*, preserves the per-factor structure that
+  factorial models fit, and keeps each column's alias namespace -- and
+  therefore `audit_mask()`'s leakage accounting -- unchanged.
 * `roles_validate()` no longer errors when more than one column is
   flagged `treatment`. The round-trip path (`apply_recipe()`,
   `unmask()`) already inverted multiple per-column level maps, so
@@ -791,9 +788,9 @@ that depended on the silent failure mode will need to be updated.
 * `recipe_io.R` doc and the `recipe_anatomy` vignette reword the
   `include_simulator = TRUE` no-op without pinning it to v0.2 / v0.3.
 * `roadmap` vignette restructured around feature areas. The hard
-  version pins ("v0.3", "v0.4") are gone — v0.3 / v0.4 shipped
+  version pins ("v0.3", "v0.4") are gone -- v0.3 / v0.4 shipped
   different features from the prior roadmap, so the pins were stale.
-* `getting_started` vignette: "vignette('roadmap') — what's planned
+* `getting_started` vignette: "vignette('roadmap') -- what's planned
   for v0.3+" replaced by "features deliberately deferred from the
   current release".
 
@@ -822,7 +819,7 @@ changes to the v0.3.0 surface.
 ## New export
 
 * `synthesise_geospatial(synth, original, anchor_col, lat_col,
-  lon_col, anchor_centroids, site_spread_deg, jitter_deg, seed)` —
+  lon_col, anchor_centroids, site_spread_deg, jitter_deg, seed)`  -- 
   re-anchors the latitude / longitude columns in a masqued data frame
   at user-supplied centroids, while preserving (a) the count of
   distinct sites per anchor level, (b) the per-site replication
@@ -857,17 +854,17 @@ visualisation. New public surface: 3 exports, 1 vignette.
 ## New exports
 
 * `detect_design(df, roles = NULL, interactive = FALSE, threshold = 0.5,
-  tie_delta = 0.02)` — returns an S7 `design_summary` with the most
+  tie_delta = 0.02)` -- returns an S7 `design_summary` with the most
   likely design class (`CRD`, `RCBD`, `IBD/alpha-lattice`,
   `row-column`, `split-plot`, `factorial`, or `none`), per-rule scores,
   evidence, and a `recommended_roles` tibble. Rule engine, not ML.
-* `design_summary` — S7 class wrapping the detection result.
+* `design_summary` -- S7 class wrapping the detection result.
   `print()` is cli-styled and surfaces top-3 alternates so the user
   can see how confident the call was. Slots include `class_label`,
   `treatment_col`, `block_cols`, `whole_plot_col`, `sub_plot_col`,
   `spatial_cols`, `scores`, `evidence`, `recommended_roles`,
   `candidates`, `warnings`.
-* `plot_design_summary(x, df, engine = c("base", "ggplot2"))` — also
+* `plot_design_summary(x, df, engine = c("base", "ggplot2"))` -- also
   registered as an S7 `plot()` method. Base-graphics sanity-check
   visualisation dispatched per class: replication tile, spatial
   layout, factor-nesting tree, treatment-frequency + NA-pattern.
@@ -896,8 +893,8 @@ visualisation. New public surface: 3 exports, 1 vignette.
 
 ## Suggests
 
-* `agridat` — canonical fixtures for tests and the new vignette.
-* `ggplot2` — optional plot engine via `engine = "ggplot2"`; base
+* `agridat` -- canonical fixtures for tests and the new vignette.
+* `ggplot2` -- optional plot engine via `engine = "ggplot2"`; base
   graphics is the default and the fallback.
 
 ## Limitations
@@ -911,7 +908,7 @@ visualisation. New public surface: 3 exports, 1 vignette.
 
 # masque 0.2.0
 
-First public release of `masque` — a structurally faithful development
+First public release of `masque` -- a structurally faithful development
 surrogate for tabular datasets. Successor to the unreleased `synthPR`
 v0.1.0 (folder-scanning multi-file API), rewritten around a single-file
 data-frame-first interface and a round-trippable `recipe` object.
@@ -928,10 +925,10 @@ the threat model.
   `outcome`, `covariate`, `ignore`. Multi-outcome supported. Date /
   POSIX columns and PII-pattern column names default to `ignore`.
 * **Two modes** with different safety postures:
-  * `local` — realistic dev surrogate for the data owner. Column names
+  * `local` -- realistic dev surrogate for the data owner. Column names
     and level vocabularies preserved. Treatment-level permutation is
     opt-in. Issues a load-time warning when the synthetic is extracted.
-  * `collaborate` — give the synthetic to a collaborator while keeping
+  * `collaborate` -- give the synthetic to a collaborator while keeping
     the recipe private. Treatment + categorical-covariate levels are
     opaque-aliased (`trt_001`, `<col>_L01`). Numeric draws are
     jittered within column resolution; integer columns are
@@ -940,21 +937,21 @@ the threat model.
 
 ## Public API (11 exports)
 
-* `propose_roles(df)` — heuristics-driven role tibble; the user edits
+* `propose_roles(df)` -- heuristics-driven role tibble; the user edits
   and passes to `mask()`.
-* `roles_validate(roles, df)` — fail-closed structural + semantic check.
-* `mask(df, roles, mode, seed, ...)` — returns an S7 `masque` object.
-* `synthetic(m)` / `recipe(m)` — accessors that hide S7.
-* `apply_recipe(original, recipe)` — forward translate original-namespace
+* `roles_validate(roles, df)` -- fail-closed structural + semantic check.
+* `mask(df, roles, mode, seed, ...)` -- returns an S7 `masque` object.
+* `synthetic(m)` / `recipe(m)` -- accessors that hide S7.
+* `apply_recipe(original, recipe)` -- forward translate original-namespace
   data into the synthetic namespace.
-* `unmask(x, recipe, column = NULL)` — inverse on a data frame or atomic
+* `unmask(x, recipe, column = NULL)` -- inverse on a data frame or atomic
   vector; round-trips a pipeline back to the original.
 * `save_recipe(rec, path, include_simulator = FALSE)` /
-  `read_recipe(path)` — runtime-minimal `.rds` persistence (under 10 KB
+  `read_recipe(path)` -- runtime-minimal `.rds` persistence (under 10 KB
   on a 17,000-row, 38-column MET fixture).
-* `audit_mask(m, original = NULL, print = TRUE)` — first-class leakage
+* `audit_mask(m, original = NULL, print = TRUE)` -- first-class leakage
   audit returning the per-column severity tibble.
-* `reveal_maps(recipe)` — explicit, banner-fenced unmasked-map reveal
+* `reveal_maps(recipe)` -- explicit, banner-fenced unmasked-map reveal
   (never automatic; `print(recipe)` is redacted by default).
 
 ## Synthesis engine
@@ -970,7 +967,7 @@ the threat model.
 
 * RNG hygiene throughout (`withr::with_seed` / `local_preserve_seed`);
   `mask()` does not mutate the caller's `.Random.seed`.
-* `recipe` is runtime-minimal by default — no copula matrix or raw
+* `recipe` is runtime-minimal by default -- no copula matrix or raw
   marginals stored. SHA-256 NA-mask fingerprint provided as an
   integrity check, not a privacy primitive.
 * `print(recipe)` redacted by default; `reveal_maps()` is the only
@@ -983,7 +980,7 @@ the threat model.
 
 * Four vignettes: `getting_started`, `confidentiality`,
   `recipe_anatomy`, `roadmap`.
-* `inst/extdata/john_alpha.csv` — 72-row, 7-column public fixture
+* `inst/extdata/john_alpha.csv` -- 72-row, 7-column public fixture
   derived from `agridat::john.alpha` (John 1987, alpha design).
 
 ## History
