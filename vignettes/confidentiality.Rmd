@@ -26,12 +26,10 @@ set.seed(1)
 
 ## Why
 
-A custodian is about to hand a synthetic table to a collaborator and asks
-the question anyone in that position should ask before clicking send:
-*exactly what does this protect, what does it not, and what happens if I
-get a column's sensitivity wrong?* This vignette answers all three, on
-worked examples that trip the package's own safeguards for real rather
-than only describing them.
+A custodian about to send a synthetic table to a collaborator needs to
+know what it protects, what it does not, and what happens if a column's
+sensitivity is set wrongly. This vignette covers all three, with examples
+that trigger the package's safeguards.
 
 `masque` is **not** a privacy-preserving or differential-privacy tool. It
 is a structurally faithful development surrogate. Read this vignette
@@ -39,9 +37,10 @@ before sharing any `masque` output beyond your own machine.
 
 ## What
 
-The recipe returned by `mask()` is at least as sensitive as the original
-data. The whole design assumes that only the *synthetic* crosses the trust
-boundary and the recipe stays with the custodian:
+The recipe on its own reveals little, but the recipe and the synthetic
+together are as sensitive as the original data. The design assumes that
+only the *synthetic* crosses the trust boundary and the recipe stays with
+the custodian:
 
 | Actor holds | Wants to learn | What `masque` protects |
 |---|---|---|
@@ -156,10 +155,8 @@ silently give the wrong answer on such a clone.
 `mask()`'s `conditional = TRUE` argument fixes this. It fits and samples
 the copula *within each treatment-by-design stratum* rather than pooling,
 so a row's synthetic outcome inherits the location of the treatment that
-row carries. The treatment-to-outcome map -- the quantity a causal model
-reads -- survives the clone, within sampling tolerance. This is the
-data-side analogue of preserving a conditional mean embedding rather than a
-pooled marginal.
+row carries. The treatment effect a causal model estimates is kept, within
+sampling tolerance.
 
 The contrast is easiest to see on a two-arm trial with a known effect:
 
@@ -234,15 +231,9 @@ knitr::kable(
 )
 ```
 
-### Figure: what the table above cannot show
+### Figure: the effect on each clone
 
-The table reports two point estimates against one reference line in text.
-The figure below draws the same three numbers as bars against a reference
-line, which makes the direction and near-total size of the marginal
-clone's collapse visible at a glance in a way that reading two rows of a
-table does not.
-
-```{r fig-conditional, eval = requireNamespace("ggplot2", quietly = TRUE), fig.cap = "Estimated treatment effect (kg/ha equivalent yield units) on the marginal versus conditional clone, against the true effect fitted on the original trial (dashed line). The marginal clone collapses the effect toward zero; the conditional clone recovers it."}
+```{r fig-conditional, eval = requireNamespace("ggplot2", quietly = TRUE), fig.cap = "Estimated treatment effect (yield units) on the marginal versus conditional clone, against the true effect fitted on the original trial (dashed line). The marginal clone collapses the effect toward zero; the conditional clone recovers it."}
 effect_df <- data.frame(
   clone = factor(
     c("marginal (default)", "conditional"),
@@ -374,7 +365,7 @@ the step behaves correctly on the real data. Validating such a step means
 round-tripping it onto the original through the recipe, not trusting its
 result on the clone.
 
-### The leakage audit, and a refusal for real
+### The leakage audit, and a refused write
 
 `audit_mask()` inspects the synthetic against the original and grades
 the leakage of each column. In collaborate mode it runs automatically and
@@ -405,8 +396,8 @@ knitr::kable(
 )
 ```
 
-The custodian overrides the flag -- pretending they insist on keeping
-`contact_email` -- and makes the rare column a covariate, then masks:
+Suppose the custodian overrides the flag, keeps `contact_email`, and makes
+the rare column a covariate:
 
 ```{r leaky-mask}
 roles <- set_role(roles, "yield", role = "outcome")
@@ -423,13 +414,11 @@ knitr::kable(
 ```
 
 `contact_email` (real values kept across the trust boundary) and
-`rare_treatment` (a frequency-one level) are flagged. `masque` responds on
-two channels. At construction time, `mask()` raised a classed
-`masque_high_leakage` warning above and recorded the findings in
-`recipe@warnings` -- the guided `masque()` flow never silences it. At
-write time, the package-managed writers refuse outright while a HIGH
-finding stands, which the call below shows for real rather than only
-describing:
+`rare_treatment` (a frequency-one level) are flagged, and `masque` acts
+twice. `mask()` raised a classed `masque_high_leakage` warning above and
+recorded the findings in `recipe@warnings`; the guided `masque()` flow
+never silences it. The package's writers then refuse to write while a HIGH
+finding stands:
 
 ```{r leaky-write, error = TRUE}
 out_dir <- tempfile()
@@ -598,55 +587,25 @@ to the local field density rather than the default.
 
 ## Read
 
-The design-alias demonstration keeps the three-site structure intact --
-the table above still shows three groups of six plots -- while the site
-names themselves are gone
-(`r isTRUE(site_names_gone)`): structure survives, labels do not, exactly
-what an `alias` action on a design column is for.
+Aliasing a design column hides the site names and keeps the layout. The
+alias map hides which label is which, but not how often each occurs.
 
-The conditional-clone contrast is the sharpest number in this vignette.
-The trial's true treatment effect, fitted on the original data, is
-`r round(true_effect, 2)` yield units. The default marginal clone
-recovers only `r round(effect_marg, 2)`, because pooling the copula across
-arms erases the arm-to-arm difference it was never told to keep. The
-conditional clone recovers `r round(effect_cond, 2)`, inside sampling
-tolerance of the true effect, because stratifying the copula by treatment
-keeps each arm's synthetic outcomes anchored to that arm's real location.
-The figure shows the same result as two bars against the true-effect line:
-one bar sits near zero, the other sits on the line. Both clones still
-match the original's pooled mean and SD of yield, so a pipeline that only
-checks marginal fidelity would not notice the marginal clone's collapsed
-effect at all -- checking the number a pipeline actually needs is what
-this section demonstrates.
+The default clone keeps the pooled mean and SD of yield but loses the
+treatment effect (`r round(effect_marg, 2)` against a true
+`r round(true_effect, 2)`), and a pipeline that checks only marginal
+fidelity would not notice. The conditional clone keeps it
+(`r round(effect_cond, 2)`). Neither keeps a non-monotone relationship
+between two numeric columns.
 
-The monotone-versus-non-monotone comparison shows the copula's real
-boundary: a linear relationship's R-squared survives cloning almost
-unchanged, while a U-shaped relationship's R-squared drops to what a
-straight correlation coefficient would already have predicted -- near
-zero. `conditional = TRUE` does not touch this limitation, because it acts
-on strata of the outcome's location, not on the shape of a covariate
-relationship.
+The audit caught both planted problems and the write was refused:
+`dir.exists(out_dir)` is `r dir.exists(out_dir)`. Linked tables share one
+alias map for their key, so they still join.
 
-The leakage audit flags both planted problems -- the retained PII column
-and the frequency-one level -- and the write call that followed was
-refused outright: `dir.exists(out_dir)` above reads
-`r dir.exists(out_dir)`, confirming the target directory was never
-created. That is the fail-closed behaviour this vignette set out to show
-for real, not only describe: a HIGH finding blocks a package-managed
-write unconditionally, until the custodian either fixes the plan or
-explicitly overrides it.
-
-The multi-table join survives masking
-(`r isTRUE(join_survives)`): `agronomy` and `quality` share exactly the
-same aliased genotype codes, because `mask_set()` draws the shared key's
-alias once and applies it to every table that carries it.
-
-Answering the opening question: a synthetic clone protects the vocabulary
-and the raw values behind it, not the design footprint, the level
-frequencies, or (without `conditional = TRUE`) a treatment-to-outcome
-relationship a pipeline might be built to estimate. Getting a column's
-sensitivity wrong is caught by the audit before anything is written, not
-after.
+A synthetic clone therefore protects the labels and the raw values behind
+them. It does not hide the design footprint or the level frequencies, and
+without `conditional = TRUE` it does not keep a treatment effect. A column
+whose sensitivity was set wrongly is caught by the audit before anything
+is written.
 
 ## Limits
 

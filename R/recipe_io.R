@@ -7,10 +7,8 @@
 #' and warnings. This keeps the saved artefact small and reduces the
 #' information that would leak if the recipe file alone were shared.
 #'
-#' `include_simulator = TRUE` is accepted but is currently a no-op: the
-#' recipe does not carry simulator state. The flag is reserved for a
-#' future release that will let [read_recipe()] regenerate fresh
-#' synthetic samples without access to the original data.
+#' `include_simulator = TRUE` is accepted and has no effect: the recipe
+#' does not carry simulator state.
 #'
 #' Recipes are at least as sensitive as the original data. Protect the saved
 #' file at the same security class as the original. Note that
@@ -21,8 +19,8 @@
 #'
 #' @param rec A `masque_recipe` object, e.g. from `recipe(m)`.
 #' @param path File path. By convention, `.rds` extension.
-#' @param include_simulator Logical. Reserved for a future release.
-#'   Currently a no-op (recipe is always written runtime-minimal).
+#' @param include_simulator Logical. Has no effect; the recipe is always
+#'   written without simulator state.
 #'
 #' @return `path`, invisibly.
 #'

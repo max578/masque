@@ -6,10 +6,8 @@
 #' kind, and the mode the table was proposed for -- so a re-roled column
 #' never silently carries a stale action from its previous role.
 #'
-#' Direct edits (`roles$role[roles$col == "x"] <- "outcome"`) remain
-#' fully supported; this helper exists because a direct role edit leaves
-#' `roles$action` untouched, which is occasionally what you want and
-#' frequently not.
+#' Direct edits (`roles$role[roles$col == "x"] <- "outcome"`) also work,
+#' but leave `roles$action` unchanged.
 #'
 #' @param roles A roles table from [propose_roles()] (possibly edited).
 #' @param cols Character vector of column names to edit. Every entry

@@ -33,8 +33,7 @@ Operations applied (in order):
 SHA-256 fingerprint stored on the recipe (controlled by
 \code{check_integrity}).
 \item \strong{Drop} every column whose resolved \code{action} was \code{"drop"} on the
-roles table \code{mask()} masked with -- mode-independent: a column is
-dropped because its action says so, not because of which mode ran.
+roles table \code{mask()} masked with, in either mode.
 \item \strong{Subset and reorder} to the columns the recipe knows about.
 \item \strong{Re-label factors / characters} for any column with a level map
 held by the recipe (i.e., treatment and categorical covariates in

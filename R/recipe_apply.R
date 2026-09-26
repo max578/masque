@@ -11,8 +11,7 @@
 #'    SHA-256 fingerprint stored on the recipe (controlled by
 #'    `check_integrity`).
 #' 2. **Drop** every column whose resolved `action` was `"drop"` on the
-#'    roles table `mask()` masked with -- mode-independent: a column is
-#'    dropped because its action says so, not because of which mode ran.
+#'    roles table `mask()` masked with, in either mode.
 #' 3. **Subset and reorder** to the columns the recipe knows about.
 #' 4. **Re-label factors / characters** for any column with a level map
 #'    held by the recipe (i.e., treatment and categorical covariates in

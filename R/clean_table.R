@@ -4,17 +4,13 @@
 #' names (`"Yield (t/ha)"`, `"Site Name"`), leading or trailing
 #' whitespace in names and factor / character values, and the
 #' occasional near-duplicate label (`"north"` vs `"North"` vs
-#' `" north"`). `clean_table()` makes the safe fixes - legalising names
-#' and trimming whitespace - loudly, and *reports* the unsafe ones
-#' (near-duplicate labels) without touching them, because merging two
-#' labels that only look alike is a judgement call masque must not make
-#' silently.
+#' `" north"`). `clean_table()` legalises names and trims whitespace, and
+#' reports each fix. Near-duplicate labels are only reported, since merging
+#' labels that look alike is a judgement call; [conform_table()] makes it.
 #'
-#' The corrections are returned alongside the cleaned data so [mask()]
-#' can record them in the recipe and [apply_recipe()] can re-apply the
-#' identical cleaning to a fresh copy of the original. Cleaning is
-#' therefore part of the round-trip contract, not a destructive
-#' pre-step.
+#' The corrections are returned alongside the cleaned data, so [mask()]
+#' records them in the recipe and [apply_recipe()] re-applies the same
+#' cleaning to the original.
 #'
 #' @param df A data frame.
 #' @param clean One of `"auto"` (default - legalise names, trim

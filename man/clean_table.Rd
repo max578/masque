@@ -42,18 +42,14 @@ Real custodian tables arrive with column names that are not valid R
 names (\code{"Yield (t/ha)"}, \code{"Site Name"}), leading or trailing
 whitespace in names and factor / character values, and the
 occasional near-duplicate label (\code{"north"} vs \code{"North"} vs
-\code{" north"}). \code{clean_table()} makes the safe fixes - legalising names
-and trimming whitespace - loudly, and \emph{reports} the unsafe ones
-(near-duplicate labels) without touching them, because merging two
-labels that only look alike is a judgement call masque must not make
-silently.
+\code{" north"}). \code{clean_table()} legalises names and trims whitespace, and
+reports each fix. Near-duplicate labels are only reported, since merging
+labels that look alike is a judgement call; \code{\link[=conform_table]{conform_table()}} makes it.
 }
 \details{
-The corrections are returned alongside the cleaned data so \code{\link[=mask]{mask()}}
-can record them in the recipe and \code{\link[=apply_recipe]{apply_recipe()}} can re-apply the
-identical cleaning to a fresh copy of the original. Cleaning is
-therefore part of the round-trip contract, not a destructive
-pre-step.
+The corrections are returned alongside the cleaned data, so \code{\link[=mask]{mask()}}
+records them in the recipe and \code{\link[=apply_recipe]{apply_recipe()}} re-applies the same
+cleaning to the original.
 }
 \examples{
 df <- data.frame(

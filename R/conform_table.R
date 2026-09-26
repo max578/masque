@@ -7,24 +7,21 @@
 #' `"NSW"` and `"Nsw"` are one category, and deciding that a character column
 #' holding six labels is a factor.
 #'
-#' Both are **off by default**. The default `"report"` mode names every change
-#' it would make, in plain words, and applies none of them, because a merged
-#' category and a coerced type are decisions about what the data *means* and
-#' masque does not make those silently. Set a mode to `"auto"` to apply them,
-#' and the assumption behind each one is recorded in the returned object.
+#' Both are **off by default**: the default `"report"` mode lists every change
+#' it would make, in plain words, and applies none. Set a mode to `"auto"` to
+#' apply them; the assumption behind each one is recorded in the returned
+#' object.
 #'
-#' Storage is decided **before** categories, deliberately. A column of numbers
-#' or dates held as text is not a set of categories, and proposing to merge
-#' `"4.2"` into `"4.4"` because they differ by one character is how an automatic
-#' cleaner destroys data. Only columns that remain categorical are considered
-#' for merging, and a one-character edit between labels shorter than four
-#' characters is ignored, because `"a"` and `"b"` are one edit apart and are
-#' plainly different things.
+#' Storage is decided **before** categories, so a column of numbers or dates
+#' held as text is typed first and `"4.2"` is never merged into `"4.4"`. Only
+#' columns that remain categorical are considered for merging, and a
+#' one-character edit between labels shorter than four characters is ignored
+#' (`"a"` and `"b"` are one edit apart).
 #'
-#' What it deliberately does not do: merge two labels that differ by an edit
-#' when neither spelling is the more common, coerce a column whose values do not
-#' all parse, or touch a numeric column's storage. Each is reported as a
-#' `not applied` row with the reason.
+#' Two labels that differ by an edit are merged only when one spelling is
+#' clearly more common; a column is converted only when every value parses;
+#' numeric columns keep their storage. Anything not changed for these reasons
+#' is reported as a `not applied` row with the reason.
 #'
 #' @param df A data frame.
 #' @param merge_labels One of `"report"` (default), `"auto"` or `"off"`.

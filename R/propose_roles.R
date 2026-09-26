@@ -4,7 +4,6 @@
 #' `df`: a `role` (what the column *is*) and an `action` (what [mask()]
 #' will *do* to it). The user is expected to inspect this table and edit
 #' it - directly or via [set_role()] - before passing it to [mask()].
-#' Heuristics are seeds, not law.
 #'
 #' @section The two axes:
 #'

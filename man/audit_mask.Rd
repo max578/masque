@@ -55,10 +55,6 @@ Classification heuristics:
 \code{medium}.
 \item Ignore column retained in local -> \code{low} (informational).
 }
-
-Step 7 will lower numeric exact-match-pct under collaborate by adding
-within-resolution jitter; until then, expect \code{medium} leakage on
-collaborate-mode numerics.
 }
 \examples{
 r <- propose_roles(iris)

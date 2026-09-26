@@ -18,7 +18,7 @@
 #' pushed offshore. The original NA pattern is preserved cell-by-cell and the
 #' two axes stay paired (if either coordinate is missing, both are set to NA).
 #'
-#' @section A coordinate belongs to a site, not to a row:
+#' @section One displacement per site:
 #'
 #' One displacement is drawn per **site**, not per row, and broadcast to every
 #' row of that site. A table that holds many rows per physical place -- plots
@@ -39,14 +39,14 @@
 #'   independently, and warns if the input carries repeated coordinate pairs.
 #'   It exists only so a table masked by an earlier version can be reproduced.
 #'
-#' Per-row displacement of a repeated coordinate is not merely unfaithful, it
-#' leaks. Donut displacement is isotropic, so the mean of many independent
-#' draws around one true site converges on that site: averaging the 360 rows of
+#' Displacing each row of a repeated coordinate separately leaks the site.
+#' Donut displacement is isotropic, so the mean of many independent draws
+#' around one true site converges on that site: averaging the 360 rows of
 #' a single trial recovers the true position to a median 0.58 km, against the
 #' 5 km floor the donut was asked for. One draw per site removes the estimator
 #' and leaves the full displacement in place.
 #'
-#' @section Rebuilding, and the displacement budget:
+#' @section Repeated rebuilds:
 #'
 #' One displacement per site holds *within* a masked table. It does not hold
 #' across several. Each rebuild with a fresh seed draws independently, so a
@@ -64,7 +64,7 @@
 #'
 #' Eight kept rebuilds fall below the 5 km floor the donut was asked for.
 #'
-#' The remedy costs nothing: **reuse the seed**. The same `seed` reproduces the
+#' The remedy is to **reuse the seed**. The same `seed` reproduces the
 #' same displacement for the same sites, so any number of rebuilds yields one
 #' point and nothing to average. Draw a fresh seed only when you intend to
 #' supersede every earlier version, and retire the ones you replace.
@@ -72,8 +72,8 @@
 #' Choose the unit carefully. It is the finest grouping that denotes **one
 #' physical place at one time**. For a multi-year trial series that is location
 #' by year, not location alone: trials at one named location in different
-#' seasons legitimately sit in different paddocks, and collapsing that real
-#' variation would be as wrong as inventing it.
+#' seasons usually sit in different paddocks, and one displacement for all of
+#' them would misplace every season but one.
 #'
 #' @section Choosing the magnitude:
 #'

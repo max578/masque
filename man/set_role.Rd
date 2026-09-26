@@ -32,10 +32,8 @@ kind, and the mode the table was proposed for -- so a re-roled column
 never silently carries a stale action from its previous role.
 }
 \details{
-Direct edits (\code{roles$role[roles$col == "x"] <- "outcome"}) remain
-fully supported; this helper exists because a direct role edit leaves
-\code{roles$action} untouched, which is occasionally what you want and
-frequently not.
+Direct edits (\code{roles$role[roles$col == "x"] <- "outcome"}) also work,
+but leave \code{roles$action} unchanged.
 }
 \examples{
 r <- propose_roles(iris)

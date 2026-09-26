@@ -28,7 +28,6 @@ Generates a heuristic two-axis classification for every column of
 \code{df}: a \code{role} (what the column \emph{is}) and an \code{action} (what \code{\link[=mask]{mask()}}
 will \emph{do} to it). The user is expected to inspect this table and edit
 it - directly or via \code{\link[=set_role]{set_role()}} - before passing it to \code{\link[=mask]{mask()}}.
-Heuristics are seeds, not law.
 }
 \section{The two axes}{
 

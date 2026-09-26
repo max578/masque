@@ -18,11 +18,10 @@
 #' [propose_roles()] resolves mode-appropriate defaults, so the table
 #' you reviewed is the plan that runs.
 #'
-#' Collaborate mode adjusts the transformations and runs the audit; it
-#' does not model where the output will go. Whether a synthetic table is
-#' appropriate for a given collaborator, environment, or jurisdiction is
-#' a release decision that stays with the data custodian - masque
-#' informs that decision, it does not make it.
+#' Collaborate mode changes the transformations and runs the audit.
+#' Whether a synthetic table is appropriate for a given collaborator,
+#' environment or jurisdiction is a release decision for the data
+#' custodian; masque informs that decision, it does not make it.
 #'
 #' @section Behaviour by action:
 #'
@@ -71,9 +70,8 @@
 #'   character vector names just the columns to alias. The
 #'   original-to-alias map is stored in the recipe and inverted by
 #'   [apply_recipe()] / [unmask()], so a pipeline written against the
-#'   aliased synthetic round-trips. Column names are the last identifying
-#'   surface a kept or design column exposes; alias them when even the
-#'   schema is sensitive.
+#'   aliased synthetic round-trips. Alias the names when the schema itself
+#'   is sensitive.
 #' @param conditional Logical scalar (default `FALSE`). The
 #'   *collaborate-grade conditional clone*. When `FALSE`, scrambled
 #'   numeric columns are re-simulated from one global Gaussian copula -
@@ -109,16 +107,14 @@
 #'   dropped blocking or environment columns (the replicate inside a county
 #'   is a different block from the same label in the next county), is
 #'   estimated by least squares beside the stratum that was kept, removed
-#'   before the within-stratum copula and added back after it, so a clone
-#'   that conditions on genotype alone still carries the original's
-#'   environment, replicate and block means. Rows the stratum floor pools
-#'   into the fallback keep the stratum columns' main effects the same way,
-#'   so a three-replicate variety trial keeps its genotype means. A level
+#'   before the within-stratum copula and added back after it. A clone that
+#'   conditions on genotype alone therefore still has the original's
+#'   environment, replicate and block means. Rows pooled into the fallback
+#'   stratum keep the stratum columns' main effects the same way, which is
+#'   how a three-replicate variety trial keeps its genotype means. A level
 #'   with a single row is pooled with the other singletons before the fit,
-#'   so no row's own outcome is ever carried. The terms carried are recorded
-#'   on the recipe as `conditioning_shifted`. This makes each carried term's
-#'   level means a stated property of the clone, in the same way that
-#'   `conditional = TRUE` already makes the treatment means one. `"levels"`
+#'   so no row's own outcome is carried. The terms carried are recorded on
+#'   the recipe as `conditioning_shifted`. `"levels"`
 #'   is the ladder of masque 0.11.1 to 0.12.0: columns are dropped in
 #'   decreasing order of distinct values and a dropped column leaves no
 #'   trace in the clone.

@@ -37,10 +37,6 @@
 #'   \item Ignore column retained in local -> `low` (informational).
 #' }
 #'
-#' Step 7 will lower numeric exact-match-pct under collaborate by adding
-#' within-resolution jitter; until then, expect `medium` leakage on
-#' collaborate-mode numerics.
-#'
 #' @param m A `masque` object from [mask()].
 #' @param original Optional. Required when `m@audit` is NULL (typically
 #'   in local mode). Used to recompute exact-match-pct etc. on demand.
