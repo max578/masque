@@ -2,30 +2,25 @@
 
 ## Why
 
-An analyst has only the synthetic table and their own code – the
-custodian kept the original and the recipe. Their question is the one
-every downstream user of a `masque` clone eventually asks: *what do I
-actually get back from the custodian, and what happens the day the real
-data does not quite match what I built against?* This vignette is
-written for that analyst’s side of the workflow: what the recipe
-carries, how the round-trip works, and what it does when the two sides
-of the trust boundary disagree.
+An analyst has the synthetic table and their own code; the custodian
+keeps the original and the recipe. This vignette covers what the recipe
+carries, how the analyst’s finished pipeline is run on the original, and
+what happens when the original holds a value the recipe has never seen.
 
 ## What
 
 The `masque_recipe` object returned by
 [`mask()`](https://max578.github.io/masque/reference/mask.md) is the
-only artefact that *must* stay confidential alongside the original – it
-is an S7 object, accessed through
-[`recipe()`](https://max578.github.io/masque/reference/recipe.md), never
-touched directly. Two verbs carry the round-trip:
+only artefact that *must* stay confidential alongside the original; get
+it with
+[`recipe()`](https://max578.github.io/masque/reference/recipe.md). Two
+functions make the round-trip.
 [`apply_recipe()`](https://max578.github.io/masque/reference/apply_recipe.md)
-translates a data frame from the original namespace into the synthetic
-namespace (the direction a custodian uses to re-target an analyst’s
-finished pipeline), and
-[`unmask()`](https://max578.github.io/masque/reference/unmask.md)
-translates the other way (the direction that recovers original-namespace
-labels from a synthetic-namespace result).
+recodes the original data into the clone’s labels and column names,
+which is how a custodian runs an analyst’s finished pipeline on it.
+[`unmask()`](https://max578.github.io/masque/reference/unmask.md) goes
+the other way and turns a result in the clone’s labels back into the
+original ones.
 [`save_recipe()`](https://max578.github.io/masque/reference/save_recipe.md)/[`read_recipe()`](https://max578.github.io/masque/reference/read_recipe.md)
 persist a recipe to a single `.rds` file, and
 [`reveal_maps()`](https://max578.github.io/masque/reference/reveal_maps.md)
@@ -44,7 +39,7 @@ class(rec)
 #> [1] "masque::masque_recipe" "S7_object"
 ```
 
-A recipe is runtime-minimal by default. It carries:
+A recipe carries only what the round-trip needs:
 
 - `masque_version`, `created_at`, `mode`, `seed` – provenance.
 - `roles` – the two-axis role and action table.
@@ -52,8 +47,8 @@ A recipe is runtime-minimal by default. It carries:
   part.
 - `column_name_map` – the column-name aliases, when `alias_names` was
   used (otherwise `NULL`).
-- `cleaning` – the hygiene record (name legalisation, whitespace trims)
-  so
+- `cleaning` – the tidying done before masking (column names made valid
+  R names, whitespace trimmed) so
   [`apply_recipe()`](https://max578.github.io/masque/reference/apply_recipe.md)
   re-applies the identical tidying.
 - `storage_classes`, `factor_meta` – the original column classes and
@@ -103,10 +98,10 @@ recipe(m_geo)@allow_unmasked_coords
 #> [1] FALSE
 ```
 
-Every row here shared one true coordinate, so `n_sites` equals the row
-count – the recipe records that the whole table was jittered as one
-group, not each row independently, which is the confidentiality property
-`jitter_coordinates(by = )` is for.
+Each plot here has its own coordinate, so each plot is a site and
+`n_sites` equals the number of plots. Rows that share a coordinate would
+share one displacement (see
+[`jitter_coordinates()`](https://max578.github.io/masque/reference/jitter_coordinates.md)).
 
 ### Printing is redacted
 
@@ -119,14 +114,14 @@ vocabularies themselves:
 rec
 #> 
 #> ── masque_recipe ───────────────────────────────────────────────────────────────────────────────────
-#> • Created: 2026-09-25 23:51:09 UTC
+#> • Created: 2026-09-26 08:02:45 UTC
 #> • Mode: collaborate
 #> • Clone fidelity: marginal / structural (global copula)
 #> • Seed: present (redacted)
-#> • masque version: 0.13.0
+#> • masque version: 0.14.0
 #> • Integrity fingerprint: 0cec319ba9e2...
 #> 
-#> ── Columns (7 total; 1 level-map(s); 0 column-name map(s)) ──
+#> ── Columns (7 total; 1 level map; 0 column-name maps) ──
 #> 
 #>   = design    keep      plot                          (integer)
 #>   = design    keep      rep                           (factor)
@@ -155,12 +150,9 @@ reveal_maps(rec)
 
 ### The round-trip
 
-The recipe is a bidirectional translator.
-[`apply_recipe()`](https://max578.github.io/masque/reference/apply_recipe.md)
-carries the original *into* the synthetic namespace.
-[`unmask()`](https://max578.github.io/masque/reference/unmask.md)
-carries results *back*. The usual pattern is to fit on the synthetic,
-then score the original:
+The usual pattern is to fit on the synthetic, recode the original with
+[`apply_recipe()`](https://max578.github.io/masque/reference/apply_recipe.md),
+and predict on it:
 
 ``` r
 
@@ -175,7 +167,8 @@ preds_match_nrow
 #> [1] TRUE
 ```
 
-Recovering original-namespace labels is symmetric:
+[`unmask()`](https://max578.github.io/masque/reference/unmask.md)
+recovers the original labels:
 
 ``` r
 
@@ -186,20 +179,15 @@ labels_recovered
 #> [1] TRUE
 ```
 
-Columns whose action is `keep` pass through all three verbs unchanged.
-Numeric columns are passed through
-[`apply_recipe()`](https://max578.github.io/masque/reference/apply_recipe.md)
-and [`unmask()`](https://max578.github.io/masque/reference/unmask.md)
-without an inverse map – the synthetic and original namespaces coincide
-for them – so
-[`unmask()`](https://max578.github.io/masque/reference/unmask.md) on a
-numeric prediction vector is a safe no-op.
+Columns whose action is `keep`, numeric columns and numeric predictions
+pass through both functions unchanged.
 
-### Fail-closed translation, and reading the refusal
+### Fail-closed translation
 
-If the data drifts – a new treatment level the recipe has never seen –
+If the data drifts, for example a new treatment level the recipe has
+never seen,
 [`apply_recipe()`](https://max578.github.io/masque/reference/apply_recipe.md)
-errors rather than silently coercing the unknown value to `NA`:
+stops with an error:
 
 ``` r
 
@@ -208,27 +196,21 @@ levels(drifted$gen) <- c(levels(df$gen), "BRAND_NEW")
 drifted$gen[1] <- "BRAND_NEW"
 apply_recipe(drifted, rec)
 #> Error in `.fail_unmapped()`:
-#> ! Value(s) not in the recipe's level map in column gen: "BRAND_NEW".
-#> ℹ Schema drift or new original-namespace level(s). Unknown values are not coerced to NA
+#> ! Value not in the recipe's level map in column gen: "BRAND_NEW".
+#> ℹ Schema drift, or original levels the recipe has never seen. Unknown values are not coerced to NA
 #>   (fail-closed).
 #> • Rebuild the recipe from a dataset that contains these values, or strip them before retargeting.
 ```
 
-Reading the message: it names the exact column (`gen`) and the exact
-unrecognised value (`"BRAND_NEW"`), states plainly that unknown values
-are not silently coerced to `NA`, and gives the remedy – rebuild the
-recipe from a dataset that contains the new value, or strip the drifted
-rows before re-targeting. This is deliberate: a model matrix built from
-a silently-introduced `NA` would fail somewhere downstream with a far
-less legible error, or worse, would not fail at all and would simply
-drop the drifted rows. Schema drift is exactly the kind of change that
-should stop a pipeline at the point it happens, not several steps later.
+The message names the column (`gen`) and the value (`"BRAND_NEW"`).
+Rebuild the recipe from data that contains the new value, or remove the
+drifted rows before re-targeting.
 
 ### Saving the recipe
 
 [`save_recipe()`](https://max578.github.io/masque/reference/save_recipe.md)
-writes a single runtime-minimal `.rds` – small, and safe to store next
-to the original at the same security class.
+writes a single small `.rds`, to be stored next to the original at the
+same security class.
 [`read_recipe()`](https://max578.github.io/masque/reference/read_recipe.md)
 validates the file and notes a version mismatch without raising an
 error.
@@ -256,7 +238,7 @@ verbs dispatch on it, operating table by table over a named list:
 
 set_dir <- system.file("extdata", "met_set", package = "masque")
 ms <- mask_set(set_dir, mode = "collaborate", seed = 1L, quiet = TRUE)
-#> Warning: Numeric environment column(s) year remain "keep" in collaborate mode.
+#> Warning: Numeric environment column year remains "keep" in collaborate mode.
 #> ℹ This preserves environment structure but may disclose year or other numeric labels; review before
 #>   release.
 originals <- read_set(set_dir)
@@ -270,10 +252,8 @@ re-targeted tables join on the same keys the synthetic tables do.
 
 ### Figure: the clone the analyst actually develops against
 
-Everything above works with the *labels*. The figure below shows what
-the analyst’s numeric column actually looks like – the original yield
-against the synthetic yield the analyst’s pipeline is fitted to – which
-the round-trip checks above, all of them logical values, cannot show.
+The checks above are about labels. The figure shows the numeric column
+the analyst works with: the original yield against the synthetic yield.
 
 ``` r
 
@@ -303,52 +283,31 @@ default numeric synthesis preserves each column’s marginal distribution.
 
 ## Read
 
-The round-trip holds on every check run above: the re-targeted
-prediction vector has one entry per original row (TRUE), the recovered
-genotype labels are identical to the original after a forward-then-back
-trip through the recipe (TRUE), and a recipe written to disk and read
-back carries an unchanged integrity fingerprint (TRUE). The coordinate
-account records 72 sites for a fixture where every plot shared one true
-coordinate, which is the row count of the trial – confirming the whole
-table was jittered as one group rather than plot by plot. The
-fail-closed section shows the other side of the same reliability
-property: a value the recipe has never seen is refused, not guessed at,
-so a pipeline re-targeted through
-[`apply_recipe()`](https://max578.github.io/masque/reference/apply_recipe.md)
-fails at the point the data actually drifted rather than downstream with
-a harder-to-diagnose error.
+All three round-trip checks pass: one prediction per original row, the
+original genotype labels recovered, and the same integrity fingerprint
+after the recipe is saved and read back. A value the recipe has never
+seen stops the translation where the data drifted.
 
-The figure shows why the round-trip’s logical checks are not the whole
-story: the two densities overlap closely, which is what “the marginal
-distribution is preserved” looks like on real data, but overlap in the
-marginal says nothing about whether a treatment effect or a non-linear
-covariate relationship survived – for that, see *Confidentiality and the
+The two yield densities overlap closely, so the marginal distribution is
+kept. That says nothing about whether a treatment effect or a non-linear
+relationship between columns is kept; see *Confidentiality and the
 threat model*.
 
-Answering the opening question: the recipe an analyst is handed back
-after their pipeline is finished lets a custodian re-target that exact
-pipeline, unmodified, onto the real data, and the moment the real data
-carries something the recipe was never built from, the translation stops
-rather than guessing.
+With the recipe, the custodian can run the analyst’s finished pipeline
+on the real data without changing it.
 
 ## Limits
 
-Everything in this vignette exercises one recipe built from one clean
-public trial with no missing structure and no schema drift beyond the
-one planted for the fail-closed demonstration; a recipe built from a
-table with genuinely inconsistent historical vocabularies will refuse
-more often, by design, and the remedy each time is the same – rebuild
-from data that contains the missing values, or strip the drifted rows.
-The round-trip verbs invert exactly what the recipe recorded: a numeric
-column has no inverse map and passes through unchanged, so
+This vignette uses one recipe built from one clean public trial, with
+one planted drift. A table whose category labels changed over time
+(renamed treatments, retired sites) will be refused more often. The
+round-trip verbs invert only what the recipe recorded: numeric columns
+pass through unchanged, so
 [`unmask()`](https://max578.github.io/masque/reference/unmask.md) cannot
-recover anything about a numeric transformation a pipeline applied on
-its own, and a recipe cannot repair a join that was broken outside
-`masque` before masking ever ran. This vignette does not exercise the
-leakage audit, the conditional clone, or the geographic-coordinate
-masking controls in depth; those, and what the recipe alone cannot
-protect against a determined reader of the synthetic, are
-*Confidentiality and the threat model*’s subject.
+undo a numeric transformation a pipeline made, and a recipe cannot
+repair a join that was broken before masking. The leakage audit, the
+conditional clone and the coordinate controls are covered in
+*Confidentiality and the threat model*.
 
 ## What to read next
 
@@ -361,11 +320,10 @@ treatment effect this vignette’s round-trip checks do not touch.
 
 ## Reproduce
 
-`set.seed(1)` is set once for the whole document, and every
-[`mask()`](https://max578.github.io/masque/reference/mask.md)/
+`set.seed(1)` is set once for the document, and every
+[`mask()`](https://max578.github.io/masque/reference/mask.md) or
 [`mask_set()`](https://max578.github.io/masque/reference/mask_set.md)
-call also passes `seed = 1L` explicitly, so each is independently
-reproducible regardless of what ran before it in this vignette. Package
+call passes `seed = 1L`, so each is reproducible on its own. Package
 versions follow.
 
 ``` r
@@ -391,7 +349,7 @@ sessionInfo()
 #> [1] stats     graphics  grDevices utils     datasets  methods   base     
 #> 
 #> other attached packages:
-#> [1] masque_0.13.0
+#> [1] masque_0.14.0
 #> 
 #> loaded via a namespace (and not attached):
 #>  [1] gtable_0.3.6        jsonlite_2.0.0      compiler_4.6.1      maps_3.4.3         

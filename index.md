@@ -11,7 +11,7 @@ written against the synthetic re-targets to the original data with no
 source changes.
 
 The custodian holds the data and the recipe; the analyst gets only the
-synthetic. `masque` bridges that gap.
+synthetic.
 
 Pre-CRAN; tagged releases on the GitHub repository. See `NEWS.md` for
 the current version and full changelog. If you are masking a table with
@@ -142,12 +142,12 @@ before using.
 - It does not rewrite arbitrary pipeline source code.
 
 **Bottom line.** Generating a synthetic table is not a release decision.
-In Five Safes terms, `masque` contributes to *Safe Data* and *Safe
-Outputs*; Safe People, Safe Projects, and Safe Settings are governance
-questions no package can answer. The recipe is at least as sensitive as
-the original. Never share the recipe and the synthetic together. The
-collaborate workflow assumes only the synthetic crosses the trust
-boundary.
+In the Five Safes framework for controlled data access, `masque`
+contributes to *Safe Data* and *Safe Outputs*; Safe People, Safe
+Projects, and Safe Settings are governance questions no package can
+answer. The recipe is at least as sensitive as the original. Never share
+the recipe and the synthetic together. The collaborate workflow assumes
+only the synthetic crosses the trust boundary.
 
 ------------------------------------------------------------------------
 
@@ -160,6 +160,9 @@ boundary.
 - [`vignette("recipe_anatomy")`](https://max578.github.io/masque/articles/recipe_anatomy.md)
   – what a recipe holds and how the round-trip re-targets a pipeline
   onto the original.
+- [`vignette("design_preservation")`](https://max578.github.io/masque/articles/design_preservation.md)
+  – what a conditional clone keeps of eight classic field designs,
+  tested against one pass rule.
 
 Reference index: <https://max578.github.io/masque/> – full per-function
 docs + rendered vignettes, deployed from the `gh-pages` branch.

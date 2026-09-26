@@ -3,10 +3,10 @@
 [`clean_table()`](https://max578.github.io/masque/reference/clean_table.md)
 makes the fixes that are unambiguously safe: it legalises column names
 and trims whitespace, and it *reports* near-duplicate labels without
-merging them. `conform_table()` is the next step, and it handles the two
-jobs that are judgement calls rather than hygiene: deciding that `"NSW"`
-and `"Nsw"` are one category, and deciding that a character column
-holding six labels is a factor.
+merging them. `conform_table()` is the next step and makes the two
+decisions that need judgement: deciding that `"NSW"` and `"Nsw"` are one
+category, and deciding that a character column holding six labels is a
+factor.
 
 ## Usage
 
@@ -82,26 +82,21 @@ An object of class `masque_conformance`: a list with
 
 ## Details
 
-Both are **off by default**. The default `"report"` mode names every
-change it would make, in plain words, and applies none of them, because
-a merged category and a coerced type are decisions about what the data
-*means* and masque does not make those silently. Set a mode to `"auto"`
-to apply them, and the assumption behind each one is recorded in the
-returned object.
+Both are **off by default**: the default `"report"` mode lists every
+change it would make, in plain words, and applies none. Set a mode to
+`"auto"` to apply them; the assumption behind each one is recorded in
+the returned object.
 
-Storage is decided **before** categories, deliberately. A column of
-numbers or dates held as text is not a set of categories, and proposing
-to merge `"4.2"` into `"4.4"` because they differ by one character is
-how an automatic cleaner destroys data. Only columns that remain
-categorical are considered for merging, and a one-character edit between
-labels shorter than four characters is ignored, because `"a"` and `"b"`
-are one edit apart and are plainly different things.
+Storage is decided **before** categories, so a column of numbers or
+dates held as text is typed first and `"4.2"` is never merged into
+`"4.4"`. Only columns that remain categorical are considered for
+merging, and a one-character edit between labels shorter than four
+characters is ignored (`"a"` and `"b"` are one edit apart).
 
-What it deliberately does not do: merge two labels that differ by an
-edit when neither spelling is the more common, coerce a column whose
-values do not all parse, or touch a numeric column's storage. Each is
-reported as a `not applied` row with the reason, so the gap is visible
-rather than silent.
+Two labels that differ by an edit are merged only when one spelling is
+clearly more common; a column is converted only when every value parses;
+numeric columns keep their storage. Anything not changed for these
+reasons is reported as a `not applied` row with the reason.
 
 ## See also
 
@@ -118,7 +113,8 @@ round-trip.
 df <- data.frame(
   state = c("NSW", "Nsw", "NSW", "VIC", "VIC"),
   yield = c("3.1", "2.9", "5.0", "4.2", "3.8"),
-  sown  = c("2024-05-01", "2024-05-03", "2024-05-01", "2024-05-08", "2024-05-08"),
+  sown  = c("2024-05-01", "2024-05-03", "2024-05-01", "2024-05-08",
+            "2024-05-08"),
   stringsAsFactors = FALSE
 )
 # report only: nothing is changed
@@ -131,9 +127,9 @@ cf$assumptions
 #> 4  sown
 #>                                                                                           assumption
 #> 1 "Nsw" and "NSW" are the same category, recorded as "NSW" (differs from NSW by capitalisation only)
-#> 2                    stored as factor rather than character, because 3 distinct labels over 5 values
-#> 3                    stored as numeric rather than character, because every value parses as a number
-#> 4               stored as Date rather than character, because every value parses as an ISO-8601 date
+#> 2                                  stored as factor (was character): 3 distinct labels over 5 values
+#> 3                                  stored as numeric (was character): every value parses as a number
+#> 4                             stored as Date (was character): every value parses as an ISO-8601 date
 #>   applied
 #> 1   FALSE
 #> 2   FALSE

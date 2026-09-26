@@ -31,9 +31,9 @@ re-target a finished pipeline onto the original data.
 ## Scope and limits
 
 `masque` is **not** a differential-privacy or anonymisation tool. Its
-outputs are development surrogates: structurally faithful enough that
-pipeline code runs unchanged, controlled enough that raw values are not
-exposed in collaborate mode. See
+outputs are development surrogates: faithful enough to the structure
+that pipeline code runs unchanged, and in collaborate mode the raw
+values are not exposed. See
 [`vignette("confidentiality", package = "masque")`](https://max578.github.io/masque/articles/confidentiality.md)
 for the full threat model and limitations.
 

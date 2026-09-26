@@ -1,5 +1,40 @@
 # Changelog
 
+## masque 0.14.0
+
+### Security
+
+- Clones made with masque 0.13.0 or earlier can reveal their label maps.
+  A scrambled treatment listed its levels in the scrambled order, so
+  [`levels()`](https://rdrr.io/r/base/levels.html) of the clone showed
+  the whole map. In 0.12.0 and 0.13.0, a join key aliased by
+  [`mask_set()`](https://max578.github.io/masque/reference/mask_set.md)
+  listed its aliases in the original level order, which undid their
+  random assignment. If you shared such a clone, make it again with
+  0.14.0 and share the new one in its place. The same seed gives the
+  same values. Only the level order changes.
+
+### Bug fixes
+
+- **[`apply_recipe()`](https://max578.github.io/masque/reference/apply_recipe.md)
+  returns an aliased factor with the clone’s levels.** It kept the
+  original level order, so a model fitted on the translated original had
+  a different reference level from the same model fitted on the clone,
+  and coefficients compared by position did not line up. On
+  [`agridat::besag.met`](https://kwstat.github.io/agridat/reference/besag.met.html)
+  in collaborate mode the genotype coefficients of the two fits
+  correlated at 0.05 by position and 0.92 by name. Predictions were not
+  affected.
+
+### Minor improvements and fixes
+
+- Messages say `column` or `columns`, `site` or `sites`, where they said
+  `column(s)`.
+
+- The vignettes and help pages are reworded more plainly. *Recipe
+  anatomy and the round-trip* said its coordinate example was jittered
+  as one site; each plot there is its own site.
+
 ## masque 0.13.0
 
 ### Breaking changes
@@ -189,11 +224,11 @@
   vignette states both.
 
   This changes the integer codes of an aliased factor, which are now a
-  relabelling rather than a copy of the original codes. Code that
-  compared [`as.integer()`](https://rdrr.io/r/base/integer.html) of an
-  aliased column against the source should compare the partition instead
-  (recode both by order of first appearance); the incidence structure
-  itself is unchanged.
+  relabelling, not a copy of the original codes. Code that compared
+  [`as.integer()`](https://rdrr.io/r/base/integer.html) of an aliased
+  column against the source should compare the partition instead (recode
+  both by order of first appearance); the incidence structure itself is
+  unchanged.
 
 - **`conditional = TRUE` no longer collapses silently to the pooled
   copula.** The conditioning stratum was treatment crossed with *every*
@@ -265,8 +300,8 @@
   `lon`, `easting`, `northing`, `utm`, `wgs84`, …) would be written
   through with `action = "keep"`. A position locates the site and often
   the operator with it, so the burden is on the caller to say what
-  should happen to it, and the default when nothing is said is to refuse
-  rather than to emit.
+  should happen to it, and when nothing is said the default is to
+  refuse.
 
   Three ways to state otherwise, all unchanged in spelling:
 
@@ -284,7 +319,7 @@
   – a numeric pair inside plausible latitude and longitude ranges
   carrying at least four decimal places, which is metre-scale precision
   no temperature or yield column has – raises the classed warning
-  `masque_coords_suspected` rather than stopping. Confidence is lower
+  `masque_coords_suspected` and does not stop. Confidence is lower
   there, and a false positive should not block a legitimate mask.
   Ordinary numeric covariates do not trip it: whole numbers,
   low-precision values and unpaired columns are all excluded.
@@ -345,10 +380,10 @@
   version can be reproduced.
 
 - A site that cannot be placed on land within `max_tries` re-draws is
-  now set to `NA` on both axes rather than left unchanged. Leaving it
-  unchanged shipped the **true** coordinate inside a table the caller
-  believed was masked, behind a warning. The `masque_geo_unplaced`
-  warning is unchanged in class and still names the count.
+  now set to `NA` on both axes. Leaving it unchanged shipped the
+  **true** coordinate inside a table the caller believed was masked,
+  behind a warning. The `masque_geo_unplaced` warning is unchanged in
+  class and still names the count.
 
   Genuinely point-level input – every coordinate pair already distinct –
   is unaffected by all of the above, and reproduces its 0.9.2 output
@@ -464,8 +499,8 @@
   [`mask()`](https://max578.github.io/masque/reference/mask.md) or
   [`mask_set()`](https://max578.github.io/masque/reference/mask_set.md)
   now inherits the mode stored by
-  [`propose_roles()`](https://max578.github.io/masque/reference/propose_roles.md),
-  rather than silently falling back to local defaults. An explicit
+  [`propose_roles()`](https://max578.github.io/masque/reference/propose_roles.md);
+  it no longer falls back silently to local defaults. An explicit
   collaborate-to-local change raises a classed `masque_mode_downgrade`
   warning.
   [`mask_set()`](https://max578.github.io/masque/reference/mask_set.md)
@@ -482,8 +517,7 @@
 
 - Site-only environment candidates now require replicated treatment
   evidence across sites for automatic promotion. A block nested within
-  one farm is left for review rather than being misclassified as an
-  environment.
+  one farm is left for review and not classified as an environment.
 
 - Environment connectivity diagnostics now guard both dense incidence
   and environment-adjacency allocations. Oversized problems return an
@@ -499,7 +533,7 @@
   role.
 
 - A medium-confidence or ambiguous environment candidate is now
-  preserved as `design/keep` in both modes rather than falling through
+  preserved as `design/keep` in both modes; it no longer falls through
   to a `covariate` default. Previously an unreplicated environment named
   with a site token outside the design-name heuristic (for example
   `county`, `location` or `farm`) could be silently row-permuted by a
@@ -511,12 +545,12 @@
 - Invalid (non-syntactic) column names are now legalised in **every**
   `clean` mode, not only `"auto"`, and the repair is raised as a classed
   `masque_name_repaired` warning and recorded in the recipe. Previously,
-  under `clean = "off"` an invalid name such as `GY_%VARMAX` was
-  silently rewritten by
-  [`make.names()`](https://rdrr.io/r/base/make.names.html) inside
-  numeric synthesis with no map recorded, so the synthesised column no
-  longer matched its source: the original column survived **un-masked**
-  alongside the synthetic copy – a leak – and the round-trip broke.
+  under `clean = "off"` an invalid name like `GY_%VARMAX` was silently
+  rewritten by [`make.names()`](https://rdrr.io/r/base/make.names.html)
+  inside numeric synthesis with no map recorded, so the synthesised
+  column no longer matched its source: the original column survived
+  **unmasked** alongside the synthetic copy – a leak – and the
+  round-trip broke.
   [`mask()`](https://max578.github.io/masque/reference/mask.md) now
   legalises names up front in all modes, remaps the `roles` table,
   records the map, and `synthesise_numeric_local()` no longer rewrites
@@ -661,22 +695,20 @@ real treatment effect – not just the marginal distribution.
   and [`masque()`](https://max578.github.io/masque/reference/masque.md)
   gain a `conditional` argument (default `FALSE`). With
   `conditional = TRUE`, the numeric block is re-simulated *within each
-  treatment-by-design stratum* rather than from one global Gaussian
-  copula, so a row’s synthetic outcome inherits the location of the
-  treatment that row carries. The treatment-to-outcome map – the
-  quantity a causal model reads – survives the clone, within sampling
-  tolerance. The default `conditional = FALSE` preserves the exact 0.6.0
-  behaviour (global copula, marginal and structural fidelity only), so
-  existing scripts are byte-identical.
+  treatment-by-design stratum*, not from one global Gaussian copula, so
+  a row’s synthetic outcome inherits the location of the treatment that
+  row carries. The treatment-to-outcome map – the quantity a causal
+  model reads – survives the clone, within sampling tolerance. The
+  default `conditional = FALSE` preserves the exact 0.6.0 behaviour
+  (global copula, marginal and structural fidelity only), so existing
+  scripts are byte-identical.
 
   The motivation: structural and marginal fidelity alone are *not*
   sufficient for causal inference. A clone that matches every marginal
   and the global covariance can still sever the relationship between an
   arm and its response, because the outcomes are drawn from the pooled
   distribution and the treatment labels are relabelled independently. A
-  model fitted on such a clone returns a null effect. Conditional
-  cloning is the data-side analogue of preserving a conditional mean
-  embedding rather than a pooled marginal.
+  model fitted on such a clone returns a null effect.
 
 ### Minor improvements and fixes
 
@@ -748,8 +780,8 @@ end-to-end tool for confidential tabular data.
   first-class `date` role (date/time columns are row-permuted with class
   and NA pattern preserved), and the explicit “retain untouched” and
   “skip entirely” choices are now the `keep` and `drop` *actions*,
-  available on any column rather than only the old `keep` / `ignore`
-  roles.
+  available on any column, where they were once only the `keep` and
+  `ignore` roles.
 - [`propose_roles()`](https://max578.github.io/masque/reference/propose_roles.md)
   gains a `mode` argument. The proposed actions differ between `local`
   and `collaborate` (for example a treatment is kept locally but aliased
@@ -872,11 +904,11 @@ split-plot trials).
   structure, and from `ignore`, which is still dropped in collaborate
   mode.
 - [`propose_roles()`](https://max578.github.io/masque/reference/propose_roles.md)
-  now proposes Date / POSIX / difftime columns as `covariate` rather
-  than `ignore`. Date/time covariates are row-permuted, retain their
-  original class, and preserve the cell-level NA mask.
+  now proposes Date / POSIX / difftime columns as `covariate`, where
+  they were `ignore`. Date/time covariates are row-permuted, retain
+  their original class, and preserve the cell-level NA mask.
 - Unsupported column classes now default to `keep` with a clear note,
-  avoiding a confusing attempt to synthesize objects masque does not
+  avoiding a confusing attempt to synthesise objects masque does not
   know how to mask.
 
 ### Masking and recipes
@@ -899,11 +931,11 @@ split-plot trials).
   the column name is folded into the prefix (`<col>_trt_NNN`,
   e.g. `variety_trt_001`) so the opaque labels stay distinct and
   self-documenting, mirroring the categorical-covariate `<col>_LNN`
-  convention. Aliasing each factor separately (rather than the treatment
-  *combination*) preserves the per-factor structure that factorial
-  models fit, and keeps each column’s alias namespace — and therefore
+  convention. Aliasing each factor separately, not the treatment
+  *combination*, preserves the per-factor structure that factorial
+  models fit, and keeps each column’s alias namespace – and therefore
   [`audit_mask()`](https://max578.github.io/masque/reference/audit_mask.md)’s
-  leakage accounting — unchanged.
+  leakage accounting – unchanged.
 - [`roles_validate()`](https://max578.github.io/masque/reference/roles_validate.md)
   no longer errors when more than one column is flagged `treatment`. The
   round-trip path
@@ -966,9 +998,9 @@ depended on the silent failure mode will need to be updated.
 - `recipe_io.R` doc and the `recipe_anatomy` vignette reword the
   `include_simulator = TRUE` no-op without pinning it to v0.2 / v0.3.
 - `roadmap` vignette restructured around feature areas. The hard version
-  pins (“v0.3”, “v0.4”) are gone — v0.3 / v0.4 shipped different
+  pins (“v0.3”, “v0.4”) are gone – v0.3 / v0.4 shipped different
   features from the prior roadmap, so the pins were stale.
-- `getting_started` vignette: “vignette(‘roadmap’) — what’s planned for
+- `getting_started` vignette: “vignette(‘roadmap’) – what’s planned for
   v0.3+” replaced by “features deliberately deferred from the current
   release”.
 
@@ -1000,7 +1032,7 @@ changes to the v0.3.0 surface.
 ### New export
 
 - `synthesise_geospatial(synth, original, anchor_col, lat_col, lon_col, anchor_centroids, site_spread_deg, jitter_deg, seed)`
-  — re-anchors the latitude / longitude columns in a masqued data frame
+  – re-anchors the latitude / longitude columns in a masqued data frame
   at user-supplied centroids, while preserving (a) the count of distinct
   sites per anchor level, (b) the per-site replication distribution,
   and (c) within-site tight clustering with between-site spread. The
@@ -1035,17 +1067,17 @@ visualisation. New public surface: 3 exports, 1 vignette.
 ### New exports
 
 - `detect_design(df, roles = NULL, interactive = FALSE, threshold = 0.5, tie_delta = 0.02)`
-  — returns an S7 `design_summary` with the most likely design class
+  – returns an S7 `design_summary` with the most likely design class
   (`CRD`, `RCBD`, `IBD/alpha-lattice`, `row-column`, `split-plot`,
   `factorial`, or `none`), per-rule scores, evidence, and a
   `recommended_roles` tibble. Rule engine, not ML.
-- `design_summary` — S7 class wrapping the detection result.
+- `design_summary` – S7 class wrapping the detection result.
   [`print()`](https://rdrr.io/r/base/print.html) is cli-styled and
   surfaces top-3 alternates so the user can see how confident the call
   was. Slots include `class_label`, `treatment_col`, `block_cols`,
   `whole_plot_col`, `sub_plot_col`, `spatial_cols`, `scores`,
   `evidence`, `recommended_roles`, `candidates`, `warnings`.
-- `plot_design_summary(x, df, engine = c("base", "ggplot2"))` — also
+- `plot_design_summary(x, df, engine = c("base", "ggplot2"))` – also
   registered as an S7
   [`plot()`](https://rdrr.io/r/graphics/plot.default.html) method.
   Base-graphics sanity-check visualisation dispatched per class:
@@ -1078,8 +1110,8 @@ visualisation. New public surface: 3 exports, 1 vignette.
 
 ### Suggests
 
-- `agridat` — canonical fixtures for tests and the new vignette.
-- `ggplot2` — optional plot engine via `engine = "ggplot2"`; base
+- `agridat` – canonical fixtures for tests and the new vignette.
+- `ggplot2` – optional plot engine via `engine = "ggplot2"`; base
   graphics is the default and the fallback.
 
 ### Limitations
@@ -1093,7 +1125,7 @@ visualisation. New public surface: 3 exports, 1 vignette.
 
 ## masque 0.2.0
 
-First public release of `masque` — a structurally faithful development
+First public release of `masque` – a structurally faithful development
 surrogate for tabular datasets. Successor to the unreleased `synthPR`
 v0.1.0 (folder-scanning multi-file API), rewritten around a single-file
 data-frame-first interface and a round-trippable `recipe` object.
@@ -1111,10 +1143,10 @@ for the threat model.
   `outcome`, `covariate`, `ignore`. Multi-outcome supported. Date /
   POSIX columns and PII-pattern column names default to `ignore`.
 - **Two modes** with different safety postures:
-  - `local` — realistic dev surrogate for the data owner. Column names
+  - `local` – realistic dev surrogate for the data owner. Column names
     and level vocabularies preserved. Treatment-level permutation is
     opt-in. Issues a load-time warning when the synthetic is extracted.
-  - `collaborate` — give the synthetic to a collaborator while keeping
+  - `collaborate` – give the synthetic to a collaborator while keeping
     the recipe private. Treatment + categorical-covariate levels are
     opaque-aliased (`trt_001`, `<col>_L01`). Numeric draws are jittered
     within column resolution; integer columns are stochastically
@@ -1124,22 +1156,22 @@ for the threat model.
 
 ### Public API (11 exports)
 
-- `propose_roles(df)` — heuristics-driven role tibble; the user edits
+- `propose_roles(df)` – heuristics-driven role tibble; the user edits
   and passes to
   [`mask()`](https://max578.github.io/masque/reference/mask.md).
-- `roles_validate(roles, df)` — fail-closed structural + semantic check.
-- `mask(df, roles, mode, seed, ...)` — returns an S7 `masque` object.
-- `synthetic(m)` / `recipe(m)` — accessors that hide S7.
-- `apply_recipe(original, recipe)` — forward translate
+- `roles_validate(roles, df)` – fail-closed structural + semantic check.
+- `mask(df, roles, mode, seed, ...)` – returns an S7 `masque` object.
+- `synthetic(m)` / `recipe(m)` – accessors that hide S7.
+- `apply_recipe(original, recipe)` – forward translate
   original-namespace data into the synthetic namespace.
-- `unmask(x, recipe, column = NULL)` — inverse on a data frame or atomic
+- `unmask(x, recipe, column = NULL)` – inverse on a data frame or atomic
   vector; round-trips a pipeline back to the original.
 - `save_recipe(rec, path, include_simulator = FALSE)` /
-  `read_recipe(path)` — runtime-minimal `.rds` persistence (under 10 KB
+  `read_recipe(path)` – runtime-minimal `.rds` persistence (under 10 KB
   on a 17,000-row, 38-column MET fixture).
-- `audit_mask(m, original = NULL, print = TRUE)` — first-class leakage
+- `audit_mask(m, original = NULL, print = TRUE)` – first-class leakage
   audit returning the per-column severity tibble.
-- `reveal_maps(recipe)` — explicit, banner-fenced unmasked-map reveal
+- `reveal_maps(recipe)` – explicit, banner-fenced unmasked-map reveal
   (never automatic; `print(recipe)` is redacted by default).
 
 ### Synthesis engine
@@ -1158,7 +1190,7 @@ for the threat model.
   / `local_preserve_seed`);
   [`mask()`](https://max578.github.io/masque/reference/mask.md) does not
   mutate the caller’s `.Random.seed`.
-- `recipe` is runtime-minimal by default — no copula matrix or raw
+- `recipe` is runtime-minimal by default – no copula matrix or raw
   marginals stored. SHA-256 NA-mask fingerprint provided as an integrity
   check, not a privacy primitive.
 - `print(recipe)` redacted by default;
@@ -1173,7 +1205,7 @@ for the threat model.
 
 - Four vignettes: `getting_started`, `confidentiality`,
   `recipe_anatomy`, `roadmap`.
-- `inst/extdata/john_alpha.csv` — 72-row, 7-column public fixture
+- `inst/extdata/john_alpha.csv` – 72-row, 7-column public fixture
   derived from
   [`agridat::john.alpha`](https://kwstat.github.io/agridat/reference/john.alpha.html)
   (John 1987, alpha design).

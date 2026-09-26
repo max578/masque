@@ -45,8 +45,7 @@ Operations applied (in order):
 2.  **Drop** every column whose resolved `action` was `"drop"` on the
     roles table
     [`mask()`](https://max578.github.io/masque/reference/mask.md) masked
-    with – mode-independent: a column is dropped because its action says
-    so, not because of which mode ran.
+    with, in either mode.
 
 3.  **Subset and reorder** to the columns the recipe knows about.
 

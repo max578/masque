@@ -7,22 +7,16 @@ library(masque)
 
 ## Why
 
-A field agronomist holds a confidential 72-plot trial and wants an
-outside statistician to build a spatial yield model against it, but the
-statistician must never see the real plot layout or genotype identities.
-The agronomist’s question is practical, not abstract: *can I hand over
-something that behaves like my trial well enough for someone to develop
-a working pipeline on, and get that pipeline back running unmodified on
-my real data when they are done?* This vignette walks the custodian’s
-side of that handoff end to end, on the classical John and Williams
-(1995) alpha-design trial shipped with the package, and answers the
-question directly by the end.
+A field agronomist has a confidential 72-plot trial and wants an outside
+statistician to build a spatial yield model on it, without the
+statistician seeing the real plot layout or genotype identities. This
+vignette shows the agronomist’s side of that handoff on the John and
+Williams (1995) alpha-design trial shipped with the package.
 
-`masque` is not an anonymiser, and the synthetic table it produces is
-not a public-release-safe artefact – it is a development surrogate,
-meant to cross a trust boundary of one: the custodian’s collaborator.
-The companion vignette *Confidentiality and the threat model* sets out
-exactly what is and is not protected. Read it before sharing any output.
+The synthetic table `masque` produces is a development surrogate for one
+named collaborator. It is not an anonymised dataset and is not safe for
+public release. *Confidentiality and the threat model* sets out what is
+and is not protected; read it before sharing any output.
 
 ## What
 
@@ -42,29 +36,34 @@ written against the synthetic re-target to the original later with no
 code change; its internals and the round-trip verbs are the subject of
 *Recipe anatomy and the round-trip*.
 
-Every column in the masking plan carries two independent decisions,
-built by
+Every column in the masking plan has a `role` and an `action`, proposed
+by
 [`propose_roles()`](https://max578.github.io/masque/reference/propose_roles.md)
-and adjusted with
-[`set_role()`](https://max578.github.io/masque/reference/set_role.md): a
-`role` (what the column is – `design`, `treatment`, `outcome`,
-`covariate`, `date`, `id`, `text`, or `other`) and an `action` (how
-deeply it is masked – `keep` passes a column through byte-for-byte,
-`scramble` re-simulates numerics through a Gaussian copula or
-row-permutes categoricals and dates, `alias` scrambles and then replaces
-the labels with opaque codes, and `drop` leaves the column out
-entirely).
-[`role_options()`](https://max578.github.io/masque/reference/role_options.md)
-renders the full grid the validator accepts, so an incompatible pairing
-– a design column `masque` refuses to scramble, for instance – can be
-checked before it is attempted.
+and changed with
+[`set_role()`](https://max578.github.io/masque/reference/set_role.md).
+The role says what the column is: `design`, `treatment`, `outcome`,
+`covariate`, `date`, `id`, `text` or `other`. The action says what
+happens to it:
 
-The `mode` argument sets the safe defaults for both axes at once:
-`local` is for the custodian’s own development, and keeps vocabulary
-intact; `collaborate` is for handing the synthetic to someone else, and
-aliases treatment and categorical labels, jitters numerics, drops
-identifiers and free text, and runs the leakage audit automatically.
-Per-column `action` choices always override the mode’s default.
+- `keep` passes it through unchanged;
+- `scramble` re-simulates numerics through a Gaussian copula, or
+  shuffles categories and dates between rows;
+- `alias` replaces the labels with opaque codes (a categorical covariate
+  is shuffled between rows first);
+- `drop` leaves it out.
+
+[`role_options()`](https://max578.github.io/masque/reference/role_options.md)
+lists every role and action pair the package accepts.
+
+The `mode` argument sets the defaults for both axes at once:
+
+- `local` is for the custodian’s own development and keeps labels
+  intact.
+- `collaborate` is for handing the synthetic to someone else. It aliases
+  treatment and categorical labels, jitters numerics, drops identifiers
+  and free text, and runs the leakage audit.
+
+A per-column `action` always overrides the mode’s default.
 
 ## Do
 
@@ -243,13 +242,13 @@ knitr::kable(
 A hand-edited plan: `row`/`col` dropped, `rep` re-roled to a covariate.
 {.table}
 
-The `kind` column is derived from the column’s class, never chosen;
-editing it changes nothing, and the column should be converted in the
-data and re-proposed if the kind is wrong.
+The `kind` column comes from the column’s class and cannot be edited. If
+it is wrong, convert the column in the data and run
+[`propose_roles()`](https://max578.github.io/masque/reference/propose_roles.md)
+again.
 
 [`role_options()`](https://max578.github.io/masque/reference/role_options.md)
-renders the full grid the validator accepts, filtered by a column’s
-storage kind:
+lists the pairs the package accepts, here for a factor column:
 
 ``` r
 
@@ -323,30 +322,28 @@ head(levels(synth$gen))
 #> [1] "trt_001" "trt_002" "trt_003" "trt_004" "trt_005" "trt_006"
 ```
 
-### A refusal you can rely on
+### A plan the package refuses
 
-Not every role and action pairing makes sense – `plot` is a `design`
-column, and a design column is structure rather than content, so asking
-[`mask()`](https://max578.github.io/masque/reference/mask.md) to
-scramble it is a request the package will not carry out:
+`plot` is a `design` column. Scrambling it would break the trial’s
+layout, and
+[`mask()`](https://max578.github.io/masque/reference/mask.md) refuses:
 
 ``` r
 
 bad_roles <- set_role(roles, "plot", role = "design", action = "scramble")
 mask(df, bad_roles, mode = "collaborate", seed = 1L)
 #> Error in `roles_validate()`:
-#> ! Incompatible role / action / kind combination(s):
+#> ! Incompatible role, action and kind combination:
 #> ✖ plot (design + scramble): design columns are structure, not content - they cannot be scrambled;
 #>   use keep, alias (labels hidden, structure intact), or drop
 ```
 
-The call aborts before any masking happens, naming the exact column and
-combination at fault and offering the three actions that do make sense
-for a design column (`keep`, `alias`, `drop`). Nothing is silently
-reinterpreted – an invalid plan is a refusal, not a best-effort guess,
-and the same validation runs whether the plan came from
+The call stops before any masking, names the column and the combination
+at fault, and lists the three actions that do work for a design column
+(`keep`, `alias`, `drop`). The same check runs whether the plan came
+from
 [`propose_roles()`](https://max578.github.io/masque/reference/propose_roles.md),
-hand-editing, or the guided spreadsheet flow.
+a hand edit or the guided spreadsheet.
 
 ### More than one table
 
@@ -362,7 +359,7 @@ a join of the synthetic tables still resolves.
 
 set_dir <- system.file("extdata", "met_set", package = "masque")
 ms <- masque(set_dir, mode = "collaborate", seed = 1L, ask = FALSE)
-#> Warning: Numeric environment column(s) year remain "keep" in collaborate mode.
+#> Warning: Numeric environment column year remains "keep" in collaborate mode.
 #> ℹ This preserves environment structure but may disclose year or other numeric labels; review before
 #>   release.
 #> ℹ Using the proposed masking plan for agronomy (pass `roles` or set `ask = TRUE` to review).
@@ -379,8 +376,8 @@ ms
 #> ── masque_set ──────────────────────────────────────────────────────────────────────────────────────
 #> • Mode: collaborate
 #> • Tables: 2
-#> • agronomy: 464 row(s) x 7 column(s)
-#> • quality: 464 row(s) x 5 column(s)
+#> • agronomy: 464 rows x 7 columns
+#> • quality: 464 rows x 5 columns
 #> 
 #> ── Cross-table links (2) ──
 #> 
@@ -402,10 +399,10 @@ questions: which rows belong to each environment, whether treatments
 connect the environments, and what randomisation structure can be
 recovered within each environment.
 [`detect_design()`](https://max578.github.io/masque/reference/detect_design.md)
-reports these separately; connectivity is a comparability diagnostic,
-not the definition of a multi-environment trial, and an observed block
-or field layout is evidence, not proof, of the original randomisation
-protocol.
+reports these separately. Connectivity says whether environments can be
+compared; it does not decide whether the trial is multi-environment. A
+block or field layout seen in the data suggests the original
+randomisation but does not confirm it.
 
 A small synthetic toy with two environments and three genotypes makes
 the three questions concrete:
@@ -430,13 +427,12 @@ ds@within_design_label
 #> [1] "RCBD"
 ```
 
-Automatic detection is deliberately conservative: exact
-`env`/`environment` names and bounded site-year patterns are selected
-only when they pass validity and competition gates, and a site-only
-column auto-resolves only when treatments are replicated across sites,
-so that a nested block is not promoted into an environment by mistake.
-Supplying the basis explicitly is the right call when domain knowledge
-is stronger than the recorded names:
+Automatic detection is conservative. A column named `env` or
+`environment`, or a common site-year pattern, is taken as the
+environment only when no other column explains the structure as well; a
+site-only column is taken only when treatments are replicated across
+sites, so a nested block is not mistaken for an environment. When you
+know the environment columns, name them:
 
 ``` r
 
@@ -446,13 +442,11 @@ ds_explicit <- detect_design(met, env = "env")
 ### Figure: the multi-environment coverage plot
 
 `plot.design_summary()` draws a compact environment overview by default,
-in base graphics or, with `engine = "ggplot2"`, returns a `ggplot2`
-object that you can save with
-[`ggplot2::ggsave()`](https://ggplot2.tidyverse.org/reference/ggsave.html)
-– printed, it is the figure below. It shows something the two console
-values above cannot: whether coverage is *even* across environments,
-which a bare connectivity flag does not distinguish from one environment
-barely scraping in.
+in base graphics or, with `engine = "ggplot2"`, as a `ggplot2` object
+you can save with
+[`ggplot2::ggsave()`](https://ggplot2.tidyverse.org/reference/ggsave.html);
+printed, it is the figure below. It shows whether coverage is even
+across environments, which the connectivity flag alone does not.
 
 ``` r
 
@@ -468,21 +462,19 @@ Genotypes observed per environment (E1, E2) for the toy
 multi-environment trial; the subtitle carries connectivity status,
 component count, and the recovered within-environment design.
 
-Both bars sit at three treatments observed, because every genotype in
-this toy trial appears in both environments – that even coverage,
-together with the subtitle’s connected status and single component, is
-what makes the two environments comparable at all. A design where a
-genotype fails to show up in one bar, or where the subtitle reports more
-than one component, marks environments that cannot be pooled into a
-single connected analysis without first checking whether the missing
-coverage is real or an artefact of how the table was assembled.
+Both bars are at three treatments, since every genotype in this toy
+trial appears in both environments. A shorter bar, or a subtitle
+reporting more than one component, marks environments that cannot go
+into one connected analysis until you have checked whether the missing
+coverage is real or an artefact of how the table was put together.
 
 High-confidence environment recommendations feed the masking plan
 directly. Local mode keeps environment values byte-identical;
 collaborate mode aliases categorical environment labels in place,
-preserving row assignment, factor codes, the NA mask, and recipe
-inversion. A numeric environment such as year remains `keep` and raises
-a disclosure warning because its values are still visible:
+keeping each row in its environment and the missing values where they
+were, and the recipe can turn the aliases back into the real labels. A
+numeric environment such as year remains `keep` and raises a disclosure
+warning because its values are still visible:
 
 ``` r
 
@@ -507,34 +499,17 @@ original trial in scientific inference.
 
 ## Read
 
-The one-call run masked all seven columns of the alpha-design trial in
-collaborate mode with an audit tally of zero HIGH and zero medium
-findings, so nothing about this particular trial needed the custodian’s
-attention before the synthetic could be handed over. On the hand-edited
-plan, `plot` – a `design` column left at `keep` – came back TRUE for
-byte-identity against the original, while `gen` – a `treatment` column
-aliased – came back with its levels changed (TRUE): the synthetic
-vocabulary is `trt_001` through `trt_024`, not the original genotype
-codes, exactly the two-tier behaviour the roles table promised. The
-refusal above shows the same plan being checked before it runs: asking
-to scramble a design column is rejected outright, not silently
-downgraded to something that would run.
+The audit found nothing to flag on this trial, so the synthetic could be
+handed over as it is. A design column left at `keep` comes back
+unchanged and an aliased treatment comes back as `trt_001` to `trt_024`;
+a plan that asks for something the package cannot do is refused before
+it runs. Related tables are masked together and still join.
 
-The multi-environment toy resolves to connected connectivity with 1
-component and a within- environment design of RCBD, which the figure
-repeats visually as two equal-height bars – the numbers and the picture
-agree because every genotype in this toy happens to appear in both
-environments. The `met_set` fixture masks two related tables at once and
-keeps `env` and `gen` aliased identically across both, which is what
-lets the field and laboratory tables still join after masking.
-
-Answering the opening question directly: yes, a custodian can hand over
-a synthetic clone that a collaborator can develop a full pipeline
-against, while the plot layout, genotype identities, and any linked
-tables stay tied together exactly as they were, aliased rather than
-exposed. The other half of that handoff – how the collaborator’s
-pipeline gets back onto the real data – is *Recipe anatomy and the
-round-trip*.
+The agronomist can therefore hand over a clone that keeps the plot
+layout and the links between tables, with the genotype labels aliased,
+and the statistician can build a full pipeline on it without seeing the
+real genotype names. How the finished pipeline runs on the real data is
+covered in *Recipe anatomy and the round-trip*.
 
 ## Limits
 
@@ -543,18 +518,13 @@ public trial with a clean, complete design; it does not exercise the
 leakage audit’s failure modes, the geographic-coordinate controls, or
 the conditional clone that preserves a treatment effect rather than only
 a marginal distribution, all of which live in *Confidentiality and the
-threat model*. `pii_suspected` detection reads column names, not
-content, so a harmlessly named column holding sensitive values is caught
-only if someone flags it by hand, as shown above – the package cannot
-infer sensitivity it has no textual evidence for. Multi-environment
-detection is deliberately conservative and can under-detect a genuine
-environment structure when names and replication patterns are ambiguous;
-a domain expert’s explicit `env` argument should be preferred over the
-automatic guess whenever the two disagree. Finally, this vignette never
-scrambles or aliases a numeric column jointly with others, so it does
-not show what the Gaussian copula does or does not preserve about the
-relationship between columns – that is also *Confidentiality and the
-threat model*’s subject.
+threat model*. A sensitive column with an ordinary name is caught only
+if someone flags it by hand. Multi-environment detection can miss a real
+environment when the names and replication are ambiguous; prefer an
+explicit `env` whenever you know better. Only one numeric column is
+re-simulated here, so the vignette does not show what the Gaussian
+copula keeps of the relationships between columns; that is also in
+*Confidentiality and the threat model*.
 
 ## What to read next
 
@@ -567,11 +537,11 @@ a pipeline built on the synthetic re-targets to the original.
 
 ## Reproduce
 
-`set.seed(1)` is set once for the whole document; every
-[`masque()`](https://max578.github.io/masque/reference/masque.md)/[`mask()`](https://max578.github.io/masque/reference/mask.md)
-call also passes `seed = 1L` explicitly, so each is independently
-reproducible regardless of what ran before it in this vignette. Package
-versions follow.
+`set.seed(1)` is set once for the document, and every
+[`masque()`](https://max578.github.io/masque/reference/masque.md) or
+[`mask()`](https://max578.github.io/masque/reference/mask.md) call
+passes `seed = 1L`, so each is reproducible on its own. Package versions
+follow.
 
 ``` r
 
@@ -596,7 +566,7 @@ sessionInfo()
 #> [1] stats     graphics  grDevices utils     datasets  methods   base     
 #> 
 #> other attached packages:
-#> [1] masque_0.13.0
+#> [1] masque_0.14.0
 #> 
 #> loaded via a namespace (and not attached):
 #>  [1] vctrs_0.7.3         cli_3.6.6           knitr_1.52          rlang_1.3.0        

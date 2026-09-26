@@ -70,9 +70,9 @@ An S7 `design_summary` object. Legacy design fields include
 With `env = NULL`, exact environment names and a bounded set of
 site-year patterns are assessed conservatively. A site-only candidate
 auto-resolves only when treatments are replicated across sites. Weak or
-competing evidence produces an explicit uncertain result rather than a
-guessed single trial. Supply `env` to define the environment basis, or
-use `env = FALSE` to run the pre-0.9 whole-table path exactly.
+competing evidence gives an explicit uncertain result, never a guessed
+single trial. Supply `env` to define the environment basis, or use
+`env = FALSE` to run the pre-0.9 whole-table path exactly.
 
 After the scope step, the pooled legacy detector runs six independent
 design rules. Each returns a score in \\\[0, 1\]\\. The highest-scoring

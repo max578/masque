@@ -45,10 +45,8 @@ The edited roles table.
 
 ## Details
 
-Direct edits (`roles$role[roles$col == "x"] <- "outcome"`) remain fully
-supported; this helper exists because a direct role edit leaves
-`roles$action` untouched, which is occasionally what you want and
-frequently not.
+Direct edits (`roles$role[roles$col == "x"] <- "outcome"`) also work,
+but leave `roles$action` unchanged.
 
 ## See also
 

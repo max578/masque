@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">masque</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.13.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.14.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -71,12 +71,10 @@
 <div class="section level2">
 <h2 id="why">Why<a class="anchor" aria-label="anchor" href="#why"></a>
 </h2>
-<p>A custodian is about to hand a synthetic table to a collaborator and
-asks the question anyone in that position should ask before clicking
-send: <em>exactly what does this protect, what does it not, and what
-happens if I get a column’s sensitivity wrong?</em> This vignette
-answers all three, on worked examples that trip the package’s own
-safeguards for real rather than only describing them.</p>
+<p>A custodian about to send a synthetic table to a collaborator needs
+to know what it protects, what it does not, and what happens if a
+column’s sensitivity is set wrongly. This vignette covers all three,
+with examples that trigger the package’s safeguards.</p>
 <p><code>masque</code> is <strong>not</strong> a privacy-preserving or
 differential-privacy tool. It is a structurally faithful development
 surrogate. Read this vignette before sharing any <code>masque</code>
@@ -85,10 +83,10 @@ output beyond your own machine.</p>
 <div class="section level2">
 <h2 id="what">What<a class="anchor" aria-label="anchor" href="#what"></a>
 </h2>
-<p>The recipe returned by <code><a href="../reference/mask.html">mask()</a></code> is at least as sensitive
-as the original data. The whole design assumes that only the
-<em>synthetic</em> crosses the trust boundary and the recipe stays with
-the custodian:</p>
+<p>The recipe on its own reveals little, but the recipe and the
+synthetic together are as sensitive as the original data. The design
+assumes that only the <em>synthetic</em> crosses the trust boundary and
+the recipe stays with the custodian:</p>
 <table class="table">
 <colgroup>
 <col width="33%">
@@ -127,18 +125,16 @@ frequencies are unchanged, and side information wins</td>
 </tr>
 </tbody>
 </table>
-<p>What <code>masque</code> does: it preserves enough structure for
-pipelines to run unchanged, exposes the privacy-versus-fidelity
-trade-off through two explicit modes, records every translation in a
-private recipe that round-trips, and audits its own output before it is
-shared.</p>
-<p>What <code>masque</code> does not do: it gives no
-differential-privacy guarantee, it does not make output safe for public
-release, it does not hide rare strata, small designs, or operational
-metadata such as small site-by-year combinations or contact names, and
-it does not rewrite pipeline source code.</p>
-<p>Since version 0.6.0, every column carries a <code>role</code> (what
-it is) and an <code>action</code> (how deeply it is masked, from
+<p><code>masque</code> keeps enough structure for a pipeline to run
+unchanged. Two modes set the balance between privacy and fidelity, every
+translation is written to a private recipe that round-trips, and the
+output is audited before it is shared.</p>
+<p>It gives no differential-privacy guarantee and does not make output
+safe for public release. It does not hide rare strata, small designs,
+thin site-by-year cells or contact names, and it does not change
+pipeline code.</p>
+<p>Every column carries a <code>role</code> (what it is) and an
+<code>action</code> (how deeply it is masked, from
 <code><a href="../reference/role_options.html">role_options()</a></code>’s validated grid: <code>keep</code>,
 <code>scramble</code>, <code>alias</code>, <code>drop</code>).
 <code><a href="../reference/mask.html">mask()</a></code>’s <code>mode</code> argument chooses sensible
@@ -287,9 +283,9 @@ level counts are known and distinct is still matchable one level at a
 time. <code><a href="../reference/audit_mask.html">audit_mask()</a></code> reports those counts so the exposure is
 visible rather than implicit.</li>
 </ul>
-<p>An alias therefore raises the cost of re-identification; it is not a
-cryptographic commitment, and none of it is a differential-privacy
-guarantee.</p>
+<p>An alias therefore raises the cost of re-identification. It cannot be
+relied on against a determined attacker, and none of it is a
+differential-privacy guarantee.</p>
 </div>
 <div class="section level3">
 <h3 id="the-conditional-clone-preserving-the-treatment-effect">The conditional clone: preserving the treatment effect<a class="anchor" aria-label="anchor" href="#the-conditional-clone-preserving-the-treatment-effect"></a>
@@ -307,10 +303,8 @@ a clone.</p>
 <p><code><a href="../reference/mask.html">mask()</a></code>’s <code>conditional = TRUE</code> argument fixes
 this. It fits and samples the copula <em>within each treatment-by-design
 stratum</em> rather than pooling, so a row’s synthetic outcome inherits
-the location of the treatment that row carries. The treatment-to-outcome
-map – the quantity a causal model reads – survives the clone, within
-sampling tolerance. This is the data-side analogue of preserving a
-conditional mean embedding rather than a pooled marginal.</p>
+the location of the treatment that row carries. The treatment effect a
+causal model estimates is kept, within sampling tolerance.</p>
 <p>The contrast is easiest to see on a two-arm trial with a known
 effect:</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
@@ -427,13 +421,8 @@ conditional clone preserves the arm-to-arm difference.</caption>
 </table>
 </div>
 <div class="section level3">
-<h3 id="figure-what-the-table-above-cannot-show">Figure: what the table above cannot show<a class="anchor" aria-label="anchor" href="#figure-what-the-table-above-cannot-show"></a>
+<h3 id="figure-the-effect-on-each-clone">Figure: the effect on each clone<a class="anchor" aria-label="anchor" href="#figure-the-effect-on-each-clone"></a>
 </h3>
-<p>The table reports two point estimates against one reference line in
-text. The figure below draws the same three numbers as bars against a
-reference line, which makes the direction and near-total size of the
-marginal clone’s collapse visible at a glance in a way that reading two
-rows of a table does not.</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">effect_df</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
 <span>  clone <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span></span>
@@ -454,11 +443,11 @@ rows of a table does not.</p>
 <span>  <span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu">ggplot2</span><span class="fu">::</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_minimal</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 <div class="figure">
-<img src="confidentiality_files/figure-html/fig-conditional-1.png" class="r-plt" alt="Estimated treatment effect (kg/ha equivalent yield units) on the marginal versus conditional clone, against the true effect fitted on the original trial (dashed line). The marginal clone collapses the effect toward zero; the conditional clone recovers it." width="1050"><p class="caption">
-Estimated treatment effect (kg/ha equivalent yield units) on the
-marginal versus conditional clone, against the true effect fitted on the
-original trial (dashed line). The marginal clone collapses the effect
-toward zero; the conditional clone recovers it.
+<img src="confidentiality_files/figure-html/fig-conditional-1.png" class="r-plt" alt="Estimated treatment effect (yield units) on the marginal versus conditional clone, against the true effect fitted on the original trial (dashed line). The marginal clone collapses the effect toward zero; the conditional clone recovers it." width="1050"><p class="caption">
+Estimated treatment effect (yield units) on the marginal versus
+conditional clone, against the true effect fitted on the original trial
+(dashed line). The marginal clone collapses the effect toward zero; the
+conditional clone recovers it.
 </p>
 </div>
 <p>The conditioning columns – the treatment plus any retained design
@@ -494,9 +483,10 @@ additive shift: the county means, the replicate means and the block
 means of the original survive even when the stratum the copula is fitted
 in is the treatment alone. Those means are therefore a stated property
 of the clone, in the same way the treatment means are. The recipe lists
-them as <code>conditioning_shifted</code>. The ladder of 0.11.1 to
-0.12.0, which drops the column with the most levels first and keeps
-nothing of it, is still available as <code>ladder = "levels"</code>.</p>
+them as <code>conditioning_shifted</code>.
+<code>ladder = "levels"</code> reproduces clones made with masque 0.11.1
+to 0.12.0: it drops the column with the most levels first and keeps
+nothing of it.</p>
 <p>Any coarsening, and any residual pooling, raises a classed
 <code>masque_conditional_degraded</code> warning naming the columns
 given up and the pooled share, and both facts are written onto the
@@ -587,7 +577,7 @@ step means round-tripping it onto the original through the recipe, not
 trusting its result on the clone.</p>
 </div>
 <div class="section level3">
-<h3 id="the-leakage-audit-and-a-refusal-for-real">The leakage audit, and a refusal for real<a class="anchor" aria-label="anchor" href="#the-leakage-audit-and-a-refusal-for-real"></a>
+<h3 id="the-leakage-audit-and-a-refused-write">The leakage audit, and a refused write<a class="anchor" aria-label="anchor" href="#the-leakage-audit-and-a-refused-write"></a>
 </h3>
 <p><code><a href="../reference/audit_mask.html">audit_mask()</a></code> inspects the synthetic against the original
 and grades the leakage of each column. In collaborate mode it runs
@@ -657,15 +647,14 @@ default, and a categorical covariate with a frequency-one level.</p>
 </tr>
 </tbody>
 </table>
-<p>The custodian overrides the flag – pretending they insist on keeping
-<code>contact_email</code> – and makes the rare column a covariate, then
-masks:</p>
+<p>Suppose the custodian overrides the flag, keeps
+<code>contact_email</code>, and makes the rare column a covariate:</p>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">roles</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/set_role.html">set_role</a></span><span class="op">(</span><span class="va">roles</span>, <span class="st">"yield"</span>, role <span class="op">=</span> <span class="st">"outcome"</span><span class="op">)</span></span>
 <span><span class="va">roles</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/set_role.html">set_role</a></span><span class="op">(</span><span class="va">roles</span>, <span class="st">"contact_email"</span>, role <span class="op">=</span> <span class="st">"covariate"</span>, action <span class="op">=</span> <span class="st">"keep"</span><span class="op">)</span></span>
 <span><span class="va">roles</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/set_role.html">set_role</a></span><span class="op">(</span><span class="va">roles</span>, <span class="st">"rare_treatment"</span>, role <span class="op">=</span> <span class="st">"covariate"</span><span class="op">)</span></span>
 <span><span class="va">m</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/mask.html">mask</a></span><span class="op">(</span><span class="va">df</span>, <span class="va">roles</span>, mode <span class="op">=</span> <span class="st">"collaborate"</span>, seed <span class="op">=</span> <span class="fl">1L</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Warning: audit_mask() flagged HIGH leakage on column(s): contact_email, rare_treatment</span></span>
+<span><span class="co">#&gt; Warning: audit_mask() flagged HIGH leakage on columns: contact_email, rare_treatment</span></span>
 <span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span></span>
 <span>  <span class="fu"><a href="../reference/audit_mask.html">audit_mask</a></span><span class="op">(</span><span class="va">m</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"col"</span>, <span class="st">"leakage_class"</span>, <span class="st">"notes"</span><span class="op">)</span><span class="op">]</span>,</span>
 <span>  caption <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span></span>
@@ -732,22 +721,20 @@ collaborators</td>
 </table>
 <p><code>contact_email</code> (real values kept across the trust
 boundary) and <code>rare_treatment</code> (a frequency-one level) are
-flagged. <code>masque</code> responds on two channels. At construction
-time, <code><a href="../reference/mask.html">mask()</a></code> raised a classed
+flagged. <code><a href="../reference/mask.html">mask()</a></code> raised a classed
 <code>masque_high_leakage</code> warning above and recorded the findings
-in <code>recipe@warnings</code> – the guided <code><a href="../reference/masque.html">masque()</a></code> flow
-never silences it. At write time, the package-managed writers refuse
-outright while a HIGH finding stands, which the call below shows for
-real rather than only describing:</p>
+in <code>recipe@warnings</code>; the guided <code><a href="../reference/masque.html">masque()</a></code> flow
+never silences it. While a HIGH finding stands, the package will not
+write the synthetic to disk:</p>
 <div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">out_dir</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/masque.html">masque</a></span><span class="op">(</span><span class="va">df</span>, roles <span class="op">=</span> <span class="va">roles</span>, out <span class="op">=</span> <span class="va">out_dir</span>, mode <span class="op">=</span> <span class="st">"collaborate"</span>, seed <span class="op">=</span> <span class="fl">1L</span>,</span>
 <span>       quiet <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Warning: audit_mask() flagged HIGH leakage on column(s): contact_email, rare_treatment</span></span>
+<span><span class="co">#&gt; Warning: audit_mask() flagged HIGH leakage on columns: contact_email, rare_treatment</span></span>
 <span><span class="co">#&gt; <span style="color: #BBBB00; font-weight: bold;">Error</span><span style="font-weight: bold;"> in `.gate_release()`:</span></span></span>
 <span><span class="co">#&gt; <span style="color: #BBBB00;">!</span> Write blocked: the audit flagged HIGH leakage on 2 columns.</span></span>
 <span><span class="co">#&gt; <span style="color: #BB0000;">✖</span> Flagged: contact_email, rare_treatment.</span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> Re-role, alias, or drop the flagged column(s), then mask again.</span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> Re-role, alias, or drop each flagged column, then mask again.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> Or pass `allow_high = TRUE` to write anyway after your own review - the override is recorded.</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/files2.html" class="external-link">dir.exists</a></span><span class="op">(</span><span class="va">out_dir</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] FALSE</span></span></code></pre></div>
@@ -775,7 +762,7 @@ masking).</p>
 <div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">set_dir</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, <span class="st">"met_set"</span>, package <span class="op">=</span> <span class="st">"masque"</span><span class="op">)</span></span>
 <span><span class="va">ms</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/mask_set.html">mask_set</a></span><span class="op">(</span><span class="va">set_dir</span>, mode <span class="op">=</span> <span class="st">"collaborate"</span>, seed <span class="op">=</span> <span class="fl">1L</span>, quiet <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Warning: Numeric environment column(s) <span style="color: #00BB00;">year</span> remain <span style="color: #0000BB;">"keep"</span> in collaborate mode.</span></span>
+<span><span class="co">#&gt; Warning: Numeric environment column <span style="color: #00BB00;">year</span> remains <span style="color: #0000BB;">"keep"</span> in collaborate mode.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> This preserves environment structure but may disclose year or other numeric labels; review before</span></span>
 <span><span class="co">#&gt;   release.</span></span>
 <span><span class="va">ag</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synthetic.html">synthetic</a></span><span class="op">(</span><span class="va">ms</span><span class="op">)</span><span class="op">$</span><span class="va">agronomy</span></span>
@@ -927,48 +914,22 @@ rather than the default.</p>
 <div class="section level2">
 <h2 id="read">Read<a class="anchor" aria-label="anchor" href="#read"></a>
 </h2>
-<p>The design-alias demonstration keeps the three-site structure intact
-– the table above still shows three groups of six plots – while the site
-names themselves are gone (TRUE): structure survives, labels do not,
-exactly what an <code>alias</code> action on a design column is for.</p>
-<p>The conditional-clone contrast is the sharpest number in this
-vignette. The trial’s true treatment effect, fitted on the original
-data, is 4.99 yield units. The default marginal clone recovers only
-0.25, because pooling the copula across arms erases the arm-to-arm
-difference it was never told to keep. The conditional clone recovers
-5.14, inside sampling tolerance of the true effect, because stratifying
-the copula by treatment keeps each arm’s synthetic outcomes anchored to
-that arm’s real location. The figure shows the same result as two bars
-against the true-effect line: one bar sits near zero, the other sits on
-the line. Both clones still match the original’s pooled mean and SD of
-yield, so a pipeline that only checks marginal fidelity would not notice
-the marginal clone’s collapsed effect at all – checking the number a
-pipeline actually needs is what this section demonstrates.</p>
-<p>The monotone-versus-non-monotone comparison shows the copula’s real
-boundary: a linear relationship’s R-squared survives cloning almost
-unchanged, while a U-shaped relationship’s R-squared drops to what a
-straight correlation coefficient would already have predicted – near
-zero. <code>conditional = TRUE</code> does not touch this limitation,
-because it acts on strata of the outcome’s location, not on the shape of
-a covariate relationship.</p>
-<p>The leakage audit flags both planted problems – the retained PII
-column and the frequency-one level – and the write call that followed
-was refused outright: <code>dir.exists(out_dir)</code> above reads
-FALSE, confirming the target directory was never created. That is the
-fail-closed behaviour this vignette set out to show for real, not only
-describe: a HIGH finding blocks a package-managed write unconditionally,
-until the custodian either fixes the plan or explicitly overrides
-it.</p>
-<p>The multi-table join survives masking (TRUE): <code>agronomy</code>
-and <code>quality</code> share exactly the same aliased genotype codes,
-because <code><a href="../reference/mask_set.html">mask_set()</a></code> draws the shared key’s alias once and
-applies it to every table that carries it.</p>
-<p>Answering the opening question: a synthetic clone protects the
-vocabulary and the raw values behind it, not the design footprint, the
-level frequencies, or (without <code>conditional = TRUE</code>) a
-treatment-to-outcome relationship a pipeline might be built to estimate.
-Getting a column’s sensitivity wrong is caught by the audit before
-anything is written, not after.</p>
+<p>Aliasing a design column hides the site names and keeps the layout.
+The alias map hides which label is which, but not how often each
+occurs.</p>
+<p>The default clone keeps the pooled mean and SD of yield but loses the
+treatment effect (0.25 against a true 4.99), and a pipeline that checks
+only marginal fidelity would not notice. The conditional clone keeps it
+(5.14). Neither keeps a non-monotone relationship between two numeric
+columns.</p>
+<p>The audit caught both planted problems and the write was refused:
+<code>dir.exists(out_dir)</code> is FALSE. Linked tables share one alias
+map for their key, so they still join.</p>
+<p>A synthetic clone therefore protects the labels and the raw values
+behind them. It does not hide the design footprint or the level
+frequencies, and without <code>conditional = TRUE</code> it does not
+keep a treatment effect. A column whose sensitivity was set wrongly is
+caught by the audit before anything is written.</p>
 </div>
 <div class="section level2">
 <h2 id="limits">Limits<a class="anchor" aria-label="anchor" href="#limits"></a>
@@ -1037,7 +998,7 @@ follow.</p>
 <span><span class="co">#&gt; [1] stats     graphics  grDevices utils     datasets  methods   base     </span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; other attached packages:</span></span>
-<span><span class="co">#&gt; [1] masque_0.13.0</span></span>
+<span><span class="co">#&gt; [1] masque_0.14.0</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; loaded via a namespace (and not attached):</span></span>
 <span><span class="co">#&gt;  [1] vctrs_0.7.3         cli_3.6.6           knitr_1.52          rlang_1.3.0        </span></span>

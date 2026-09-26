@@ -4,10 +4,11 @@ Real custodian tables arrive with column names that are not valid R
 names (`"Yield (t/ha)"`, `"Site Name"`), leading or trailing whitespace
 in names and factor / character values, and the occasional
 near-duplicate label (`"north"` vs `"North"` vs `" north"`).
-`clean_table()` makes the safe fixes - legalising names and trimming
-whitespace - loudly, and *reports* the unsafe ones (near-duplicate
-labels) without touching them, because merging two labels that only look
-alike is a judgement call masque must not make silently.
+`clean_table()` legalises names and trims whitespace, and reports each
+fix. Near-duplicate labels are only reported, since merging labels that
+look alike is a judgement call;
+[`conform_table()`](https://max578.github.io/masque/reference/conform_table.md)
+makes it.
 
 ## Usage
 
@@ -58,13 +59,11 @@ An object of class `masque_cleaning`: a list with
 
 ## Details
 
-The corrections are returned alongside the cleaned data so
-[`mask()`](https://max578.github.io/masque/reference/mask.md) can record
+The corrections are returned alongside the cleaned data, so
+[`mask()`](https://max578.github.io/masque/reference/mask.md) records
 them in the recipe and
 [`apply_recipe()`](https://max578.github.io/masque/reference/apply_recipe.md)
-can re-apply the identical cleaning to a fresh copy of the original.
-Cleaning is therefore part of the round-trip contract, not a destructive
-pre-step.
+re-applies the same cleaning to the original.
 
 ## See also
 
@@ -80,7 +79,7 @@ df <- data.frame(
   check.names = FALSE
 )
 cl <- clean_table(df, quiet = TRUE)
-#> Warning: Renamed 2 column name(s) that are not valid R names: `Site Name` -> `Site.Name`, `Yield (t/ha)` -> `Yield..t.ha.`. The map is recorded in the recipe and reversed on the round-trip.
+#> Warning: Renamed 2 column names that R does not accept: `Site Name` -> `Site.Name`, `Yield (t/ha)` -> `Yield..t.ha.`. The map is recorded in the recipe and reversed on the round-trip.
 names(cl$data)
 #> [1] "Site.Name"    "Yield..t.ha."
 cl$near_duplicates

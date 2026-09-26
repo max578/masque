@@ -77,9 +77,10 @@ Classification heuristics:
 
 - Ignore column retained in local -\> `low` (informational).
 
-Step 7 will lower numeric exact-match-pct under collaborate by adding
-within-resolution jitter; until then, expect `medium` leakage on
-collaborate-mode numerics.
+As a reference point, a collaborate-mode clone of
+[`agridat::besag.met`](https://kwstat.github.io/agridat/reference/besag.met.html)
+(yield as the outcome, design columns kept) scores `low` on every
+column, and none of its yields equals the original value.
 
 ## See also
 

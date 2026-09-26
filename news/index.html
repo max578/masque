@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">masque</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.13.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.14.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -37,6 +37,23 @@
       <small>Source: <a href="https://github.com/max578/masque/blob/main/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.14.0" id="masque-0140">masque 0.14.0<a class="anchor" aria-label="anchor" href="#masque-0140"></a></h2>
+<div class="section level3">
+<h3 id="security-0-14-0">Security<a class="anchor" aria-label="anchor" href="#security-0-14-0"></a></h3>
+<ul><li>Clones made with masque 0.13.0 or earlier can reveal their label maps. A scrambled treatment listed its levels in the scrambled order, so <code><a href="https://rdrr.io/r/base/levels.html" class="external-link">levels()</a></code> of the clone showed the whole map. In 0.12.0 and 0.13.0, a join key aliased by <code><a href="../reference/mask_set.html">mask_set()</a></code> listed its aliases in the original level order, which undid their random assignment. If you shared such a clone, make it again with 0.14.0 and share the new one in its place. The same seed gives the same values. Only the level order changes.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="bug-fixes-0-14-0">Bug fixes<a class="anchor" aria-label="anchor" href="#bug-fixes-0-14-0"></a></h3>
+<ul><li>
+<strong><code><a href="../reference/apply_recipe.html">apply_recipe()</a></code> returns an aliased factor with the clone’s levels.</strong> It kept the original level order, so a model fitted on the translated original had a different reference level from the same model fitted on the clone, and coefficients compared by position did not line up. On <code><a href="https://kwstat.github.io/agridat/reference/besag.met.html" class="external-link">agridat::besag.met</a></code> in collaborate mode the genotype coefficients of the two fits correlated at 0.05 by position and 0.92 by name. Predictions were not affected.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="minor-improvements-and-fixes-0-14-0">Minor improvements and fixes<a class="anchor" aria-label="anchor" href="#minor-improvements-and-fixes-0-14-0"></a></h3>
+<ul><li><p>Messages say <code>column</code> or <code>columns</code>, <code>site</code> or <code>sites</code>, where they said <code>column(s)</code>.</p></li>
+<li><p>The vignettes and help pages are reworded more plainly. <em>Recipe anatomy and the round-trip</em> said its coordinate example was jittered as one site; each plot there is its own site.</p></li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.13.0" id="masque-0130">masque 0.13.0<a class="anchor" aria-label="anchor" href="#masque-0130"></a></h2>
 <div class="section level3">
@@ -78,7 +95,7 @@
 <h3 id="bug-fixes-0-12-0">Bug fixes<a class="anchor" aria-label="anchor" href="#bug-fixes-0-12-0"></a></h3>
 <ul><li>
 <p><strong>The collaborate-mode alias map is no longer the sort order.</strong> Aliases (<code>trt_001</code>, <code>&lt;col&gt;_L001</code>, …) were assigned to levels in lexicographic order and were invariant to <code>seed</code>, so a holder of the synthetic who could guess the vocabulary – a public variety roster, an N-rate ladder, a site list – inverted the map by sorting a candidate list, with no recipe. The assignment is now drawn from a uniform random permutation taken from the seeded stream <code><a href="../reference/mask.html">mask()</a></code> already uses. The map is recorded on the recipe exactly as before, so <code><a href="../reference/apply_recipe.html">apply_recipe()</a></code> / <code><a href="../reference/unmask.html">unmask()</a></code> still invert it, and a fixed <code>seed</code> still reproduces it. Two notes for callers: the seed is now confidential material (published beside the synthetic it re-opens the inversion), and level <em>frequencies</em> are unchanged by design and remain matchable. The <code>confidentiality</code> vignette states both.</p>
-<p>This changes the integer codes of an aliased factor, which are now a relabelling rather than a copy of the original codes. Code that compared <code><a href="https://rdrr.io/r/base/integer.html" class="external-link">as.integer()</a></code> of an aliased column against the source should compare the partition instead (recode both by order of first appearance); the incidence structure itself is unchanged.</p>
+<p>This changes the integer codes of an aliased factor, which are now a relabelling, not a copy of the original codes. Code that compared <code><a href="https://rdrr.io/r/base/integer.html" class="external-link">as.integer()</a></code> of an aliased column against the source should compare the partition instead (recode both by order of first appearance); the incidence structure itself is unchanged.</p>
 </li>
 <li><p><strong><code>conditional = TRUE</code> no longer collapses silently to the pooled copula.</strong> The conditioning stratum was treatment crossed with <em>every</em> retained design column, so on a replicated factorial (six N rates by three varieties by four replicates) every cell held one row, all of them fell below the minimum stratum size, and the whole numeric block was pooled – the marginal clone under a conditional label, with the recipe still asserting <code>conditional = TRUE</code>. <code><a href="../reference/mask.html">mask()</a></code> now walks a coarsening ladder: design columns are dropped, the finest first, until the cells reach the minimum; treatment columns are never dropped. On a replicated 2 x 3 factorial with a planted effect this restores the treatment sum-of-squares fraction from 0.004 to inside the stratified-bootstrap envelope of the source’s 0.859.</p></li>
 <li><p>Degradation of a conditional clone now raises a <strong>classed</strong> <code>masque_conditional_degraded</code> warning – when the ladder gives up a column, when rows remain in the pooled fallback, and when there is nothing to condition on at all – so a caller can catch it instead of matching on message text.</p></li>
@@ -110,14 +127,14 @@
 <div class="section level3">
 <h3 id="breaking-changes-0-11-0">Breaking changes<a class="anchor" aria-label="anchor" href="#breaking-changes-0-11-0"></a></h3>
 <ul><li>
-<p><strong>A coordinate in a masked table is masked unless you say otherwise.</strong> <code><a href="../reference/mask.html">mask()</a></code> now <strong>stops</strong> when a column whose name says coordinate (<code>gps</code>, <code>lat</code>, <code>lon</code>, <code>easting</code>, <code>northing</code>, <code>utm</code>, <code>wgs84</code>, …) would be written through with <code>action = "keep"</code>. A position locates the site and often the operator with it, so the burden is on the caller to say what should happen to it, and the default when nothing is said is to refuse rather than to emit.</p>
+<p><strong>A coordinate in a masked table is masked unless you say otherwise.</strong> <code><a href="../reference/mask.html">mask()</a></code> now <strong>stops</strong> when a column whose name says coordinate (<code>gps</code>, <code>lat</code>, <code>lon</code>, <code>easting</code>, <code>northing</code>, <code>utm</code>, <code>wgs84</code>, …) would be written through with <code>action = "keep"</code>. A position locates the site and often the operator with it, so the burden is on the caller to say what should happen to it, and when nothing is said the default is to refuse.</p>
 <p>Three ways to state otherwise, all unchanged in spelling:</p>
 <ul><li>declare the pair to <code>coords</code>, which coarsens it by the on-land geomask;</li>
 <li>give the column a masking action (<code>drop</code>, the default <code><a href="../reference/propose_roles.html">propose_roles()</a></code> already proposes for a coordinate-named column, or <code>scramble</code>);</li>
 <li>pass the new <code>allow_unmasked_coords = TRUE</code>, having decided the coordinate is not sensitive. It is recorded on the recipe.</li>
 </ul><p>The refusal is the classed condition <code>masque_unmasked_coords</code>.</p>
 </li>
-<li><p>A column detected as a coordinate only by the <strong>shape of its values</strong> – a numeric pair inside plausible latitude and longitude ranges carrying at least four decimal places, which is metre-scale precision no temperature or yield column has – raises the classed warning <code>masque_coords_suspected</code> rather than stopping. Confidence is lower there, and a false positive should not block a legitimate mask. Ordinary numeric covariates do not trip it: whole numbers, low-precision values and unpaired columns are all excluded.</p></li>
+<li><p>A column detected as a coordinate only by the <strong>shape of its values</strong> – a numeric pair inside plausible latitude and longitude ranges carrying at least four decimal places, which is metre-scale precision no temperature or yield column has – raises the classed warning <code>masque_coords_suspected</code> and does not stop. Confidence is lower there, and a false positive should not block a legitimate mask. Ordinary numeric covariates do not trip it: whole numbers, low-precision values and unpaired columns are all excluded.</p></li>
 </ul></div>
 <div class="section level3">
 <h3 id="bug-fixes-0-11-0">Bug fixes<a class="anchor" aria-label="anchor" href="#bug-fixes-0-11-0"></a></h3>
@@ -136,7 +153,7 @@
 </li>
 <li><p><code><a href="../reference/jitter_coordinates.html">jitter_coordinates()</a></code> gains <code>by</code>, which chooses how a site is identified. <code>by = NULL</code> (the default) groups rows sharing an identical input coordinate. A character vector names site columns, for the case where a site’s recorded coordinates differ slightly between rows; such a group is consolidated to its row-weighted centroid and the consolidation is reported by a classed <code>masque_geo_consolidated</code> warning, with <code>masque_geo_wide_group</code> raised when a named group spans more than the displacement radius. <code>by = FALSE</code> restores the pre-0.10.0 per-row draw and warns (<code>masque_geo_ungrouped</code>) if the input carries repeated coordinate pairs. It exists only so a table masked by an earlier version can be reproduced.</p></li>
 <li>
-<p>A site that cannot be placed on land within <code>max_tries</code> re-draws is now set to <code>NA</code> on both axes rather than left unchanged. Leaving it unchanged shipped the <strong>true</strong> coordinate inside a table the caller believed was masked, behind a warning. The <code>masque_geo_unplaced</code> warning is unchanged in class and still names the count.</p>
+<p>A site that cannot be placed on land within <code>max_tries</code> re-draws is now set to <code>NA</code> on both axes. Leaving it unchanged shipped the <strong>true</strong> coordinate inside a table the caller believed was masked, behind a warning. The <code>masque_geo_unplaced</code> warning is unchanged in class and still names the count.</p>
 <p>Genuinely point-level input – every coordinate pair already distinct – is unaffected by all of the above, and reproduces its 0.9.2 output exactly under the same seed.</p>
 </li>
 <li><p>One displacement per site holds <em>within</em> a table, not across rebuilds. Each rebuild with a fresh seed is an independent draw, so a site kept in several masked versions can be averaged back out: at the 5-20 km default, eight kept rebuilds recover it to 4.5 km, below the floor. Reuse the seed and the displacement is identical, so there is nothing to average. Documented under “Rebuilding, and the displacement budget” in <code><a href="../reference/jitter_coordinates.html">?jitter_coordinates</a></code>.</p></li>
@@ -181,14 +198,14 @@
 </ul></div>
 <div class="section level3">
 <h3 id="bug-fixes-0-9-1">Bug fixes<a class="anchor" aria-label="anchor" href="#bug-fixes-0-9-1"></a></h3>
-<ul><li><p>Omitting <code>mode</code> from <code><a href="../reference/mask.html">mask()</a></code> or <code><a href="../reference/mask_set.html">mask_set()</a></code> now inherits the mode stored by <code><a href="../reference/propose_roles.html">propose_roles()</a></code>, rather than silently falling back to local defaults. An explicit collaborate-to-local change raises a classed <code>masque_mode_downgrade</code> warning. <code><a href="../reference/mask_set.html">mask_set()</a></code> rejects role plans carrying mixed mode provenance.</p></li>
+<ul><li><p>Omitting <code>mode</code> from <code><a href="../reference/mask.html">mask()</a></code> or <code><a href="../reference/mask_set.html">mask_set()</a></code> now inherits the mode stored by <code><a href="../reference/propose_roles.html">propose_roles()</a></code>; it no longer falls back silently to local defaults. An explicit collaborate-to-local change raises a classed <code>masque_mode_downgrade</code> warning. <code><a href="../reference/mask_set.html">mask_set()</a></code> rejects role plans carrying mixed mode provenance.</p></li>
 <li><p><code><a href="../reference/mask.html">mask()</a></code> and <code><a href="../reference/mask_set.html">mask_set()</a></code> now warn (classed <code>masque_mode_unset</code>) when no <code>mode</code> is supplied and the <code>roles</code> table carries no mode provenance, instead of silently masking in <code>local</code> mode. A <code>data.table()</code> wrap or a <code><a href="https://rdrr.io/r/base/readRDS.html" class="external-link">saveRDS()</a></code> round-trip strips the tibble attribute that records the mode, so the warning turns a silent local-mode downgrade into a recoverable one.</p></li>
-<li><p>Site-only environment candidates now require replicated treatment evidence across sites for automatic promotion. A block nested within one farm is left for review rather than being misclassified as an environment.</p></li>
+<li><p>Site-only environment candidates now require replicated treatment evidence across sites for automatic promotion. A block nested within one farm is left for review and not classified as an environment.</p></li>
 <li><p>Environment connectivity diagnostics now guard both dense incidence and environment-adjacency allocations. Oversized problems return an explicit <code>not_computed</code> diagnostic instead of attempting an unsafe allocation.</p></li>
 <li><p>Experiment-group diagnostics tolerate a small, recorded treatment overlap while rejecting genuinely interleaved groups. The evidence now reports the confined and shared-treatment fractions.</p></li>
 <li><p>Explicitly pinned role actions are no longer overwritten when a detected environment recommendation promotes a column to the <code>design</code> role.</p></li>
-<li><p>A medium-confidence or ambiguous environment candidate is now preserved as <code>design/keep</code> in both modes rather than falling through to a <code>covariate</code> default. Previously an unreplicated environment named with a site token outside the design-name heuristic (for example <code>county</code>, <code>location</code> or <code>farm</code>) could be silently row-permuted by a default <code><a href="../reference/mask.html">mask()</a></code>, moving observations between environments. Such a column is kept byte-identical and is never auto-aliased; pass <code>env =</code> to enable environment-aware masking.</p></li>
-<li><p>Invalid (non-syntactic) column names are now legalised in <strong>every</strong> <code>clean</code> mode, not only <code>"auto"</code>, and the repair is raised as a classed <code>masque_name_repaired</code> warning and recorded in the recipe. Previously, under <code>clean = "off"</code> an invalid name such as <code>GY_%VARMAX</code> was silently rewritten by <code><a href="https://rdrr.io/r/base/make.names.html" class="external-link">make.names()</a></code> inside numeric synthesis with no map recorded, so the synthesised column no longer matched its source: the original column survived <strong>un-masked</strong> alongside the synthetic copy – a leak – and the round-trip broke. <code><a href="../reference/mask.html">mask()</a></code> now legalises names up front in all modes, remaps the <code>roles</code> table, records the map, and <code>synthesise_numeric_local()</code> no longer rewrites names.</p></li>
+<li><p>A medium-confidence or ambiguous environment candidate is now preserved as <code>design/keep</code> in both modes; it no longer falls through to a <code>covariate</code> default. Previously an unreplicated environment named with a site token outside the design-name heuristic (for example <code>county</code>, <code>location</code> or <code>farm</code>) could be silently row-permuted by a default <code><a href="../reference/mask.html">mask()</a></code>, moving observations between environments. Such a column is kept byte-identical and is never auto-aliased; pass <code>env =</code> to enable environment-aware masking.</p></li>
+<li><p>Invalid (non-syntactic) column names are now legalised in <strong>every</strong> <code>clean</code> mode, not only <code>"auto"</code>, and the repair is raised as a classed <code>masque_name_repaired</code> warning and recorded in the recipe. Previously, under <code>clean = "off"</code> an invalid name like <code>GY_%VARMAX</code> was silently rewritten by <code><a href="https://rdrr.io/r/base/make.names.html" class="external-link">make.names()</a></code> inside numeric synthesis with no map recorded, so the synthesised column no longer matched its source: the original column survived <strong>unmasked</strong> alongside the synthetic copy – a leak – and the round-trip broke. <code><a href="../reference/mask.html">mask()</a></code> now legalises names up front in all modes, remaps the <code>roles</code> table, records the map, and <code>synthesise_numeric_local()</code> no longer rewrites names.</p></li>
 <li><p><code><a href="../reference/unmask.html">unmask()</a></code> now restores the original (pre-legalisation) column names, so a legalised name round-trips symmetrically with <code><a href="../reference/apply_recipe.html">apply_recipe()</a></code>.</p></li>
 </ul></div>
 </div>
@@ -239,8 +256,8 @@
 <div class="section level3">
 <h3 id="new-features-0-7-0">New features<a class="anchor" aria-label="anchor" href="#new-features-0-7-0"></a></h3>
 <ul><li>
-<p><code><a href="../reference/mask.html">mask()</a></code>, <code><a href="../reference/mask_set.html">mask_set()</a></code>, and <code><a href="../reference/masque.html">masque()</a></code> gain a <code>conditional</code> argument (default <code>FALSE</code>). With <code>conditional = TRUE</code>, the numeric block is re-simulated <em>within each treatment-by-design stratum</em> rather than from one global Gaussian copula, so a row’s synthetic outcome inherits the location of the treatment that row carries. The treatment-to-outcome map – the quantity a causal model reads – survives the clone, within sampling tolerance. The default <code>conditional = FALSE</code> preserves the exact 0.6.0 behaviour (global copula, marginal and structural fidelity only), so existing scripts are byte-identical.</p>
-<p>The motivation: structural and marginal fidelity alone are <em>not</em> sufficient for causal inference. A clone that matches every marginal and the global covariance can still sever the relationship between an arm and its response, because the outcomes are drawn from the pooled distribution and the treatment labels are relabelled independently. A model fitted on such a clone returns a null effect. Conditional cloning is the data-side analogue of preserving a conditional mean embedding rather than a pooled marginal.</p>
+<p><code><a href="../reference/mask.html">mask()</a></code>, <code><a href="../reference/mask_set.html">mask_set()</a></code>, and <code><a href="../reference/masque.html">masque()</a></code> gain a <code>conditional</code> argument (default <code>FALSE</code>). With <code>conditional = TRUE</code>, the numeric block is re-simulated <em>within each treatment-by-design stratum</em>, not from one global Gaussian copula, so a row’s synthetic outcome inherits the location of the treatment that row carries. The treatment-to-outcome map – the quantity a causal model reads – survives the clone, within sampling tolerance. The default <code>conditional = FALSE</code> preserves the exact 0.6.0 behaviour (global copula, marginal and structural fidelity only), so existing scripts are byte-identical.</p>
+<p>The motivation: structural and marginal fidelity alone are <em>not</em> sufficient for causal inference. A clone that matches every marginal and the global covariance can still sever the relationship between an arm and its response, because the outcomes are drawn from the pooled distribution and the treatment labels are relabelled independently. A model fitted on such a clone returns a null effect.</p>
 </li>
 </ul></div>
 <div class="section level3">
@@ -266,7 +283,7 @@
 <div class="section level3">
 <h3 id="two-axis-roles-breaking-with-an-upgrade-path-0-6-0">Two-axis roles (breaking, with an upgrade path)<a class="anchor" aria-label="anchor" href="#two-axis-roles-breaking-with-an-upgrade-path-0-6-0"></a></h3>
 <ul><li>The roles table now carries two columns instead of one: <code>role</code> (what a column <em>is</em>) and <code>action</code> (what <code><a href="../reference/mask.html">mask()</a></code> <em>does</em> to it). <code>role</code> is one of <code>design</code>, <code>treatment</code>, <code>outcome</code>, <code>covariate</code>, <code>date</code>, <code>id</code>, <code>text</code>, <code>other</code>; <code>action</code> is one of <code>keep</code>, <code>scramble</code>, <code>alias</code>, <code>drop</code>. <code><a href="../reference/propose_roles.html">propose_roles()</a></code> resolves a mode-appropriate default action for every column, so the table you review is the masking plan that runs.</li>
-<li>New roles answer the three gaps the previous vocabulary left open: a first-class <code>date</code> role (date/time columns are row-permuted with class and NA pattern preserved), and the explicit “retain untouched” and “skip entirely” choices are now the <code>keep</code> and <code>drop</code> <em>actions</em>, available on any column rather than only the old <code>keep</code> / <code>ignore</code> roles.</li>
+<li>New roles answer the three gaps the previous vocabulary left open: a first-class <code>date</code> role (date/time columns are row-permuted with class and NA pattern preserved), and the explicit “retain untouched” and “skip entirely” choices are now the <code>keep</code> and <code>drop</code> <em>actions</em>, available on any column, where they were once only the <code>keep</code> and <code>ignore</code> roles.</li>
 <li>
 <code><a href="../reference/propose_roles.html">propose_roles()</a></code> gains a <code>mode</code> argument. The proposed actions differ between <code>local</code> and <code>collaborate</code> (for example a treatment is kept locally but aliased for collaboration); the table records the mode it was prepared for.</li>
 <li>New <code><a href="../reference/set_role.html">set_role()</a></code> helper edits a roles table ergonomically. Re-assigning a column’s role re-resolves its default action; passing an explicit <code>action</code> pins the column so a later mode change leaves it alone. Direct <code>roles$role[...] &lt;-</code> edits still work.</li>
@@ -310,8 +327,8 @@
 <h3 id="usability-0-5-0">Usability<a class="anchor" aria-label="anchor" href="#usability-0-5-0"></a></h3>
 <ul><li>New <code>keep</code> role: users can now explicitly mark a column for byte-identical pass-through in both local and collaborate mode. This is distinct from <code>design</code>, which remains for experimental-design structure, and from <code>ignore</code>, which is still dropped in collaborate mode.</li>
 <li>
-<code><a href="../reference/propose_roles.html">propose_roles()</a></code> now proposes Date / POSIX / difftime columns as <code>covariate</code> rather than <code>ignore</code>. Date/time covariates are row-permuted, retain their original class, and preserve the cell-level NA mask.</li>
-<li>Unsupported column classes now default to <code>keep</code> with a clear note, avoiding a confusing attempt to synthesize objects masque does not know how to mask.</li>
+<code><a href="../reference/propose_roles.html">propose_roles()</a></code> now proposes Date / POSIX / difftime columns as <code>covariate</code>, where they were <code>ignore</code>. Date/time covariates are row-permuted, retain their original class, and preserve the cell-level NA mask.</li>
+<li>Unsupported column classes now default to <code>keep</code> with a clear note, avoiding a confusing attempt to synthesise objects masque does not know how to mask.</li>
 </ul></div>
 <div class="section level3">
 <h3 id="masking-and-recipes-0-5-0">Masking and recipes<a class="anchor" aria-label="anchor" href="#masking-and-recipes-0-5-0"></a></h3>
@@ -322,7 +339,7 @@
 <div class="section level3">
 <h3 id="new-features-0-5-0">New features<a class="anchor" aria-label="anchor" href="#new-features-0-5-0"></a></h3>
 <ul><li>
-<code><a href="../reference/mask.html">mask()</a></code> now masks every column flagged <code>treatment</code>, not just one. Each treatment factor is aliased independently. A single treatment keeps the historical <code>trt_NNN</code> collaborate-mode alias prefix; with two or more, the column name is folded into the prefix (<code>&lt;col&gt;_trt_NNN</code>, e.g. <code>variety_trt_001</code>) so the opaque labels stay distinct and self-documenting, mirroring the categorical-covariate <code>&lt;col&gt;_LNN</code> convention. Aliasing each factor separately (rather than the treatment <em>combination</em>) preserves the per-factor structure that factorial models fit, and keeps each column’s alias namespace — and therefore <code><a href="../reference/audit_mask.html">audit_mask()</a></code>’s leakage accounting — unchanged.</li>
+<code><a href="../reference/mask.html">mask()</a></code> now masks every column flagged <code>treatment</code>, not just one. Each treatment factor is aliased independently. A single treatment keeps the historical <code>trt_NNN</code> collaborate-mode alias prefix; with two or more, the column name is folded into the prefix (<code>&lt;col&gt;_trt_NNN</code>, e.g. <code>variety_trt_001</code>) so the opaque labels stay distinct and self-documenting, mirroring the categorical-covariate <code>&lt;col&gt;_LNN</code> convention. Aliasing each factor separately, not the treatment <em>combination</em>, preserves the per-factor structure that factorial models fit, and keeps each column’s alias namespace – and therefore <code><a href="../reference/audit_mask.html">audit_mask()</a></code>’s leakage accounting – unchanged.</li>
 <li>
 <code><a href="../reference/roles_validate.html">roles_validate()</a></code> no longer errors when more than one column is flagged <code>treatment</code>. The round-trip path (<code><a href="../reference/apply_recipe.html">apply_recipe()</a></code>, <code><a href="../reference/unmask.html">unmask()</a></code>) already inverted multiple per-column level maps, so recovery of every treatment factor works unchanged.</li>
 </ul></div>
@@ -354,9 +371,9 @@
 <li>
 <code>recipe_io.R</code> doc and the <code>recipe_anatomy</code> vignette reword the <code>include_simulator = TRUE</code> no-op without pinning it to v0.2 / v0.3.</li>
 <li>
-<code>roadmap</code> vignette restructured around feature areas. The hard version pins (“v0.3”, “v0.4”) are gone — v0.3 / v0.4 shipped different features from the prior roadmap, so the pins were stale.</li>
+<code>roadmap</code> vignette restructured around feature areas. The hard version pins (“v0.3”, “v0.4”) are gone – v0.3 / v0.4 shipped different features from the prior roadmap, so the pins were stale.</li>
 <li>
-<code>getting_started</code> vignette: “vignette(‘roadmap’) — what’s planned for v0.3+” replaced by “features deliberately deferred from the current release”.</li>
+<code>getting_started</code> vignette: “vignette(‘roadmap’) – what’s planned for v0.3+” replaced by “features deliberately deferred from the current release”.</li>
 </ul></div>
 <div class="section level3">
 <h3 id="test-suite-0-4-1">Test suite<a class="anchor" aria-label="anchor" href="#test-suite-0-4-1"></a></h3>
@@ -371,7 +388,7 @@
 <div class="section level3">
 <h3 id="new-export-0-4-0">New export<a class="anchor" aria-label="anchor" href="#new-export-0-4-0"></a></h3>
 <ul><li>
-<p><code>synthesise_geospatial(synth, original, anchor_col, lat_col, lon_col, anchor_centroids, site_spread_deg, jitter_deg, seed)</code> — re-anchors the latitude / longitude columns in a masqued data frame at user-supplied centroids, while preserving (a) the count of distinct sites per anchor level, (b) the per-site replication distribution, and (c) within-site tight clustering with between-site spread. The original positions are never published; the function reads them only to count distinct sites. NA pattern in coordinates is preserved cell-by-cell. RNG hygiene via <code><a href="https://withr.r-lib.org/reference/with_seed.html" class="external-link">withr::local_preserve_seed()</a></code>.</p>
+<p><code>synthesise_geospatial(synth, original, anchor_col, lat_col, lon_col, anchor_centroids, site_spread_deg, jitter_deg, seed)</code> – re-anchors the latitude / longitude columns in a masqued data frame at user-supplied centroids, while preserving (a) the count of distinct sites per anchor level, (b) the per-site replication distribution, and (c) within-site tight clustering with between-site spread. The original positions are never published; the function reads them only to count distinct sites. NA pattern in coordinates is preserved cell-by-cell. RNG hygiene via <code><a href="https://withr.r-lib.org/reference/with_seed.html" class="external-link">withr::local_preserve_seed()</a></code>.</p>
 <p>Motivated by the masque release walkthrough, where state-centroid</p>
 <ul><li>uniform-jitter (per-walkthrough recipe) failed to preserve the within-state clustering of real trial sites.</li>
 </ul></li>
@@ -395,11 +412,11 @@
 <div class="section level3">
 <h3 id="new-exports-0-3-0">New exports<a class="anchor" aria-label="anchor" href="#new-exports-0-3-0"></a></h3>
 <ul><li>
-<code>detect_design(df, roles = NULL, interactive = FALSE, threshold = 0.5, tie_delta = 0.02)</code> — returns an S7 <code>design_summary</code> with the most likely design class (<code>CRD</code>, <code>RCBD</code>, <code>IBD/alpha-lattice</code>, <code>row-column</code>, <code>split-plot</code>, <code>factorial</code>, or <code>none</code>), per-rule scores, evidence, and a <code>recommended_roles</code> tibble. Rule engine, not ML.</li>
+<code>detect_design(df, roles = NULL, interactive = FALSE, threshold = 0.5, tie_delta = 0.02)</code> – returns an S7 <code>design_summary</code> with the most likely design class (<code>CRD</code>, <code>RCBD</code>, <code>IBD/alpha-lattice</code>, <code>row-column</code>, <code>split-plot</code>, <code>factorial</code>, or <code>none</code>), per-rule scores, evidence, and a <code>recommended_roles</code> tibble. Rule engine, not ML.</li>
 <li>
-<code>design_summary</code> — S7 class wrapping the detection result. <code><a href="https://rdrr.io/r/base/print.html" class="external-link">print()</a></code> is cli-styled and surfaces top-3 alternates so the user can see how confident the call was. Slots include <code>class_label</code>, <code>treatment_col</code>, <code>block_cols</code>, <code>whole_plot_col</code>, <code>sub_plot_col</code>, <code>spatial_cols</code>, <code>scores</code>, <code>evidence</code>, <code>recommended_roles</code>, <code>candidates</code>, <code>warnings</code>.</li>
+<code>design_summary</code> – S7 class wrapping the detection result. <code><a href="https://rdrr.io/r/base/print.html" class="external-link">print()</a></code> is cli-styled and surfaces top-3 alternates so the user can see how confident the call was. Slots include <code>class_label</code>, <code>treatment_col</code>, <code>block_cols</code>, <code>whole_plot_col</code>, <code>sub_plot_col</code>, <code>spatial_cols</code>, <code>scores</code>, <code>evidence</code>, <code>recommended_roles</code>, <code>candidates</code>, <code>warnings</code>.</li>
 <li>
-<code>plot_design_summary(x, df, engine = c("base", "ggplot2"))</code> — also registered as an S7 <code><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot()</a></code> method. Base-graphics sanity-check visualisation dispatched per class: replication tile, spatial layout, factor-nesting tree, treatment-frequency + NA-pattern.</li>
+<code>plot_design_summary(x, df, engine = c("base", "ggplot2"))</code> – also registered as an S7 <code><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot()</a></code> method. Base-graphics sanity-check visualisation dispatched per class: replication tile, spatial layout, factor-nesting tree, treatment-frequency + NA-pattern.</li>
 </ul></div>
 <div class="section level3">
 <h3 id="behaviour-change-0-3-0">Behaviour change<a class="anchor" aria-label="anchor" href="#behaviour-change-0-3-0"></a></h3>
@@ -415,9 +432,9 @@
 <div class="section level3">
 <h3 id="suggests-0-3-0">Suggests<a class="anchor" aria-label="anchor" href="#suggests-0-3-0"></a></h3>
 <ul><li>
-<code>agridat</code> — canonical fixtures for tests and the new vignette.</li>
+<code>agridat</code> – canonical fixtures for tests and the new vignette.</li>
 <li>
-<code>ggplot2</code> — optional plot engine via <code>engine = "ggplot2"</code>; base graphics is the default and the fallback.</li>
+<code>ggplot2</code> – optional plot engine via <code>engine = "ggplot2"</code>; base graphics is the default and the fallback.</li>
 </ul></div>
 <div class="section level3">
 <h3 id="limitations-0-3-0">Limitations<a class="anchor" aria-label="anchor" href="#limitations-0-3-0"></a></h3>
@@ -427,7 +444,7 @@
 </div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.2.0" id="masque-020">masque 0.2.0<a class="anchor" aria-label="anchor" href="#masque-020"></a></h2>
-<p>First public release of <code>masque</code> — a structurally faithful development surrogate for tabular datasets. Successor to the unreleased <code>synthPR</code> v0.1.0 (folder-scanning multi-file API), rewritten around a single-file data-frame-first interface and a round-trippable <code>recipe</code> object.</p>
+<p>First public release of <code>masque</code> – a structurally faithful development surrogate for tabular datasets. Successor to the unreleased <code>synthPR</code> v0.1.0 (folder-scanning multi-file API), rewritten around a single-file data-frame-first interface and a round-trippable <code>recipe</code> object.</p>
 <p><code>masque</code> is not an anonymisation or differential-privacy tool. It produces development surrogates suitable for building and debugging pipelines, and a private <code>recipe</code> that re-targets a pipeline built against the synthetic clone back onto the original data. See <code><a href="../articles/confidentiality.html">vignette("confidentiality")</a></code> for the threat model.</p>
 <div class="section level3">
 <h3 id="design-0-2-0">Design<a class="anchor" aria-label="anchor" href="#design-0-2-0"></a></h3>
@@ -436,31 +453,31 @@
 <li>
 <strong>Two modes</strong> with different safety postures:
 <ul><li>
-<code>local</code> — realistic dev surrogate for the data owner. Column names and level vocabularies preserved. Treatment-level permutation is opt-in. Issues a load-time warning when the synthetic is extracted.</li>
+<code>local</code> – realistic dev surrogate for the data owner. Column names and level vocabularies preserved. Treatment-level permutation is opt-in. Issues a load-time warning when the synthetic is extracted.</li>
 <li>
-<code>collaborate</code> — give the synthetic to a collaborator while keeping the recipe private. Treatment + categorical-covariate levels are opaque-aliased (<code>trt_001</code>, <code>&lt;col&gt;_L01</code>). Numeric draws are jittered within column resolution; integer columns are stochastically rounded. <code>ignore</code> columns are dropped. <code><a href="../reference/audit_mask.html">audit_mask()</a></code> runs automatically and warns on HIGH leakage.</li>
+<code>collaborate</code> – give the synthetic to a collaborator while keeping the recipe private. Treatment + categorical-covariate levels are opaque-aliased (<code>trt_001</code>, <code>&lt;col&gt;_L01</code>). Numeric draws are jittered within column resolution; integer columns are stochastically rounded. <code>ignore</code> columns are dropped. <code><a href="../reference/audit_mask.html">audit_mask()</a></code> runs automatically and warns on HIGH leakage.</li>
 </ul></li>
 </ul></div>
 <div class="section level3">
 <h3 id="public-api-exports-0-2-0">Public API (11 exports)<a class="anchor" aria-label="anchor" href="#public-api-exports-0-2-0"></a></h3>
 <ul><li>
-<code>propose_roles(df)</code> — heuristics-driven role tibble; the user edits and passes to <code><a href="../reference/mask.html">mask()</a></code>.</li>
+<code>propose_roles(df)</code> – heuristics-driven role tibble; the user edits and passes to <code><a href="../reference/mask.html">mask()</a></code>.</li>
 <li>
-<code>roles_validate(roles, df)</code> — fail-closed structural + semantic check.</li>
+<code>roles_validate(roles, df)</code> – fail-closed structural + semantic check.</li>
 <li>
-<code>mask(df, roles, mode, seed, ...)</code> — returns an S7 <code>masque</code> object.</li>
+<code>mask(df, roles, mode, seed, ...)</code> – returns an S7 <code>masque</code> object.</li>
 <li>
-<code>synthetic(m)</code> / <code>recipe(m)</code> — accessors that hide S7.</li>
+<code>synthetic(m)</code> / <code>recipe(m)</code> – accessors that hide S7.</li>
 <li>
-<code>apply_recipe(original, recipe)</code> — forward translate original-namespace data into the synthetic namespace.</li>
+<code>apply_recipe(original, recipe)</code> – forward translate original-namespace data into the synthetic namespace.</li>
 <li>
-<code>unmask(x, recipe, column = NULL)</code> — inverse on a data frame or atomic vector; round-trips a pipeline back to the original.</li>
+<code>unmask(x, recipe, column = NULL)</code> – inverse on a data frame or atomic vector; round-trips a pipeline back to the original.</li>
 <li>
-<code>save_recipe(rec, path, include_simulator = FALSE)</code> / <code>read_recipe(path)</code> — runtime-minimal <code>.rds</code> persistence (under 10 KB on a 17,000-row, 38-column MET fixture).</li>
+<code>save_recipe(rec, path, include_simulator = FALSE)</code> / <code>read_recipe(path)</code> – runtime-minimal <code>.rds</code> persistence (under 10 KB on a 17,000-row, 38-column MET fixture).</li>
 <li>
-<code>audit_mask(m, original = NULL, print = TRUE)</code> — first-class leakage audit returning the per-column severity tibble.</li>
+<code>audit_mask(m, original = NULL, print = TRUE)</code> – first-class leakage audit returning the per-column severity tibble.</li>
 <li>
-<code>reveal_maps(recipe)</code> — explicit, banner-fenced unmasked-map reveal (never automatic; <code>print(recipe)</code> is redacted by default).</li>
+<code>reveal_maps(recipe)</code> – explicit, banner-fenced unmasked-map reveal (never automatic; <code>print(recipe)</code> is redacted by default).</li>
 </ul></div>
 <div class="section level3">
 <h3 id="synthesis-engine-0-2-0">Synthesis engine<a class="anchor" aria-label="anchor" href="#synthesis-engine-0-2-0"></a></h3>
@@ -473,7 +490,7 @@
 <h3 id="confidentiality-0-2-0">Confidentiality<a class="anchor" aria-label="anchor" href="#confidentiality-0-2-0"></a></h3>
 <ul><li>RNG hygiene throughout (<code><a href="https://withr.r-lib.org/reference/with_seed.html" class="external-link">withr::with_seed</a></code> / <code>local_preserve_seed</code>); <code><a href="../reference/mask.html">mask()</a></code> does not mutate the caller’s <code>.Random.seed</code>.</li>
 <li>
-<code>recipe</code> is runtime-minimal by default — no copula matrix or raw marginals stored. SHA-256 NA-mask fingerprint provided as an integrity check, not a privacy primitive.</li>
+<code>recipe</code> is runtime-minimal by default – no copula matrix or raw marginals stored. SHA-256 NA-mask fingerprint provided as an integrity check, not a privacy primitive.</li>
 <li>
 <code>print(recipe)</code> redacted by default; <code><a href="../reference/reveal_maps.html">reveal_maps()</a></code> is the only unmasked path.</li>
 <li>
@@ -483,7 +500,7 @@
 <h3 id="documentation-0-2-0">Documentation<a class="anchor" aria-label="anchor" href="#documentation-0-2-0"></a></h3>
 <ul><li>Four vignettes: <code>getting_started</code>, <code>confidentiality</code>, <code>recipe_anatomy</code>, <code>roadmap</code>.</li>
 <li>
-<code>inst/extdata/john_alpha.csv</code> — 72-row, 7-column public fixture derived from <code><a href="https://kwstat.github.io/agridat/reference/john.alpha.html" class="external-link">agridat::john.alpha</a></code> (John 1987, alpha design).</li>
+<code>inst/extdata/john_alpha.csv</code> – 72-row, 7-column public fixture derived from <code><a href="https://kwstat.github.io/agridat/reference/john.alpha.html" class="external-link">agridat::john.alpha</a></code> (John 1987, alpha design).</li>
 </ul></div>
 <div class="section level3">
 <h3 id="history-0-2-0">History<a class="anchor" aria-label="anchor" href="#history-0-2-0"></a></h3>

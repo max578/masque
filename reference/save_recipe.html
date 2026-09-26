@@ -17,7 +17,7 @@ information that would leak if the recipe file alone were shared."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">masque</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.13.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.14.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -75,8 +75,8 @@ information that would leak if the recipe file alone were shared.</p>
 
 
 <dt id="arg-include-simulator">include_simulator<a class="anchor" aria-label="anchor" href="#arg-include-simulator"></a></dt>
-<dd><p>Logical. Reserved for a future release.
-Currently a no-op (recipe is always written runtime-minimal).</p></dd>
+<dd><p>Logical. Has no effect; the recipe is always
+written without simulator state.</p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -85,10 +85,8 @@ Currently a no-op (recipe is always written runtime-minimal).</p></dd>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
-    <p><code>include_simulator = TRUE</code> is accepted but is currently a no-op: the
-recipe does not carry simulator state. The flag is reserved for a
-future release that will let <code><a href="read_recipe.html">read_recipe()</a></code> regenerate fresh
-synthetic samples without access to the original data.</p>
+    <p><code>include_simulator = TRUE</code> is accepted and has no effect: the recipe
+does not carry simulator state.</p>
 <p>Recipes are at least as sensitive as the original data. Protect the saved
 file at the same security class as the original. Note that
 <code>save_recipe()</code> writes plain R serialisation - it does not encrypt.

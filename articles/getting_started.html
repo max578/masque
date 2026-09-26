@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">masque</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.13.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.14.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -73,22 +73,16 @@
 <div class="section level2">
 <h2 id="why">Why<a class="anchor" aria-label="anchor" href="#why"></a>
 </h2>
-<p>A field agronomist holds a confidential 72-plot trial and wants an
-outside statistician to build a spatial yield model against it, but the
-statistician must never see the real plot layout or genotype identities.
-The agronomist’s question is practical, not abstract: <em>can I hand
-over something that behaves like my trial well enough for someone to
-develop a working pipeline on, and get that pipeline back running
-unmodified on my real data when they are done?</em> This vignette walks
-the custodian’s side of that handoff end to end, on the classical John
-and Williams (1995) alpha-design trial shipped with the package, and
-answers the question directly by the end.</p>
-<p><code>masque</code> is not an anonymiser, and the synthetic table it
-produces is not a public-release-safe artefact – it is a development
-surrogate, meant to cross a trust boundary of one: the custodian’s
-collaborator. The companion vignette <em>Confidentiality and the threat
-model</em> sets out exactly what is and is not protected. Read it before
-sharing any output.</p>
+<p>A field agronomist has a confidential 72-plot trial and wants an
+outside statistician to build a spatial yield model on it, without the
+statistician seeing the real plot layout or genotype identities. This
+vignette shows the agronomist’s side of that handoff on the John and
+Williams (1995) alpha-design trial shipped with the package.</p>
+<p>The synthetic table <code>masque</code> produces is a development
+surrogate for one named collaborator. It is not an anonymised dataset
+and is not safe for public release. <em>Confidentiality and the threat
+model</em> sets out what is and is not protected; read it before sharing
+any output.</p>
 </div>
 <div class="section level2">
 <h2 id="what">What<a class="anchor" aria-label="anchor" href="#what"></a>
@@ -104,27 +98,40 @@ that never leaves the custodian’s machine. The recipe is what lets a
 pipeline written against the synthetic re-target to the original later
 with no code change; its internals and the round-trip verbs are the
 subject of <em>Recipe anatomy and the round-trip</em>.</p>
-<p>Every column in the masking plan carries two independent decisions,
-built by <code><a href="../reference/propose_roles.html">propose_roles()</a></code> and adjusted with
-<code><a href="../reference/set_role.html">set_role()</a></code>: a <code>role</code> (what the column is –
+<p>Every column in the masking plan has a <code>role</code> and an
+<code>action</code>, proposed by <code><a href="../reference/propose_roles.html">propose_roles()</a></code> and
+changed with <code><a href="../reference/set_role.html">set_role()</a></code>. The role says what the column is:
 <code>design</code>, <code>treatment</code>, <code>outcome</code>,
 <code>covariate</code>, <code>date</code>, <code>id</code>,
-<code>text</code>, or <code>other</code>) and an <code>action</code>
-(how deeply it is masked – <code>keep</code> passes a column through
-byte-for-byte, <code>scramble</code> re-simulates numerics through a
-Gaussian copula or row-permutes categoricals and dates,
-<code>alias</code> scrambles and then replaces the labels with opaque
-codes, and <code>drop</code> leaves the column out entirely).
-<code><a href="../reference/role_options.html">role_options()</a></code> renders the full grid the validator accepts,
-so an incompatible pairing – a design column <code>masque</code> refuses
-to scramble, for instance – can be checked before it is attempted.</p>
-<p>The <code>mode</code> argument sets the safe defaults for both axes
-at once: <code>local</code> is for the custodian’s own development, and
-keeps vocabulary intact; <code>collaborate</code> is for handing the
-synthetic to someone else, and aliases treatment and categorical labels,
-jitters numerics, drops identifiers and free text, and runs the leakage
-audit automatically. Per-column <code>action</code> choices always
-override the mode’s default.</p>
+<code>text</code> or <code>other</code>. The action says what happens to
+it:</p>
+<ul>
+<li>
+<code>keep</code> passes it through unchanged;</li>
+<li>
+<code>scramble</code> re-simulates numerics through a Gaussian
+copula, or shuffles categories and dates between rows;</li>
+<li>
+<code>alias</code> replaces the labels with opaque codes (a
+categorical covariate is shuffled between rows first);</li>
+<li>
+<code>drop</code> leaves it out.</li>
+</ul>
+<p><code><a href="../reference/role_options.html">role_options()</a></code> lists every role and action pair the
+package accepts.</p>
+<p>The <code>mode</code> argument sets the defaults for both axes at
+once:</p>
+<ul>
+<li>
+<code>local</code> is for the custodian’s own development and keeps
+labels intact.</li>
+<li>
+<code>collaborate</code> is for handing the synthetic to someone
+else. It aliases treatment and categorical labels, jitters numerics,
+drops identifiers and free text, and runs the leakage audit.</li>
+</ul>
+<p>A per-column <code>action</code> always overrides the mode’s
+default.</p>
 </div>
 <div class="section level2">
 <h2 id="do">Do<a class="anchor" aria-label="anchor" href="#do"></a>
@@ -501,11 +508,11 @@ the new role:</p>
 </tr>
 </tbody>
 </table>
-<p>The <code>kind</code> column is derived from the column’s class,
-never chosen; editing it changes nothing, and the column should be
-converted in the data and re-proposed if the kind is wrong.</p>
-<p><code><a href="../reference/role_options.html">role_options()</a></code> renders the full grid the validator
-accepts, filtered by a column’s storage kind:</p>
+<p>The <code>kind</code> column comes from the column’s class and cannot
+be edited. If it is wrong, convert the column in the data and run
+<code><a href="../reference/propose_roles.html">propose_roles()</a></code> again.</p>
+<p><code><a href="../reference/role_options.html">role_options()</a></code> lists the pairs the package accepts, here
+for a factor column:</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span></span>
 <span>  <span class="fu"><a href="../reference/role_options.html">role_options</a></span><span class="op">(</span>kind <span class="op">=</span> <span class="st">"factor"</span><span class="op">)</span>,</span>
@@ -709,26 +716,22 @@ sensitive values, flagging it by hand is the correct fix:</p>
 <span><span class="co">#&gt; [1] "trt_001" "trt_002" "trt_003" "trt_004" "trt_005" "trt_006"</span></span></code></pre></div>
 </div>
 <div class="section level3">
-<h3 id="a-refusal-you-can-rely-on">A refusal you can rely on<a class="anchor" aria-label="anchor" href="#a-refusal-you-can-rely-on"></a>
+<h3 id="a-plan-the-package-refuses">A plan the package refuses<a class="anchor" aria-label="anchor" href="#a-plan-the-package-refuses"></a>
 </h3>
-<p>Not every role and action pairing makes sense – <code>plot</code> is
-a <code>design</code> column, and a design column is structure rather
-than content, so asking <code><a href="../reference/mask.html">mask()</a></code> to scramble it is a request
-the package will not carry out:</p>
+<p><code>plot</code> is a <code>design</code> column. Scrambling it
+would break the trial’s layout, and <code><a href="../reference/mask.html">mask()</a></code> refuses:</p>
 <div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">bad_roles</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/set_role.html">set_role</a></span><span class="op">(</span><span class="va">roles</span>, <span class="st">"plot"</span>, role <span class="op">=</span> <span class="st">"design"</span>, action <span class="op">=</span> <span class="st">"scramble"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/mask.html">mask</a></span><span class="op">(</span><span class="va">df</span>, <span class="va">bad_roles</span>, mode <span class="op">=</span> <span class="st">"collaborate"</span>, seed <span class="op">=</span> <span class="fl">1L</span><span class="op">)</span></span>
 <span><span class="co">#&gt; <span style="color: #BBBB00; font-weight: bold;">Error</span><span style="font-weight: bold;"> in `roles_validate()`:</span></span></span>
-<span><span class="co">#&gt; <span style="color: #BBBB00;">!</span> Incompatible role / action / kind combination(s):</span></span>
+<span><span class="co">#&gt; <span style="color: #BBBB00;">!</span> Incompatible role, action and kind combination:</span></span>
 <span><span class="co">#&gt; <span style="color: #BB0000;">✖</span> plot (design + scramble): design columns are structure, not content - they cannot be scrambled;</span></span>
 <span><span class="co">#&gt;   use keep, alias (labels hidden, structure intact), or drop</span></span></code></pre></div>
-<p>The call aborts before any masking happens, naming the exact column
-and combination at fault and offering the three actions that do make
-sense for a design column (<code>keep</code>, <code>alias</code>,
-<code>drop</code>). Nothing is silently reinterpreted – an invalid plan
-is a refusal, not a best-effort guess, and the same validation runs
-whether the plan came from <code><a href="../reference/propose_roles.html">propose_roles()</a></code>, hand-editing,
-or the guided spreadsheet flow.</p>
+<p>The call stops before any masking, names the column and the
+combination at fault, and lists the three actions that do work for a
+design column (<code>keep</code>, <code>alias</code>,
+<code>drop</code>). The same check runs whether the plan came from
+<code><a href="../reference/propose_roles.html">propose_roles()</a></code>, a hand edit or the guided spreadsheet.</p>
 </div>
 <div class="section level3">
 <h3 id="more-than-one-table">More than one table<a class="anchor" aria-label="anchor" href="#more-than-one-table"></a>
@@ -742,7 +745,7 @@ synthetic tables still resolves.</p>
 <div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">set_dir</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, <span class="st">"met_set"</span>, package <span class="op">=</span> <span class="st">"masque"</span><span class="op">)</span></span>
 <span><span class="va">ms</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/masque.html">masque</a></span><span class="op">(</span><span class="va">set_dir</span>, mode <span class="op">=</span> <span class="st">"collaborate"</span>, seed <span class="op">=</span> <span class="fl">1L</span>, ask <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Warning: Numeric environment column(s) <span style="color: #00BB00;">year</span> remain <span style="color: #0000BB;">"keep"</span> in collaborate mode.</span></span>
+<span><span class="co">#&gt; Warning: Numeric environment column <span style="color: #00BB00;">year</span> remains <span style="color: #0000BB;">"keep"</span> in collaborate mode.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> This preserves environment structure but may disclose year or other numeric labels; review before</span></span>
 <span><span class="co">#&gt;   release.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> Using the proposed masking plan for <span style="color: #00BB00;">agronomy</span> (pass `roles` or set `ask = TRUE` to review).</span></span>
@@ -759,8 +762,8 @@ synthetic tables still resolves.</p>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">──</span> <span style="font-weight: bold;">masque_set</span> <span style="color: #00BBBB;">──────────────────────────────────────────────────────────────────────────────────────</span></span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Mode: collaborate</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Tables: 2</span></span>
-<span><span class="co">#&gt; • <span style="color: #00BB00;">agronomy</span>: 464 row(s) x 7 column(s)</span></span>
-<span><span class="co">#&gt; • <span style="color: #00BB00;">quality</span>: 464 row(s) x 5 column(s)</span></span>
+<span><span class="co">#&gt; • <span style="color: #00BB00;">agronomy</span>: 464 rows x 7 columns</span></span>
+<span><span class="co">#&gt; • <span style="color: #00BB00;">quality</span>: 464 rows x 5 columns</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; ── <span style="font-weight: bold;">Cross-table links (2)</span> ──</span></span>
 <span><span class="co">#&gt; </span></span>
@@ -781,10 +784,10 @@ set-level controls.</p>
 questions: which rows belong to each environment, whether treatments
 connect the environments, and what randomisation structure can be
 recovered within each environment. <code><a href="../reference/detect_design.html">detect_design()</a></code> reports
-these separately; connectivity is a comparability diagnostic, not the
-definition of a multi-environment trial, and an observed block or field
-layout is evidence, not proof, of the original randomisation
-protocol.</p>
+these separately. Connectivity says whether environments can be
+compared; it does not decide whether the trial is multi-environment. A
+block or field layout seen in the data suggests the original
+randomisation but does not confirm it.</p>
 <p>A small synthetic toy with two environments and three genotypes makes
 the three questions concrete:</p>
 <div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
@@ -804,13 +807,12 @@ the three questions concrete:</p>
 <span><span class="co">#&gt; [1] "connected"</span></span>
 <span><span class="va">ds</span><span class="op">@</span><span class="va">within_design_label</span></span>
 <span><span class="co">#&gt; [1] "RCBD"</span></span></code></pre></div>
-<p>Automatic detection is deliberately conservative: exact
-<code>env</code>/<code>environment</code> names and bounded site-year
-patterns are selected only when they pass validity and competition
-gates, and a site-only column auto-resolves only when treatments are
-replicated across sites, so that a nested block is not promoted into an
-environment by mistake. Supplying the basis explicitly is the right call
-when domain knowledge is stronger than the recorded names:</p>
+<p>Automatic detection is conservative. A column named <code>env</code>
+or <code>environment</code>, or a common site-year pattern, is taken as
+the environment only when no other column explains the structure as
+well; a site-only column is taken only when treatments are replicated
+across sites, so a nested block is not mistaken for an environment. When
+you know the environment columns, name them:</p>
 <div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">ds_explicit</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/detect_design.html">detect_design</a></span><span class="op">(</span><span class="va">met</span>, env <span class="op">=</span> <span class="st">"env"</span><span class="op">)</span></span></code></pre></div>
 </div>
@@ -819,12 +821,10 @@ when domain knowledge is stronger than the recorded names:</p>
 </h3>
 <p><code>plot.design_summary()</code> draws a compact environment
 overview by default, in base graphics or, with
-<code>engine = "ggplot2"</code>, returns a <code>ggplot2</code> object
-that you can save with <code><a href="https://ggplot2.tidyverse.org/reference/ggsave.html" class="external-link">ggplot2::ggsave()</a></code> – printed, it is
-the figure below. It shows something the two console values above
-cannot: whether coverage is <em>even</em> across environments, which a
-bare connectivity flag does not distinguish from one environment barely
-scraping in.</p>
+<code>engine = "ggplot2"</code>, as a <code>ggplot2</code> object you
+can save with <code><a href="https://ggplot2.tidyverse.org/reference/ggsave.html" class="external-link">ggplot2::ggsave()</a></code>; printed, it is the figure
+below. It shows whether coverage is even across environments, which the
+connectivity flag alone does not.</p>
 <div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">ds_explicit</span>, df <span class="op">=</span> <span class="va">met</span>, engine <span class="op">=</span> <span class="st">"ggplot2"</span><span class="op">)</span></span></code></pre></div>
 <div class="figure">
@@ -834,21 +834,18 @@ multi-environment trial; the subtitle carries connectivity status,
 component count, and the recovered within-environment design.
 </p>
 </div>
-<p>Both bars sit at three treatments observed, because every genotype in
-this toy trial appears in both environments – that even coverage,
-together with the subtitle’s connected status and single component, is
-what makes the two environments comparable at all. A design where a
-genotype fails to show up in one bar, or where the subtitle reports more
-than one component, marks environments that cannot be pooled into a
-single connected analysis without first checking whether the missing
-coverage is real or an artefact of how the table was assembled.</p>
+<p>Both bars are at three treatments, since every genotype in this toy
+trial appears in both environments. A shorter bar, or a subtitle
+reporting more than one component, marks environments that cannot go
+into one connected analysis until you have checked whether the missing
+coverage is real or an artefact of how the table was put together.</p>
 <p>High-confidence environment recommendations feed the masking plan
 directly. Local mode keeps environment values byte-identical;
 collaborate mode aliases categorical environment labels in place,
-preserving row assignment, factor codes, the NA mask, and recipe
-inversion. A numeric environment such as year remains <code>keep</code>
-and raises a disclosure warning because its values are still
-visible:</p>
+keeping each row in its environment and the missing values where they
+were, and the recipe can turn the aliases back into the real labels. A
+numeric environment such as year remains <code>keep</code> and raises a
+disclosure warning because its values are still visible:</p>
 <div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">met_roles</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/propose_roles.html">propose_roles</a></span><span class="op">(</span><span class="va">met</span>, mode <span class="op">=</span> <span class="st">"collaborate"</span><span class="op">)</span></span>
 <span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span></span>
@@ -879,34 +876,17 @@ original trial in scientific inference.</p>
 <div class="section level2">
 <h2 id="read">Read<a class="anchor" aria-label="anchor" href="#read"></a>
 </h2>
-<p>The one-call run masked all seven columns of the alpha-design trial
-in collaborate mode with an audit tally of zero HIGH and zero medium
-findings, so nothing about this particular trial needed the custodian’s
-attention before the synthetic could be handed over. On the hand-edited
-plan, <code>plot</code> – a <code>design</code> column left at
-<code>keep</code> – came back TRUE for byte-identity against the
-original, while <code>gen</code> – a <code>treatment</code> column
-aliased – came back with its levels changed (TRUE): the synthetic
-vocabulary is <code>trt_001</code> through <code>trt_024</code>, not the
-original genotype codes, exactly the two-tier behaviour the roles table
-promised. The refusal above shows the same plan being checked before it
-runs: asking to scramble a design column is rejected outright, not
-silently downgraded to something that would run.</p>
-<p>The multi-environment toy resolves to connected connectivity with 1
-component and a within- environment design of RCBD, which the figure
-repeats visually as two equal-height bars – the numbers and the picture
-agree because every genotype in this toy happens to appear in both
-environments. The <code>met_set</code> fixture masks two related tables
-at once and keeps <code>env</code> and <code>gen</code> aliased
-identically across both, which is what lets the field and laboratory
-tables still join after masking.</p>
-<p>Answering the opening question directly: yes, a custodian can hand
-over a synthetic clone that a collaborator can develop a full pipeline
-against, while the plot layout, genotype identities, and any linked
-tables stay tied together exactly as they were, aliased rather than
-exposed. The other half of that handoff – how the collaborator’s
-pipeline gets back onto the real data – is <em>Recipe anatomy and the
-round-trip</em>.</p>
+<p>The audit found nothing to flag on this trial, so the synthetic could
+be handed over as it is. A design column left at <code>keep</code> comes
+back unchanged and an aliased treatment comes back as
+<code>trt_001</code> to <code>trt_024</code>; a plan that asks for
+something the package cannot do is refused before it runs. Related
+tables are masked together and still join.</p>
+<p>The agronomist can therefore hand over a clone that keeps the plot
+layout and the links between tables, with the genotype labels aliased,
+and the statistician can build a full pipeline on it without seeing the
+real genotype names. How the finished pipeline runs on the real data is
+covered in <em>Recipe anatomy and the round-trip</em>.</p>
 </div>
 <div class="section level2">
 <h2 id="limits">Limits<a class="anchor" aria-label="anchor" href="#limits"></a>
@@ -916,18 +896,13 @@ public trial with a clean, complete design; it does not exercise the
 leakage audit’s failure modes, the geographic-coordinate controls, or
 the conditional clone that preserves a treatment effect rather than only
 a marginal distribution, all of which live in <em>Confidentiality and
-the threat model</em>. <code>pii_suspected</code> detection reads column
-names, not content, so a harmlessly named column holding sensitive
-values is caught only if someone flags it by hand, as shown above – the
-package cannot infer sensitivity it has no textual evidence for.
-Multi-environment detection is deliberately conservative and can
-under-detect a genuine environment structure when names and replication
-patterns are ambiguous; a domain expert’s explicit <code>env</code>
-argument should be preferred over the automatic guess whenever the two
-disagree. Finally, this vignette never scrambles or aliases a numeric
-column jointly with others, so it does not show what the Gaussian copula
-does or does not preserve about the relationship between columns – that
-is also <em>Confidentiality and the threat model</em>’s subject.</p>
+the threat model</em>. A sensitive column with an ordinary name is
+caught only if someone flags it by hand. Multi-environment detection can
+miss a real environment when the names and replication are ambiguous;
+prefer an explicit <code>env</code> whenever you know better. Only one
+numeric column is re-simulated here, so the vignette does not show what
+the Gaussian copula keeps of the relationships between columns; that is
+also in <em>Confidentiality and the threat model</em>.</p>
 </div>
 <div class="section level2">
 <h2 id="what-to-read-next">What to read next<a class="anchor" aria-label="anchor" href="#what-to-read-next"></a>
@@ -943,11 +918,10 @@ the original.</p>
 <div class="section level2">
 <h2 id="reproduce">Reproduce<a class="anchor" aria-label="anchor" href="#reproduce"></a>
 </h2>
-<p><code>set.seed(1)</code> is set once for the whole document; every
-<code><a href="../reference/masque.html">masque()</a></code>/<code><a href="../reference/mask.html">mask()</a></code> call also passes
-<code>seed = 1L</code> explicitly, so each is independently reproducible
-regardless of what ran before it in this vignette. Package versions
-follow.</p>
+<p><code>set.seed(1)</code> is set once for the document, and every
+<code><a href="../reference/masque.html">masque()</a></code> or <code><a href="../reference/mask.html">mask()</a></code> call passes
+<code>seed = 1L</code>, so each is reproducible on its own. Package
+versions follow.</p>
 <div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/sessionInfo.html" class="external-link">sessionInfo</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="co">#&gt; R version 4.6.1 (2026-06-24)</span></span>
@@ -970,7 +944,7 @@ follow.</p>
 <span><span class="co">#&gt; [1] stats     graphics  grDevices utils     datasets  methods   base     </span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; other attached packages:</span></span>
-<span><span class="co">#&gt; [1] masque_0.13.0</span></span>
+<span><span class="co">#&gt; [1] masque_0.14.0</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; loaded via a namespace (and not attached):</span></span>
 <span><span class="co">#&gt;  [1] vctrs_0.7.3         cli_3.6.6           knitr_1.52          rlang_1.3.0        </span></span>

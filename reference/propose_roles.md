@@ -8,7 +8,6 @@ directly or via
 [`set_role()`](https://max578.github.io/masque/reference/set_role.md) -
 before passing it to
 [`mask()`](https://max578.github.io/masque/reference/mask.md).
-Heuristics are seeds, not law.
 
 ## Usage
 

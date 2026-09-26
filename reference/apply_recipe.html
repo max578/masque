@@ -13,7 +13,7 @@ synthetic) against the original data without modifying pipeline code."></head><b
 
     <a class="navbar-brand me-2" href="../index.html">masque</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.13.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.14.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -86,8 +86,7 @@ recipe was built.</p></dd>
 SHA-256 fingerprint stored on the recipe (controlled by
 <code>check_integrity</code>).</p></li>
 <li><p><strong>Drop</strong> every column whose resolved <code>action</code> was <code>"drop"</code> on the
-roles table <code><a href="mask.html">mask()</a></code> masked with – mode-independent: a column is
-dropped because its action says so, not because of which mode ran.</p></li>
+roles table <code><a href="mask.html">mask()</a></code> masked with, in either mode.</p></li>
 <li><p><strong>Subset and reorder</strong> to the columns the recipe knows about.</p></li>
 <li><p><strong>Re-label factors / characters</strong> for any column with a level map
 held by the recipe (i.e., treatment and categorical covariates in

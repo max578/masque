@@ -13,7 +13,7 @@ explicit re-audits, pass the original data frame via original.'></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">masque</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.13.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.14.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -103,9 +103,9 @@ on every row).</p></li>
 <li><p>Numeric covariate with exact-match-pct &gt; 5\<!-- % in collaborate -&gt; -->
 <code>medium</code>.</p></li>
 <li><p>Ignore column retained in local -&gt; <code>low</code> (informational).</p></li>
-</ul><p>Step 7 will lower numeric exact-match-pct under collaborate by adding
-within-resolution jitter; until then, expect <code>medium</code> leakage on
-collaborate-mode numerics.</p>
+</ul><p>As a reference point, a collaborate-mode clone of <code><a href="https://kwstat.github.io/agridat/reference/besag.met.html" class="external-link">agridat::besag.met</a></code>
+(yield as the outcome, design columns kept) scores <code>low</code> on every
+column, and none of its yields equals the original value.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>

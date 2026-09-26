@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">masque</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.13.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.14.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -73,44 +73,43 @@
 <div class="section level2">
 <h2 id="why">Why<a class="anchor" aria-label="anchor" href="#why"></a>
 </h2>
-<p>A biometrician is asked to develop a yield model on a synthetic clone
-of a multi-environment variety trial, and asks a fair question before
-starting: <em>which parts of the experiment will still be in the
-clone?</em> The allocation, every design column and the treatment
-labels, is returned as it was. The outcomes are re-simulated. The
-question is what a model fitted on those re-simulated outcomes will
-find: the treatment effect, the block effect, the environment effect, or
-only their marginal histograms.</p>
-<p>This vignette answers it for eight design classes with a public
-exemplar of each, all from the <code>agridat</code> package. Each is
-masked as a conditional clone twenty times, the model that the design
-calls for is fitted on the original and on every clone, and one pass
-rule is applied to all eight. The rule is stated before the table.</p>
+<p>A biometrician developing a yield model on a synthetic clone of a
+multi-environment variety trial needs to know which parts of the
+experiment are still in the clone. The allocation (every design column
+and the treatment labels) is returned as it was, and the outcomes are
+re-simulated. What matters is whether a model fitted on those outcomes
+still finds the treatment, block and environment effects.</p>
+<p>This vignette checks eight design classes, with a public exemplar of
+each from the <code>agridat</code> package. Each is masked as a
+conditional clone twenty times, the model the design calls for is fitted
+on the original and on every clone, and one pass rule is applied to all
+eight.</p>
 </div>
 <div class="section level2">
 <h2 id="what">What<a class="anchor" aria-label="anchor" href="#what"></a>
 </h2>
 <p><code>mask(conditional = TRUE)</code> re-simulates the numeric block
-within each treatment-by-design stratum, and coarsens that stratum by a
-ladder until every cell holds at least five rows. Two ladders are
+through a Gaussian copula fitted within each treatment-by-design
+stratum. When a stratum holds fewer than five rows, design columns are
+dropped from it one at a time, each drop a rung of a ladder, until every
+cell is large enough; rows still in cells that are too small at the last
+rung are pooled into one fallback stratum. Two ladders are
 available.</p>
 <p>The default, <code>ladder = "hierarchy"</code>, drops plot
 coordinates first, then blocking columns, then environment columns, so a
-county is never dropped before the replicates inside it, and it carries
-the main effect of every dropped column, and of each pair of dropped
-blocking or environment columns, into the clone as an additive shift.
-Rows that even the treatment-only rung pools into the fallback keep the
-treatment means the same way. A level with a single row is pooled with
-the other singletons before any effect is estimated, so no row’s own
-outcome is ever carried. A term that is noise is shrunk to nothing; a
-strong one is carried in full. The recipe names what was kept as the
-stratum (<code>conditioning_used</code>), what was dropped
-(<code>conditioning_dropped</code>) and what was carried as a shift
-(<code>conditioning_shifted</code>).</p>
-<p><code>ladder = "levels"</code> is the ladder of masque 0.11.1 to
-0.12.0: it drops the column with the most distinct values first and
-keeps nothing of a dropped column. It is kept so that a clone made under
-it can be reproduced.</p>
+county is never dropped before the replicates inside it. Each dropped
+column, and each pair of dropped blocking or environment columns, is
+carried into the clone as an additive shift, and rows in the fallback
+stratum keep the treatment means the same way. A level with a single row
+is pooled with the other singletons before any effect is estimated, so
+no row’s own outcome is carried. A term that is noise is shrunk to
+nothing; a strong one is carried in full. On the recipe,
+<code>conditioning_used</code> is the stratum kept,
+<code>conditioning_dropped</code> the columns dropped and
+<code>conditioning_shifted</code> the terms carried as shifts.</p>
+<p><code>ladder = "levels"</code> reproduces clones made with masque
+0.11.1 to 0.12.0: it drops the column with the most distinct values
+first and keeps nothing of a dropped column.</p>
 <div class="section level3">
 <h3 id="the-pass-rule">The pass rule<a class="anchor" aria-label="anchor" href="#the-pass-rule"></a>
 </h3>
@@ -210,7 +209,8 @@ twenty when the tests are run off CRAN.</p>
 <p>The augmented design is analysed the classical way: the replicated
 checks are fixed levels and every unreplicated entry is one class,
 <code>new</code>. A clone cannot carry an unreplicated entry’s own
-value, by construction, so that is the comparison the design allows.</p>
+value, so only the checks and the <code>new</code> class are
+compared.</p>
 <p>The RCBD exemplar records its three complete blocks as the column of
 the field; the block factor is made from it and the column kept as a
 coordinate.</p>
@@ -759,8 +759,9 @@ rep:county</td>
 <img src="design_preservation_files/figure-html/figure-1.png" class="r-plt" alt="Dot plot of clone-to-original F ratios for every design term, two ladders side by side." width="1050"><p class="caption">
 F statistic of each model term on the clone as a share of the original,
 median over twenty seeds, by ladder. Points on the dashed line are terms
-the clone reproduces exactly; the levels ladder loses every blocking and
-environment term, the hierarchy ladder keeps them.
+the clone reproduces exactly; the dotted line is the pass floor of one
+half. The levels ladder loses most of every blocking and environment
+term; the hierarchy ladder keeps them.
 </p>
 </div>
 </div>
@@ -770,17 +771,16 @@ environment term, the hierarchy ladder keeps them.
 </h2>
 <p>All 8 of the 8 designs pass the rule under the hierarchy ladder. The
 allocation and the NA mask come back identical in every clone of every
-design, under both ladders; that part of the claim does not depend on
-the ladder at all. What the ladder decides is what a model finds.</p>
+design, under both ladders. The ladder decides what a model finds.</p>
 <p>The multi-environment trial is the case the hierarchy ladder was
 built for. Its county effect has an F of 987 on the original; the levels
 ladder drops <code>county</code> before <code>rep</code>, and the
 clone’s county F is 1. The hierarchy ladder conditions on genotype alone
-and carries <code>county</code>, <code>rep</code>, <code>block</code>
-and their pairs as shifts; the clone’s county F is 952, the nested
-<code>county:rep</code> term is at 28.3 against 32.7, and the genotype
-means correlate at 0.9 with the original (0.68 under the levels
-ladder).</p>
+and carries the plot coordinates, <code>county</code>, <code>rep</code>,
+<code>block</code> and their pairs as shifts; the clone’s county F is
+952, the nested <code>county:rep</code> term is at 28.3 against 32.7,
+and the genotype means correlate at 0.9 with the original (0.68 under
+the levels ladder).</p>
 <p>Yates’ oats shows the same thing on a single trial: the block F is
 0.8 under the levels ladder and 11.3 under the hierarchy ladder, against
 13.2 on the original, while the nitrogen response is kept by both.</p>
@@ -792,7 +792,7 @@ hierarchy ladder the genotype means are carried as a shift and the
 correlation is 0.93 on the lattice and 0.89 on the RCBD.</p>
 <p>The augmented design is the one where the rule has the least to say:
 its block and check terms are not detectable on the original (F below
-2), so only the allocation, the NA mask and the spread of the check
+2), so only the allocation, the NA mask and the spread of the treatment
 means are tested. The clone does not, and cannot, carry the unreplicated
 entries’ values.</p>
 </div>
@@ -813,8 +813,8 @@ explains little; a spatial trend recorded only as row and column numbers
 is carried as row and column means, not as a surface. The floors in the
 rule (half the original F, a correlation of 0.7, a spread within a
 factor of two) are the tolerances this vignette states, not properties
-of the method; a stricter reader should tighten them and re-run the
-chunk.</p>
+of the method; tighten them and re-run the chunk for a stricter
+test.</p>
 </div>
 <div class="section level2">
 <h2 id="what-to-read-next">What to read next<a class="anchor" aria-label="anchor" href="#what-to-read-next"></a>
@@ -854,7 +854,7 @@ follow.</p>
 <span><span class="co">#&gt; [1] stats     graphics  grDevices utils     datasets  methods   base     </span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; other attached packages:</span></span>
-<span><span class="co">#&gt; [1] masque_0.13.0</span></span>
+<span><span class="co">#&gt; [1] masque_0.14.0</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; loaded via a namespace (and not attached):</span></span>
 <span><span class="co">#&gt;  [1] vctrs_0.7.3        cli_3.6.6          knitr_1.52         rlang_1.3.0        xfun_0.61         </span></span>

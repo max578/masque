@@ -79,9 +79,8 @@ mask(
   recipe and inverted by
   [`apply_recipe()`](https://max578.github.io/masque/reference/apply_recipe.md)
   / [`unmask()`](https://max578.github.io/masque/reference/unmask.md),
-  so a pipeline written against the aliased synthetic round-trips.
-  Column names are the last identifying surface a kept or design column
-  exposes; alias them when even the schema is sensitive.
+  so a pipeline written against the aliased synthetic round-trips. Alias
+  the names when the schema itself is sensitive.
 
 - conditional:
 
@@ -93,10 +92,8 @@ mask(
   block is re-simulated *within each treatment-by-design stratum*, so a
   row's synthetic outcome inherits the location of the treatment that
   row carries. A causal model fitted on the conditional clone recovers
-  the real treatment effect within sampling tolerance - the data-side
-  analogue of preserving a conditional mean embedding rather than a
-  pooled marginal. The conditioning columns (treatment plus retained
-  design) are recorded on the recipe.
+  the real treatment effect within sampling tolerance. The conditioning
+  columns (treatment plus retained design) are recorded on the recipe.
 
   The stratum is chosen by a **coarsening ladder**. Treatment crossed
   with every retained design column is the finest rung, but on a
@@ -124,19 +121,16 @@ mask(
   blocking or environment columns (the replicate inside a county is a
   different block from the same label in the next county), is estimated
   by least squares beside the stratum that was kept, removed before the
-  within-stratum copula and added back after it, so a clone that
-  conditions on genotype alone still carries the original's environment,
-  replicate and block means. Rows the stratum floor pools into the
-  fallback keep the stratum columns' main effects the same way, so a
+  within-stratum copula and added back after it. A clone that conditions
+  on genotype alone therefore still has the original's environment,
+  replicate and block means. Rows pooled into the fallback stratum keep
+  the stratum columns' main effects the same way, which is how a
   three-replicate variety trial keeps its genotype means. A level with a
   single row is pooled with the other singletons before the fit, so no
-  row's own outcome is ever carried. The terms carried are recorded on
-  the recipe as `conditioning_shifted`. This makes each carried term's
-  level means a stated property of the clone, in the same way that
-  `conditional = TRUE` already makes the treatment means one. `"levels"`
-  is the ladder of masque 0.11.1 to 0.12.0: columns are dropped in
-  decreasing order of distinct values and a dropped column leaves no
-  trace in the clone.
+  row's own outcome is carried. The terms carried are recorded on the
+  recipe as `conditioning_shifted`. `"levels"` is the ladder of masque
+  0.11.1 to 0.12.0: columns are dropped in decreasing order of distinct
+  values and a dropped column leaves no trace in the clone.
 
 - coords:
 
@@ -185,8 +179,8 @@ mask(
 
 - ...:
 
-  Must be empty. An unused argument (for example a misspelled name)
-  errors rather than being silently ignored.
+  Must be empty. An unused argument, for example a misspelled name, is
+  an error.
 
 ## Value
 
@@ -213,11 +207,10 @@ aliased, kept, or dropped is decided by the `action` column of `roles` -
 resolves mode-appropriate defaults, so the table you reviewed is the
 plan that runs.
 
-Collaborate mode adjusts the transformations and runs the audit; it does
-not model where the output will go. Whether a synthetic table is
-appropriate for a given collaborator, environment, or jurisdiction is a
-release decision that stays with the data custodian - masque informs
-that decision, it does not make it.
+Collaborate mode changes the transformations and runs the audit. Whether
+a synthetic table is appropriate for a given collaborator, environment
+or jurisdiction is a release decision for the data custodian; masque
+informs that decision, it does not make it.
 
 ## Behaviour by action
 

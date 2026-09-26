@@ -15,7 +15,7 @@ never silently carries a stale action from its previous role."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">masque</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.13.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.14.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -91,10 +91,8 @@ default for the new role.</p></dd>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
-    <p>Direct edits (<code>roles$role[roles$col == "x"] &lt;- "outcome"</code>) remain
-fully supported; this helper exists because a direct role edit leaves
-<code>roles$action</code> untouched, which is occasionally what you want and
-frequently not.</p>
+    <p>Direct edits (<code>roles$role[roles$col == "x"] &lt;- "outcome"</code>) also work,
+but leave <code>roles$action</code> unchanged.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>

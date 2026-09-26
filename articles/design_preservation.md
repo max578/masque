@@ -7,44 +7,42 @@ library(masque)
 
 ## Why
 
-A biometrician is asked to develop a yield model on a synthetic clone of
-a multi-environment variety trial, and asks a fair question before
-starting: *which parts of the experiment will still be in the clone?*
-The allocation, every design column and the treatment labels, is
-returned as it was. The outcomes are re-simulated. The question is what
-a model fitted on those re-simulated outcomes will find: the treatment
-effect, the block effect, the environment effect, or only their marginal
-histograms.
+A biometrician developing a yield model on a synthetic clone of a
+multi-environment variety trial needs to know which parts of the
+experiment are still in the clone. The allocation (every design column
+and the treatment labels) is returned as it was, and the outcomes are
+re-simulated. What matters is whether a model fitted on those outcomes
+still finds the treatment, block and environment effects.
 
-This vignette answers it for eight design classes with a public exemplar
-of each, all from the `agridat` package. Each is masked as a conditional
-clone twenty times, the model that the design calls for is fitted on the
-original and on every clone, and one pass rule is applied to all eight.
-The rule is stated before the table.
+This vignette checks eight design classes, with a public exemplar of
+each from the `agridat` package. Each is masked as a conditional clone
+twenty times, the model the design calls for is fitted on the original
+and on every clone, and one pass rule is applied to all eight.
 
 ## What
 
-`mask(conditional = TRUE)` re-simulates the numeric block within each
-treatment-by-design stratum, and coarsens that stratum by a ladder until
-every cell holds at least five rows. Two ladders are available.
+`mask(conditional = TRUE)` re-simulates the numeric block through a
+Gaussian copula fitted within each treatment-by-design stratum. When a
+stratum holds fewer than five rows, design columns are dropped from it
+one at a time, each drop a rung of a ladder, until every cell is large
+enough; rows still in cells that are too small at the last rung are
+pooled into one fallback stratum. Two ladders are available.
 
 The default, `ladder = "hierarchy"`, drops plot coordinates first, then
 blocking columns, then environment columns, so a county is never dropped
-before the replicates inside it, and it carries the main effect of every
-dropped column, and of each pair of dropped blocking or environment
-columns, into the clone as an additive shift. Rows that even the
-treatment-only rung pools into the fallback keep the treatment means the
-same way. A level with a single row is pooled with the other singletons
-before any effect is estimated, so no row’s own outcome is ever carried.
-A term that is noise is shrunk to nothing; a strong one is carried in
-full. The recipe names what was kept as the stratum
-(`conditioning_used`), what was dropped (`conditioning_dropped`) and
-what was carried as a shift (`conditioning_shifted`).
+before the replicates inside it. Each dropped column, and each pair of
+dropped blocking or environment columns, is carried into the clone as an
+additive shift, and rows in the fallback stratum keep the treatment
+means the same way. A level with a single row is pooled with the other
+singletons before any effect is estimated, so no row’s own outcome is
+carried. A term that is noise is shrunk to nothing; a strong one is
+carried in full. On the recipe, `conditioning_used` is the stratum kept,
+`conditioning_dropped` the columns dropped and `conditioning_shifted`
+the terms carried as shifts.
 
-`ladder = "levels"` is the ladder of masque 0.11.1 to 0.12.0: it drops
-the column with the most distinct values first and keeps nothing of a
-dropped column. It is kept so that a clone made under it can be
-reproduced.
+`ladder = "levels"` reproduces clones made with masque 0.11.1 to 0.12.0:
+it drops the column with the most distinct values first and keeps
+nothing of a dropped column.
 
 ### The pass rule
 
@@ -139,8 +137,8 @@ design_specs <- function() {
 
 The augmented design is analysed the classical way: the replicated
 checks are fixed levels and every unreplicated entry is one class,
-`new`. A clone cannot carry an unreplicated entry’s own value, by
-construction, so that is the comparison the design allows.
+`new`. A clone cannot carry an unreplicated entry’s own value, so only
+the checks and the `new` class are compared.
 
 The RCBD exemplar records its three complete blocks as the column of the
 field; the block factor is made from it and the column kept as a
@@ -370,23 +368,24 @@ side.](design_preservation_files/figure-html/figure-1.png)
 
 F statistic of each model term on the clone as a share of the original,
 median over twenty seeds, by ladder. Points on the dashed line are terms
-the clone reproduces exactly; the levels ladder loses every blocking and
-environment term, the hierarchy ladder keeps them.
+the clone reproduces exactly; the dotted line is the pass floor of one
+half. The levels ladder loses most of every blocking and environment
+term; the hierarchy ladder keeps them.
 
 ## Read
 
 All 8 of the 8 designs pass the rule under the hierarchy ladder. The
 allocation and the NA mask come back identical in every clone of every
-design, under both ladders; that part of the claim does not depend on
-the ladder at all. What the ladder decides is what a model finds.
+design, under both ladders. The ladder decides what a model finds.
 
 The multi-environment trial is the case the hierarchy ladder was built
 for. Its county effect has an F of 987 on the original; the levels
 ladder drops `county` before `rep`, and the clone’s county F is 1. The
-hierarchy ladder conditions on genotype alone and carries `county`,
-`rep`, `block` and their pairs as shifts; the clone’s county F is 952,
-the nested `county:rep` term is at 28.3 against 32.7, and the genotype
-means correlate at 0.9 with the original (0.68 under the levels ladder).
+hierarchy ladder conditions on genotype alone and carries the plot
+coordinates, `county`, `rep`, `block` and their pairs as shifts; the
+clone’s county F is 952, the nested `county:rep` term is at 28.3 against
+32.7, and the genotype means correlate at 0.9 with the original (0.68
+under the levels ladder).
 
 Yates’ oats shows the same thing on a single trial: the block F is 0.8
 under the levels ladder and 11.3 under the hierarchy ladder, against
@@ -401,9 +400,9 @@ the lattice and 0.89 on the RCBD.
 
 The augmented design is the one where the rule has the least to say: its
 block and check terms are not detectable on the original (F below 2), so
-only the allocation, the NA mask and the spread of the check means are
-tested. The clone does not, and cannot, carry the unreplicated entries’
-values.
+only the allocation, the NA mask and the spread of the treatment means
+are tested. The clone does not, and cannot, carry the unreplicated
+entries’ values.
 
 ## Limits
 
@@ -421,8 +420,8 @@ effect, shrunk toward zero when the column explains little; a spatial
 trend recorded only as row and column numbers is carried as row and
 column means, not as a surface. The floors in the rule (half the
 original F, a correlation of 0.7, a spread within a factor of two) are
-the tolerances this vignette states, not properties of the method; a
-stricter reader should tighten them and re-run the chunk.
+the tolerances this vignette states, not properties of the method;
+tighten them and re-run the chunk for a stricter test.
 
 ## What to read next
 
@@ -462,7 +461,7 @@ sessionInfo()
 #> [1] stats     graphics  grDevices utils     datasets  methods   base     
 #> 
 #> other attached packages:
-#> [1] masque_0.13.0
+#> [1] masque_0.14.0
 #> 
 #> loaded via a namespace (and not attached):
 #>  [1] vctrs_0.7.3        cli_3.6.6          knitr_1.52         rlang_1.3.0        xfun_0.61         

@@ -48,8 +48,8 @@ The most common pattern is round-tripping pipeline predictions:
     preds_synth         <- predict(fit, orig_in_synth_space)
     preds_orig          <- unmask(preds_synth, recipe(m))    # inverse
 
-Unknown levels (synthetic aliases not in the recipe's map) fail closed
-with an informative error rather than silently coercing to `NA`.
+An unknown level (a synthetic alias not in the recipe's map) is an
+error; it is never coerced to `NA`.
 
 ## See also
 

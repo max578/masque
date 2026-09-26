@@ -41,14 +41,14 @@ m <- mask(iris, r, seed = 1)
 recipe(m)
 #> 
 #> ── masque_recipe ───────────────────────────────────────────────────────────────
-#> • Created: 2026-09-25 23:50:22 UTC
+#> • Created: 2026-09-26 08:01:57 UTC
 #> • Mode: local
 #> • Clone fidelity: marginal / structural (global copula)
 #> • Seed: present (redacted)
-#> • masque version: 0.13.0
+#> • masque version: 0.14.0
 #> • Integrity fingerprint: 62a4affb7e41...
 #> 
-#> ── Columns (5 total; 0 level-map(s); 0 column-name map(s)) ──
+#> ── Columns (5 total; 0 level maps; 0 column-name maps) ──
 #> 
 #>   = outcome   scramble  Sepal.Length                  (numeric)
 #>   = covariate scramble  Sepal.Width                   (numeric)

@@ -25,8 +25,8 @@ save_recipe(rec, path, include_simulator = FALSE)
 
 - include_simulator:
 
-  Logical. Reserved for a future release. Currently a no-op (recipe is
-  always written runtime-minimal).
+  Logical. Has no effect; the recipe is always written without simulator
+  state.
 
 ## Value
 
@@ -34,11 +34,8 @@ save_recipe(rec, path, include_simulator = FALSE)
 
 ## Details
 
-`include_simulator = TRUE` is accepted but is currently a no-op: the
-recipe does not carry simulator state. The flag is reserved for a future
-release that will let
-[`read_recipe()`](https://max578.github.io/masque/reference/read_recipe.md)
-regenerate fresh synthetic samples without access to the original data.
+`include_simulator = TRUE` is accepted and has no effect: the recipe
+does not carry simulator state.
 
 Recipes are at least as sensitive as the original data. Protect the
 saved file at the same security class as the original. Note that

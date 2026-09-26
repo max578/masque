@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">masque</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.13.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.14.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -71,31 +71,26 @@
 <div class="section level2">
 <h2 id="why">Why<a class="anchor" aria-label="anchor" href="#why"></a>
 </h2>
-<p>An analyst has only the synthetic table and their own code – the
-custodian kept the original and the recipe. Their question is the one
-every downstream user of a <code>masque</code> clone eventually asks:
-<em>what do I actually get back from the custodian, and what happens the
-day the real data does not quite match what I built against?</em> This
-vignette is written for that analyst’s side of the workflow: what the
-recipe carries, how the round-trip works, and what it does when the two
-sides of the trust boundary disagree.</p>
+<p>An analyst has the synthetic table and their own code; the custodian
+keeps the original and the recipe. This vignette covers what the recipe
+carries, how the analyst’s finished pipeline is run on the original, and
+what happens when the original holds a value the recipe has never
+seen.</p>
 </div>
 <div class="section level2">
 <h2 id="what">What<a class="anchor" aria-label="anchor" href="#what"></a>
 </h2>
 <p>The <code>masque_recipe</code> object returned by <code><a href="../reference/mask.html">mask()</a></code>
 is the only artefact that <em>must</em> stay confidential alongside the
-original – it is an S7 object, accessed through <code><a href="../reference/recipe.html">recipe()</a></code>,
-never touched directly. Two verbs carry the round-trip:
-<code><a href="../reference/apply_recipe.html">apply_recipe()</a></code> translates a data frame from the original
-namespace into the synthetic namespace (the direction a custodian uses
-to re-target an analyst’s finished pipeline), and <code><a href="../reference/unmask.html">unmask()</a></code>
-translates the other way (the direction that recovers original-namespace
-labels from a synthetic-namespace result).
-<code><a href="../reference/save_recipe.html">save_recipe()</a></code>/<code><a href="../reference/read_recipe.html">read_recipe()</a></code> persist a recipe
-to a single <code>.rds</code> file, and <code><a href="../reference/reveal_maps.html">reveal_maps()</a></code> is
-the one explicit, warning-gated call that shows the level maps a
-redacted <code><a href="https://rdrr.io/r/base/print.html" class="external-link">print()</a></code> withholds.</p>
+original; get it with <code><a href="../reference/recipe.html">recipe()</a></code>. Two functions make the
+round-trip. <code><a href="../reference/apply_recipe.html">apply_recipe()</a></code> recodes the original data into
+the clone’s labels and column names, which is how a custodian runs an
+analyst’s finished pipeline on it. <code><a href="../reference/unmask.html">unmask()</a></code> goes the other
+way and turns a result in the clone’s labels back into the original
+ones. <code><a href="../reference/save_recipe.html">save_recipe()</a></code>/<code><a href="../reference/read_recipe.html">read_recipe()</a></code> persist a
+recipe to a single <code>.rds</code> file, and
+<code><a href="../reference/reveal_maps.html">reveal_maps()</a></code> is the one explicit, warning-gated call that
+shows the level maps a redacted <code><a href="https://rdrr.io/r/base/print.html" class="external-link">print()</a></code> withholds.</p>
 </div>
 <div class="section level2">
 <h2 id="do">Do<a class="anchor" aria-label="anchor" href="#do"></a>
@@ -108,7 +103,7 @@ redacted <code><a href="https://rdrr.io/r/base/print.html" class="external-link"
 <span><span class="va">rec</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/recipe.html">recipe</a></span><span class="op">(</span><span class="va">m</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/class.html" class="external-link">class</a></span><span class="op">(</span><span class="va">rec</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "masque::masque_recipe" "S7_object"</span></span></code></pre></div>
-<p>A recipe is runtime-minimal by default. It carries:</p>
+<p>A recipe carries only what the round-trip needs:</p>
 <ul>
 <li>
 <code>masque_version</code>, <code>created_at</code>,
@@ -122,9 +117,9 @@ sensitive part.</li>
 <code>column_name_map</code> – the column-name aliases, when
 <code>alias_names</code> was used (otherwise <code>NULL</code>).</li>
 <li>
-<code>cleaning</code> – the hygiene record (name legalisation,
-whitespace trims) so <code><a href="../reference/apply_recipe.html">apply_recipe()</a></code> re-applies the
-identical tidying.</li>
+<code>cleaning</code> – the tidying done before masking (column
+names made valid R names, whitespace trimmed) so
+<code><a href="../reference/apply_recipe.html">apply_recipe()</a></code> re-applies the identical tidying.</li>
 <li>
 <code>storage_classes</code>, <code>factor_meta</code> – the
 original column classes and factor metadata, for faithful
@@ -174,11 +169,10 @@ back:</p>
 <span><span class="co">#&gt; [1] 72</span></span>
 <span><span class="fu"><a href="../reference/recipe.html">recipe</a></span><span class="op">(</span><span class="va">m_geo</span><span class="op">)</span><span class="op">@</span><span class="va">allow_unmasked_coords</span></span>
 <span><span class="co">#&gt; [1] FALSE</span></span></code></pre></div>
-<p>Every row here shared one true coordinate, so <code>n_sites</code>
-equals the row count – the recipe records that the whole table was
-jittered as one group, not each row independently, which is the
-confidentiality property <code>jitter_coordinates(by = )</code> is
-for.</p>
+<p>Each plot here has its own coordinate, so each plot is a site and
+<code>n_sites</code> equals the number of plots. Rows that share a
+coordinate would share one displacement (see
+<code><a href="../reference/jitter_coordinates.html">jitter_coordinates()</a></code>).</p>
 </div>
 <div class="section level3">
 <h3 id="printing-is-redacted">Printing is redacted<a class="anchor" aria-label="anchor" href="#printing-is-redacted"></a>
@@ -190,14 +184,14 @@ not), but never the vocabularies themselves:</p>
 <code class="sourceCode R"><span><span class="va">rec</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">──</span> <span style="font-weight: bold;">masque_recipe</span> <span style="color: #00BBBB;">───────────────────────────────────────────────────────────────────────────────────</span></span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Created: 2026-09-25 23:51:09 UTC</span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Created: 2026-09-26 08:02:45 UTC</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Mode: collaborate</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Clone fidelity: marginal / structural (global copula)</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Seed: present (redacted)</span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> masque version: 0.13.0</span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> masque version: 0.14.0</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Integrity fingerprint: 0cec319ba9e2...</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; ── <span style="font-weight: bold;">Columns (7 total; 1 level-map(s); 0 column-name map(s))</span> ──</span></span>
+<span><span class="co">#&gt; ── <span style="font-weight: bold;">Columns (7 total; 1 level map; 0 column-name maps)</span> ──</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt;   = design    keep      plot                          (integer)</span></span>
 <span><span class="co">#&gt;   = design    keep      rep                           (factor)</span></span>
@@ -222,10 +216,8 @@ explicit, warning-gated call:</p>
 <div class="section level3">
 <h3 id="the-round-trip">The round-trip<a class="anchor" aria-label="anchor" href="#the-round-trip"></a>
 </h3>
-<p>The recipe is a bidirectional translator. <code><a href="../reference/apply_recipe.html">apply_recipe()</a></code>
-carries the original <em>into</em> the synthetic namespace.
-<code><a href="../reference/unmask.html">unmask()</a></code> carries results <em>back</em>. The usual pattern
-is to fit on the synthetic, then score the original:</p>
+<p>The usual pattern is to fit on the synthetic, recode the original
+with <code><a href="../reference/apply_recipe.html">apply_recipe()</a></code>, and predict on it:</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Analyst trains on the synthetic clone.</span></span>
 <span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/lm.html" class="external-link">lm</a></span><span class="op">(</span><span class="va">yield</span> <span class="op">~</span> <span class="va">gen</span>, data <span class="op">=</span> <span class="fu"><a href="../reference/synthetic.html">synthetic</a></span><span class="op">(</span><span class="va">m</span><span class="op">)</span><span class="op">)</span></span>
@@ -236,54 +228,42 @@ is to fit on the synthetic, then score the original:</p>
 <span><span class="va">preds_match_nrow</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">preds</span><span class="op">)</span> <span class="op">==</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">df</span><span class="op">)</span></span>
 <span><span class="va">preds_match_nrow</span></span>
 <span><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
-<p>Recovering original-namespace labels is symmetric:</p>
+<p><code><a href="../reference/unmask.html">unmask()</a></code> recovers the original labels:</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">fwd</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/apply_recipe.html">apply_recipe</a></span><span class="op">(</span><span class="va">df</span>, <span class="va">rec</span><span class="op">)</span></span>
 <span><span class="va">back</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/unmask.html">unmask</a></span><span class="op">(</span><span class="va">fwd</span>, <span class="va">rec</span><span class="op">)</span></span>
 <span><span class="va">labels_recovered</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="va">back</span><span class="op">$</span><span class="va">gen</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="va">df</span><span class="op">$</span><span class="va">gen</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">labels_recovered</span></span>
 <span><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
-<p>Columns whose action is <code>keep</code> pass through all three
-verbs unchanged. Numeric columns are passed through
-<code><a href="../reference/apply_recipe.html">apply_recipe()</a></code> and <code><a href="../reference/unmask.html">unmask()</a></code> without an inverse
-map – the synthetic and original namespaces coincide for them – so
-<code><a href="../reference/unmask.html">unmask()</a></code> on a numeric prediction vector is a safe
-no-op.</p>
+<p>Columns whose action is <code>keep</code>, numeric columns and
+numeric predictions pass through both functions unchanged.</p>
 </div>
 <div class="section level3">
-<h3 id="fail-closed-translation-and-reading-the-refusal">Fail-closed translation, and reading the refusal<a class="anchor" aria-label="anchor" href="#fail-closed-translation-and-reading-the-refusal"></a>
+<h3 id="fail-closed-translation">Fail-closed translation<a class="anchor" aria-label="anchor" href="#fail-closed-translation"></a>
 </h3>
-<p>If the data drifts – a new treatment level the recipe has never seen
-– <code><a href="../reference/apply_recipe.html">apply_recipe()</a></code> errors rather than silently coercing the
-unknown value to <code>NA</code>:</p>
+<p>If the data drifts, for example a new treatment level the recipe has
+never seen, <code><a href="../reference/apply_recipe.html">apply_recipe()</a></code> stops with an error:</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">drifted</span> <span class="op">&lt;-</span> <span class="va">df</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/levels.html" class="external-link">levels</a></span><span class="op">(</span><span class="va">drifted</span><span class="op">$</span><span class="va">gen</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/levels.html" class="external-link">levels</a></span><span class="op">(</span><span class="va">df</span><span class="op">$</span><span class="va">gen</span><span class="op">)</span>, <span class="st">"BRAND_NEW"</span><span class="op">)</span></span>
 <span><span class="va">drifted</span><span class="op">$</span><span class="va">gen</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="st">"BRAND_NEW"</span></span>
 <span><span class="fu"><a href="../reference/apply_recipe.html">apply_recipe</a></span><span class="op">(</span><span class="va">drifted</span>, <span class="va">rec</span><span class="op">)</span></span>
 <span><span class="co">#&gt; <span style="color: #BBBB00; font-weight: bold;">Error</span><span style="font-weight: bold;"> in `.fail_unmapped()`:</span></span></span>
-<span><span class="co">#&gt; <span style="color: #BBBB00;">!</span> Value(s) not in the recipe's level map in column <span style="color: #00BB00;">gen</span>: <span style="color: #0000BB;">"BRAND_NEW"</span>.</span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> Schema drift or new original-namespace level(s). Unknown values are not coerced to NA</span></span>
+<span><span class="co">#&gt; <span style="color: #BBBB00;">!</span> Value not in the recipe's level map in column <span style="color: #00BB00;">gen</span>: <span style="color: #0000BB;">"BRAND_NEW"</span>.</span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> Schema drift, or original levels the recipe has never seen. Unknown values are not coerced to NA</span></span>
 <span><span class="co">#&gt;   (fail-closed).</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Rebuild the recipe from a dataset that contains these values, or strip them before retargeting.</span></span></code></pre></div>
-<p>Reading the message: it names the exact column (<code>gen</code>) and
-the exact unrecognised value (<code>"BRAND_NEW"</code>), states plainly
-that unknown values are not silently coerced to <code>NA</code>, and
-gives the remedy – rebuild the recipe from a dataset that contains the
-new value, or strip the drifted rows before re-targeting. This is
-deliberate: a model matrix built from a silently-introduced
-<code>NA</code> would fail somewhere downstream with a far less legible
-error, or worse, would not fail at all and would simply drop the drifted
-rows. Schema drift is exactly the kind of change that should stop a
-pipeline at the point it happens, not several steps later.</p>
+<p>The message names the column (<code>gen</code>) and the value
+(<code>"BRAND_NEW"</code>). Rebuild the recipe from data that contains
+the new value, or remove the drifted rows before re-targeting.</p>
 </div>
 <div class="section level3">
 <h3 id="saving-the-recipe">Saving the recipe<a class="anchor" aria-label="anchor" href="#saving-the-recipe"></a>
 </h3>
-<p><code><a href="../reference/save_recipe.html">save_recipe()</a></code> writes a single runtime-minimal
-<code>.rds</code> – small, and safe to store next to the original at the
-same security class. <code><a href="../reference/read_recipe.html">read_recipe()</a></code> validates the file and
-notes a version mismatch without raising an error.</p>
+<p><code><a href="../reference/save_recipe.html">save_recipe()</a></code> writes a single small <code>.rds</code>,
+to be stored next to the original at the same security class.
+<code><a href="../reference/read_recipe.html">read_recipe()</a></code> validates the file and notes a version
+mismatch without raising an error.</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">tmp</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span>fileext <span class="op">=</span> <span class="st">".rds"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/save_recipe.html">save_recipe</a></span><span class="op">(</span><span class="va">rec</span>, <span class="va">tmp</span><span class="op">)</span></span>
@@ -302,7 +282,7 @@ it, operating table by table over a named list:</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">set_dir</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, <span class="st">"met_set"</span>, package <span class="op">=</span> <span class="st">"masque"</span><span class="op">)</span></span>
 <span><span class="va">ms</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/mask_set.html">mask_set</a></span><span class="op">(</span><span class="va">set_dir</span>, mode <span class="op">=</span> <span class="st">"collaborate"</span>, seed <span class="op">=</span> <span class="fl">1L</span>, quiet <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Warning: Numeric environment column(s) <span style="color: #00BB00;">year</span> remain <span style="color: #0000BB;">"keep"</span> in collaborate mode.</span></span>
+<span><span class="co">#&gt; Warning: Numeric environment column <span style="color: #00BB00;">year</span> remains <span style="color: #0000BB;">"keep"</span> in collaborate mode.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> This preserves environment structure but may disclose year or other numeric labels; review before</span></span>
 <span><span class="co">#&gt;   release.</span></span>
 <span><span class="va">originals</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/read_set.html">read_set</a></span><span class="op">(</span><span class="va">set_dir</span><span class="op">)</span></span>
@@ -316,11 +296,9 @@ do.</p>
 <div class="section level3">
 <h3 id="figure-the-clone-the-analyst-actually-develops-against">Figure: the clone the analyst actually develops against<a class="anchor" aria-label="anchor" href="#figure-the-clone-the-analyst-actually-develops-against"></a>
 </h3>
-<p>Everything above works with the <em>labels</em>. The figure below
-shows what the analyst’s numeric column actually looks like – the
-original yield against the synthetic yield the analyst’s pipeline is
-fitted to – which the round-trip checks above, all of them logical
-values, cannot show.</p>
+<p>The checks above are about labels. The figure shows the numeric
+column the analyst works with: the original yield against the synthetic
+yield.</p>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">synth_tbl</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synthetic.html">synthetic</a></span><span class="op">(</span><span class="va">m</span><span class="op">)</span></span>
 <span><span class="va">overlay_df</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span></span>
@@ -347,50 +325,29 @@ default numeric synthesis preserves each column’s marginal distribution.
 <div class="section level2">
 <h2 id="read">Read<a class="anchor" aria-label="anchor" href="#read"></a>
 </h2>
-<p>The round-trip holds on every check run above: the re-targeted
-prediction vector has one entry per original row (TRUE), the recovered
-genotype labels are identical to the original after a forward-then-back
-trip through the recipe (TRUE), and a recipe written to disk and read
-back carries an unchanged integrity fingerprint (TRUE). The coordinate
-account records 72 sites for a fixture where every plot shared one true
-coordinate, which is the row count of the trial – confirming the whole
-table was jittered as one group rather than plot by plot. The
-fail-closed section shows the other side of the same reliability
-property: a value the recipe has never seen is refused, not guessed at,
-so a pipeline re-targeted through <code><a href="../reference/apply_recipe.html">apply_recipe()</a></code> fails at
-the point the data actually drifted rather than downstream with a
-harder-to-diagnose error.</p>
-<p>The figure shows why the round-trip’s logical checks are not the
-whole story: the two densities overlap closely, which is what “the
-marginal distribution is preserved” looks like on real data, but overlap
-in the marginal says nothing about whether a treatment effect or a
-non-linear covariate relationship survived – for that, see
-<em>Confidentiality and the threat model</em>.</p>
-<p>Answering the opening question: the recipe an analyst is handed back
-after their pipeline is finished lets a custodian re-target that exact
-pipeline, unmodified, onto the real data, and the moment the real data
-carries something the recipe was never built from, the translation stops
-rather than guessing.</p>
+<p>All three round-trip checks pass: one prediction per original row,
+the original genotype labels recovered, and the same integrity
+fingerprint after the recipe is saved and read back. A value the recipe
+has never seen stops the translation where the data drifted.</p>
+<p>The two yield densities overlap closely, so the marginal distribution
+is kept. That says nothing about whether a treatment effect or a
+non-linear relationship between columns is kept; see <em>Confidentiality
+and the threat model</em>.</p>
+<p>With the recipe, the custodian can run the analyst’s finished
+pipeline on the real data without changing it.</p>
 </div>
 <div class="section level2">
 <h2 id="limits">Limits<a class="anchor" aria-label="anchor" href="#limits"></a>
 </h2>
-<p>Everything in this vignette exercises one recipe built from one clean
-public trial with no missing structure and no schema drift beyond the
-one planted for the fail-closed demonstration; a recipe built from a
-table with genuinely inconsistent historical vocabularies will refuse
-more often, by design, and the remedy each time is the same – rebuild
-from data that contains the missing values, or strip the drifted rows.
-The round-trip verbs invert exactly what the recipe recorded: a numeric
-column has no inverse map and passes through unchanged, so
-<code><a href="../reference/unmask.html">unmask()</a></code> cannot recover anything about a numeric
-transformation a pipeline applied on its own, and a recipe cannot repair
-a join that was broken outside <code>masque</code> before masking ever
-ran. This vignette does not exercise the leakage audit, the conditional
-clone, or the geographic-coordinate masking controls in depth; those,
-and what the recipe alone cannot protect against a determined reader of
-the synthetic, are <em>Confidentiality and the threat model</em>’s
-subject.</p>
+<p>This vignette uses one recipe built from one clean public trial, with
+one planted drift. A table whose category labels changed over time
+(renamed treatments, retired sites) will be refused more often. The
+round-trip verbs invert only what the recipe recorded: numeric columns
+pass through unchanged, so <code><a href="../reference/unmask.html">unmask()</a></code> cannot undo a numeric
+transformation a pipeline made, and a recipe cannot repair a join that
+was broken before masking. The leakage audit, the conditional clone and
+the coordinate controls are covered in <em>Confidentiality and the
+threat model</em>.</p>
 </div>
 <div class="section level2">
 <h2 id="what-to-read-next">What to read next<a class="anchor" aria-label="anchor" href="#what-to-read-next"></a>
@@ -406,11 +363,10 @@ touch.</p>
 <div class="section level2">
 <h2 id="reproduce">Reproduce<a class="anchor" aria-label="anchor" href="#reproduce"></a>
 </h2>
-<p><code>set.seed(1)</code> is set once for the whole document, and
-every <code><a href="../reference/mask.html">mask()</a></code>/ <code><a href="../reference/mask_set.html">mask_set()</a></code> call also passes
-<code>seed = 1L</code> explicitly, so each is independently reproducible
-regardless of what ran before it in this vignette. Package versions
-follow.</p>
+<p><code>set.seed(1)</code> is set once for the document, and every
+<code><a href="../reference/mask.html">mask()</a></code> or <code><a href="../reference/mask_set.html">mask_set()</a></code> call passes
+<code>seed = 1L</code>, so each is reproducible on its own. Package
+versions follow.</p>
 <div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/sessionInfo.html" class="external-link">sessionInfo</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="co">#&gt; R version 4.6.1 (2026-06-24)</span></span>
@@ -433,7 +389,7 @@ follow.</p>
 <span><span class="co">#&gt; [1] stats     graphics  grDevices utils     datasets  methods   base     </span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; other attached packages:</span></span>
-<span><span class="co">#&gt; [1] masque_0.13.0</span></span>
+<span><span class="co">#&gt; [1] masque_0.14.0</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; loaded via a namespace (and not attached):</span></span>
 <span><span class="co">#&gt;  [1] gtable_0.3.6        jsonlite_2.0.0      compiler_4.6.1      maps_3.4.3         </span></span>

@@ -134,7 +134,7 @@ m <- mask(df, roles, mode = "collaborate", seed = 1L)
 #> • state: scramble -> keep
 #> • lat: drop -> scramble
 #> • lon: drop -> scramble
-#> Warning: audit_mask() flagged HIGH leakage on column(s): lat, lon
+#> Warning: audit_mask() flagged HIGH leakage on columns: lat, lon
 centroids <- list(
   NSW = c(lat = -32.5, lon = 147),
   VIC = c(lat = -36.5, lon = 144)

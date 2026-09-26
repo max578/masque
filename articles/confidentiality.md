@@ -2,12 +2,10 @@
 
 ## Why
 
-A custodian is about to hand a synthetic table to a collaborator and
-asks the question anyone in that position should ask before clicking
-send: *exactly what does this protect, what does it not, and what
-happens if I get a column’s sensitivity wrong?* This vignette answers
-all three, on worked examples that trip the package’s own safeguards for
-real rather than only describing them.
+A custodian about to send a synthetic table to a collaborator needs to
+know what it protects, what it does not, and what happens if a column’s
+sensitivity is set wrongly. This vignette covers all three, with
+examples that trigger the package’s safeguards.
 
 `masque` is **not** a privacy-preserving or differential-privacy tool.
 It is a structurally faithful development surrogate. Read this vignette
@@ -15,9 +13,8 @@ before sharing any `masque` output beyond your own machine.
 
 ## What
 
-The recipe returned by
-[`mask()`](https://max578.github.io/masque/reference/mask.md) is at
-least as sensitive as the original data. The whole design assumes that
+The recipe on its own reveals little, but the recipe and the synthetic
+together are as sensitive as the original data. The design assumes that
 only the *synthetic* crosses the trust boundary and the recipe stays
 with the custodian:
 
@@ -28,19 +25,18 @@ with the custodian:
 | Recipe only | Original raw values | Nothing useful – the recipe is meaningless without the synthetic |
 | Synthetic + external side information | Identity of treatments / sites | The label vocabulary and the order it was in. A preserved design footprint or a `keep` column is recognisable, level frequencies are unchanged, and side information wins |
 
-What `masque` does: it preserves enough structure for pipelines to run
-unchanged, exposes the privacy-versus-fidelity trade-off through two
-explicit modes, records every translation in a private recipe that
-round-trips, and audits its own output before it is shared.
+`masque` keeps enough structure for a pipeline to run unchanged. Two
+modes set the balance between privacy and fidelity, every translation is
+written to a private recipe that round-trips, and the output is audited
+before it is shared.
 
-What `masque` does not do: it gives no differential-privacy guarantee,
-it does not make output safe for public release, it does not hide rare
-strata, small designs, or operational metadata such as small
-site-by-year combinations or contact names, and it does not rewrite
-pipeline source code.
+It gives no differential-privacy guarantee and does not make output safe
+for public release. It does not hide rare strata, small designs, thin
+site-by-year cells or contact names, and it does not change pipeline
+code.
 
-Since version 0.6.0, every column carries a `role` (what it is) and an
-`action` (how deeply it is masked, from
+Every column carries a `role` (what it is) and an `action` (how deeply
+it is masked, from
 [`role_options()`](https://max578.github.io/masque/reference/role_options.md)’s
 validated grid: `keep`, `scramble`, `alias`, `drop`).
 [`mask()`](https://max578.github.io/masque/reference/mask.md)’s `mode`
@@ -129,9 +125,9 @@ Two limits go with that, and they are the custodian’s to manage:
   [`audit_mask()`](https://max578.github.io/masque/reference/audit_mask.md)
   reports those counts so the exposure is visible rather than implicit.
 
-An alias therefore raises the cost of re-identification; it is not a
-cryptographic commitment, and none of it is a differential-privacy
-guarantee.
+An alias therefore raises the cost of re-identification. It cannot be
+relied on against a determined attacker, and none of it is a
+differential-privacy guarantee.
 
 ### The conditional clone: preserving the treatment effect
 
@@ -150,10 +146,8 @@ a clone.
 `conditional = TRUE` argument fixes this. It fits and samples the copula
 *within each treatment-by-design stratum* rather than pooling, so a
 row’s synthetic outcome inherits the location of the treatment that row
-carries. The treatment-to-outcome map – the quantity a causal model
-reads – survives the clone, within sampling tolerance. This is the
-data-side analogue of preserving a conditional mean embedding rather
-than a pooled marginal.
+carries. The treatment effect a causal model estimates is kept, within
+sampling tolerance.
 
 The contrast is easiest to see on a two-arm trial with a known effect:
 
@@ -250,13 +244,7 @@ knitr::kable(
 Both clones preserve the pooled mean and SD of yield; only the
 conditional clone preserves the arm-to-arm difference. {.table}
 
-### Figure: what the table above cannot show
-
-The table reports two point estimates against one reference line in
-text. The figure below draws the same three numbers as bars against a
-reference line, which makes the direction and near-total size of the
-marginal clone’s collapse visible at a glance in a way that reading two
-rows of a table does not.
+### Figure: the effect on each clone
 
 ``` r
 
@@ -280,16 +268,16 @@ ggplot2::ggplot(
   ggplot2::theme_minimal()
 ```
 
-![Estimated treatment effect (kg/ha equivalent yield units) on the
-marginal versus conditional clone, against the true effect fitted on the
-original trial (dashed line). The marginal clone collapses the effect
-toward zero; the conditional clone recovers
+![Estimated treatment effect (yield units) on the marginal versus
+conditional clone, against the true effect fitted on the original trial
+(dashed line). The marginal clone collapses the effect toward zero; the
+conditional clone recovers
 it.](confidentiality_files/figure-html/fig-conditional-1.png)
 
-Estimated treatment effect (kg/ha equivalent yield units) on the
-marginal versus conditional clone, against the true effect fitted on the
-original trial (dashed line). The marginal clone collapses the effect
-toward zero; the conditional clone recovers it.
+Estimated treatment effect (yield units) on the marginal versus
+conditional clone, against the true effect fitted on the original trial
+(dashed line). The marginal clone collapses the effect toward zero; the
+conditional clone recovers it.
 
 The conditioning columns – the treatment plus any retained design
 columns – are recorded on the recipe, so the choice is auditable:
@@ -329,9 +317,9 @@ shift: the county means, the replicate means and the block means of the
 original survive even when the stratum the copula is fitted in is the
 treatment alone. Those means are therefore a stated property of the
 clone, in the same way the treatment means are. The recipe lists them as
-`conditioning_shifted`. The ladder of 0.11.1 to 0.12.0, which drops the
-column with the most levels first and keeps nothing of it, is still
-available as `ladder = "levels"`.
+`conditioning_shifted`. `ladder = "levels"` reproduces clones made with
+masque 0.11.1 to 0.12.0: it drops the column with the most levels first
+and keeps nothing of it.
 
 Any coarsening, and any residual pooling, raises a classed
 `masque_conditional_degraded` warning naming the columns given up and
@@ -416,7 +404,7 @@ correctly on the real data. Validating such a step means round-tripping
 it onto the original through the recipe, not trusting its result on the
 clone.
 
-### The leakage audit, and a refusal for real
+### The leakage audit, and a refused write
 
 [`audit_mask()`](https://max578.github.io/masque/reference/audit_mask.md)
 inspects the synthetic against the original and grades the leakage of
@@ -461,8 +449,8 @@ knitr::kable(
 The proposed plan: `contact_email` is auto-flagged `pii_suspected` and
 dropped. {.table}
 
-The custodian overrides the flag – pretending they insist on keeping
-`contact_email` – and makes the rare column a covariate, then masks:
+Suppose the custodian overrides the flag, keeps `contact_email`, and
+makes the rare column a covariate:
 
 ``` r
 
@@ -470,7 +458,7 @@ roles <- set_role(roles, "yield", role = "outcome")
 roles <- set_role(roles, "contact_email", role = "covariate", action = "keep")
 roles <- set_role(roles, "rare_treatment", role = "covariate")
 m <- mask(df, roles, mode = "collaborate", seed = 1L)
-#> Warning: audit_mask() flagged HIGH leakage on column(s): contact_email, rare_treatment
+#> Warning: audit_mask() flagged HIGH leakage on columns: contact_email, rare_treatment
 knitr::kable(
   audit_mask(m)[, c("col", "leakage_class", "notes")],
   caption = paste0(
@@ -507,26 +495,24 @@ The mask-time audit: `contact_email` and `rare_treatment` both flag
 HIGH. {.table}
 
 `contact_email` (real values kept across the trust boundary) and
-`rare_treatment` (a frequency-one level) are flagged. `masque` responds
-on two channels. At construction time,
+`rare_treatment` (a frequency-one level) are flagged.
 [`mask()`](https://max578.github.io/masque/reference/mask.md) raised a
 classed `masque_high_leakage` warning above and recorded the findings in
-`recipe@warnings` – the guided
+`recipe@warnings`; the guided
 [`masque()`](https://max578.github.io/masque/reference/masque.md) flow
-never silences it. At write time, the package-managed writers refuse
-outright while a HIGH finding stands, which the call below shows for
-real rather than only describing:
+never silences it. While a HIGH finding stands, the package will not
+write the synthetic to disk:
 
 ``` r
 
 out_dir <- tempfile()
 masque(df, roles = roles, out = out_dir, mode = "collaborate", seed = 1L,
        quiet = TRUE)
-#> Warning: audit_mask() flagged HIGH leakage on column(s): contact_email, rare_treatment
+#> Warning: audit_mask() flagged HIGH leakage on columns: contact_email, rare_treatment
 #> Error in `.gate_release()`:
 #> ! Write blocked: the audit flagged HIGH leakage on 2 columns.
 #> ✖ Flagged: contact_email, rare_treatment.
-#> ℹ Re-role, alias, or drop the flagged column(s), then mask again.
+#> ℹ Re-role, alias, or drop each flagged column, then mask again.
 #> ℹ Or pass `allow_high = TRUE` to write anyway after your own review - the override is recorded.
 dir.exists(out_dir)
 #> [1] FALSE
@@ -558,7 +544,7 @@ regardless of masking).
 
 set_dir <- system.file("extdata", "met_set", package = "masque")
 ms <- mask_set(set_dir, mode = "collaborate", seed = 1L, quiet = TRUE)
-#> Warning: Numeric environment column(s) year remain "keep" in collaborate mode.
+#> Warning: Numeric environment column year remains "keep" in collaborate mode.
 #> ℹ This preserves environment structure but may disclose year or other numeric labels; review before
 #>   release.
 ag <- synthetic(ms)$agronomy
@@ -710,53 +696,24 @@ radii calibrated to the local field density rather than the default.
 
 ## Read
 
-The design-alias demonstration keeps the three-site structure intact –
-the table above still shows three groups of six plots – while the site
-names themselves are gone (TRUE): structure survives, labels do not,
-exactly what an `alias` action on a design column is for.
+Aliasing a design column hides the site names and keeps the layout. The
+alias map hides which label is which, but not how often each occurs.
 
-The conditional-clone contrast is the sharpest number in this vignette.
-The trial’s true treatment effect, fitted on the original data, is 4.99
-yield units. The default marginal clone recovers only 0.25, because
-pooling the copula across arms erases the arm-to-arm difference it was
-never told to keep. The conditional clone recovers 5.14, inside sampling
-tolerance of the true effect, because stratifying the copula by
-treatment keeps each arm’s synthetic outcomes anchored to that arm’s
-real location. The figure shows the same result as two bars against the
-true-effect line: one bar sits near zero, the other sits on the line.
-Both clones still match the original’s pooled mean and SD of yield, so a
-pipeline that only checks marginal fidelity would not notice the
-marginal clone’s collapsed effect at all – checking the number a
-pipeline actually needs is what this section demonstrates.
+The default clone keeps the pooled mean and SD of yield but loses the
+treatment effect (0.25 against a true 4.99), and a pipeline that checks
+only marginal fidelity would not notice. The conditional clone keeps it
+(5.14). Neither keeps a non-monotone relationship between two numeric
+columns.
 
-The monotone-versus-non-monotone comparison shows the copula’s real
-boundary: a linear relationship’s R-squared survives cloning almost
-unchanged, while a U-shaped relationship’s R-squared drops to what a
-straight correlation coefficient would already have predicted – near
-zero. `conditional = TRUE` does not touch this limitation, because it
-acts on strata of the outcome’s location, not on the shape of a
-covariate relationship.
+The audit caught both planted problems and the write was refused:
+`dir.exists(out_dir)` is FALSE. Linked tables share one alias map for
+their key, so they still join.
 
-The leakage audit flags both planted problems – the retained PII column
-and the frequency-one level – and the write call that followed was
-refused outright: `dir.exists(out_dir)` above reads FALSE, confirming
-the target directory was never created. That is the fail-closed
-behaviour this vignette set out to show for real, not only describe: a
-HIGH finding blocks a package-managed write unconditionally, until the
-custodian either fixes the plan or explicitly overrides it.
-
-The multi-table join survives masking (TRUE): `agronomy` and `quality`
-share exactly the same aliased genotype codes, because
-[`mask_set()`](https://max578.github.io/masque/reference/mask_set.md)
-draws the shared key’s alias once and applies it to every table that
-carries it.
-
-Answering the opening question: a synthetic clone protects the
-vocabulary and the raw values behind it, not the design footprint, the
-level frequencies, or (without `conditional = TRUE`) a
-treatment-to-outcome relationship a pipeline might be built to estimate.
-Getting a column’s sensitivity wrong is caught by the audit before
-anything is written, not after.
+A synthetic clone therefore protects the labels and the raw values
+behind them. It does not hide the design footprint or the level
+frequencies, and without `conditional = TRUE` it does not keep a
+treatment effect. A column whose sensitivity was set wrongly is caught
+by the audit before anything is written.
 
 ## Limits
 
@@ -823,7 +780,7 @@ sessionInfo()
 #> [1] stats     graphics  grDevices utils     datasets  methods   base     
 #> 
 #> other attached packages:
-#> [1] masque_0.13.0
+#> [1] masque_0.14.0
 #> 
 #> loaded via a namespace (and not attached):
 #>  [1] vctrs_0.7.3         cli_3.6.6           knitr_1.52          rlang_1.3.0        

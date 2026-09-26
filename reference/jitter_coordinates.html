@@ -25,7 +25,7 @@ of points can move much further than intended.'></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">masque</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.13.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.14.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -162,7 +162,7 @@ pushed offshore. The original NA pattern is preserved cell-by-cell and the
 two axes stay paired (if either coordinate is missing, both are set to NA).</p>
     </div>
     <div class="section level2">
-    <h2 id="a-coordinate-belongs-to-a-site-not-to-a-row">A coordinate belongs to a site, not to a row<a class="anchor" aria-label="anchor" href="#a-coordinate-belongs-to-a-site-not-to-a-row"></a></h2>
+    <h2 id="one-displacement-per-site">One displacement per site<a class="anchor" aria-label="anchor" href="#one-displacement-per-site"></a></h2>
 
 
 
@@ -182,15 +182,15 @@ consolidation is reported.</p></li>
 <li><p><code>by = FALSE</code> restores the pre-0.10.0 behaviour of displacing every row
 independently, and warns if the input carries repeated coordinate pairs.
 It exists only so a table masked by an earlier version can be reproduced.</p></li>
-</ul><p>Per-row displacement of a repeated coordinate is not merely unfaithful, it
-leaks. Donut displacement is isotropic, so the mean of many independent
-draws around one true site converges on that site: averaging the 360 rows of
+</ul><p>Displacing each row of a repeated coordinate separately leaks the site.
+Donut displacement is isotropic, so the mean of many independent draws
+around one true site converges on that site: averaging the 360 rows of
 a single trial recovers the true position to a median 0.58 km, against the
 5 km floor the donut was asked for. One draw per site removes the estimator
 and leaves the full displacement in place.</p>
     </div>
     <div class="section level2">
-    <h2 id="rebuilding-and-the-displacement-budget">Rebuilding, and the displacement budget<a class="anchor" aria-label="anchor" href="#rebuilding-and-the-displacement-budget"></a></h2>
+    <h2 id="repeated-rebuilds">Repeated rebuilds<a class="anchor" aria-label="anchor" href="#repeated-rebuilds"></a></h2>
 
 
 
@@ -199,32 +199,32 @@ across several. Each rebuild with a fresh seed draws independently, so a
 site masked repeatedly and kept in several versions can be averaged back
 out, exactly as its rows could be before. Measured at the 5-20 km default:</p>
 <table class="table table"><tr><td>Rebuilds kept</td><td>Median recovery error</td></tr><tr><td>1</td><td>14.2 km</td></tr><tr><td>2</td><td>10.1 km</td></tr><tr><td>4</td><td>6.4 km</td></tr><tr><td>8</td><td>4.5 km</td></tr><tr><td>16</td><td>3.1 km</td></tr></table><p>Eight kept rebuilds fall below the 5 km floor the donut was asked for.</p>
-<p>The remedy costs nothing: <strong>reuse the seed</strong>. The same <code>seed</code> reproduces the
+<p>The remedy is to <strong>reuse the seed</strong>. The same <code>seed</code> reproduces the
 same displacement for the same sites, so any number of rebuilds yields one
 point and nothing to average. Draw a fresh seed only when you intend to
 supersede every earlier version, and retire the ones you replace.</p>
 <p>Choose the unit carefully. It is the finest grouping that denotes <strong>one
 physical place at one time</strong>. For a multi-year trial series that is location
 by year, not location alone: trials at one named location in different
-seasons legitimately sit in different paddocks, and collapsing that real
-variation would be as wrong as inventing it.</p>
+seasons usually sit in different paddocks, and one displacement for all of
+them would misplace every season but one.</p>
     </div>
     <div class="section level2">
     <h2 id="choosing-the-magnitude">Choosing the magnitude<a class="anchor" aria-label="anchor" href="#choosing-the-magnitude"></a></h2>
 
 
 
-<p>The right displacement is not a universal constant: it is calibrated to the
-density of the entities you are protecting, so that the masked point is
-spatially k-anonymous (roughly, at least k comparable entities lie closer to
-the masked point than the true one). Individual-level urban health data is
+<p>The right displacement depends on the density of the entities you are
+protecting: the masked point should be spatially k-anonymous (roughly, at
+least k comparable entities lie closer to the masked point than the true
+one). Individual-level urban health data is
 typically masked with a standard deviation of about 1 km, because cities are
 dense. Agricultural fields and farms are orders of magnitude sparser, so a
 comparable level of protection needs a much larger displacement – a donut of
 roughly 5 to 20 km (the default) moves a point across several properties
 while keeping it in the same agroclimatic region. For a formal guarantee,
-calibrate <code>min_km</code> / <code>max_km</code> to the local field density to hit a target
-k-anonymity rather than relying on the default.</p>
+calibrate <code>min_km</code> / <code>max_km</code> to the local field density to reach a target
+k-anonymity.</p>
     </div>
     <div class="section level2">
     <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a></h2>
