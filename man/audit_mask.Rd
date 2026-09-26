@@ -55,6 +55,10 @@ Classification heuristics:
 \code{medium}.
 \item Ignore column retained in local -> \code{low} (informational).
 }
+
+As a reference point, a collaborate-mode clone of \code{agridat::besag.met}
+(yield as the outcome, design columns kept) scores \code{low} on every
+column, and none of its yields equals the original value.
 }
 \examples{
 r <- propose_roles(iris)

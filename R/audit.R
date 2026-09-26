@@ -37,6 +37,10 @@
 #'   \item Ignore column retained in local -> `low` (informational).
 #' }
 #'
+#' As a reference point, a collaborate-mode clone of `agridat::besag.met`
+#' (yield as the outcome, design columns kept) scores `low` on every
+#' column, and none of its yields equals the original value.
+#'
 #' @param m A `masque` object from [mask()].
 #' @param original Optional. Required when `m@audit` is NULL (typically
 #'   in local mode). Used to recompute exact-match-pct etc. on demand.
