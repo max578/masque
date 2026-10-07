@@ -2,47 +2,46 @@
 
 > Structurally faithful development surrogates for tabular data.
 
-`masque` turns a confidential tabular dataset – a single table, a folder
-of files, or a multi-sheet workbook – into a structurally faithful
-synthetic clone whose experimental design, NA pattern, and global
-covariance are close enough to the original that pipeline code runs
-unchanged. It returns a private `recipe` that round-trips: a pipeline
-written against the synthetic re-targets to the original data with no
-source changes.
+`masque` makes a synthetic copy of a confidential table that keeps its
+design, missing values and correlations. Analysts write and test code on
+the copy. The data custodian then runs the finished code on the real
+data, using a private recipe that translates names and labels.
 
-The custodian holds the data and the recipe; the analyst gets only the
-synthetic.
+It is for custodians of confidential research data who want an outside
+analyst to build the analysis without seeing the data, and for the
+analysts who build it. The input can be a single table, a folder of
+files or a multi-sheet workbook.
 
-Pre-CRAN; tagged releases on the GitHub repository. See `NEWS.md` for
-the current version and full changelog. If you are masking a table with
-a coordinate column and last read this from a pre-0.10.0 tag: 0.10.0
-changed the per-site coordinate displacement, and 0.11.0 made an
-unmasked coordinate column an error by default
-(`masque_unmasked_coords`) – re-read
-[`vignette("confidentiality")`](https://max578.github.io/masque/articles/confidentiality.md)
-before re-running a coordinate-bearing mask.
+**Security note.** Clones made with masque 0.13.0 or earlier can reveal
+which alias stands for which label. If you shared one, make it again
+with 0.14.0 and share the new clone instead. The same seed gives the
+same values.
+
+The current version is 0.14.0. See the
+[changelog](https://max578.github.io/masque/news/index.html) for what
+changed in each release.
 
 ------------------------------------------------------------------------
 
 ## Installation
 
-From GitHub:
+Pre-built binaries from r-universe:
+
+``` r
+
+install.packages(
+  "masque",
+  repos = c("https://max578.r-universe.dev", "https://cloud.r-project.org")
+)
+```
+
+Or from GitHub:
 
 ``` r
 
 # install.packages("pak")
 pak::pak("max578/masque")
 ```
-
-A companion r-universe distribution will provide pre-built binaries once
-the registry is live:
-
-``` r
-
-install.packages("masque", repos = "https://max578.r-universe.dev")
-```
-
-CRAN submission is in preparation.
 
 ------------------------------------------------------------------------
 
@@ -57,7 +56,8 @@ f  <- system.file("extdata", "john_alpha.csv", package = "masque")
 df <- read.csv(f, stringsAsFactors = TRUE)
 
 # One guided call: read -> propose roles -> (review) -> mask -> audit.
-# In an interactive session it pauses to let you review the plan.
+# In an interactive session it pauses to let you review the plan;
+# ask = FALSE skips the pause.
 m <- masque(df, mode = "collaborate", seed = 1L)
 
 synth <- synthetic(m)   # hand this to the analyst
@@ -70,34 +70,27 @@ fit <- lm(yield ~ gen + rep, data = synth)
 preds <- predict(fit, newdata = apply_recipe(df, rec))
 ```
 
-A folder of files or a multi-sheet workbook works the same way – pass
-the path to
+A folder of files or a multi-sheet workbook works the same way. Pass the
+path to
 [`masque()`](https://max578.github.io/masque/reference/masque.md) and it
 masks every table at once, aliasing shared keys consistently so the
 synthetic tables still join.
 
-See
-[`vignette("getting_started", package = "masque")`](https://max578.github.io/masque/articles/getting_started.md)
-for the full walk-through.
+If the table needs tidying first,
+[`clean_table()`](https://max578.github.io/masque/reference/clean_table.md)
+makes column names valid and trims whitespace, and
+[`conform_table()`](https://max578.github.io/masque/reference/conform_table.md)
+merges near-duplicate labels and sets column types, reporting each
+change.
 
 ### Multi-environment trials
 
 [`detect_design()`](https://max578.github.io/masque/reference/detect_design.md)
-treats environment scope, treatment connectivity, and within-environment
-design as separate questions. It conservatively recognises explicit
-environment columns and common site-year structures, while uncertain or
-competing candidates remain unresolved.
-[`propose_roles()`](https://max578.github.io/masque/reference/propose_roles.md)
-protects only high-confidence environment allocations automatically:
-local mode keeps the values, while collaborate mode aliases categorical
-environment labels without moving observations between environments.
-Numeric environment labels remain visible and raise a disclosure warning
-for review.
-
-Preserving allocation structure does not preserve
-genotype-by-environment effects in synthesised outcomes. The clone
-remains a pipeline-development surrogate, not a substitute dataset for
-scientific inference.
+recognises environment columns, such as site or year, and the design
+within each environment. In collaborate mode the environment labels are
+aliased and every row stays in its environment. The clone does not keep
+genotype-by-environment effects, so it is no substitute for the real
+data in scientific inference.
 
 ------------------------------------------------------------------------
 
@@ -105,9 +98,9 @@ scientific inference.
 
 `masque` is **not** a privacy-preserving or differential-privacy tool.
 It is a **structurally faithful development surrogate** with explicit
-confidentiality guardrails. Read
-[`vignette("confidentiality", package = "masque")`](https://max578.github.io/masque/articles/confidentiality.md)
-before using.
+confidentiality guardrails. Read [Confidentiality and the threat
+model](https://max578.github.io/masque/articles/confidentiality.html)
+before using it.
 
 **What `masque` does**
 
@@ -115,12 +108,16 @@ before using.
 - Provides two explicit modes: `local` for owner-only realistic
   surrogates, and `collaborate` for controlled sharing with opaque
   aliasing, numeric jitter, and an automatic leakage audit.
-- Preserves the treatment-to-outcome relationship on request
-  (`conditional = TRUE`), so a causal model fitted on the clone recovers
-  the real treatment effect, not just the marginal distribution.
+- Keeps treatment, block and environment means on request
+  (`conditional = TRUE`). Treatment means on the clone then track those
+  of the real data, and block and environment effects stay detectable.
+  [What a conditional clone keeps of the
+  design](https://max578.github.io/masque/articles/design_preservation.html)
+  tests this on eight field designs.
 - Records every translation (column names, factor levels) in a private
-  `recipe` object that is, at minimum, as sensitive as the original
-  data.
+  `recipe`. The recipe holds the real labels, the original column names
+  and the seed, so together with the synthetic it undoes every alias.
+  Keep it with the original data and never send it with the synthetic.
 - Audits its own output
   ([`audit_mask()`](https://max578.github.io/masque/reference/audit_mask.md)),
   raises HIGH findings as classed warnings the guided flow never
@@ -145,37 +142,45 @@ before using.
 In the Five Safes framework for controlled data access, `masque`
 contributes to *Safe Data* and *Safe Outputs*; Safe People, Safe
 Projects, and Safe Settings are governance questions no package can
-answer. The recipe is at least as sensitive as the original. Never share
-the recipe and the synthetic together. The collaborate workflow assumes
-only the synthetic crosses the trust boundary.
+answer. The collaborate workflow assumes only the synthetic crosses the
+trust boundary.
 
 ------------------------------------------------------------------------
 
 ## Documentation
 
-- [`vignette("getting_started")`](https://max578.github.io/masque/articles/getting_started.md)
-  – the one-call path on a public fixture.
-- [`vignette("confidentiality")`](https://max578.github.io/masque/articles/confidentiality.md)
-  – full threat model, the two modes, and the depth controls.
-- [`vignette("recipe_anatomy")`](https://max578.github.io/masque/articles/recipe_anatomy.md)
-  – what a recipe holds and how the round-trip re-targets a pipeline
-  onto the original.
-- [`vignette("design_preservation")`](https://max578.github.io/masque/articles/design_preservation.md)
-  – what a conditional clone keeps of eight classic field designs,
-  tested against one pass rule.
+Articles, in reading order:
 
-Reference index: <https://max578.github.io/masque/> – full per-function
-docs + rendered vignettes, deployed from the `gh-pages` branch.
+1.  [Getting started with
+    masque](https://max578.github.io/masque/articles/getting_started.html):
+    the one-call path on a public fixture.
+2.  [Recipe anatomy and the
+    round-trip](https://max578.github.io/masque/articles/recipe_anatomy.html):
+    what a recipe holds and how a pipeline built on the synthetic runs
+    on the original.
+3.  [Confidentiality and the threat
+    model](https://max578.github.io/masque/articles/confidentiality.html):
+    what a clone protects, the two modes, and the depth controls.
+4.  [What a conditional clone keeps of the
+    design](https://max578.github.io/masque/articles/design_preservation.html):
+    eight classic field designs tested against one pass rule.
 
-API stability policy: see `API_STABILITY.md`.
+The [function
+reference](https://max578.github.io/masque/reference/index.html)
+documents every exported function. Also on the site: [API stability
+policy](https://max578.github.io/masque/API_STABILITY.html),
+[changelog](https://max578.github.io/masque/news/index.html),
+[contributing guide](https://max578.github.io/masque/CONTRIBUTING.html)
+and [licence](https://max578.github.io/masque/LICENSE.html).
 
 ------------------------------------------------------------------------
 
 ## Contributing
 
 Bug reports and suggestions are welcome as [GitHub
-issues](https://github.com/max578/masque/issues). See `CONTRIBUTING.md`
-before opening a pull request.
+issues](https://github.com/max578/masque/issues). Read the [contributing
+guide](https://max578.github.io/masque/CONTRIBUTING.html) before opening
+a pull request.
 
 ------------------------------------------------------------------------
 
@@ -186,11 +191,10 @@ before opening a pull request.
 citation("masque")
 ```
 
-The package also ships a `CITATION.cff` file; GitHub renders a “Cite
-this repository” widget on the repo landing page.
+The package also ships a `CITATION.cff` file.
 
 ------------------------------------------------------------------------
 
 ## License
 
-MIT. See `LICENSE` and `LICENSE.md`.
+MIT. See the [licence](https://max578.github.io/masque/LICENSE.html).

@@ -21,10 +21,10 @@ and is not protected; read it before sharing any output.
 ## What
 
 [`masque()`](https://max578.github.io/masque/reference/masque.md) is the
-front door: point it at a table (or a folder or workbook of related
-tables) and it reads the data, proposes a masking plan, masks, and – in
-an interactive session – pauses to let the custodian review the plan
-first.
+main function. Point it at a table, or a folder or workbook of related
+tables, and it reads the data, proposes a masking plan and masks. In an
+interactive session it pauses first so the custodian can review the
+plan.
 
 The output of
 [`masque()`](https://max578.github.io/masque/reference/masque.md) is
@@ -46,8 +46,9 @@ The role says what the column is: `design`, `treatment`, `outcome`,
 happens to it:
 
 - `keep` passes it through unchanged;
-- `scramble` re-simulates numerics through a Gaussian copula, or
-  shuffles categories and dates between rows;
+- `scramble` re-simulates numerics through a Gaussian copula and
+  shuffles categories and dates between rows. For a treatment it swaps
+  the labels among the levels, so the allocation is unchanged;
 - `alias` replaces the labels with opaque codes (a categorical covariate
   is shuffled between rows first);
 - `drop` leaves it out.
@@ -65,7 +66,7 @@ The `mode` argument sets the defaults for both axes at once:
 
 A per-column `action` always overrides the mode’s default.
 
-## Do
+## Example
 
 ### The one-call path
 
@@ -167,10 +168,9 @@ The proposed masking plan for the alpha-design trial (collaborate mode).
 [`propose_roles()`](https://max578.github.io/masque/reference/propose_roles.md)
 fills in a sensible action for each column given the mode, so the table
 reviewed here is the plan that will run. `yield` was proposed as a
-`covariate`; naming it the trial’s `outcome` changes nothing about how
-it is masked, but it documents intent and is what a downstream consumer
-such as the *conditional* clone (see *Confidentiality and the threat
-model*) reads to find the response:
+`covariate`. Naming it the trial’s `outcome` does not change how it is
+masked. It records intent, and the *conditional* clone (see
+*Confidentiality and the threat model*) reads it to find the response:
 
 ``` r
 
@@ -200,9 +200,9 @@ jointly.
 
 ### Editing the plan as code
 
-The printed table – and the spreadsheet the guided prompt opens when the
-custodian chooses `e` – is an ordinary data frame, so anything the
-editor can do, a script can do reproducibly.
+The plan is a data frame, so you can edit it in code. The spreadsheet
+the guided prompt opens when the custodian chooses `e` edits the same
+table.
 [`set_role()`](https://max578.github.io/masque/reference/set_role.md) is
 vectorised over columns:
 
@@ -350,7 +350,7 @@ a hand edit or the guided spreadsheet.
 A confidential dataset often arrives as several related files or a
 multi-sheet workbook.
 [`masque()`](https://max578.github.io/masque/reference/masque.md)
-handles those too – point it at a folder, an `.xlsx` file, or a named
+handles those too. Point it at a folder, an `.xlsx` file, or a named
 list of data frames and it masks every table at once, aliasing any
 shared key (a site code, a genotype name) *identically across tables* so
 a join of the synthetic tables still resolves.
@@ -394,18 +394,19 @@ same codes in each, so the field and laboratory tables still join. See
 
 ### Multi-environment structure
 
-A multi-environment trial has at least three distinct structural
-questions: which rows belong to each environment, whether treatments
-connect the environments, and what randomisation structure can be
-recovered within each environment.
+For a multi-environment trial,
 [`detect_design()`](https://max578.github.io/masque/reference/detect_design.md)
-reports these separately. Connectivity says whether environments can be
-compared; it does not decide whether the trial is multi-environment. A
-block or field layout seen in the data suggests the original
-randomisation but does not confirm it.
+answers three questions separately:
 
-A small synthetic toy with two environments and three genotypes makes
-the three questions concrete:
+1.  Which rows belong to each environment?
+2.  Do the treatments connect the environments, so that they can be
+    compared?
+3.  What randomisation structure can be recovered within each
+    environment?
+
+A block or field layout seen in the data suggests the original
+randomisation but does not confirm it. A small toy with two environments
+and three genotypes:
 
 ``` r
 
@@ -429,10 +430,10 @@ ds@within_design_label
 
 Automatic detection is conservative. A column named `env` or
 `environment`, or a common site-year pattern, is taken as the
-environment only when no other column explains the structure as well; a
-site-only column is taken only when treatments are replicated across
-sites, so a nested block is not mistaken for an environment. When you
-know the environment columns, name them:
+environment only when no other column explains the structure as well. A
+site column on its own is taken only when treatments are replicated
+across sites, so a nested block is not mistaken for an environment. When
+you know the environment columns, name them:
 
 ``` r
 
@@ -441,9 +442,11 @@ ds_explicit <- detect_design(met, env = "env")
 
 ### Figure: the multi-environment coverage plot
 
-`plot.design_summary()` draws a compact environment overview by default,
-in base graphics or, with `engine = "ggplot2"`, as a `ggplot2` object
-you can save with
+[`plot()`](https://rdrr.io/r/graphics/plot.default.html) on a design
+summary, or
+[`plot_design_summary()`](https://max578.github.io/masque/reference/plot_design_summary.md),
+draws a compact environment overview in base graphics. With
+`engine = "ggplot2"` it returns a `ggplot2` object you can save with
 [`ggplot2::ggsave()`](https://ggplot2.tidyverse.org/reference/ggsave.html);
 printed, it is the figure below. It shows whether coverage is even
 across environments, which the connectivity flag alone does not.
@@ -468,13 +471,16 @@ reporting more than one component, marks environments that cannot go
 into one connected analysis until you have checked whether the missing
 coverage is real or an artefact of how the table was put together.
 
-High-confidence environment recommendations feed the masking plan
-directly. Local mode keeps environment values byte-identical;
-collaborate mode aliases categorical environment labels in place,
-keeping each row in its environment and the missing values where they
-were, and the recipe can turn the aliases back into the real labels. A
-numeric environment such as year remains `keep` and raises a disclosure
-warning because its values are still visible:
+High-confidence environment columns feed the masking plan directly:
+
+- Local mode keeps environment values byte-identical.
+- Collaborate mode aliases categorical environment labels in place, so
+  each row stays in its environment and missing values stay where they
+  were. The recipe turns the aliases back into the real labels.
+
+A numeric environment, such as year, stays at `keep` and raises a
+disclosure warning because its values are still visible. The toy’s `env`
+column is categorical:
 
 ``` r
 
@@ -497,13 +503,14 @@ effects: sparse treatment-by-environment cells may fall back to pooled
 synthesis, and the clone must not be used as a substitute for the
 original trial in scientific inference.
 
-## Read
+## Results
 
-The audit found nothing to flag on this trial, so the synthetic could be
-handed over as it is. A design column left at `keep` comes back
-unchanged and an aliased treatment comes back as `trt_001` to `trt_024`;
-a plan that asks for something the package cannot do is refused before
-it runs. Related tables are masked together and still join.
+On this trial the audit graded 0 columns HIGH and 0 medium. A HIGH
+finding would stop the package writing the synthetic to disk. A design
+column left at `keep` comes back unchanged and an aliased treatment
+comes back as `trt_001` to `trt_024`; a plan that asks for something the
+package cannot do is refused before it runs. Related tables are masked
+together and still join.
 
 The agronomist can therefore hand over a clone that keeps the plot
 layout and the links between tables, with the genotype labels aliased,
@@ -533,7 +540,9 @@ clone protects and what it does not, the depth controls beyond role and
 action, the leakage audit, and the conditional clone that preserves a
 treatment-to-outcome relationship. *Recipe anatomy and the round-trip*
 is the analyst’s side of this handoff: what the recipe carries, and how
-a pipeline built on the synthetic re-targets to the original.
+a pipeline built on the synthetic re-targets to the original. *What a
+conditional clone keeps of the design* tests what a model fitted on a
+conditional clone still finds, on eight field designs.
 
 ## Reproduce
 

@@ -36,9 +36,9 @@
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
 <li><a class="dropdown-item" href="articles/getting_started.html">Getting started with masque</a></li>
+    <li><a class="dropdown-item" href="articles/recipe_anatomy.html">Recipe anatomy and the round-trip</a></li>
     <li><a class="dropdown-item" href="articles/confidentiality.html">Confidentiality and the threat model</a></li>
     <li><a class="dropdown-item" href="articles/design_preservation.html">What a conditional clone keeps of the design</a></li>
-    <li><a class="dropdown-item" href="articles/recipe_anatomy.html">Recipe anatomy and the round-trip</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="news/index.html">Changelog</a></li>
@@ -58,21 +58,24 @@
 <blockquote>
 <p>Structurally faithful development surrogates for tabular data.</p>
 </blockquote>
-<p><code>masque</code> turns a confidential tabular dataset – a single table, a folder of files, or a multi-sheet workbook – into a structurally faithful synthetic clone whose experimental design, NA pattern, and global covariance are close enough to the original that pipeline code runs unchanged. It returns a private <code>recipe</code> that round-trips: a pipeline written against the synthetic re-targets to the original data with no source changes.</p>
-<p>The custodian holds the data and the recipe; the analyst gets only the synthetic.</p>
-<p>Pre-CRAN; tagged releases on the GitHub repository. See <code>NEWS.md</code> for the current version and full changelog. If you are masking a table with a coordinate column and last read this from a pre-0.10.0 tag: 0.10.0 changed the per-site coordinate displacement, and 0.11.0 made an unmasked coordinate column an error by default (<code>masque_unmasked_coords</code>) – re-read <code><a href="articles/confidentiality.html">vignette("confidentiality")</a></code> before re-running a coordinate-bearing mask.</p>
+<p><code>masque</code> makes a synthetic copy of a confidential table that keeps its design, missing values and correlations. Analysts write and test code on the copy. The data custodian then runs the finished code on the real data, using a private recipe that translates names and labels.</p>
+<p>It is for custodians of confidential research data who want an outside analyst to build the analysis without seeing the data, and for the analysts who build it. The input can be a single table, a folder of files or a multi-sheet workbook.</p>
+<p><strong>Security note.</strong> Clones made with masque 0.13.0 or earlier can reveal which alias stands for which label. If you shared one, make it again with 0.14.0 and share the new clone instead. The same seed gives the same values.</p>
+<p>The current version is 0.14.0. See the <a href="https://max578.github.io/masque/news/index.html">changelog</a> for what changed in each release.</p>
 <hr>
 <div class="section level2">
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
 </h2>
-<p>From GitHub:</p>
+<p>Pre-built binaries from r-universe:</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span></span>
+<span>  <span class="st">"masque"</span>,</span>
+<span>  repos <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"https://max578.r-universe.dev"</span>, <span class="st">"https://cloud.r-project.org"</span><span class="op">)</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p>Or from GitHub:</p>
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># install.packages("pak")</span></span>
 <span><span class="fu">pak</span><span class="fu">::</span><span class="fu"><a href="https://pak.r-lib.org/reference/pak.html" class="external-link">pak</a></span><span class="op">(</span><span class="st">"max578/masque"</span><span class="op">)</span></span></code></pre></div>
-<p>A companion r-universe distribution will provide pre-built binaries once the registry is live:</p>
-<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"masque"</span>, repos <span class="op">=</span> <span class="st">"https://max578.r-universe.dev"</span><span class="op">)</span></span></code></pre></div>
-<p>CRAN submission is in preparation.</p>
 <hr>
 </div>
 <div class="section level2">
@@ -86,7 +89,8 @@
 <span><span class="va">df</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/utils/read.table.html" class="external-link">read.csv</a></span><span class="op">(</span><span class="va">f</span>, stringsAsFactors <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># One guided call: read -&gt; propose roles -&gt; (review) -&gt; mask -&gt; audit.</span></span>
-<span><span class="co"># In an interactive session it pauses to let you review the plan.</span></span>
+<span><span class="co"># In an interactive session it pauses to let you review the plan;</span></span>
+<span><span class="co"># ask = FALSE skips the pause.</span></span>
 <span><span class="va">m</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/masque.html">masque</a></span><span class="op">(</span><span class="va">df</span>, mode <span class="op">=</span> <span class="st">"collaborate"</span>, seed <span class="op">=</span> <span class="fl">1L</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">synth</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/synthetic.html">synthetic</a></span><span class="op">(</span><span class="va">m</span><span class="op">)</span>   <span class="co"># hand this to the analyst</span></span>
@@ -97,26 +101,25 @@
 <span></span>
 <span><span class="co"># ... and the custodian re-targets it to the original data.</span></span>
 <span><span class="va">preds</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">fit</span>, newdata <span class="op">=</span> <span class="fu"><a href="reference/apply_recipe.html">apply_recipe</a></span><span class="op">(</span><span class="va">df</span>, <span class="va">rec</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<p>A folder of files or a multi-sheet workbook works the same way – pass the path to <code><a href="reference/masque.html">masque()</a></code> and it masks every table at once, aliasing shared keys consistently so the synthetic tables still join.</p>
-<p>See <code><a href="articles/getting_started.html">vignette("getting_started", package = "masque")</a></code> for the full walk-through.</p>
+<p>A folder of files or a multi-sheet workbook works the same way. Pass the path to <code><a href="reference/masque.html">masque()</a></code> and it masks every table at once, aliasing shared keys consistently so the synthetic tables still join.</p>
+<p>If the table needs tidying first, <code><a href="reference/clean_table.html">clean_table()</a></code> makes column names valid and trims whitespace, and <code><a href="reference/conform_table.html">conform_table()</a></code> merges near-duplicate labels and sets column types, reporting each change.</p>
 <div class="section level3">
 <h3 id="multi-environment-trials">Multi-environment trials<a class="anchor" aria-label="anchor" href="#multi-environment-trials"></a>
 </h3>
-<p><code><a href="reference/detect_design.html">detect_design()</a></code> treats environment scope, treatment connectivity, and within-environment design as separate questions. It conservatively recognises explicit environment columns and common site-year structures, while uncertain or competing candidates remain unresolved. <code><a href="reference/propose_roles.html">propose_roles()</a></code> protects only high-confidence environment allocations automatically: local mode keeps the values, while collaborate mode aliases categorical environment labels without moving observations between environments. Numeric environment labels remain visible and raise a disclosure warning for review.</p>
-<p>Preserving allocation structure does not preserve genotype-by-environment effects in synthesised outcomes. The clone remains a pipeline-development surrogate, not a substitute dataset for scientific inference.</p>
+<p><code><a href="reference/detect_design.html">detect_design()</a></code> recognises environment columns, such as site or year, and the design within each environment. In collaborate mode the environment labels are aliased and every row stays in its environment. The clone does not keep genotype-by-environment effects, so it is no substitute for the real data in scientific inference.</p>
 <hr>
 </div>
 </div>
 <div class="section level2">
 <h2 id="threat-model">Threat model<a class="anchor" aria-label="anchor" href="#threat-model"></a>
 </h2>
-<p><code>masque</code> is <strong>not</strong> a privacy-preserving or differential-privacy tool. It is a <strong>structurally faithful development surrogate</strong> with explicit confidentiality guardrails. Read <code><a href="articles/confidentiality.html">vignette("confidentiality", package = "masque")</a></code> before using.</p>
+<p><code>masque</code> is <strong>not</strong> a privacy-preserving or differential-privacy tool. It is a <strong>structurally faithful development surrogate</strong> with explicit confidentiality guardrails. Read <a href="https://max578.github.io/masque/articles/confidentiality.html">Confidentiality and the threat model</a> before using it.</p>
 <p><strong>What <code>masque</code> does</strong></p>
 <ul>
 <li>Preserves enough structure for pipelines to run unchanged.</li>
 <li>Provides two explicit modes: <code>local</code> for owner-only realistic surrogates, and <code>collaborate</code> for controlled sharing with opaque aliasing, numeric jitter, and an automatic leakage audit.</li>
-<li>Preserves the treatment-to-outcome relationship on request (<code>conditional = TRUE</code>), so a causal model fitted on the clone recovers the real treatment effect, not just the marginal distribution.</li>
-<li>Records every translation (column names, factor levels) in a private <code>recipe</code> object that is, at minimum, as sensitive as the original data.</li>
+<li>Keeps treatment, block and environment means on request (<code>conditional = TRUE</code>). Treatment means on the clone then track those of the real data, and block and environment effects stay detectable. <a href="https://max578.github.io/masque/articles/design_preservation.html">What a conditional clone keeps of the design</a> tests this on eight field designs.</li>
+<li>Records every translation (column names, factor levels) in a private <code>recipe</code>. The recipe holds the real labels, the original column names and the seed, so together with the synthetic it undoes every alias. Keep it with the original data and never send it with the synthetic.</li>
 <li>Audits its own output (<code><a href="reference/audit_mask.html">audit_mask()</a></code>), raises HIGH findings as classed warnings the guided flow never silences, and refuses package-managed writes while a HIGH finding stands (an explicit <code>allow_high = TRUE</code> override is available, warned and recorded in the recipe).</li>
 </ul>
 <p><strong>What <code>masque</code> does not do</strong></p>
@@ -127,30 +130,30 @@
 <li>It does not certify compliance with any privacy, health, banking, or research-governance obligation. It can contribute evidence to such a decision; the decision itself is organisational and legal.</li>
 <li>It does not rewrite arbitrary pipeline source code.</li>
 </ul>
-<p><strong>Bottom line.</strong> Generating a synthetic table is not a release decision. In the Five Safes framework for controlled data access, <code>masque</code> contributes to <em>Safe Data</em> and <em>Safe Outputs</em>; Safe People, Safe Projects, and Safe Settings are governance questions no package can answer. The recipe is at least as sensitive as the original. Never share the recipe and the synthetic together. The collaborate workflow assumes only the synthetic crosses the trust boundary.</p>
+<p><strong>Bottom line.</strong> Generating a synthetic table is not a release decision. In the Five Safes framework for controlled data access, <code>masque</code> contributes to <em>Safe Data</em> and <em>Safe Outputs</em>; Safe People, Safe Projects, and Safe Settings are governance questions no package can answer. The collaborate workflow assumes only the synthetic crosses the trust boundary.</p>
 <hr>
 </div>
 <div class="section level2">
 <h2 id="documentation">Documentation<a class="anchor" aria-label="anchor" href="#documentation"></a>
 </h2>
-<ul>
+<p>Articles, in reading order:</p>
+<ol style="list-style-type: decimal">
 <li>
-<code><a href="articles/getting_started.html">vignette("getting_started")</a></code> – the one-call path on a public fixture.</li>
+<a href="https://max578.github.io/masque/articles/getting_started.html">Getting started with masque</a>: the one-call path on a public fixture.</li>
 <li>
-<code><a href="articles/confidentiality.html">vignette("confidentiality")</a></code> – full threat model, the two modes, and the depth controls.</li>
+<a href="https://max578.github.io/masque/articles/recipe_anatomy.html">Recipe anatomy and the round-trip</a>: what a recipe holds and how a pipeline built on the synthetic runs on the original.</li>
 <li>
-<code><a href="articles/recipe_anatomy.html">vignette("recipe_anatomy")</a></code> – what a recipe holds and how the round-trip re-targets a pipeline onto the original.</li>
+<a href="https://max578.github.io/masque/articles/confidentiality.html">Confidentiality and the threat model</a>: what a clone protects, the two modes, and the depth controls.</li>
 <li>
-<code><a href="articles/design_preservation.html">vignette("design_preservation")</a></code> – what a conditional clone keeps of eight classic field designs, tested against one pass rule.</li>
-</ul>
-<p>Reference index: <a href="https://max578.github.io/masque/" class="uri">https://max578.github.io/masque/</a> – full per-function docs + rendered vignettes, deployed from the <code>gh-pages</code> branch.</p>
-<p>API stability policy: see <code>API_STABILITY.md</code>.</p>
+<a href="https://max578.github.io/masque/articles/design_preservation.html">What a conditional clone keeps of the design</a>: eight classic field designs tested against one pass rule.</li>
+</ol>
+<p>The <a href="https://max578.github.io/masque/reference/index.html">function reference</a> documents every exported function. Also on the site: <a href="https://max578.github.io/masque/API_STABILITY.html">API stability policy</a>, <a href="https://max578.github.io/masque/news/index.html">changelog</a>, <a href="https://max578.github.io/masque/CONTRIBUTING.html">contributing guide</a> and <a href="https://max578.github.io/masque/LICENSE.html">licence</a>.</p>
 <hr>
 </div>
 <div class="section level2">
 <h2 id="contributing">Contributing<a class="anchor" aria-label="anchor" href="#contributing"></a>
 </h2>
-<p>Bug reports and suggestions are welcome as <a href="https://github.com/max578/masque/issues" class="external-link">GitHub issues</a>. See <code>CONTRIBUTING.md</code> before opening a pull request.</p>
+<p>Bug reports and suggestions are welcome as <a href="https://github.com/max578/masque/issues" class="external-link">GitHub issues</a>. Read the <a href="https://max578.github.io/masque/CONTRIBUTING.html">contributing guide</a> before opening a pull request.</p>
 <hr>
 </div>
 <div class="section level2">
@@ -158,13 +161,13 @@
 </h2>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/citation.html" class="external-link">citation</a></span><span class="op">(</span><span class="st">"masque"</span><span class="op">)</span></span></code></pre></div>
-<p>The package also ships a <code>CITATION.cff</code> file; GitHub renders a “Cite this repository” widget on the repo landing page.</p>
+<p>The package also ships a <code>CITATION.cff</code> file.</p>
 <hr>
 </div>
 <div class="section level2">
 <h2 id="license">License<a class="anchor" aria-label="anchor" href="#license"></a>
 </h2>
-<p>MIT. See <code>LICENSE</code> and <code>LICENSE.md</code>.</p>
+<p>MIT. See the <a href="https://max578.github.io/masque/LICENSE.html">licence</a>.</p>
 </div>
 </div>
   </main><aside class="col-md-3"><div class="links">

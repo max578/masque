@@ -2,7 +2,7 @@
 
 ## Guided masking
 
-The one-call front door for a table, a folder, or a workbook.
+The main function, one call for a table, a folder, or a workbook.
 
 - [`masque()`](https://max578.github.io/masque/reference/masque.md) :
   Mask a dataset end to end with one guided call
@@ -20,6 +20,11 @@ Inspect a data frame and decide what each column is and how to mask it.
   : List every role and action combination masque accepts
 - [`roles_validate()`](https://max578.github.io/masque/reference/roles_validate.md)
   : Validate a roles table
+
+## Cleaning input
+
+Tidy names, labels and types before masking.
+
 - [`clean_table()`](https://max578.github.io/masque/reference/clean_table.md)
   : Tidy a dirty table's column names and category labels before masking
 - [`conform_table()`](https://max578.github.io/masque/reference/conform_table.md)
@@ -28,8 +33,8 @@ Inspect a data frame and decide what each column is and how to mask it.
 
 ## Design detection
 
-Identify environment scope and experimental design, then visualise both
-for sanity.
+Identify environment scope and experimental design, then plot both to
+check them.
 
 - [`detect_design()`](https://max578.github.io/masque/reference/detect_design.md)
   : Detect environment scope and experimental-design structure

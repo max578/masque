@@ -19,9 +19,9 @@
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles"><li><a class="dropdown-item" href="../articles/getting_started.html">Getting started with masque</a></li>
+    <li><a class="dropdown-item" href="../articles/recipe_anatomy.html">Recipe anatomy and the round-trip</a></li>
     <li><a class="dropdown-item" href="../articles/confidentiality.html">Confidentiality and the threat model</a></li>
     <li><a class="dropdown-item" href="../articles/design_preservation.html">What a conditional clone keeps of the design</a></li>
-    <li><a class="dropdown-item" href="../articles/recipe_anatomy.html">Recipe anatomy and the round-trip</a></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
       </ul><ul class="navbar-nav"><li class="nav-item"><a class="external-link nav-link" href="https://github.com/max578/masque/" aria-label="GitHub"><span class="fa fab fa-github fa-lg"></span></a></li>
@@ -39,7 +39,7 @@
     <div class="section level2">
       <h2 id="guided-masking">Guided masking<a class="anchor" aria-label="anchor" href="#guided-masking"></a></h2>
 
-      <div class="section-desc"><p>The one-call front door for a table, a folder, or a workbook.</p></div>
+      <div class="section-desc"><p>The main function, one call for a table, a folder, or a workbook.</p></div>
 
       <dl></dl></div><div class="section level2">
 
@@ -89,8 +89,17 @@
 
         </dt>
         <dd>Validate a roles table</dd>
+      </dl></div><div class="section level2">
+      <h2 id="cleaning-input">Cleaning input<a class="anchor" aria-label="anchor" href="#cleaning-input"></a></h2>
 
-        <dt>
+      <div class="section-desc"><p>Tidy names, labels and types before masking.</p></div>
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
 
           <code><a href="clean_table.html">clean_table()</a></code>
 
@@ -106,7 +115,7 @@
       </dl></div><div class="section level2">
       <h2 id="design-detection">Design detection<a class="anchor" aria-label="anchor" href="#design-detection"></a></h2>
 
-      <div class="section-desc"><p>Identify environment scope and experimental design, then visualise both for sanity.</p></div>
+      <div class="section-desc"><p>Identify environment scope and experimental design, then plot both to check them.</p></div>
 
       <dl></dl></div><div class="section level2">
 

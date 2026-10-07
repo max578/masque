@@ -10,7 +10,8 @@ library(masque)
 A biometrician developing a yield model on a synthetic clone of a
 multi-environment variety trial needs to know which parts of the
 experiment are still in the clone. The allocation (every design column
-and the treatment labels) is returned as it was, and the outcomes are
+and the treatment labels) is returned as it was (here in local mode,
+with design and treatment columns kept), and the outcomes are
 re-simulated. What matters is whether a model fitted on those outcomes
 still finds the treatment, block and environment effects.
 
@@ -62,10 +63,7 @@ For each design, over twenty seeds:
   the spread of the level means stays within a factor of two of the
   original in every case.
 
-The same rule runs in the package’s tests on three seeds, and on twenty
-when the tests are run off CRAN.
-
-## Do
+## Example
 
 ### The eight designs
 
@@ -149,7 +147,10 @@ coordinate.
 The roles are the ones a custodian would set: the outcome, the treatment
 columns kept as they are, and every design column kept as it is. Local
 mode keeps the treatment labels, so the allocation check is a byte
-comparison.
+comparison. Every clone here coarsens its stratum, so each
+[`mask()`](https://max578.github.io/masque/reference/mask.md) call
+raises the `masque_conditional_degraded` warning. The runner muffles
+that one class; the tables below report the stratum each design reached.
 
 ``` r
 
@@ -173,8 +174,9 @@ design_run <- function(spec, seeds, ladder = "hierarchy") {
   terms <- names(spec$terms)
   alloc <- c(spec$treatment, spec$design)
   per_seed <- lapply(seeds, function(s) {
-    m <- suppressWarnings(
-      mask(d, r, mode = "local", seed = s, conditional = TRUE, ladder = ladder)
+    m <- withCallingHandlers(
+      mask(d, r, mode = "local", seed = s, conditional = TRUE, ladder = ladder),
+      masque_conditional_degraded = function(w) invokeRestart("muffleWarning")
     )
     sy <- as.data.frame(synthetic(m))
     f_clone <- anova(lm(spec$formula, data = sy))
@@ -372,7 +374,7 @@ the clone reproduces exactly; the dotted line is the pass floor of one
 half. The levels ladder loses most of every blocking and environment
 term; the hierarchy ladder keeps them.
 
-## Read
+## Results
 
 All 8 of the 8 designs pass the rule under the hierarchy ladder. The
 allocation and the NA mask come back identical in every clone of every
@@ -382,10 +384,10 @@ The multi-environment trial is the case the hierarchy ladder was built
 for. Its county effect has an F of 987 on the original; the levels
 ladder drops `county` before `rep`, and the clone’s county F is 1. The
 hierarchy ladder conditions on genotype alone and carries the plot
-coordinates, `county`, `rep`, `block` and their pairs as shifts; the
-clone’s county F is 952, the nested `county:rep` term is at 28.3 against
-32.7, and the genotype means correlate at 0.9 with the original (0.68
-under the levels ladder).
+coordinates, `county`, `rep`, `block` and their pairs as shifts. Under
+it the clone’s county F is 952, and the nested `county:rep` term is at
+28.3 against 32.7. The genotype means correlate at 0.9 with the
+original, against 0.68 under the levels ladder.
 
 Yates’ oats shows the same thing on a single trial: the block F is 0.8
 under the levels ladder and 11.3 under the hierarchy ladder, against
@@ -425,11 +427,10 @@ tighten them and re-run the chunk for a stricter test.
 
 ## What to read next
 
-*Confidentiality and the threat model* explains what carrying a level
-mean into the clone means for disclosure, and why `conditional = TRUE`
-is a statement about what the clone reproduces. *Getting started with
-masque* is the custodian’s path from a table to a synthetic and a
-recipe.
+*Confidentiality and the threat model* lists what carrying a level mean
+into the clone discloses: a level with only a few plots reveals close to
+its real mean. *Getting started with masque* is the custodian’s path
+from a table to a synthetic and a recipe.
 
 ## Reproduce
 

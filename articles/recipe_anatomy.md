@@ -10,11 +10,13 @@ what happens when the original holds a value the recipe has never seen.
 ## What
 
 The `masque_recipe` object returned by
-[`mask()`](https://max578.github.io/masque/reference/mask.md) is the
-only artefact that *must* stay confidential alongside the original; get
-it with
-[`recipe()`](https://max578.github.io/masque/reference/recipe.md). Two
-functions make the round-trip.
+[`mask()`](https://max578.github.io/masque/reference/mask.md) holds the
+real labels, the original column names and the seed. With the synthetic
+it undoes every alias, so keep it with the original data and never send
+it with the synthetic. Get it with
+[`recipe()`](https://max578.github.io/masque/reference/recipe.md).
+
+Two functions make the round-trip.
 [`apply_recipe()`](https://max578.github.io/masque/reference/apply_recipe.md)
 recodes the original data into the clone’s labels and column names,
 which is how a custodian runs an analyst’s finished pipeline on it.
@@ -24,10 +26,10 @@ original ones.
 [`save_recipe()`](https://max578.github.io/masque/reference/save_recipe.md)/[`read_recipe()`](https://max578.github.io/masque/reference/read_recipe.md)
 persist a recipe to a single `.rds` file, and
 [`reveal_maps()`](https://max578.github.io/masque/reference/reveal_maps.md)
-is the one explicit, warning-gated call that shows the level maps a
-redacted [`print()`](https://rdrr.io/r/base/print.html) withholds.
+prints the level maps that a redacted
+[`print()`](https://rdrr.io/r/base/print.html) withholds.
 
-## Do
+## Example
 
 ### What a recipe holds
 
@@ -39,36 +41,47 @@ class(rec)
 #> [1] "masque::masque_recipe" "S7_object"
 ```
 
-A recipe carries only what the round-trip needs:
+A recipe holds:
 
-- `masque_version`, `created_at`, `mode`, `seed` – provenance.
-- `roles` – the two-axis role and action table.
-- `level_maps` – the per-column original-to-alias maps. The sensitive
+- `masque_version`, `created_at`, `mode`: provenance.
+- `seed`: the seed of the call. With it the same call reproduces the
+  same alias maps, so keep it as private as the maps.
+- `roles`: the two-axis role and action table, with the original column
+  names.
+- `conditional`, `ladder`, `conditioning_cols`, `conditioning_used`,
+  `conditioning_dropped`, `conditioning_shifted`, `fallback_frac`: what
+  a conditional clone asked for, the stratum it got, the columns it
+  dropped or carried as shifts, and the share of rows pooled.
+- `level_maps`: the per-column original-to-alias maps. The sensitive
   part.
-- `column_name_map` – the column-name aliases, when `alias_names` was
+- `column_name_map`: the column-name aliases, when `alias_names` was
   used (otherwise `NULL`).
-- `cleaning` – the tidying done before masking (column names made valid
-  R names, whitespace trimmed) so
+- `storage_classes`, `factor_meta`: the original column classes, factor
+  levels and ordering, for faithful reconstruction.
+- `cleaning`: the tidying done before masking (column names made valid R
+  names, whitespace trimmed), so
   [`apply_recipe()`](https://max578.github.io/masque/reference/apply_recipe.md)
-  re-applies the identical tidying.
-- `storage_classes`, `factor_meta` – the original column classes and
-  factor metadata, for faithful reconstruction.
-- `coords` – one entry per coordinate pair declared to
+  re-applies the same tidying.
+- `coords`: one entry per coordinate pair declared to
   [`mask()`](https://max578.github.io/masque/reference/mask.md)’s
   `coords` argument: the jitter method and radius, the site grouping it
-  was masked under, and how many sites the grouping produced. Empty for
-  a recipe written before 0.10.0, which had no such record.
-- `allow_unmasked_coords` – `TRUE` only when the caller deliberately
-  wrote a real coordinate through unmasked. `FALSE`, and absent, on a
-  recipe written before 0.11.0.
-- `integrity_fp` – a SHA-256 of `is.na(original)`: an integrity
+  was masked under, and how many sites the grouping produced.
+- `allow_unmasked_coords`: `TRUE` only when the caller deliberately
+  wrote a real coordinate through unmasked.
+- `warnings`: the warnings raised while masking, including any HIGH
+  audit finding.
+- `integrity_fp`: a SHA-256 of `is.na(original)`, an integrity
   fingerprint, not a privacy guarantee.
 
-It deliberately does not hold the copula covariance, the raw observed
-values, or any file paths or usernames.
+A recipe written by an older version has no record for the slots added
+since, for example `coords` before 0.10.0 and `allow_unmasked_coords`
+before 0.11.0. The changelog lists when each slot was added.
 
-A recipe built with `coords` carries its own coordinate account, so an
-audit of the recipe does not need the original data back:
+It does not hold the copula covariance, the raw observed values, or any
+file paths or usernames.
+
+A recipe built with `coords` records how its coordinates were masked, so
+an audit of the recipe does not need the original data back:
 
 ``` r
 
@@ -114,7 +127,7 @@ vocabularies themselves:
 rec
 #> 
 #> ── masque_recipe ───────────────────────────────────────────────────────────────────────────────────
-#> • Created: 2026-09-26 08:02:45 UTC
+#> • Created: 2026-10-07 05:08:45 UTC
 #> • Mode: collaborate
 #> • Clone fidelity: marginal / structural (global copula)
 #> • Seed: present (redacted)
@@ -135,8 +148,8 @@ rec
 #> Use `reveal_maps(rec)` to inspect level maps explicitly.
 ```
 
-The custodian – and only the custodian – can reveal the maps with an
-explicit, warning-gated call:
+Anyone holding the recipe can print the maps with an explicit call,
+which shows a warning first:
 
 ``` r
 
@@ -181,6 +194,10 @@ labels_recovered
 
 Columns whose action is `keep`, numeric columns and numeric predictions
 pass through both functions unchanged.
+[`apply_recipe()`](https://max578.github.io/masque/reference/apply_recipe.md)
+returns an aliased factor with the clone’s levels in the clone’s order,
+so a model fitted on the translated original has the same reference
+level as on the clone.
 
 ### Fail-closed translation
 
@@ -203,8 +220,10 @@ apply_recipe(drifted, rec)
 ```
 
 The message names the column (`gen`) and the value (`"BRAND_NEW"`).
-Rebuild the recipe from data that contains the new value, or remove the
-drifted rows before re-targeting.
+Either remove the drifted rows before re-targeting, or mask the data
+that contains the new value again. Masking again makes a new recipe and
+a new synthetic, and the analyst needs the new synthetic in place of the
+old one.
 
 ### Saving the recipe
 
@@ -228,7 +247,7 @@ fingerprint_survives_roundtrip
 ### Multi-table bundles
 
 A [`mask_set()`](https://max578.github.io/masque/reference/mask_set.md)
-result carries a recipe *bundle* – one recipe per table plus the shared
+result carries a recipe *bundle*: one recipe per table plus the shared
 cross-table link maps. The same
 [`apply_recipe()`](https://max578.github.io/masque/reference/apply_recipe.md)
 and [`unmask()`](https://max578.github.io/masque/reference/unmask.md)
@@ -242,7 +261,7 @@ ms <- mask_set(set_dir, mode = "collaborate", seed = 1L, quiet = TRUE)
 #> ℹ This preserves environment structure but may disclose year or other numeric labels; review before
 #>   release.
 originals <- read_set(set_dir)
-fwd_set <- suppressWarnings(apply_recipe(originals, recipe(ms)))
+fwd_set <- apply_recipe(originals, recipe(ms))
 names(fwd_set)
 #> [1] "agronomy" "quality"
 ```
@@ -281,7 +300,7 @@ Density of yield, original trial against the synthetic clone the analyst
 develops against. The two distributions overlap closely because the
 default numeric synthesis preserves each column’s marginal distribution.
 
-## Read
+## Results
 
 All three round-trip checks pass: one prediction per original row, the
 original genotype labels recovered, and the same integrity fingerprint

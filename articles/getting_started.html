@@ -34,9 +34,9 @@
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
 <li><a class="dropdown-item" href="../articles/getting_started.html">Getting started with masque</a></li>
+    <li><a class="dropdown-item" href="../articles/recipe_anatomy.html">Recipe anatomy and the round-trip</a></li>
     <li><a class="dropdown-item" href="../articles/confidentiality.html">Confidentiality and the threat model</a></li>
     <li><a class="dropdown-item" href="../articles/design_preservation.html">What a conditional clone keeps of the design</a></li>
-    <li><a class="dropdown-item" href="../articles/recipe_anatomy.html">Recipe anatomy and the round-trip</a></li>
   </ul>
 </li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">Changelog</a></li>
@@ -87,10 +87,10 @@ any output.</p>
 <div class="section level2">
 <h2 id="what">What<a class="anchor" aria-label="anchor" href="#what"></a>
 </h2>
-<p><code><a href="../reference/masque.html">masque()</a></code> is the front door: point it at a table (or a
-folder or workbook of related tables) and it reads the data, proposes a
-masking plan, masks, and – in an interactive session – pauses to let the
-custodian review the plan first.</p>
+<p><code><a href="../reference/masque.html">masque()</a></code> is the main function. Point it at a table, or a
+folder or workbook of related tables, and it reads the data, proposes a
+masking plan and masks. In an interactive session it pauses first so the
+custodian can review the plan.</p>
 <p>The output of <code><a href="../reference/masque.html">masque()</a></code> is always a pair: the
 <em>synthetic</em> clone, the only part that crosses the trust boundary,
 and a private <code>masque_recipe</code> (see <code><a href="../reference/recipe.html">recipe()</a></code>)
@@ -110,7 +110,9 @@ it:</p>
 <code>keep</code> passes it through unchanged;</li>
 <li>
 <code>scramble</code> re-simulates numerics through a Gaussian
-copula, or shuffles categories and dates between rows;</li>
+copula and shuffles categories and dates between rows. For a treatment
+it swaps the labels among the levels, so the allocation is
+unchanged;</li>
 <li>
 <code>alias</code> replaces the labels with opaque codes (a
 categorical covariate is shuffled between rows first);</li>
@@ -134,7 +136,7 @@ drops identifiers and free text, and runs the leakage audit.</li>
 default.</p>
 </div>
 <div class="section level2">
-<h2 id="do">Do<a class="anchor" aria-label="anchor" href="#do"></a>
+<h2 id="example">Example<a class="anchor" aria-label="anchor" href="#example"></a>
 </h2>
 <div class="section level3">
 <h3 id="the-one-call-path">The one-call path<a class="anchor" aria-label="anchor" href="#the-one-call-path"></a>
@@ -377,11 +379,11 @@ control:</p>
 </table>
 <p><code><a href="../reference/propose_roles.html">propose_roles()</a></code> fills in a sensible action for each
 column given the mode, so the table reviewed here is the plan that will
-run. <code>yield</code> was proposed as a <code>covariate</code>; naming
-it the trial’s <code>outcome</code> changes nothing about how it is
-masked, but it documents intent and is what a downstream consumer such
-as the <em>conditional</em> clone (see <em>Confidentiality and the
-threat model</em>) reads to find the response:</p>
+run. <code>yield</code> was proposed as a <code>covariate</code>. Naming
+it the trial’s <code>outcome</code> does not change how it is masked. It
+records intent, and the <em>conditional</em> clone (see
+<em>Confidentiality and the threat model</em>) reads it to find the
+response:</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">roles</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/set_role.html">set_role</a></span><span class="op">(</span><span class="va">roles</span>, <span class="st">"yield"</span>, role <span class="op">=</span> <span class="st">"outcome"</span><span class="op">)</span></span>
 <span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span></span>
@@ -442,10 +444,9 @@ numeric is re-simulated jointly.</p>
 <div class="section level3">
 <h3 id="editing-the-plan-as-code">Editing the plan as code<a class="anchor" aria-label="anchor" href="#editing-the-plan-as-code"></a>
 </h3>
-<p>The printed table – and the spreadsheet the guided prompt opens when
-the custodian chooses <code>e</code> – is an ordinary data frame, so
-anything the editor can do, a script can do reproducibly.
-<code><a href="../reference/set_role.html">set_role()</a></code> is vectorised over columns:</p>
+<p>The plan is a data frame, so you can edit it in code. The spreadsheet
+the guided prompt opens when the custodian chooses <code>e</code> edits
+the same table. <code><a href="../reference/set_role.html">set_role()</a></code> is vectorised over columns:</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">r2</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/set_role.html">set_role</a></span><span class="op">(</span><span class="va">roles</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"row"</span>, <span class="st">"col"</span><span class="op">)</span>, action <span class="op">=</span> <span class="st">"drop"</span><span class="op">)</span></span></code></pre></div>
 <p>Direct edits work too. A direct <code>role</code> edit leaves
@@ -737,7 +738,7 @@ design column (<code>keep</code>, <code>alias</code>,
 <h3 id="more-than-one-table">More than one table<a class="anchor" aria-label="anchor" href="#more-than-one-table"></a>
 </h3>
 <p>A confidential dataset often arrives as several related files or a
-multi-sheet workbook. <code><a href="../reference/masque.html">masque()</a></code> handles those too – point it
+multi-sheet workbook. <code><a href="../reference/masque.html">masque()</a></code> handles those too. Point it
 at a folder, an <code>.xlsx</code> file, or a named list of data frames
 and it masks every table at once, aliasing any shared key (a site code,
 a genotype name) <em>identically across tables</em> so a join of the
@@ -780,16 +781,18 @@ set-level controls.</p>
 <div class="section level3">
 <h3 id="multi-environment-structure">Multi-environment structure<a class="anchor" aria-label="anchor" href="#multi-environment-structure"></a>
 </h3>
-<p>A multi-environment trial has at least three distinct structural
-questions: which rows belong to each environment, whether treatments
-connect the environments, and what randomisation structure can be
-recovered within each environment. <code><a href="../reference/detect_design.html">detect_design()</a></code> reports
-these separately. Connectivity says whether environments can be
-compared; it does not decide whether the trial is multi-environment. A
-block or field layout seen in the data suggests the original
-randomisation but does not confirm it.</p>
-<p>A small synthetic toy with two environments and three genotypes makes
-the three questions concrete:</p>
+<p>For a multi-environment trial, <code><a href="../reference/detect_design.html">detect_design()</a></code> answers
+three questions separately:</p>
+<ol style="list-style-type: decimal">
+<li>Which rows belong to each environment?</li>
+<li>Do the treatments connect the environments, so that they can be
+compared?</li>
+<li>What randomisation structure can be recovered within each
+environment?</li>
+</ol>
+<p>A block or field layout seen in the data suggests the original
+randomisation but does not confirm it. A small toy with two environments
+and three genotypes:</p>
 <div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">met</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/expand.grid.html" class="external-link">expand.grid</a></span><span class="op">(</span></span>
 <span>  env <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"E1"</span>, <span class="st">"E2"</span><span class="op">)</span><span class="op">)</span>,</span>
@@ -810,20 +813,21 @@ the three questions concrete:</p>
 <p>Automatic detection is conservative. A column named <code>env</code>
 or <code>environment</code>, or a common site-year pattern, is taken as
 the environment only when no other column explains the structure as
-well; a site-only column is taken only when treatments are replicated
-across sites, so a nested block is not mistaken for an environment. When
-you know the environment columns, name them:</p>
+well. A site column on its own is taken only when treatments are
+replicated across sites, so a nested block is not mistaken for an
+environment. When you know the environment columns, name them:</p>
 <div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">ds_explicit</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/detect_design.html">detect_design</a></span><span class="op">(</span><span class="va">met</span>, env <span class="op">=</span> <span class="st">"env"</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="figure-the-multi-environment-coverage-plot">Figure: the multi-environment coverage plot<a class="anchor" aria-label="anchor" href="#figure-the-multi-environment-coverage-plot"></a>
 </h3>
-<p><code>plot.design_summary()</code> draws a compact environment
-overview by default, in base graphics or, with
-<code>engine = "ggplot2"</code>, as a <code>ggplot2</code> object you
-can save with <code><a href="https://ggplot2.tidyverse.org/reference/ggsave.html" class="external-link">ggplot2::ggsave()</a></code>; printed, it is the figure
-below. It shows whether coverage is even across environments, which the
+<p><code><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot()</a></code> on a design summary, or
+<code><a href="../reference/plot_design_summary.html">plot_design_summary()</a></code>, draws a compact environment overview
+in base graphics. With <code>engine = "ggplot2"</code> it returns a
+<code>ggplot2</code> object you can save with
+<code><a href="https://ggplot2.tidyverse.org/reference/ggsave.html" class="external-link">ggplot2::ggsave()</a></code>; printed, it is the figure below. It
+shows whether coverage is even across environments, which the
 connectivity flag alone does not.</p>
 <div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">ds_explicit</span>, df <span class="op">=</span> <span class="va">met</span>, engine <span class="op">=</span> <span class="st">"ggplot2"</span><span class="op">)</span></span></code></pre></div>
@@ -839,13 +843,17 @@ trial appears in both environments. A shorter bar, or a subtitle
 reporting more than one component, marks environments that cannot go
 into one connected analysis until you have checked whether the missing
 coverage is real or an artefact of how the table was put together.</p>
-<p>High-confidence environment recommendations feed the masking plan
-directly. Local mode keeps environment values byte-identical;
-collaborate mode aliases categorical environment labels in place,
-keeping each row in its environment and the missing values where they
-were, and the recipe can turn the aliases back into the real labels. A
-numeric environment such as year remains <code>keep</code> and raises a
-disclosure warning because its values are still visible:</p>
+<p>High-confidence environment columns feed the masking plan
+directly:</p>
+<ul>
+<li>Local mode keeps environment values byte-identical.</li>
+<li>Collaborate mode aliases categorical environment labels in place, so
+each row stays in its environment and missing values stay where they
+were. The recipe turns the aliases back into the real labels.</li>
+</ul>
+<p>A numeric environment, such as year, stays at <code>keep</code> and
+raises a disclosure warning because its values are still visible. The
+toy’s <code>env</code> column is categorical:</p>
 <div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">met_roles</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/propose_roles.html">propose_roles</a></span><span class="op">(</span><span class="va">met</span>, mode <span class="op">=</span> <span class="st">"collaborate"</span><span class="op">)</span></span>
 <span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span></span>
@@ -874,14 +882,14 @@ original trial in scientific inference.</p>
 </div>
 </div>
 <div class="section level2">
-<h2 id="read">Read<a class="anchor" aria-label="anchor" href="#read"></a>
+<h2 id="results">Results<a class="anchor" aria-label="anchor" href="#results"></a>
 </h2>
-<p>The audit found nothing to flag on this trial, so the synthetic could
-be handed over as it is. A design column left at <code>keep</code> comes
-back unchanged and an aliased treatment comes back as
-<code>trt_001</code> to <code>trt_024</code>; a plan that asks for
-something the package cannot do is refused before it runs. Related
-tables are masked together and still join.</p>
+<p>On this trial the audit graded 0 columns HIGH and 0 medium. A HIGH
+finding would stop the package writing the synthetic to disk. A design
+column left at <code>keep</code> comes back unchanged and an aliased
+treatment comes back as <code>trt_001</code> to <code>trt_024</code>; a
+plan that asks for something the package cannot do is refused before it
+runs. Related tables are masked together and still join.</p>
 <p>The agronomist can therefore hand over a clone that keeps the plot
 layout and the links between tables, with the genotype labels aliased,
 and the statistician can build a full pipeline on it without seeing the
@@ -913,7 +921,9 @@ role and action, the leakage audit, and the conditional clone that
 preserves a treatment-to-outcome relationship. <em>Recipe anatomy and
 the round-trip</em> is the analyst’s side of this handoff: what the
 recipe carries, and how a pipeline built on the synthetic re-targets to
-the original.</p>
+the original. <em>What a conditional clone keeps of the design</em>
+tests what a model fitted on a conditional clone still finds, on eight
+field designs.</p>
 </div>
 <div class="section level2">
 <h2 id="reproduce">Reproduce<a class="anchor" aria-label="anchor" href="#reproduce"></a>

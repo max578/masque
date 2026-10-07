@@ -13,17 +13,18 @@ before sharing any `masque` output beyond your own machine.
 
 ## What
 
-The recipe on its own reveals little, but the recipe and the synthetic
-together are as sensitive as the original data. The design assumes that
-only the *synthetic* crosses the trust boundary and the recipe stays
-with the custodian:
+The recipe holds the real labels, the original column names and the
+seed. With the synthetic it undoes every alias, so keep it with the
+original data and never send it with the synthetic. The design assumes
+that only the *synthetic* crosses the trust boundary:
 
 | Actor holds | Wants to learn | What `masque` protects |
 |----|----|----|
 | Synthetic only | Original raw values | Aliased treatment and categorical vocabularies, jittered numerics, dropped ids and free text, and optionally the column names |
-| Synthetic + recipe | Original raw values | Nothing – the combination is as sensitive as the original |
-| Recipe only | Original raw values | Nothing useful – the recipe is meaningless without the synthetic |
+| Synthetic + recipe | Original raw values | Nothing: together they undo every alias |
+| Recipe only | Original raw values | The values, which the recipe does not hold. It does hold the real labels, the original column names and the seed |
 | Synthetic + external side information | Identity of treatments / sites | The label vocabulary and the order it was in. A preserved design footprint or a `keep` column is recognisable, level frequencies are unchanged, and side information wins |
+| Conditional clone (`conditional = TRUE`) | Outcome mean of a treatment or design level | Nothing: the clone reproduces the outcome mean of each treatment, block and environment level. A level with only a few plots reveals close to its real mean; a level with a single plot is pooled with the other single-plot levels first |
 
 `masque` keeps enough structure for a pipeline to run unchanged. Two
 modes set the balance between privacy and fidelity, every translation is
@@ -50,19 +51,19 @@ without per-column work:
 | Date / time columns | row-permuted with class preserved | row-permuted with class preserved |
 | Identifiers (`id`) | kept | dropped |
 | Free text (`text`) | kept | dropped |
-| Numeric synthesis | empirical-quantile (may emit observed values) | empirical-quantile plus within-resolution jitter, with integers stochastically rounded |
+| Numeric synthesis | Gaussian copula with empirical-quantile marginals (may emit observed values) | the same, plus within-resolution jitter, with integers stochastically rounded |
 | NA mask | preserved cell-by-cell | preserved cell-by-cell |
 | [`audit_mask()`](https://max578.github.io/masque/reference/audit_mask.md) | on demand | automatic at [`mask()`](https://max578.github.io/masque/reference/mask.md) time |
 | `print(recipe)` | redacted | redacted, with explicit [`reveal_maps()`](https://max578.github.io/masque/reference/reveal_maps.md) to inspect |
 
-## Do
+## Example
 
 ### Depth controls: hiding design structure
 
 Design columns are byte-identical by default, which preserves the
-experimental layout exactly – and a publicly registered trial layout is
-a fingerprint. To keep the structure but hide the site or block
-*labels*, set a design column’s action to `alias`:
+experimental layout exactly. A publicly registered trial layout is a
+fingerprint. To keep the structure but hide the site or block *labels*,
+set a design column’s action to `alias`:
 
 ``` r
 
@@ -93,22 +94,29 @@ knitr::kable(
 The three-site structure survives even though the labels do not.
 {.table}
 
-This knowingly breaks byte-identity, so it is never a default – it has
-to be asked for explicitly. Names can be hidden the same way:
-`mask(..., alias_names = TRUE)` replaces every retained column name with
-an opaque code that the recipe inverts on the round-trip, and a
-character vector hides only the names given.
+Aliasing a design column breaks byte-identity, so it is never a default.
+Names can be hidden the same way: `mask(..., alias_names = TRUE)`
+replaces every retained column name with an opaque code that the recipe
+inverts on the round-trip, and a character vector hides only the names
+given.
 
 **What an alias does and does not hide.** The alias vocabulary is fixed
 and sorted (`trt_001`, `trt_002`, …), but which level receives which
 alias is drawn from a random permutation, so for a six-level column
 there are 720 equally likely maps. This matters because the vocabularies
 in field research are routinely public: a variety roster, an N-rate
-ladder, a site list. Under an order-preserving map, sorting a candidate
-list would reconstruct the whole assignment from the synthetic alone; it
-no longer does, and the same draw governs the join keys
+ladder, a site list. The same draw governs the join keys
 [`mask_set()`](https://max578.github.io/masque/reference/mask_set.md)
-shares across tables.
+shares across tables. A scrambled factor keeps the original level order,
+so [`levels()`](https://rdrr.io/r/base/levels.html) of a clone does not
+reveal the map.
+
+Clones made with earlier versions can reveal it. In masque 0.13.0 and
+earlier, a scrambled treatment listed its levels in the scrambled order.
+In 0.12.0 and 0.13.0, a join key aliased by
+[`mask_set()`](https://max578.github.io/masque/reference/mask_set.md)
+listed its aliases in the original level order. Make such a clone again
+with 0.14.0.
 
 Two limits go with that, and they are the custodian’s to manage:
 
@@ -132,15 +140,15 @@ differential-privacy guarantee.
 ### The conditional clone: preserving the treatment effect
 
 The default numeric synthesis re-simulates every scrambled numeric
-column from a single global Gaussian copula. That preserves each
-column’s marginal distribution and the global covariance, which is
-enough to develop most pipelines – but it severs the relationship
-between treatment and outcome. The synthetic outcomes are drawn from the
-pooled distribution and the treatment labels are relabelled
-independently, so a causal model fitted on the clone sees no association
-between an arm and its response. A pipeline whose whole purpose is to
-estimate a treatment effect would silently give the wrong answer on such
-a clone.
+column from one Gaussian copula with empirical-quantile marginals,
+fitted on the whole table. That preserves each column’s marginal
+distribution and the global covariance, which is enough to develop most
+pipelines. It does not keep the relationship between treatment and
+outcome. The synthetic outcomes are drawn from the pooled distribution
+and the treatment labels are relabelled independently, so a causal model
+fitted on the clone sees no association between an arm and its response.
+A pipeline whose whole purpose is to estimate a treatment effect would
+silently give the wrong answer on such a clone.
 
 [`mask()`](https://max578.github.io/masque/reference/mask.md)’s
 `conditional = TRUE` argument fixes this. It fits and samples the copula
@@ -174,12 +182,8 @@ each clone:
 
 ``` r
 
-marg <- suppressWarnings(
-  mask(trial, roles, mode = "local", seed = 1L, conditional = FALSE)
-)
-cond <- suppressWarnings(
-  mask(trial, roles, mode = "local", seed = 1L, conditional = TRUE)
-)
+marg <- mask(trial, roles, mode = "local", seed = 1L, conditional = FALSE)
+cond <- mask(trial, roles, mode = "local", seed = 1L, conditional = TRUE)
 
 effect_of <- function(m) {
   coef(lm(yield ~ genotype, synthetic(m)))[["genotypetreat"]]
@@ -279,8 +283,8 @@ conditional clone, against the true effect fitted on the original trial
 (dashed line). The marginal clone collapses the effect toward zero; the
 conditional clone recovers it.
 
-The conditioning columns – the treatment plus any retained design
-columns – are recorded on the recipe, so the choice is auditable:
+The conditioning columns (the treatment plus any retained design
+columns) are recorded on the recipe, so the choice is auditable:
 
 ``` r
 
@@ -299,27 +303,25 @@ the stratum the clone actually got, and `fallback_frac` is the share of
 rows that did not get a stratum at all. They differ because a
 conditional clone needs enough rows per stratum to fit a stratum-local
 copula, and the finest stratum available is rarely the one that has
-them. Treatment crossed with every retained design column on a
-replicated factorial – six N rates by three varieties by four replicates
-– is seventy-two cells of one row. Rather than pool that wholesale,
-[`mask()`](https://max578.github.io/masque/reference/mask.md) walks a
-**coarsening ladder**: it drops design columns until the cells hold at
-least five rows. Treatment columns are never dropped, because the
-assignment is the thing the conditional clone exists to preserve.
-Whatever is still too thin at the bottom rung is pooled into a global
-fallback, as before.
+them. On a replicated factorial of six N rates by three varieties by
+four replicates, treatment crossed with every retained design column is
+seventy-two cells of one row.
+[`mask()`](https://max578.github.io/masque/reference/mask.md) therefore
+walks a **coarsening ladder**: it drops design columns until the cells
+hold at least five rows. Treatment columns are never dropped. Rows still
+in cells that are too small at the last rung are pooled into one
+fallback stratum.
 
 The default ladder (`ladder = "hierarchy"`) drops plot coordinates
 first, then blocking columns, then environment columns, so a site or a
-county is never given up before the replicates inside it, and it carries
-the main effect of every dropped column into the clone as an additive
-shift: the county means, the replicate means and the block means of the
-original survive even when the stratum the copula is fitted in is the
-treatment alone. Those means are therefore a stated property of the
-clone, in the same way the treatment means are. The recipe lists them as
-`conditioning_shifted`. `ladder = "levels"` reproduces clones made with
-masque 0.11.1 to 0.12.0: it drops the column with the most levels first
-and keeps nothing of it.
+county is never given up before the replicates inside it. It carries the
+main effect of every dropped column into the clone as an additive shift.
+The county, replicate and block means of the original therefore survive
+even when the copula is fitted within the treatment alone; the threat
+table above lists what that discloses. The recipe lists the shifted
+terms as `conditioning_shifted`. `ladder = "levels"` reproduces clones
+made with masque 0.11.1 to 0.12.0: it drops the column with the most
+levels first and keeps nothing of it.
 
 Any coarsening, and any residual pooling, raises a classed
 `masque_conditional_degraded` warning naming the columns given up and
@@ -348,8 +350,8 @@ just a distribution.
 Numeric columns that are kept and re-simulated together share one
 Gaussian copula, fitted on the normal scores of their ranks. A Gaussian
 copula holds a single correlation per pair, so it reproduces a
-*monotone* association – linear, or any order-preserving curve – but not
-a dependence that a correlation cannot express. A non-monotone
+*monotone* association (linear, or any order-preserving curve) but not a
+dependence that a correlation cannot express. A non-monotone
 relationship, such as a U-shaped dependence of an outcome on a
 covariate, reads as near-zero rank correlation and is reproduced as
 near-independence.
@@ -395,14 +397,12 @@ pair loses it entirely, so on the clone the covariate carries no
 information about the outcome. `conditional = TRUE` does not repair
 this: it preserves the outcome’s location within each
 treatment-by-design stratum, not the curvature of the outcome’s
-dependence on a continuous covariate. A development pipeline whose
-modelling step is non-linear – a smoothing spline, a generalised
-additive model, a tree, an interaction term – will therefore see on the
-synthetic only the monotone part of any relationship present in the
-original, and a good fit there is not evidence the step behaves
-correctly on the real data. Validating such a step means round-tripping
-it onto the original through the recipe, not trusting its result on the
-clone.
+dependence on a continuous covariate. A pipeline whose modelling step is
+non-linear (a smoothing spline, a generalised additive model, a tree, an
+interaction term) sees on the synthetic only the monotone part of any
+relationship in the original. A good fit there is not evidence that the
+step behaves correctly on the real data. Validate such a step by running
+it on the original through the recipe.
 
 ### The leakage audit, and a refused write
 
@@ -526,7 +526,7 @@ pass `allow_high = TRUE`; the override is itself raised as a classed
 `masque_high_override` warning and recorded in the recipe’s warnings, so
 the exception stays auditable rather than silent.
 
-Beyond that gate the release decision stays with the custodian – whether
+Beyond that gate the release decision stays with the custodian. Whether
 a synthetic table is appropriate for a given collaborator, environment,
 or jurisdiction depends on context the package cannot see. `masque`
 informs that decision. It does not make it.
@@ -567,20 +567,22 @@ flags a column whose name looks like a coordinate (`gps`,
 `drop`. Dropping is the safest choice when the synthetic does not need
 locations.
 
-**A coordinate is masked unless told otherwise.** Dropping is one way to
-say what happens to it; there are three, and
-[`mask()`](https://max578.github.io/masque/reference/mask.md) refuses to
-guess. If a column whose name says coordinate would be written through
-with `action = "keep"`, the call stops. Declaring the pair to `coords`
-coarsens it, giving the column `drop` or `scramble` masks it, or passing
-`allow_unmasked_coords = TRUE` after deciding the position is not
-sensitive – which is recorded on the recipe, so the decision is visible
-later. A column that looks like a coordinate only by the shape of its
-values raises a warning instead of stopping, because that detection is a
-guess and a false positive should not block a legitimate mask.
+**A coordinate is masked unless told otherwise.** If a column whose name
+says coordinate would be written through with `action = "keep"`, the
+call stops. There are three ways to say what happens to it:
 
-When the synthetic does need plausible coordinates – to exercise a
-spatial pipeline, say – a plain scramble is the wrong tool: the copula
+1.  Declare the pair to `coords`, which coarsens it.
+2.  Give the column `drop` or `scramble`, which masks it.
+3.  Pass `allow_unmasked_coords = TRUE` after deciding the position is
+    not sensitive. The recipe records this, so the decision is visible
+    later.
+
+A column that looks like a coordinate only by the shape of its values
+raises a warning instead of stopping, because that detection is a guess
+and a false positive should not block a legitimate mask.
+
+When the synthetic does need plausible coordinates, to exercise a
+spatial pipeline say, a plain scramble is the wrong tool: the copula
 re-simulates each axis and smears a latitude/longitude pair into a
 continuous cloud that can land in the sea. `masque` offers two
 purpose-built alternatives.
@@ -622,8 +624,8 @@ until on land. {.table}
 
 **A coordinate belongs to a site, not to a row.** One displacement is
 drawn per site and broadcast to every row of that site, so a table
-holding many rows per physical place – plots within a trial, samples
-within a paddock – comes back with one masked coordinate per place,
+holding many rows per physical place (plots within a trial, samples
+within a paddock) comes back with one masked coordinate per place,
 exactly as the source table has one true coordinate per place. By
 default a site is a set of rows sharing an identical input coordinate,
 which needs no user action and cannot alter genuinely point-level data.
@@ -674,9 +676,8 @@ The recipe records the grouping each declared pair was masked under, so
 a clone carries the account of its own coordinate structure. A
 coordinate declared to `coords` is retained in the synthetic, so
 [`audit_mask()`](https://max578.github.io/masque/reference/audit_mask.md)
-reports it – retention is worth knowing about, and it is reported as
-*medium*, noting that the column was coarsened in place, rather than as
-the high-leakage passthrough it would be had the real values been kept.
+reports it as *medium*, noting that the column was coarsened in place. A
+coordinate kept with its real values would be HIGH.
 
 [`synthesise_geospatial()`](https://max578.github.io/masque/reference/synthesise_geospatial.md)
 is the alternative when it is preferable to re-anchor points around fake
@@ -684,7 +685,7 @@ centroids supplied for each region.
 
 **How far to displace.** The right magnitude is not a constant. It is
 calibrated to the density of the entities being protected, so that the
-masked point is spatially k-anonymous – roughly, at least *k* comparable
+masked point is spatially k-anonymous: roughly, at least *k* comparable
 entities lie closer to the masked point than the true one (Hampton et
 al., 2010). Individual-level urban health data is typically masked with
 a standard deviation of about one kilometre, because cities are dense.
@@ -694,7 +695,7 @@ point across several properties while keeping it in the same
 agroclimatic region (Zandbergen, 2014). A formal guarantee needs the
 radii calibrated to the local field density rather than the default.
 
-## Read
+## Results
 
 Aliasing a design column hides the site names and keeps the layout. The
 alias map hides which label is which, but not how often each occurs.
@@ -718,35 +719,29 @@ by the audit before anything is written.
 ## Limits
 
 Everything demonstrated here is a development safeguard, not a
-disclosure-control guarantee in the formal sense: the alias map raises
+disclosure-control guarantee in the formal sense. The alias map raises
 the cost of a public-vocabulary attack, but a bijection preserves level
-frequencies by construction, and a determined attacker with strong side
-information about frequencies and structure is not stopped by an alias
-alone. The Gaussian copula’s monotone-only limitation is architectural,
-not a bug to be tuned away, so a pipeline whose core modelling step is
-non-linear should validate on the original data through the recipe
-rather than trust its fit on the clone. The donut jitter’s k-anonymity
-property is a rule of thumb tied to entity density, not a certified
-guarantee, and the right radius for a given dataset needs to be chosen
-with that density in mind rather than left at the package default. The
-leakage audit reads what the mask-time comparison can see – flagged
-names, frequency-one levels, retained coordinates – and cannot detect a
-disclosure risk that depends on information outside the table itself,
-such as an outside dataset a real attacker might already hold. None of
-these limits are resolved by more careful use of `masque`; they are the
-boundary of what a structurally faithful surrogate can promise, distinct
-from the differential-privacy guarantees this package deliberately does
-not claim.
+frequencies. A determined attacker with strong side information about
+frequencies and structure is not stopped by an alias alone. The Gaussian
+copula keeps only monotone association, so a pipeline whose core
+modelling step is non-linear should be validated on the original data
+through the recipe. The donut jitter’s k-anonymity property is a rule of
+thumb tied to entity density, not a certified guarantee, and the right
+radius for a given dataset needs to be chosen with that density in mind
+rather than left at the package default. The leakage audit reads what
+the mask-time comparison can see (flagged names, frequency-one levels,
+retained coordinates). It cannot detect a disclosure risk that depends
+on information outside the table, such as an outside dataset an attacker
+might already hold. These limits are part of the method.
 
 ## What to read next
 
 *Getting started with masque* covers the custodian’s side of a first
 masking run:
 [`masque()`](https://max578.github.io/masque/reference/masque.md), the
-roles-and-actions plan, and the multi-environment detection this
-vignette assumes is already understood. *Recipe anatomy and the
-round-trip* is the analyst’s side: what the recipe stores and how a
-pipeline built on the synthetic re-targets to the original.
+roles-and-actions plan, and multi-environment detection. *Recipe anatomy
+and the round-trip* is the analyst’s side: what the recipe stores and
+how a pipeline built on the synthetic re-targets to the original.
 
 ## Reproduce
 
