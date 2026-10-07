@@ -34,7 +34,8 @@ library(masque)
 A biometrician developing a yield model on a synthetic clone of a
 multi-environment variety trial needs to know which parts of the experiment
 are still in the clone. The allocation (every design column and the
-treatment labels) is returned as it was, and the outcomes are re-simulated.
+treatment labels) is returned as it was (here in local mode, with design
+and treatment columns kept), and the outcomes are re-simulated.
 What matters is whether a model fitted on those outcomes still finds the
 treatment, block and environment effects.
 
@@ -86,10 +87,7 @@ For each design, over twenty seeds:
   spread of the level means stays within a factor of two of the original
   in every case.
 
-The same rule runs in the package's tests on three seeds, and on twenty
-when the tests are run off CRAN.
-
-## Do
+## Example
 
 ### The eight designs
 
@@ -172,6 +170,9 @@ coordinate.
 The roles are the ones a custodian would set: the outcome, the treatment
 columns kept as they are, and every design column kept as it is. Local mode
 keeps the treatment labels, so the allocation check is a byte comparison.
+Every clone here coarsens its stratum, so each `mask()` call raises the
+`masque_conditional_degraded` warning. The runner muffles that one class;
+the tables below report the stratum each design reached.
 
 ```{r runner, eval = has_agridat}
 design_roles <- function(spec) {
@@ -194,8 +195,9 @@ design_run <- function(spec, seeds, ladder = "hierarchy") {
   terms <- names(spec$terms)
   alloc <- c(spec$treatment, spec$design)
   per_seed <- lapply(seeds, function(s) {
-    m <- suppressWarnings(
-      mask(d, r, mode = "local", seed = s, conditional = TRUE, ladder = ladder)
+    m <- withCallingHandlers(
+      mask(d, r, mode = "local", seed = s, conditional = TRUE, ladder = ladder),
+      masque_conditional_degraded = function(w) invokeRestart("muffleWarning")
     )
     sy <- as.data.frame(synthetic(m))
     f_clone <- anova(lm(spec$formula, data = sy))
@@ -336,7 +338,7 @@ cat("The agridat package is not installed on this build, so the designs",
     "are not masked here; the tables and the figure are omitted.\n")
 ```
 
-## Read
+## Results
 
 ```{r read-values, eval = has_agridat, include = FALSE}
 n_pass <- sum(summary_tbl$verdict == "pass")
@@ -356,15 +358,16 @@ for. Its county effect has an F of
 levels ladder drops `county` before `rep`, and the clone's county F is
 `r if (has_agridat) round(met_levels$F_clone[["county"]], 1)`. The
 hierarchy ladder conditions on genotype alone and carries the plot
-coordinates, `county`, `rep`, `block` and their pairs as shifts; the clone's county F is
-`r if (has_agridat) round(met$F_clone[["county"]])`, the nested
+coordinates, `county`, `rep`, `block` and their pairs as shifts. Under it
+the clone's county F is
+`r if (has_agridat) round(met$F_clone[["county"]])`, and the nested
 `county:rep` term is at
 `r if (has_agridat) round(met$F_clone[["county:rep"]], 1)` against
-`r if (has_agridat) round(met$F_orig[["county:rep"]], 1)`, and the
-genotype means correlate at
-`r if (has_agridat) round(met$trt_corr[["gen"]], 2)` with the original
-(`r if (has_agridat) round(met_levels$trt_corr[["gen"]], 2)` under the
-levels ladder).
+`r if (has_agridat) round(met$F_orig[["county:rep"]], 1)`. The genotype
+means correlate at
+`r if (has_agridat) round(met$trt_corr[["gen"]], 2)` with the original,
+against `r if (has_agridat) round(met_levels$trt_corr[["gen"]], 2)` under
+the levels ladder.
 
 Yates' oats shows the same thing on a single trial: the block F is
 `r if (has_agridat) round(oats_levels$F_clone[["block"]], 1)` under the
@@ -408,9 +411,9 @@ stricter test.
 
 ## What to read next
 
-*Confidentiality and the threat model* explains what carrying a level mean
-into the clone means for disclosure, and why `conditional = TRUE` is a
-statement about what the clone reproduces. *Getting started with masque*
+*Confidentiality and the threat model* lists what carrying a level mean
+into the clone discloses: a level with only a few plots reveals close to
+its real mean. *Getting started with masque*
 is the custodian's path from a table to a synthetic and a recipe.
 
 ## Reproduce

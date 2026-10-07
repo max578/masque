@@ -38,18 +38,20 @@ happens when the original holds a value the recipe has never seen.
 
 ## What
 
-The `masque_recipe` object returned by `mask()` is the only artefact
-that *must* stay confidential alongside the original; get it with
-`recipe()`. Two functions
-make the round-trip. `apply_recipe()` recodes the original data into the
-clone's labels and column names, which is how a custodian runs an
-analyst's finished pipeline on it. `unmask()` goes the other way and turns
+The `masque_recipe` object returned by `mask()` holds the real labels,
+the original column names and the seed. With the synthetic it undoes every
+alias, so keep it with the original data and never send it with the
+synthetic. Get it with `recipe()`.
+
+Two functions make the round-trip. `apply_recipe()` recodes the original
+data into the clone's labels and column names, which is how a custodian
+runs an analyst's finished pipeline on it. `unmask()` goes the other way and turns
 a result in the clone's labels back into the original ones.
 `save_recipe()`/`read_recipe()` persist a recipe to a single `.rds`
-file, and `reveal_maps()` is the one explicit, warning-gated call that
-shows the level maps a redacted `print()` withholds.
+file, and `reveal_maps()` prints the level maps that a redacted `print()`
+withholds.
 
-## Do
+## Example
 
 ### What a recipe holds
 
@@ -59,34 +61,45 @@ rec <- recipe(m)
 class(rec)
 ```
 
-A recipe carries only what the round-trip needs:
+A recipe holds:
 
-- `masque_version`, `created_at`, `mode`, `seed` -- provenance.
-- `roles` -- the two-axis role and action table.
-- `level_maps` -- the per-column original-to-alias maps. The sensitive
+- `masque_version`, `created_at`, `mode`: provenance.
+- `seed`: the seed of the call. With it the same call reproduces the same
+  alias maps, so keep it as private as the maps.
+- `roles`: the two-axis role and action table, with the original column
+  names.
+- `conditional`, `ladder`, `conditioning_cols`, `conditioning_used`,
+  `conditioning_dropped`, `conditioning_shifted`, `fallback_frac`: what a
+  conditional clone asked for, the stratum it got, the columns it dropped
+  or carried as shifts, and the share of rows pooled.
+- `level_maps`: the per-column original-to-alias maps. The sensitive
   part.
-- `column_name_map` -- the column-name aliases, when `alias_names` was
+- `column_name_map`: the column-name aliases, when `alias_names` was
   used (otherwise `NULL`).
-- `cleaning` -- the tidying done before masking (column names made valid
-  R names, whitespace trimmed)
-  so `apply_recipe()` re-applies the identical tidying.
-- `storage_classes`, `factor_meta` -- the original column classes and
-  factor metadata, for faithful reconstruction.
-- `coords` -- one entry per coordinate pair declared to `mask()`'s
+- `storage_classes`, `factor_meta`: the original column classes, factor
+  levels and ordering, for faithful reconstruction.
+- `cleaning`: the tidying done before masking (column names made valid
+  R names, whitespace trimmed), so `apply_recipe()` re-applies the same
+  tidying.
+- `coords`: one entry per coordinate pair declared to `mask()`'s
   `coords` argument: the jitter method and radius, the site grouping it
-  was masked under, and how many sites the grouping produced. Empty for a
-  recipe written before 0.10.0, which had no such record.
-- `allow_unmasked_coords` -- `TRUE` only when the caller deliberately
-  wrote a real coordinate through unmasked. `FALSE`, and absent, on a
-  recipe written before 0.11.0.
-- `integrity_fp` -- a SHA-256 of `is.na(original)`: an integrity
+  was masked under, and how many sites the grouping produced.
+- `allow_unmasked_coords`: `TRUE` only when the caller deliberately
+  wrote a real coordinate through unmasked.
+- `warnings`: the warnings raised while masking, including any HIGH
+  audit finding.
+- `integrity_fp`: a SHA-256 of `is.na(original)`, an integrity
   fingerprint, not a privacy guarantee.
 
-It deliberately does not hold the copula covariance, the raw observed
-values, or any file paths or usernames.
+A recipe written by an older version has no record for the slots added
+since, for example `coords` before 0.10.0 and `allow_unmasked_coords`
+before 0.11.0. The changelog lists when each slot was added.
 
-A recipe built with `coords` carries its own coordinate account, so an
-audit of the recipe does not need the original data back:
+It does not hold the copula covariance, the raw observed values, or any
+file paths or usernames.
+
+A recipe built with `coords` records how its coordinates were masked, so
+an audit of the recipe does not need the original data back:
 
 ```{r coords-account, eval = requireNamespace("maps", quietly = TRUE)}
 df_geo <- df
@@ -123,8 +136,8 @@ themselves:
 rec
 ```
 
-The custodian -- and only the custodian -- can reveal the maps with an
-explicit, warning-gated call:
+Anyone holding the recipe can print the maps with an explicit call, which
+shows a warning first:
 
 ```{r reveal, results = "hide"}
 reveal_maps(rec)
@@ -156,7 +169,9 @@ labels_recovered
 ```
 
 Columns whose action is `keep`, numeric columns and numeric predictions
-pass through both functions unchanged.
+pass through both functions unchanged. `apply_recipe()` returns an aliased
+factor with the clone's levels in the clone's order, so a model fitted on
+the translated original has the same reference level as on the clone.
 
 ### Fail-closed translation
 
@@ -170,9 +185,11 @@ drifted$gen[1] <- "BRAND_NEW"
 apply_recipe(drifted, rec)
 ```
 
-The message names the column (`gen`) and the value (`"BRAND_NEW"`). Rebuild
-the recipe from data that contains the new value, or remove the drifted
-rows before re-targeting.
+The message names the column (`gen`) and the value (`"BRAND_NEW"`). Either
+remove the drifted rows before re-targeting, or mask the data that
+contains the new value again. Masking again makes a new recipe and a new
+synthetic, and the analyst needs the new synthetic in place of the old
+one.
 
 ### Saving the recipe
 
@@ -190,7 +207,7 @@ fingerprint_survives_roundtrip
 
 ### Multi-table bundles
 
-A `mask_set()` result carries a recipe *bundle* -- one recipe per table
+A `mask_set()` result carries a recipe *bundle*: one recipe per table
 plus the shared cross-table link maps. The same `apply_recipe()` and
 `unmask()` verbs dispatch on it, operating table by table over a named
 list:
@@ -199,7 +216,7 @@ list:
 set_dir <- system.file("extdata", "met_set", package = "masque")
 ms <- mask_set(set_dir, mode = "collaborate", seed = 1L, quiet = TRUE)
 originals <- read_set(set_dir)
-fwd_set <- suppressWarnings(apply_recipe(originals, recipe(ms)))
+fwd_set <- apply_recipe(originals, recipe(ms))
 names(fwd_set)
 ```
 
@@ -232,7 +249,7 @@ cat("ggplot2 is not installed on this build, so the marginal-overlay",
     "figure is skipped.\n")
 ```
 
-## Read
+## Results
 
 All three round-trip checks pass: one prediction per original row, the
 original genotype labels recovered, and the same integrity fingerprint
@@ -251,8 +268,8 @@ the real data without changing it.
 
 This vignette uses one recipe built from one clean public trial, with one
 planted drift. A table whose category labels changed over time (renamed
-treatments, retired sites) will be refused more often. The round-trip verbs invert only what the recipe
-recorded: numeric columns pass through unchanged, so `unmask()` cannot undo
+treatments, retired sites) will be refused more often. The round-trip
+verbs invert only what the recipe recorded: numeric columns pass through unchanged, so `unmask()` cannot undo
 a numeric transformation a pipeline made, and a recipe cannot repair a join
 that was broken before masking. The leakage audit, the conditional clone
 and the coordinate controls are covered in *Confidentiality and the threat
