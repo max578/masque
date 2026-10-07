@@ -5,19 +5,19 @@
 
 ## Pre-1.0 (current)
 
-Versions `0.x.y` follow **additive-by-policy** evolution. The maintainer's
-intent is that every minor release (`0.x → 0.(x+1)`) adds new exports without
-breaking existing signatures. The track record so far:
+Versions `0.x.y` follow an **additive-by-intent** policy: every minor
+release (`0.x` to `0.(x+1)`) is meant to add new exports without breaking
+existing signatures. The track record so far:
 
-- `0.2.0` — first public surface (11 exports).
-- `0.3.0` — added `detect_design()`, `plot_design_summary()`, and the
+- `0.2.0`: first public surface (11 exports).
+- `0.3.0`: added `detect_design()`, `plot_design_summary()`, and the
   `design_summary` S7 class. `propose_roles()` gained `detect = TRUE`
   as a new default with `detect = FALSE` recovering v0.2.x behaviour
   byte-for-byte. **No breaking changes.**
-- `0.4.0` — added `synthesise_geospatial()`. **No breaking changes.**
-- `0.5.0` — joint-treatment masking; the `keep` role; first-class
+- `0.4.0`: added `synthesise_geospatial()`. **No breaking changes.**
+- `0.5.0`: joint-treatment masking; the `keep` role; first-class
   date/time covariates. **No breaking changes.**
-- `0.6.0` — the **two-axis roles model**: the roles table gains an
+- `0.6.0`: the **two-axis roles model**: the roles table gains an
   `action` column and the role vocabulary changes (`keep` / `ignore`
   become the `keep` / `drop` *actions*; new roles `date` / `id` /
   `text` / `other`). New exports: `masque()` (guided verb),
@@ -27,12 +27,12 @@ breaking existing signatures. The track record so far:
   built by masque <= 0.5.0 are upgraded automatically with a one-time
   deprecation warning, so existing scripts keep working; the warning
   signposts re-running `propose_roles()`.
-- `0.7.0` — added opt-in conditional numeric synthesis. **No signature
+- `0.7.0`: added opt-in conditional numeric synthesis. **No signature
   breaks.**
-- `0.8.0` — strengthened warning propagation and the package-managed write
+- `0.8.0`: strengthened warning propagation and the package-managed write
   gate. Added `allow_high` at the end of affected signatures. **Behavioural
   safety change, listed in `NEWS.md`.**
-- `0.9.1` — supersedes the untagged 0.9.0 release candidate. Added the
+- `0.9.1`: supersedes the untagged 0.9.0 release candidate. Added the
   append-only `env` argument to `detect_design()` and
   additive environment-scope properties to `design_summary`. Conservative
   automatic scope detection changes `propose_roles()` defaults for
@@ -41,9 +41,9 @@ breaking existing signatures. The track record so far:
   `mask()` and `mask_set()` now inherit the mode provenance recorded on role
   plans when `mode` is omitted, with an explicit warning for a downgrade.
   **Behaviour changes are listed first in `NEWS.md`.**
-- `0.9.2` — added `jitter_coordinates()` and the `mask()` `coords` argument.
+- `0.9.2`: added `jitter_coordinates()` and the `mask()` `coords` argument.
   **No breaking changes.**
-- `0.10.0` — the geomask now draws one displacement per **site** rather than
+- `0.10.0`: the geomask now draws one displacement per **site** rather than
   per row, and a site that cannot be placed on land fails closed to `NA`
   instead of retaining its true coordinate. `jitter_coordinates()` gains `by`
   (appended after `lon_col`), and a coordinate spec passed to `mask(coords = )`
@@ -51,43 +51,57 @@ breaking existing signatures. The track record so far:
   genuinely point-level input reproduces its 0.9.2 output exactly under the
   same seed. **This is a behaviour change and a confidentiality fix, listed
   first in `NEWS.md`.**
-- `0.11.0` — a coordinate column kept unmasked now stops `mask()` unless the
+- `0.11.0`: a coordinate column kept unmasked now stops `mask()` unless the
   caller states otherwise, via `coords`, a masking action, or the new
   `allow_unmasked_coords` argument (appended, default `FALSE`). Value-shaped
   coordinate detection warns rather than stops. `audit_mask()` no longer
   classes a geomask-coarsened coordinate as HIGH. **Behaviour change, listed
   first in `NEWS.md`.**
+- `0.12.0`: added `conform_table()`. The collaborate-mode alias map is drawn
+  from a seeded random permutation instead of the sort order, which changes
+  the integer codes of an aliased factor. `conditional = TRUE` coarsens its
+  strata until they are large enough, instead of pooling the whole clone
+  silently. **Behaviour change and a confidentiality fix, listed in
+  `NEWS.md`.**
+- `0.13.0`: `mask()`, `mask_set()` and `masque()` gain `ladder` (appended).
+  The new default, `"hierarchy"`, coarsens a conditional clone along the
+  design hierarchy; `ladder = "levels"` reproduces 0.11.1 to 0.12.0.
+  **Breaking change, listed first in `NEWS.md`.**
+- `0.14.0`: a scrambled factor keeps the original level order, and an
+  aliased join key lists its aliases in sorted order, so `levels()` of a
+  clone no longer reveals its label map. Values under the same seed are
+  unchanged. `apply_recipe()` returns the clone's level order.
+  **Confidentiality fix, listed first in `NEWS.md`; re-make any clone shared
+  from 0.13.0 or earlier.**
 
-The policy is "additive-by-intent" rather than "frozen": pre-1.0 reserves the
-right to break an existing signature when a design flaw surfaces, but every
-such change must be:
+Additive by intent is not frozen: before 1.0 a release may break an
+existing signature when a design flaw surfaces, but every such change must
+be:
 
 1. Listed under a `## Breaking changes` heading in `NEWS.md`, first.
 2. Justified in the release notes.
 3. Where feasible, accompanied by a temporary back-compat shim.
 
-If you depend on `masque` pre-1.0, pin the version in `renv.lock` or
-`DESCRIPTION` (`Imports: masque (>= 0.4.0)`).
+If you depend on `masque` before 1.0, set a version floor in `DESCRIPTION`
+(`Imports: masque (>= 0.14.0)`) and record the exact version with `renv`
+(`renv::snapshot()`).
 
 ## 1.0 and after
 
-From `1.0.0`, `masque` adopts **strict frozen-API additive evolution** —
-the same policy as `glmnet` and `mgcv`:
+From `1.0.0`, `masque` adopts a **frozen API**:
 
 - Signatures of exported functions never change in a backwards-incompatible
-  way across major versions.
+  way within a major version.
 - New capability arrives via new entry points (new exports), never via
   changes to existing ones.
 - If an existing function genuinely needs to be retired, it is marked with
-  `lifecycle::deprecate_warn()`, kept for ≥ 2 minor versions, then promoted
-  to `lifecycle::deprecate_stop()` for ≥ 1 more minor version, then removed
-  in the next major release. Successors are signposted in the deprecation
-  message.
+  `lifecycle::deprecate_warn()`, kept for at least 2 minor versions, then
+  promoted to `lifecycle::deprecate_stop()` for at least 1 more minor
+  version, then removed in the next major release. Successors are
+  signposted in the deprecation message.
 
-This policy is chosen because `masque` is invoked from pipeline code that
-the maintainer cannot edit (the whole point of the `recipe` round-trip is
-that pipeline code runs unchanged against the synthetic). Silent breakage
-across versions would defeat that contract.
+Pipeline code written against a clone is later run unchanged on the real
+data, so it has to keep working when `masque` is upgraded.
 
 ## Versioning and tags
 
