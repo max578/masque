@@ -5,7 +5,7 @@ template:
 
 reference:
 - title: Guided masking
-  desc: The one-call front door for a table, a folder, or a workbook.
+  desc: The main function, one call for a table, a folder, or a workbook.
   contents:
   - masque
 
@@ -16,11 +16,15 @@ reference:
   - set_role
   - role_options
   - roles_validate
+
+- title: Cleaning input
+  desc: Tidy names, labels and types before masking.
+  contents:
   - clean_table
   - conform_table
 
 - title: Design detection
-  desc: Identify environment scope and experimental design, then visualise both for sanity.
+  desc: Identify environment scope and experimental design, then plot both to check them.
   contents:
   - detect_design
   - plot_design_summary
@@ -60,13 +64,13 @@ reference:
   - masque-package
 
 articles:
-- title: Get started
+- title: Articles
   navbar: ~
   contents:
   - getting_started
+  - recipe_anatomy
   - confidentiality
   - design_preservation
-  - recipe_anatomy
 
 navbar:
   structure:
