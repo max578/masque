@@ -160,7 +160,7 @@ test_that("roles_validate errors on non-numeric scrambled outcome", {
 test_that("mask() runs end-to-end on MET tab_04 (skip if fixture absent)", {
   skip_on_cran()
   skip_if_not_installed("fst")
-  fpath <- normalizePath("../../../fst_00_dataset_tab_04.fst", mustWork = FALSE)
+  fpath <- file.path(Sys.getenv("MASQUE_MET_FIXTURE_DIR", "."), "fst_00_dataset_tab_04.fst")
   skip_if_not(
     file.exists(fpath),
     sprintf("Local-only MET fixture not at %s", fpath)

@@ -77,7 +77,7 @@ test_that("Round-trip: save then read then apply recipe (cross-process)", {
 test_that("Round-trip on MET tab_04 (skip if .fst fixture absent)", {
   skip_on_cran()
   skip_if_not_installed("fst")
-  fpath <- normalizePath("../../../fst_00_dataset_tab_04.fst", mustWork = FALSE)
+  fpath <- file.path(Sys.getenv("MASQUE_MET_FIXTURE_DIR", "."), "fst_00_dataset_tab_04.fst")
   skip_if_not(
     file.exists(fpath),
     sprintf("Local-only MET fixture not at %s", fpath)

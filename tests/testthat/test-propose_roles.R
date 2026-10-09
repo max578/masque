@@ -200,12 +200,12 @@ test_that("freq_or_range is informative", {
   expect_match(r$freq_or_range[r$col == "x_date"], "2026-01-01")
 })
 
-# Real MET fixtures (workspace-root .fst files; skipped under R CMD check) ----
+# Real MET fixtures (.fst files in MASQUE_MET_FIXTURE_DIR; skipped under R CMD check)
 
 test_that("propose_roles handles MET tab_04 (skip if .fst fixture absent)", {
   skip_on_cran()
   skip_if_not_installed("fst")
-  fpath <- normalizePath("../../../fst_00_dataset_tab_04.fst", mustWork = FALSE)
+  fpath <- file.path(Sys.getenv("MASQUE_MET_FIXTURE_DIR", "."), "fst_00_dataset_tab_04.fst")
   skip_if_not(
     file.exists(fpath),
     sprintf("Local-only MET fixture not at %s", fpath)
@@ -231,7 +231,7 @@ test_that("propose_roles handles MET tab_04 (skip if .fst fixture absent)", {
 test_that("propose_roles handles MET tab_07 (skip if .fst fixture absent)", {
   skip_on_cran()
   skip_if_not_installed("fst")
-  fpath <- normalizePath("../../../fst_00_dataset_tab_07.fst", mustWork = FALSE)
+  fpath <- file.path(Sys.getenv("MASQUE_MET_FIXTURE_DIR", "."), "fst_00_dataset_tab_07.fst")
   skip_if_not(
     file.exists(fpath),
     sprintf("Local-only MET fixture not at %s", fpath)
