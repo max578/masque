@@ -1,3 +1,16 @@
+# masque 0.14.1
+
+## Documentation
+
+* *Confidentiality* states what a recipe holds on its own (the real labels,
+  the original column names and the seed) and adds a row for conditional
+  clones: they reproduce the outcome mean of each treatment, block and
+  environment level, so a level with only a few plots shows close to its
+  real mean.
+
+* The README, *API stability* and the other vignettes are reworded more
+  plainly, and the pkgdown site lists the articles in reading order.
+
 # masque 0.14.0
 
 ## Security
