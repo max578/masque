@@ -143,5 +143,5 @@ str(cf2$data)
 #>  $ state: Factor w/ 2 levels "NSW","VIC": 1 1 1 2 2
 #>  $ yield: num  3.1 2.9 5 4.2 3.8
 #>  $ sown : Date, format: "2024-05-01" "2024-05-03" ...
-#>  - attr(*, ".internal.selfref")=<pointer: 0x5555b509fa30> 
+#>  - attr(*, ".internal.selfref")=<pointer: 0x55f07c0f9a30> 
 ```

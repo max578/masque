@@ -41,7 +41,7 @@ rec2 <- read_recipe(tmp)
 rec2
 #> 
 #> ── masque_recipe ───────────────────────────────────────────────────────────────
-#> • Created: 2026-10-15 20:55:05 UTC
+#> • Created: 2026-10-15 22:55:22 UTC
 #> • Mode: collaborate
 #> • Clone fidelity: marginal / structural (global copula)
 #> • Seed: present (redacted)
