@@ -32,7 +32,7 @@ apply_recipe(original, rec, check_integrity = TRUE)
 
 ## Value
 
-A tibble in the synthetic namespace, ready for the pipeline.
+A data.table in the synthetic namespace, ready for the pipeline.
 
 ## Details
 
@@ -80,13 +80,12 @@ m <- mask(iris, r, mode = "collaborate", seed = 1)
 rec <- recipe(m)
 iris_in_synth_space <- apply_recipe(iris, rec)
 head(iris_in_synth_space)
-#> # A tibble: 6 × 5
-#>   Sepal.Length Sepal.Width Petal.Length Petal.Width Species     
-#>          <dbl>       <dbl>        <dbl>       <dbl> <fct>       
-#> 1          5.1         3.5          1.4         0.2 Species_L001
-#> 2          4.9         3            1.4         0.2 Species_L001
-#> 3          4.7         3.2          1.3         0.2 Species_L001
-#> 4          4.6         3.1          1.5         0.2 Species_L001
-#> 5          5           3.6          1.4         0.2 Species_L001
-#> 6          5.4         3.9          1.7         0.4 Species_L001
+#>    Sepal.Length Sepal.Width Petal.Length Petal.Width      Species
+#>           <num>       <num>        <num>       <num>       <fctr>
+#> 1:          5.1         3.5          1.4         0.2 Species_L001
+#> 2:          4.9         3.0          1.4         0.2 Species_L001
+#> 3:          4.7         3.2          1.3         0.2 Species_L001
+#> 4:          4.6         3.1          1.5         0.2 Species_L001
+#> 5:          5.0         3.6          1.4         0.2 Species_L001
+#> 6:          5.4         3.9          1.7         0.4 Species_L001
 ```

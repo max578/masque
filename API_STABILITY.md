@@ -101,6 +101,10 @@ breaking existing signatures. The track record so far:
   [`apply_recipe()`](https://max578.github.io/masque/reference/apply_recipe.md)
   returns the clone’s level order. **Confidentiality fix, listed first
   in `NEWS.md`; re-make any clone shared from 0.13.0 or earlier.**
+- Development version (after 0.14.1): every returned table is a
+  `data.table` instead of a tibble, and tibble leaves the dependencies.
+  Signatures and values are unchanged. **Breaking change for code that
+  relies on tibble behaviour, listed first in `NEWS.md`.**
 
 Additive by intent is not frozen: before 1.0 a release may break an
 existing signature when a design flaw surfaces, but every such change

@@ -1,5 +1,51 @@
 # Changelog
 
+## masque (development version)
+
+### Breaking changes
+
+- Every table masque returns is now a `data.table`:
+  [`synthetic()`](https://max578.github.io/masque/reference/synthetic.md),
+  [`propose_roles()`](https://max578.github.io/masque/reference/propose_roles.md),
+  [`set_role()`](https://max578.github.io/masque/reference/set_role.md),
+  [`role_options()`](https://max578.github.io/masque/reference/role_options.md),
+  [`audit_mask()`](https://max578.github.io/masque/reference/audit_mask.md),
+  [`apply_recipe()`](https://max578.github.io/masque/reference/apply_recipe.md),
+  [`unmask()`](https://max578.github.io/masque/reference/unmask.md),
+  [`read_set()`](https://max578.github.io/masque/reference/read_set.md),
+  the `data` and report tables of
+  [`clean_table()`](https://max578.github.io/masque/reference/clean_table.md)
+  and
+  [`conform_table()`](https://max578.github.io/masque/reference/conform_table.md),
+  and the `recommended_roles` and `per_env` tables of
+  [`detect_design()`](https://max578.github.io/masque/reference/detect_design.md).
+  tibble is no longer a dependency. Code that selects columns with
+  `x[c("a", "b")]` should use `x[, c("a", "b")]`, or convert with
+  [`as.data.frame()`](https://rdrr.io/r/base/as.data.frame.html) first.
+
+- [`synthetic()`](https://max578.github.io/masque/reference/synthetic.md),
+  [`audit_mask()`](https://max578.github.io/masque/reference/audit_mask.md),
+  [`set_role()`](https://max578.github.io/masque/reference/set_role.md),
+  [`apply_recipe()`](https://max578.github.io/masque/reference/apply_recipe.md),
+  [`clean_table()`](https://max578.github.io/masque/reference/clean_table.md)
+  and
+  [`conform_table()`](https://max578.github.io/masque/reference/conform_table.md)
+  return their own copy, so editing the result by reference with `:=`
+  never changes the input data or the masque object.
+
+### Documentation
+
+- The README states no hard-coded version, carries status badges, and
+  has a *Related packages* section on synthpop and sdcMicro.
+
+- *Getting started* edits the role table with data.table syntax.
+
+### Continuous integration
+
+- New `test-coverage` workflow (covr, uploaded to Codecov) and `lint`
+  workflow (lintr with the package’s `.lintr`; it reports and does not
+  fail).
+
 ## masque 0.14.1
 
 ### Documentation

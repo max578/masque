@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">masque</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.14.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.14.1.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -37,6 +37,23 @@
       <small>Source: <a href="https://github.com/max578/masque/blob/main/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="development version" id="masque-development-version">masque (development version)<a class="anchor" aria-label="anchor" href="#masque-development-version"></a></h2>
+<div class="section level3">
+<h3 id="breaking-changes-development-version">Breaking changes<a class="anchor" aria-label="anchor" href="#breaking-changes-development-version"></a></h3>
+<ul><li><p>Every table masque returns is now a <code>data.table</code>: <code><a href="../reference/synthetic.html">synthetic()</a></code>, <code><a href="../reference/propose_roles.html">propose_roles()</a></code>, <code><a href="../reference/set_role.html">set_role()</a></code>, <code><a href="../reference/role_options.html">role_options()</a></code>, <code><a href="../reference/audit_mask.html">audit_mask()</a></code>, <code><a href="../reference/apply_recipe.html">apply_recipe()</a></code>, <code><a href="../reference/unmask.html">unmask()</a></code>, <code><a href="../reference/read_set.html">read_set()</a></code>, the <code>data</code> and report tables of <code><a href="../reference/clean_table.html">clean_table()</a></code> and <code><a href="../reference/conform_table.html">conform_table()</a></code>, and the <code>recommended_roles</code> and <code>per_env</code> tables of <code><a href="../reference/detect_design.html">detect_design()</a></code>. tibble is no longer a dependency. Code that selects columns with <code>x[c("a", "b")]</code> should use <code>x[, c("a", "b")]</code>, or convert with <code><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame()</a></code> first.</p></li>
+<li><p><code><a href="../reference/synthetic.html">synthetic()</a></code>, <code><a href="../reference/audit_mask.html">audit_mask()</a></code>, <code><a href="../reference/set_role.html">set_role()</a></code>, <code><a href="../reference/apply_recipe.html">apply_recipe()</a></code>, <code><a href="../reference/clean_table.html">clean_table()</a></code> and <code><a href="../reference/conform_table.html">conform_table()</a></code> return their own copy, so editing the result by reference with <code>:=</code> never changes the input data or the masque object.</p></li>
+</ul></div>
+<div class="section level3">
+<h3 id="documentation-development-version">Documentation<a class="anchor" aria-label="anchor" href="#documentation-development-version"></a></h3>
+<ul><li><p>The README states no hard-coded version, carries status badges, and has a <em>Related packages</em> section on synthpop and sdcMicro.</p></li>
+<li><p><em>Getting started</em> edits the role table with data.table syntax.</p></li>
+</ul></div>
+<div class="section level3">
+<h3 id="continuous-integration-development-version">Continuous integration<a class="anchor" aria-label="anchor" href="#continuous-integration-development-version"></a></h3>
+<ul><li>New <code>test-coverage</code> workflow (covr, uploaded to Codecov) and <code>lint</code> workflow (lintr with the package’s <code>.lintr</code>; it reports and does not fail).</li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.14.1" id="masque-0141">masque 0.14.1<a class="anchor" aria-label="anchor" href="#masque-0141"></a></h2>
 <div class="section level3">

@@ -1,7 +1,7 @@
 # Audit a masque object for leakage and shareability risks
 
-Returns a per-column audit tibble and prints a severity-grouped report.
-Auto-runs in `mode = "collaborate"` at
+Returns a per-column audit data.table and prints a severity-grouped
+report. Auto-runs in `mode = "collaborate"` at
 [`mask()`](https://max578.github.io/masque/reference/mask.md) time and
 stores the result on the masque object (`m@audit`); for local-mode
 audits or explicit re-audits, pass the original data frame via
@@ -31,11 +31,11 @@ audit_mask(m, original = NULL, print = TRUE)
 
 ## Value
 
-The audit tibble, returned invisibly.
+The audit data.table, returned invisibly.
 
 ## Details
 
-Each row of the returned tibble holds:
+Each row of the returned data.table holds:
 
 - `col`: column name in the original.
 

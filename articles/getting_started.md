@@ -200,7 +200,7 @@ jointly.
 
 ### Editing the plan as code
 
-The plan is a data frame, so you can edit it in code. The spreadsheet
+The plan is a data.table, so you can edit it in code. The spreadsheet
 the guided prompt opens when the custodian chooses `e` edits the same
 table.
 [`set_role()`](https://max578.github.io/masque/reference/set_role.md) is
@@ -218,8 +218,7 @@ re-resolve the default for the new role:
 
 ``` r
 
-r2$role[r2$col == "rep"] <- "covariate"
-r2$action[r2$col == "rep"] <- NA
+r2[col == "rep", `:=`(role = "covariate", action = NA_character_)]
 knitr::kable(
   r2[, c("col", "role", "action")],
   caption = paste0(
@@ -301,7 +300,7 @@ the correct fix:
 
 ``` r
 
-roles$pii_suspected[roles$col == "comments"] <- TRUE
+roles[col == "comments", pii_suspected := TRUE]
 ```
 
 Passing the edited table back to
@@ -351,9 +350,9 @@ A confidential dataset often arrives as several related files or a
 multi-sheet workbook.
 [`masque()`](https://max578.github.io/masque/reference/masque.md)
 handles those too. Point it at a folder, an `.xlsx` file, or a named
-list of data frames and it masks every table at once, aliasing any
-shared key (a site code, a genotype name) *identically across tables* so
-a join of the synthetic tables still resolves.
+list of tables and it masks every table at once, aliasing any shared key
+(a site code, a genotype name) *identically across tables* so a join of
+the synthetic tables still resolves.
 
 ``` r
 
@@ -575,18 +574,17 @@ sessionInfo()
 #> [1] stats     graphics  grDevices utils     datasets  methods   base     
 #> 
 #> other attached packages:
-#> [1] masque_0.14.1
+#> [1] masque_0.14.1.9000
 #> 
 #> loaded via a namespace (and not attached):
 #>  [1] vctrs_0.7.3         cli_3.6.6           knitr_1.52          rlang_1.3.0        
 #>  [5] xfun_0.61           otel_0.2.0          textshaping_1.0.5   S7_0.2.2           
 #>  [9] data.table_1.18.6.1 jsonlite_2.0.0      labeling_0.4.3      glue_1.8.1         
 #> [13] htmltools_0.5.9     ragg_1.5.2          sass_0.4.10         scales_1.4.0       
-#> [17] rmarkdown_2.32      grid_4.6.1          tibble_3.3.1        evaluate_1.0.5     
-#> [21] jquerylib_0.1.4     fastmap_1.2.0       yaml_2.3.12         lifecycle_1.0.5    
-#> [25] compiler_4.6.1      fs_2.1.0            RColorBrewer_1.1-3  pkgconfig_2.0.3    
-#> [29] systemfonts_1.3.2   farver_2.1.2        digest_0.6.39       R6_2.6.1           
-#> [33] pillar_1.11.1       magrittr_2.0.5      bslib_0.12.0        withr_3.0.3        
-#> [37] tools_4.6.1         gtable_0.3.6        pkgdown_2.2.1       ggplot2_4.0.3      
-#> [41] cachem_1.1.0        desc_1.4.3
+#> [17] rmarkdown_2.32      grid_4.6.1          evaluate_1.0.5      jquerylib_0.1.4    
+#> [21] fastmap_1.2.0       yaml_2.3.12         lifecycle_1.0.5     compiler_4.6.1     
+#> [25] fs_2.1.0            RColorBrewer_1.1-3  systemfonts_1.3.2   farver_2.1.2       
+#> [29] digest_0.6.39       R6_2.6.1            pillar_1.11.1       bslib_0.12.0       
+#> [33] withr_3.0.3         tools_4.6.1         gtable_0.3.6        pkgdown_2.2.1      
+#> [37] ggplot2_4.0.3       cachem_1.1.0        desc_1.4.3
 ```

@@ -30,7 +30,7 @@ read_set(input, sheets = NULL, pattern = NULL)
 
 ## Value
 
-A named list of data frames.
+A named list of data.tables.
 
 ## Details
 

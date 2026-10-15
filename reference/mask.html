@@ -15,7 +15,7 @@ masque_recipe."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">masque</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.14.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.14.1.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -284,15 +284,14 @@ state is preserved across the call.</p>
 <span class="r-in"><span><span class="va">r</span> <span class="op">&lt;-</span> <span class="fu"><a href="set_role.html">set_role</a></span><span class="op">(</span><span class="va">r</span>, <span class="st">"Sepal.Length"</span>, role <span class="op">=</span> <span class="st">"outcome"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">m</span> <span class="op">&lt;-</span> <span class="fu">mask</span><span class="op">(</span><span class="va">iris</span>, <span class="va">r</span>, seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu"><a href="synthetic.html">synthetic</a></span><span class="op">(</span><span class="va">m</span><span class="op">)</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># A tibble: 6 × 5</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>   Sepal.Length Sepal.Width Petal.Length Petal.Width Species</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>          <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>       <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>        <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span>       <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span> <span style="color: #949494; font-style: italic;">&lt;fct&gt;</span>  </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">1</span>          5.1         3.2          4           1.5 setosa </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">2</span>          6           3            3.7         0.4 setosa </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">3</span>          5           3            4.6         1.1 setosa </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">4</span>          7.2         2.6          5.8         1.7 setosa </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">5</span>          6.1         2.4          5.8         1.5 setosa </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">6</span>          5           2.7          4.5         1.4 setosa </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    Sepal.Length Sepal.Width Petal.Length Petal.Width Species</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>           &lt;num&gt;       &lt;num&gt;        &lt;num&gt;       &lt;num&gt;  &lt;fctr&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1:          5.1         3.2          4.0         1.5  setosa</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2:          6.0         3.0          3.7         0.4  setosa</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3:          5.0         3.0          4.6         1.1  setosa</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4:          7.2         2.6          5.8         1.7  setosa</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5:          6.1         2.4          5.8         1.5  setosa</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6:          5.0         2.7          4.5         1.4  setosa</span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
     </div>

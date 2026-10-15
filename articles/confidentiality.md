@@ -775,20 +775,20 @@ sessionInfo()
 #> [1] stats     graphics  grDevices utils     datasets  methods   base     
 #> 
 #> other attached packages:
-#> [1] masque_0.14.1
+#> [1] masque_0.14.1.9000
 #> 
 #> loaded via a namespace (and not attached):
 #>  [1] vctrs_0.7.3         cli_3.6.6           knitr_1.52          rlang_1.3.0        
 #>  [5] xfun_0.61           otel_0.2.0          textshaping_1.0.5   S7_0.2.2           
 #>  [9] data.table_1.18.6.1 jsonlite_2.0.0      labeling_0.4.3      glue_1.8.1         
 #> [13] htmltools_0.5.9     ragg_1.5.2          sass_0.4.10         scales_1.4.0       
-#> [17] rmarkdown_2.32      grid_4.6.1          tibble_3.3.1        evaluate_1.0.5     
-#> [21] jquerylib_0.1.4     fastmap_1.2.0       yaml_2.3.12         lifecycle_1.0.5    
-#> [25] compiler_4.6.1      fs_2.1.0            RColorBrewer_1.1-3  pkgconfig_2.0.3    
-#> [29] maps_3.4.3          systemfonts_1.3.2   farver_2.1.2        digest_0.6.39      
-#> [33] viridisLite_0.4.3   R6_2.6.1            pillar_1.11.1       magrittr_2.0.5     
-#> [37] bslib_0.12.0        withr_3.0.3         tools_4.6.1         gtable_0.3.6       
-#> [41] pkgdown_2.2.1       ggplot2_4.0.3       cachem_1.1.0        desc_1.4.3
+#> [17] rmarkdown_2.32      grid_4.6.1          evaluate_1.0.5      jquerylib_0.1.4    
+#> [21] fastmap_1.2.0       yaml_2.3.12         lifecycle_1.0.5     compiler_4.6.1     
+#> [25] fs_2.1.0            RColorBrewer_1.1-3  maps_3.4.3          systemfonts_1.3.2  
+#> [29] farver_2.1.2        digest_0.6.39       viridisLite_0.4.3   R6_2.6.1           
+#> [33] pillar_1.11.1       bslib_0.12.0        withr_3.0.3         tools_4.6.1        
+#> [37] gtable_0.3.6        pkgdown_2.2.1       ggplot2_4.0.3       cachem_1.1.0       
+#> [41] desc_1.4.3
 ```
 
 ## References

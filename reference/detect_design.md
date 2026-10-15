@@ -26,7 +26,7 @@ detect_design(
 
 - roles:
 
-  Optional roles tibble (as returned by
+  Optional roles table (as returned by
   [`propose_roles()`](https://max578.github.io/masque/reference/propose_roles.md)).
   When supplied, declared roles constrain candidate generation, and
   columns roled `treatment` define the treatment basis.
@@ -91,7 +91,7 @@ via [`plot()`](https://rdrr.io/r/graphics/plot.default.html).
 ## See also
 
 [`propose_roles()`](https://max578.github.io/masque/reference/propose_roles.md)
-for the role tibble that feeds detection and
+for the role table that feeds detection and
 [`plot_design_summary()`](https://max578.github.io/masque/reference/plot_design_summary.md)
 for the sanity-check visualisation.
 

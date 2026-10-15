@@ -43,8 +43,8 @@ clean_table(df, clean = c("auto", "report", "off"), quiet = FALSE)
 
 An object of class `masque_cleaning`: a list with
 
-- `data` - the cleaned (or, under `report` / `off`, unchanged) data
-  frame;
+- `data` - the cleaned (or, under `report` / `off`, unchanged)
+  data.table;
 
 - `name_map` - named character `original -> clean` for every column
   whose name changed (empty if none);
@@ -52,7 +52,7 @@ An object of class `masque_cleaning`: a list with
 - `level_fixes` - named list, one entry per column whose values were
   trimmed, each a named character `original -> clean`;
 
-- `near_duplicates` - a data frame of report-only label pairs (`col`,
+- `near_duplicates` - a data.table of report-only label pairs (`col`,
   `a`, `b`, `kind`) that look like typos but were left untouched;
 
 - `mode` - the `clean` mode applied.
@@ -83,6 +83,5 @@ cl <- clean_table(df, quiet = TRUE)
 names(cl$data)
 #> [1] "Site.Name"    "Yield..t.ha."
 cl$near_duplicates
-#> [1] col  a    b    kind
-#> <0 rows> (or 0-length row.names)
+#> Empty data.table (0 rows and 4 cols): col,a,b,kind
 ```

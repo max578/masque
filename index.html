@@ -22,7 +22,7 @@
 
     <a class="navbar-brand me-2" href="index.html">masque</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.14.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.14.1.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -55,13 +55,16 @@
   <main id="main" class="col-md-9"><div class="section level1">
 <div class="page-header"><h1 id="masque">masque<a class="anchor" aria-label="anchor" href="#masque"></a>
 </h1></div>
+<!-- badges: start -->
+
 <blockquote>
 <p>Structurally faithful development surrogates for tabular data.</p>
 </blockquote>
 <p><code>masque</code> makes a synthetic copy of a confidential table that keeps its design, missing values and correlations. Analysts write and test code on the copy. The data custodian then runs the finished code on the real data, using a private recipe that translates names and labels.</p>
 <p>It is for custodians of confidential research data who want an outside analyst to build the analysis without seeing the data, and for the analysts who build it. The input can be a single table, a folder of files or a multi-sheet workbook.</p>
 <p><strong>Security note.</strong> Clones made with masque 0.13.0 or earlier can reveal which alias stands for which label. If you shared one, make it again with 0.14.0 and share the new clone instead. The same seed gives the same values.</p>
-<p>The current version is 0.14.0. See the <a href="https://max578.github.io/masque/news/index.html">changelog</a> for what changed in each release.</p>
+<p>The <a href="https://max578.github.io/masque/news/index.html">changelog</a> lists what changed in each release.</p>
+<p>Every table masque returns is a <code>data.table</code>.</p>
 <hr>
 <div class="section level2">
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
@@ -132,6 +135,17 @@
 </ul>
 <p><strong>Bottom line.</strong> Generating a synthetic table is not a release decision. In the Five Safes framework for controlled data access, <code>masque</code> contributes to <em>Safe Data</em> and <em>Safe Outputs</em>; Safe People, Safe Projects, and Safe Settings are governance questions no package can answer. The collaborate workflow assumes only the synthetic crosses the trust boundary.</p>
 <hr>
+</div>
+<div class="section level2">
+<h2 id="related-packages">Related packages<a class="anchor" aria-label="anchor" href="#related-packages"></a>
+</h2>
+<ul>
+<li>
+<a href="https://CRAN.R-project.org/package=synthpop" class="external-link">synthpop</a> makes synthetic versions of confidential microdata for release, synthesising one variable at a time from conditional models, and measures their utility and disclosure risk.</li>
+<li>
+<a href="https://CRAN.R-project.org/package=sdcMicro" class="external-link">sdcMicro</a> anonymises microdata for public- and scientific-use files and estimates disclosure risk.</li>
+</ul>
+<p>Both produce data meant to be analysed in place of the original. masque produces a development copy: analysts write code on it and the custodian runs that code on the real data through the private recipe. It keeps the experimental design (treatments, blocks, plots), and a conditional clone (<code>conditional = TRUE</code>) also keeps the treatment means of the outcome. Every column’s role and action is checked against a fixed vocabulary before anything is masked.</p>
 </div>
 <div class="section level2">
 <h2 id="documentation">Documentation<a class="anchor" aria-label="anchor" href="#documentation"></a>
@@ -209,7 +223,15 @@
 </ul>
 </div>
 
-
+<div class="dev-status">
+<h2 data-toc-skip>Dev status</h2>
+<ul class="list-unstyled">
+<li><a href="https://github.com/max578/masque/actions/workflows/R-CMD-check.yaml" class="external-link"><img src="https://github.com/max578/masque/actions/workflows/R-CMD-check.yaml/badge.svg" alt="R-CMD-check"></a></li>
+<li><a href="https://app.codecov.io/gh/max578/masque" class="external-link"><img src="https://codecov.io/gh/max578/masque/graph/badge.svg" alt="Codecov test coverage"></a></li>
+<li><a href="https://max578.r-universe.dev/masque" class="external-link"><img src="https://max578.r-universe.dev/badges/masque" alt="r-universe"></a></li>
+<li><a href="https://max578.github.io/masque/"><img src="https://github.com/max578/masque/actions/workflows/pkgdown.yaml/badge.svg" alt="pkgdown"></a></li>
+</ul>
+</div>
 
   </aside>
 </div>

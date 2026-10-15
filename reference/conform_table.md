@@ -64,7 +64,7 @@ conform_table(
 
 An object of class `masque_conformance`: a list with
 
-- `data` - the conformed data frame;
+- `data` - the conformed data.table;
 
 - `cleaning` - the `masque_cleaning` record from
   [`clean_table()`](https://max578.github.io/masque/reference/clean_table.md);
@@ -139,8 +139,9 @@ cf$assumptions
 # apply the decisions
 cf2 <- conform_table(df, merge_labels = "auto", types = "auto", quiet = TRUE)
 str(cf2$data)
-#> 'data.frame':    5 obs. of  3 variables:
+#> Classes ‘data.table’ and 'data.frame':   5 obs. of  3 variables:
 #>  $ state: Factor w/ 2 levels "NSW","VIC": 1 1 1 2 2
 #>  $ yield: num  3.1 2.9 5 4.2 3.8
 #>  $ sown : Date, format: "2024-05-01" "2024-05-03" ...
+#>  - attr(*, ".internal.selfref")=<pointer: 0x5555b509fa30> 
 ```

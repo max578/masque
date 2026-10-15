@@ -19,7 +19,7 @@ labels that look alike is a judgement call; conform_table() makes it.'></head><b
 
     <a class="navbar-brand me-2" href="../index.html">masque</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.14.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.14.1.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -93,12 +93,12 @@ report object is returned either way).</p></dd>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>An object of class <code>masque_cleaning</code>: a list with</p><ul><li><p><code>data</code> - the cleaned (or, under <code>report</code> / <code>off</code>,
-unchanged) data frame;</p></li>
+unchanged) data.table;</p></li>
 <li><p><code>name_map</code> - named character <code>original -&gt; clean</code> for every
 column whose name changed (empty if none);</p></li>
 <li><p><code>level_fixes</code> - named list, one entry per column whose
 values were trimmed, each a named character <code>original -&gt; clean</code>;</p></li>
-<li><p><code>near_duplicates</code> - a data frame of report-only label pairs
+<li><p><code>near_duplicates</code> - a data.table of report-only label pairs
 (<code>col</code>, <code>a</code>, <code>b</code>, <code>kind</code>) that look like typos but were left
 untouched;</p></li>
 <li><p><code>mode</code> - the <code>clean</code> mode applied.</p></li>
@@ -126,8 +126,7 @@ cleaning to the original.</p>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">cl</span><span class="op">$</span><span class="va">data</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [1] "Site.Name"    "Yield..t.ha."</span>
 <span class="r-in"><span><span class="va">cl</span><span class="op">$</span><span class="va">near_duplicates</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] col  a    b    kind</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> &lt;0 rows&gt; (or 0-length row.names)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Empty data.table (0 rows and 4 cols): col,a,b,kind</span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
     </div>

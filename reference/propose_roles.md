@@ -35,7 +35,7 @@ propose_roles(df, mode = c("local", "collaborate"), detect = TRUE)
 
 ## Value
 
-A tibble with one row per column: `col`, `role`, `action`, `kind`
+A data.table with one row per column: `col`, `role`, `action`, `kind`
 (storage kind: `numeric`, `integer`, `factor`, `character`, `logical`,
 `date`, `datetime`, `other`), `freq_or_range`, `pii_suspected`, and
 `notes`. The target mode is stored as `attr(roles, "mode")`.
@@ -190,23 +190,35 @@ for the fail-closed validation applied at
 
 ``` r
 propose_roles(iris)
-#> # A tibble: 5 × 7
-#>   col          role      action   kind    freq_or_range pii_suspected notes     
-#>   <chr>        <chr>     <chr>    <chr>   <chr>         <lgl>         <chr>     
-#> 1 Sepal.Length covariate scramble numeric [4.3, 7.9]    FALSE         Default -…
-#> 2 Sepal.Width  covariate scramble numeric [2, 4.4]      FALSE         Default -…
-#> 3 Petal.Length covariate scramble numeric [1, 6.9]      FALSE         Default -…
-#> 4 Petal.Width  covariate scramble numeric [0.1, 2.5]    FALSE         Default -…
-#> 5 Species      treatment keep     factor  n=3 levels    FALSE         detect_de…
+#>             col      role   action    kind freq_or_range pii_suspected
+#>          <char>    <char>   <char>  <char>        <char>        <lgcl>
+#> 1: Sepal.Length covariate scramble numeric    [4.3, 7.9]         FALSE
+#> 2:  Sepal.Width covariate scramble numeric      [2, 4.4]         FALSE
+#> 3: Petal.Length covariate scramble numeric      [1, 6.9]         FALSE
+#> 4:  Petal.Width covariate scramble numeric    [0.1, 2.5]         FALSE
+#> 5:      Species treatment     keep  factor    n=3 levels         FALSE
+#>                                                                                                                                                                                       notes
+#>                                                                                                                                                                                      <char>
+#> 1:                                                                                    Default -> covariate; re-role to outcome if response variable, or set action keep to leave untouched.
+#> 2:                                                                                    Default -> covariate; re-role to outcome if response variable, or set action keep to leave untouched.
+#> 3:                                                                                    Default -> covariate; re-role to outcome if response variable, or set action keep to leave untouched.
+#> 4:                                                                                    Default -> covariate; re-role to outcome if response variable, or set action keep to leave untouched.
+#> 5: detect_design: covariate -> treatment; Legacy pooled-design recommendation. (was: Default -> covariate; re-role to outcome if response variable, or set action keep to leave untouched.)
 propose_roles(iris, mode = "collaborate")
-#> # A tibble: 5 × 7
-#>   col          role      action   kind    freq_or_range pii_suspected notes     
-#>   <chr>        <chr>     <chr>    <chr>   <chr>         <lgl>         <chr>     
-#> 1 Sepal.Length covariate scramble numeric [4.3, 7.9]    FALSE         Default -…
-#> 2 Sepal.Width  covariate scramble numeric [2, 4.4]      FALSE         Default -…
-#> 3 Petal.Length covariate scramble numeric [1, 6.9]      FALSE         Default -…
-#> 4 Petal.Width  covariate scramble numeric [0.1, 2.5]    FALSE         Default -…
-#> 5 Species      treatment alias    factor  n=3 levels    FALSE         detect_de…
+#>             col      role   action    kind freq_or_range pii_suspected
+#>          <char>    <char>   <char>  <char>        <char>        <lgcl>
+#> 1: Sepal.Length covariate scramble numeric    [4.3, 7.9]         FALSE
+#> 2:  Sepal.Width covariate scramble numeric      [2, 4.4]         FALSE
+#> 3: Petal.Length covariate scramble numeric      [1, 6.9]         FALSE
+#> 4:  Petal.Width covariate scramble numeric    [0.1, 2.5]         FALSE
+#> 5:      Species treatment    alias  factor    n=3 levels         FALSE
+#>                                                                                                                                                                                       notes
+#>                                                                                                                                                                                      <char>
+#> 1:                                                                                    Default -> covariate; re-role to outcome if response variable, or set action keep to leave untouched.
+#> 2:                                                                                    Default -> covariate; re-role to outcome if response variable, or set action keep to leave untouched.
+#> 3:                                                                                    Default -> covariate; re-role to outcome if response variable, or set action keep to leave untouched.
+#> 4:                                                                                    Default -> covariate; re-role to outcome if response variable, or set action keep to leave untouched.
+#> 5: detect_design: covariate -> treatment; Legacy pooled-design recommendation. (was: Default -> covariate; re-role to outcome if response variable, or set action keep to leave untouched.)
 
 met <- expand.grid(
   env = factor(c("E1", "E2")),
@@ -214,10 +226,9 @@ met <- expand.grid(
   gen = factor(c("G1", "G2", "G3"))
 )
 propose_roles(met, mode = "collaborate")[, c("col", "role", "action")]
-#> # A tibble: 3 × 3
-#>   col   role      action
-#>   <chr> <chr>     <chr> 
-#> 1 env   design    alias 
-#> 2 rep   design    keep  
-#> 3 gen   treatment alias 
+#>       col      role action
+#>    <char>    <char> <char>
+#> 1:    env    design  alias
+#> 2:    rep    design   keep
+#> 3:    gen treatment  alias
 ```

@@ -127,11 +127,11 @@ vocabularies themselves:
 rec
 #> 
 #> ── masque_recipe ───────────────────────────────────────────────────────────────────────────────────
-#> • Created: 2026-10-09 22:37:24 UTC
+#> • Created: 2026-10-15 20:55:53 UTC
 #> • Mode: collaborate
 #> • Clone fidelity: marginal / structural (global copula)
 #> • Seed: present (redacted)
-#> • masque version: 0.14.1
+#> • masque version: 0.14.1.9000
 #> • Integrity fingerprint: 0cec319ba9e2...
 #> 
 #> ── Columns (7 total; 1 level map; 0 column-name maps) ──
@@ -368,18 +368,18 @@ sessionInfo()
 #> [1] stats     graphics  grDevices utils     datasets  methods   base     
 #> 
 #> other attached packages:
-#> [1] masque_0.14.1
+#> [1] masque_0.14.1.9000
 #> 
 #> loaded via a namespace (and not attached):
-#>  [1] gtable_0.3.6        jsonlite_2.0.0      compiler_4.6.1      maps_3.4.3         
-#>  [5] jquerylib_0.1.4     systemfonts_1.3.2   scales_1.4.0        textshaping_1.0.5  
-#>  [9] yaml_2.3.12         fastmap_1.2.0       ggplot2_4.0.3       R6_2.6.1           
-#> [13] labeling_0.4.3      knitr_1.52          tibble_3.3.1        desc_1.4.3         
-#> [17] bslib_0.12.0        pillar_1.11.1       RColorBrewer_1.1-3  rlang_1.3.0        
-#> [21] cachem_1.1.0        xfun_0.61           fs_2.1.0            sass_0.4.10        
-#> [25] S7_0.2.2            otel_0.2.0          viridisLite_0.4.3   cli_3.6.6          
-#> [29] pkgdown_2.2.1       withr_3.0.3         magrittr_2.0.5      digest_0.6.39      
-#> [33] grid_4.6.1          lifecycle_1.0.5     vctrs_0.7.3         evaluate_1.0.5     
-#> [37] glue_1.8.1          data.table_1.18.6.1 farver_2.1.2        ragg_1.5.2         
-#> [41] rmarkdown_2.32      tools_4.6.1         pkgconfig_2.0.3     htmltools_0.5.9
+#>  [1] vctrs_0.7.3         cli_3.6.6           knitr_1.52          rlang_1.3.0        
+#>  [5] xfun_0.61           otel_0.2.0          textshaping_1.0.5   S7_0.2.2           
+#>  [9] data.table_1.18.6.1 jsonlite_2.0.0      labeling_0.4.3      glue_1.8.1         
+#> [13] htmltools_0.5.9     ragg_1.5.2          sass_0.4.10         scales_1.4.0       
+#> [17] rmarkdown_2.32      grid_4.6.1          evaluate_1.0.5      jquerylib_0.1.4    
+#> [21] fastmap_1.2.0       yaml_2.3.12         lifecycle_1.0.5     compiler_4.6.1     
+#> [25] RColorBrewer_1.1-3  fs_2.1.0            maps_3.4.3          systemfonts_1.3.2  
+#> [29] farver_2.1.2        digest_0.6.39       viridisLite_0.4.3   R6_2.6.1           
+#> [33] pillar_1.11.1       bslib_0.12.0        withr_3.0.3         tools_4.6.1        
+#> [37] gtable_0.3.6        pkgdown_2.2.1       ggplot2_4.0.3       cachem_1.1.0       
+#> [41] desc_1.4.3
 ```

@@ -18,7 +18,7 @@ roles_validate(roles, df = NULL, mode = NULL)
 
   A roles table from
   [`propose_roles()`](https://max578.github.io/masque/reference/propose_roles.md)
-  (possibly edited), or a v1 roles tibble (deprecated, upgraded with a
+  (possibly edited), or a v1 roles table (deprecated, upgraded with a
   warning).
 
 - df:

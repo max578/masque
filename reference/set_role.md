@@ -60,12 +60,11 @@ r <- propose_roles(iris)
 r <- set_role(r, "Sepal.Length", role = "outcome")
 r <- set_role(r, "Species", action = "keep")
 r[, c("col", "role", "action")]
-#> # A tibble: 5 × 3
-#>   col          role      action  
-#>   <chr>        <chr>     <chr>   
-#> 1 Sepal.Length outcome   scramble
-#> 2 Sepal.Width  covariate scramble
-#> 3 Petal.Length covariate scramble
-#> 4 Petal.Width  covariate scramble
-#> 5 Species      treatment keep    
+#>             col      role   action
+#>          <char>    <char>   <char>
+#> 1: Sepal.Length   outcome scramble
+#> 2:  Sepal.Width covariate scramble
+#> 3: Petal.Length covariate scramble
+#> 4:  Petal.Width covariate scramble
+#> 5:      Species treatment     keep
 ```

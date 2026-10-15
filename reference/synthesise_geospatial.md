@@ -145,14 +145,13 @@ synth_geo <- synthesise_geospatial(
   anchor_centroids = centroids, seed = 2L
 )
 head(synth_geo[, c("state", "lat", "lon")])
-#> # A tibble: 6 × 3
-#>   state   lat   lon
-#>   <chr> <dbl> <dbl>
-#> 1 NSW   -33.0  147.
-#> 2 VIC   -36.8  144.
-#> 3 NSW   -32.2  147.
-#> 4 NSW   -32.9  147.
-#> 5 VIC   -36.7  144.
-#> 6 NSW   -32.9  146.
+#>     state       lat      lon
+#>    <char>     <num>    <num>
+#> 1:    NSW -32.96450 147.4706
+#> 2:    VIC -36.84992 143.8740
+#> 3:    NSW -32.16802 146.5590
+#> 4:    NSW -32.89455 146.8638
+#> 5:    VIC -36.72242 143.9494
+#> 6:    NSW -32.94879 146.3758
 # }
 ```
