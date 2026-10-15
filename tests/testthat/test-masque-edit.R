@@ -90,5 +90,5 @@ test_that("a working spreadsheet editor still round-trips attributes", {
   r2 <- masque:::.masque_edit(r)
   expect_identical(r2$role[r2$col == "Sepal.Length"], "outcome")
   expect_identical(attr(r2, "mode"), attr(r, "mode"))
-  expect_s3_class(r2, "tbl_df")
+  expect_s3_class(r2, "data.table")
 })

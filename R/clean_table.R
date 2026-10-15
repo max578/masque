@@ -28,12 +28,12 @@
 #' @return An object of class `masque_cleaning`: a list with
 #'   \itemize{
 #'     \item `data` - the cleaned (or, under `report` / `off`,
-#'       unchanged) data frame;
+#'       unchanged) data.table;
 #'     \item `name_map` - named character `original -> clean` for every
 #'       column whose name changed (empty if none);
 #'     \item `level_fixes` - named list, one entry per column whose
 #'       values were trimmed, each a named character `original -> clean`;
-#'     \item `near_duplicates` - a data frame of report-only label pairs
+#'     \item `near_duplicates` - a data.table of report-only label pairs
 #'       (`col`, `a`, `b`, `kind`) that look like typos but were left
 #'       untouched;
 #'     \item `mode` - the `clean` mode applied.
@@ -106,10 +106,10 @@ clean_table <- function(df, clean = c("auto", "report", "off"), quiet = FALSE) {
   }
 
   out <- list(
-    data            = df,
+    data            = .as_owned_dt(df),
     name_map        = name_map,
     level_fixes     = level_fixes,
-    near_duplicates = near_duplicates,
+    near_duplicates = data.table::as.data.table(near_duplicates),
     mode            = clean
   )
   class(out) <- "masque_cleaning"

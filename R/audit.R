@@ -1,11 +1,11 @@
 #' Audit a masque object for leakage and shareability risks
 #'
-#' Returns a per-column audit tibble and prints a severity-grouped report.
+#' Returns a per-column audit data.table and prints a severity-grouped report.
 #' Auto-runs in `mode = "collaborate"` at [mask()] time and stores the
 #' result on the masque object (`m@audit`); for local-mode audits or
 #' explicit re-audits, pass the original data frame via `original`.
 #'
-#' Each row of the returned tibble holds:
+#' Each row of the returned data.table holds:
 #'
 #' \itemize{
 #'   \item `col`: column name in the original.
@@ -46,7 +46,7 @@
 #'   in local mode). Used to recompute exact-match-pct etc. on demand.
 #' @param print Logical; if TRUE (default), print a styled report.
 #'
-#' @return The audit tibble, returned invisibly.
+#' @return The audit data.table, returned invisibly.
 #'
 #' @examples
 #' r <- propose_roles(iris)
@@ -66,6 +66,7 @@ audit_mask <- function(m, original = NULL, print = TRUE) {
   }
 
   audit <- m@audit
+  if (!is.null(audit)) audit <- data.table::copy(audit)
   if (is.null(audit)) {
     if (is.null(original)) {
       cli::cli_abort(c(

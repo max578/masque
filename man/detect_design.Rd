@@ -16,7 +16,7 @@ detect_design(
 \arguments{
 \item{df}{A data frame.}
 
-\item{roles}{Optional roles tibble (as returned by \code{\link[=propose_roles]{propose_roles()}}).
+\item{roles}{Optional roles table (as returned by \code{\link[=propose_roles]{propose_roles()}}).
 When supplied, declared roles constrain candidate generation, and columns
 roled \code{treatment} define the treatment basis.}
 
@@ -98,6 +98,6 @@ met_design@connectivity$status
 
 }
 \seealso{
-\code{\link[=propose_roles]{propose_roles()}} for the role tibble that feeds detection and
+\code{\link[=propose_roles]{propose_roles()}} for the role table that feeds detection and
 \code{\link[=plot_design_summary]{plot_design_summary()}} for the sanity-check visualisation.
 }

@@ -253,7 +253,7 @@ masque <- function(input,
   for (a in c("mode", "proposed_actions", "design")) {
     if (is.null(attr(edited, a))) attr(edited, a) <- attr(roles, a)
   }
-  tibble::as_tibble(edited)
+  data.table::as.data.table(edited)
 }
 
 # Thin indirection so tests can simulate editor failure and edits.

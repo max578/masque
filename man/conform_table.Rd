@@ -41,7 +41,7 @@ treated as categorical. Default \code{20}.}
 \value{
 An object of class \code{masque_conformance}: a list with
 \itemize{
-\item \code{data} - the conformed data frame;
+\item \code{data} - the conformed data.table;
 \item \code{cleaning} - the \code{masque_cleaning} record from \code{\link[=clean_table]{clean_table()}};
 \item \code{merges} - one row per near-duplicate pair considered
 (\code{col}, \code{from}, \code{to}, \code{n_from}, \code{n_to}, \code{applied}, \code{reason});

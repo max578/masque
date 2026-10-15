@@ -17,13 +17,13 @@ basic_roles <- function(df) {
   r
 }
 
-test_that("audit_mask returns a tibble with the spec'd schema", {
+test_that("audit_mask returns a data.table with the spec'd schema", {
   df <- make_audit_fixture()
   r <- basic_roles(df)
   m <- mask(df, r, mode = "collaborate", seed = 1)
   out <- audit_mask(m, print = FALSE)
 
-  expect_s3_class(out, "tbl_df")
+  expect_s3_class(out, "data.table")
   expect_named(out, c(
     "col", "role", "action", "kind", "leakage_class",
     "n_unique_levels", "freq_min", "exact_match_pct",
@@ -40,7 +40,7 @@ test_that("Collaborate mode auto-runs audit and stores it on m@audit", {
   r <- basic_roles(df)
   m <- mask(df, r, mode = "collaborate", seed = 1)
   expect_false(is.null(m@audit))
-  expect_s3_class(m@audit, "tbl_df")
+  expect_s3_class(m@audit, "data.table")
 })
 
 test_that("Local mode does NOT auto-run audit", {
@@ -56,7 +56,7 @@ test_that("audit_mask on a local masque requires `original`", {
   m <- suppressWarnings(mask(df, r, mode = "local", seed = 1))
   expect_error(audit_mask(m, print = FALSE), "Supply")
   out <- audit_mask(m, original = df, print = FALSE)
-  expect_s3_class(out, "tbl_df")
+  expect_s3_class(out, "data.table")
 })
 
 test_that("audit_mask flags PII-retained as HIGH", {
@@ -146,5 +146,5 @@ test_that("audit_mask prints a styled report by default, returns invisibly", {
   expect_match(joined, "masque audit")
   # ret is invisible
   ret <- audit_mask(m, print = FALSE)
-  expect_s3_class(ret, "tbl_df")
+  expect_s3_class(ret, "data.table")
 })

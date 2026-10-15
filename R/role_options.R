@@ -19,7 +19,7 @@
 #'   workable for a column of that kind are returned. The default `NULL`
 #'   returns the full grid.
 #'
-#' @returns A tibble with one row per role-action pair and four columns:
+#' @returns A data.table with one row per role-action pair and four columns:
 #'   `role`, `action`, `kinds` (the storage kinds the pair is valid for:
 #'   `"all"`, `"none"`, `"all except other"`, or a comma-separated
 #'   list), and `notes` (why the pair is constrained, empty when it is
@@ -74,7 +74,7 @@ role_options <- function(kind = NULL) {
     }
   }
 
-  out <- tibble::tibble(
+  out <- data.table::data.table(
     role = grid$role,
     action = grid$action,
     kinds = vapply(

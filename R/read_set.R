@@ -27,7 +27,7 @@
 #' @param pattern For a folder, an optional regular expression to select
 #'   files (default: all `.csv` / `.tsv` / `.fst`).
 #'
-#' @return A named list of data frames.
+#' @return A named list of data.tables.
 #'
 #' @examples
 #' tables <- list(
@@ -95,12 +95,10 @@ read_set <- function(input, sheets = NULL, pattern = NULL) {
         i = "Install it, or export the table to CSV first."
       ))
     }
-    return(as.data.frame(fst::read_fst(path)))
+    return(fst::read_fst(path, as.data.table = TRUE))
   }
   # data.table::fread handles CSV / TSV, delimiter sniffing, and is fast.
-  as.data.frame(
-    data.table::fread(path, data.table = FALSE, na.strings = c("", "NA"))
-  )
+  data.table::fread(path, na.strings = c("", "NA"))
 }
 
 .read_set_excel <- function(path, sheets) {
@@ -123,7 +121,7 @@ read_set <- function(input, sheets = NULL, pattern = NULL) {
     ))
   }
   tables <- lapply(use, function(s) {
-    as.data.frame(readxl::read_excel(path, sheet = s))
+    data.table::as.data.table(readxl::read_excel(path, sheet = s))
   })
   names(tables) <- use
   .validate_table_list(tables)

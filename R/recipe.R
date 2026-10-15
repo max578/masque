@@ -84,7 +84,7 @@ masque_recipe <- S7::new_class(
 #'
 #' Container returned by [mask()]. Holds the synthetic data frame, the
 #' (private) recipe, the resolved mode, and (post step 6) the audit
-#' tibble. Users interact via the accessors [synthetic()] and [recipe()];
+#' data.table. Users interact via the accessors [synthetic()] and [recipe()];
 #' the S7 class itself is intentionally not exported.
 #'
 #' @keywords internal
@@ -106,7 +106,7 @@ masque_obj <- S7::new_class(
 #'
 #' @param m A `masque` object from [mask()], or a `masque_set` from
 #'   [mask_set()].
-#' @return For a `masque`, a tibble (the synthetic data frame); for a
+#' @return For a `masque`, a data.table (the synthetic table); for a
 #'   `masque_set`, a named list of synthetic tables.
 #' @examples
 #' r <- propose_roles(iris)
@@ -116,8 +116,9 @@ masque_obj <- S7::new_class(
 #' @seealso [recipe()], [mask()], [mask_set()].
 #' @export
 synthetic <- function(m) {
+  # A copy, so that editing the result by reference (`:=`) leaves `m` intact.
   if (S7::S7_inherits(m, masque_set)) {
-    return(m@synthetic)
+    return(lapply(m@synthetic, data.table::copy))
   }
   if (!S7::S7_inherits(m, masque_obj)) {
     cli::cli_abort(
@@ -125,7 +126,7 @@ synthetic <- function(m) {
       "{.cls {class(m)[1]}}."
     )
   }
-  m@synthetic
+  data.table::copy(m@synthetic)
 }
 
 #' Extract the recipe from a masque object

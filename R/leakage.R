@@ -1,7 +1,7 @@
-#' Internal: build the audit tibble for a (df, synth, recipe, mode) tuple
+#' Internal: build the audit data.table for a (df, synth, recipe, mode) tuple
 #'
 #' Called by `mask()` in `collaborate` mode and by `audit_mask()` on demand.
-#' Returns a tibble with one row per column of the original data frame.
+#' Returns a data.table with one row per column of the original data frame.
 #'
 #' @keywords internal
 #' @noRd
@@ -94,7 +94,7 @@
     )
   })
 
-  tibble::as_tibble(do.call(rbind, rows))
+  data.table::as.data.table(do.call(rbind, rows))
 }
 
 .global_na_pattern_uniqueness <- function(df) {

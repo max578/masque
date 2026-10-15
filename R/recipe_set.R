@@ -22,7 +22,7 @@ masque_recipe_set <- S7::new_class(
 #'
 #' Container returned by [mask_set()]. Holds the named list of synthetic
 #' tables, the (private) recipe bundle, the resolved mode, and the
-#' per-table audit tibbles (collaborate mode). Users interact via
+#' per-table audit data.tables (collaborate mode). Users interact via
 #' [synthetic()] and [recipe()], which dispatch on it.
 #'
 #' @keywords internal

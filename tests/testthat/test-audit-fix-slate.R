@@ -161,7 +161,8 @@ test_that("mask warns when mode is unset and roles lost their provenance", {
   d <- met_county_fixture()
   roles <- propose_roles(d, mode = "collaborate")
   stripped <- roles
-  attr(stripped, "mode") <- NULL # what a data.table()/saveRDS round-trip does
+  # what a data.table() copy or a CSV round-trip does
+  attr(stripped, "mode") <- NULL
 
   # stripped provenance + no explicit mode must warn, not silently mask local
   expect_warning(
@@ -181,7 +182,7 @@ test_that("mask warns when mode is unset and roles lost their provenance", {
   expect_false(saw_unset)
   expect_equal(recipe(m2)@mode, "collaborate")
 
-  # an intact tibble still inherits its mode silently (no false alarm)
+  # an intact roles table still inherits its mode silently (no false alarm)
   saw_intact <- FALSE
   m3 <- withCallingHandlers(
     mask(d, roles, seed = 1L),

@@ -26,12 +26,12 @@ report object is returned either way).}
 An object of class \code{masque_cleaning}: a list with
 \itemize{
 \item \code{data} - the cleaned (or, under \code{report} / \code{off},
-unchanged) data frame;
+unchanged) data.table;
 \item \code{name_map} - named character \code{original -> clean} for every
 column whose name changed (empty if none);
 \item \code{level_fixes} - named list, one entry per column whose
 values were trimmed, each a named character \code{original -> clean};
-\item \code{near_duplicates} - a data frame of report-only label pairs
+\item \code{near_duplicates} - a data.table of report-only label pairs
 (\code{col}, \code{a}, \code{b}, \code{kind}) that look like typos but were left
 untouched;
 \item \code{mode} - the \code{clean} mode applied.

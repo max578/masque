@@ -118,7 +118,7 @@ test_that("Mask() RNG hygiene holds with jitter in collaborate", {
   r <- propose_roles(df)
   r$role[r$col == "yield"] <- "outcome"
 
-  # Capture seed AFTER setup (propose_roles and tibble setup may have
+  # Capture seed AFTER setup (propose_roles and table setup may have
   # initialised internal state); the test is specifically about mask().
   set.seed(999)
   before <- .Random.seed

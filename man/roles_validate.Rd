@@ -8,7 +8,7 @@ roles_validate(roles, df = NULL, mode = NULL)
 }
 \arguments{
 \item{roles}{A roles table from \code{\link[=propose_roles]{propose_roles()}} (possibly edited),
-or a v1 roles tibble (deprecated, upgraded with a warning).}
+or a v1 roles table (deprecated, upgraded with a warning).}
 
 \item{df}{Optional data frame. If supplied, \code{roles} is checked for
 one-to-one column-name correspondence with \code{df}.}

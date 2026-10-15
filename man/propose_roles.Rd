@@ -17,7 +17,7 @@ propose_roles(df, mode = c("local", "collaborate"), detect = TRUE)
 \code{\link[=detect_design]{detect_design()}} and overlay its recommended role hints.}
 }
 \value{
-A tibble with one row per column: \code{col}, \code{role}, \code{action},
+A data.table with one row per column: \code{col}, \code{role}, \code{action},
 \code{kind} (storage kind: \code{numeric}, \code{integer}, \code{factor}, \code{character},
 \code{logical}, \code{date}, \code{datetime}, \code{other}), \code{freq_or_range},
 \code{pii_suspected}, and \code{notes}. The target mode is stored as

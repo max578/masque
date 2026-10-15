@@ -2,7 +2,7 @@
 
 test_that("role_options() returns the full 32-row grid", {
   opts <- role_options()
-  expect_s3_class(opts, "tbl_df")
+  expect_s3_class(opts, "data.table")
   expect_identical(names(opts), c("role", "action", "kinds", "notes"))
   expect_identical(nrow(opts), 32L)
   expect_setequal(

@@ -94,7 +94,7 @@ set_role <- function(roles, cols, role = NULL, action = NULL) {
       attr(roles, "proposed_actions") <- pa
     }
   }
-  roles
+  .as_owned_dt(roles)
 }
 
 .roles_vocab <- function() {

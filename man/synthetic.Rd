@@ -11,7 +11,7 @@ synthetic(m)
 \code{\link[=mask_set]{mask_set()}}.}
 }
 \value{
-For a \code{masque}, a tibble (the synthetic data frame); for a
+For a \code{masque}, a data.table (the synthetic table); for a
 \code{masque_set}, a named list of synthetic tables.
 }
 \description{

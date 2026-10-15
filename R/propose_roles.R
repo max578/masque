@@ -111,7 +111,7 @@
 #' @param detect Logical scalar (default `TRUE`). When `TRUE`, run
 #'   [detect_design()] and overlay its recommended role hints.
 #'
-#' @return A tibble with one row per column: `col`, `role`, `action`,
+#' @return A data.table with one row per column: `col`, `role`, `action`,
 #'   `kind` (storage kind: `numeric`, `integer`, `factor`, `character`,
 #'   `logical`, `date`, `datetime`, `other`), `freq_or_range`,
 #'   `pii_suspected`, and `notes`. The target mode is stored as
@@ -145,7 +145,7 @@ propose_roles <- function(df, mode = c("local", "collaborate"),
   rows <- lapply(names(df), function(nm) {
     classify_one_column(nm, df[[nm]], mode)
   })
-  roles <- tibble::as_tibble(do.call(
+  roles <- data.table::as.data.table(do.call(
     rbind.data.frame,
     c(rows, list(stringsAsFactors = FALSE))
   ))

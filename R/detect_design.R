@@ -30,7 +30,7 @@
 #' check via [plot()].
 #'
 #' @param df A data frame.
-#' @param roles Optional roles tibble (as returned by [propose_roles()]).
+#' @param roles Optional roles table (as returned by [propose_roles()]).
 #'   When supplied, declared roles constrain candidate generation, and columns
 #'   roled `treatment` define the treatment basis.
 #' @param interactive If `TRUE`, when the top-2 rule scores are within
@@ -77,7 +77,7 @@
 #' met_design@scope_label
 #' met_design@connectivity$status
 #'
-#' @seealso [propose_roles()] for the role tibble that feeds detection and
+#' @seealso [propose_roles()] for the role table that feeds detection and
 #'   [plot_design_summary()] for the sanity-check visualisation.
 #'
 #' @export
@@ -271,8 +271,9 @@ detect_design <- function(df,
     spatial_cols = spatial_cols,
     scores = scores,
     evidence = ev,
-    recommended_roles = result$recommended_roles %||%
-      .empty_recommended_roles(),
+    recommended_roles = data.table::as.data.table(
+      result$recommended_roles %||% .empty_recommended_roles()
+    ),
     candidates = cands,
     warnings = warnings_msgs,
     scope_label = scope$scope_label,
@@ -284,7 +285,7 @@ detect_design <- function(df,
     n_env = scope$n_env,
     group_cols = scope$group_cols,
     connectivity = scope$connectivity,
-    per_env = scope$per_env,
+    per_env = data.table::as.data.table(scope$per_env),
     within_design_label = scope$within_design_label
   )
 }
@@ -299,7 +300,7 @@ detect_design <- function(df,
     spatial_cols      = character(0L),
     scores            = scores,
     evidence          = list(reason = "max rule score below threshold"),
-    recommended_roles = .empty_recommended_roles(),
+    recommended_roles = data.table::as.data.table(.empty_recommended_roles()),
     candidates        = cands,
     warnings          = character(0L),
     scope_label       = scope$scope_label,
@@ -311,7 +312,7 @@ detect_design <- function(df,
     n_env             = scope$n_env,
     group_cols        = scope$group_cols,
     connectivity      = scope$connectivity,
-    per_env           = scope$per_env,
+    per_env           = data.table::as.data.table(scope$per_env),
     within_design_label = scope$within_design_label
   )
 }

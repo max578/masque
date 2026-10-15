@@ -233,7 +233,7 @@ mask <- function(df,
   }
   if (!is.data.frame(roles)) {
     cli::cli_abort(
-      "`roles` must be a data frame / tibble; got {.cls {class(roles)[1]}}.",
+      "`roles` must be a data frame; got {.cls {class(roles)[1]}}.",
       class = c("masque_bad_roles_refusal", "orchestra_refusal")
     )
   }
@@ -254,7 +254,8 @@ mask <- function(df,
         "i" = paste0(
           "Defaulting to {.val local}. If this table was prepared for ",
           "{.val collaborate} or lost its attributes (for example via ",
-          "{.fn data.table} or {.fn saveRDS}), pass {.code mode =} explicitly."
+          "a {.fn data.table} copy or a CSV round-trip), pass ",
+          "{.code mode =} explicitly."
         )
       ), class = "masque_mode_unset")
       mode <- "local"
@@ -406,7 +407,7 @@ mask <- function(df,
   # Collaborate mode: auto-run audit and propagate high-leakage warnings
   audit_tbl <- NULL
   if (identical(mode, "collaborate")) {
-    # Audit needs a temporary synth-as-tibble + a temporary recipe with the
+    # Audit needs a temporary synthetic table + a temporary recipe with the
     # level_maps we collected so far.
     .tmp_rec <- masque_recipe(
       masque_version  = as.character(utils::packageVersion("masque")),
@@ -484,7 +485,7 @@ mask <- function(df,
   )
 
   masque_obj(
-    synthetic = tibble::as_tibble(synth),
+    synthetic = .as_owned_dt(synth),
     recipe    = rec,
     mode      = mode,
     audit     = audit_tbl

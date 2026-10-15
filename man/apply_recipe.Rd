@@ -18,7 +18,7 @@ bypass when the missingness has legitimately changed since the
 recipe was built.}
 }
 \value{
-A tibble in the synthetic namespace, ready for the pipeline.
+A data.table in the synthetic namespace, ready for the pipeline.
 }
 \description{
 Forward translation: takes an \code{original}-namespace data frame and

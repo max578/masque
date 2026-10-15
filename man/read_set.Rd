@@ -17,7 +17,7 @@ sheet names to read (default: all sheets).}
 files (default: all \code{.csv} / \code{.tsv} / \code{.fst}).}
 }
 \value{
-A named list of data frames.
+A named list of data.tables.
 }
 \description{
 Ingests a multi-table dataset into a named list of data frames, ready

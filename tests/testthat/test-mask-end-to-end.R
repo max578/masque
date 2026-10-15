@@ -14,7 +14,7 @@ test_that("mask() returns an S7 masque object with synthetic + recipe", {
   m <- suppressWarnings(mask(df, r, seed = 42))
 
   expect_true(inherits(m, "masque::masque"))
-  expect_true(inherits(synthetic(m), "tbl_df"))
+  expect_true(inherits(synthetic(m), "data.table"))
   expect_true(inherits(recipe(m), "masque::masque_recipe"))
   expect_equal(m@mode, "local")
   expect_null(m@audit)

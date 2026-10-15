@@ -14,7 +14,7 @@ workable for a column of that kind are returned. The default \code{NULL}
 returns the full grid.}
 }
 \value{
-A tibble with one row per role-action pair and four columns:
+A data.table with one row per role-action pair and four columns:
 \code{role}, \code{action}, \code{kinds} (the storage kinds the pair is valid for:
 \code{"all"}, \code{"none"}, \code{"all except other"}, or a comma-separated
 list), and \code{notes} (why the pair is constrained, empty when it is

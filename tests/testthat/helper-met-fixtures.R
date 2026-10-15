@@ -144,8 +144,8 @@ ambiguous_site_fixture <- function() {
 }
 
 legacy_design_fields <- function(x) {
-  recommended_roles <- x@recommended_roles
-  recommended_roles <- recommended_roles[c("col", "role")]
+  # The frozen oracle holds the content as a data frame.
+  recommended_roles <- as.data.frame(x@recommended_roles)[c("col", "role")]
   list(
     class_label = x@class_label,
     treatment_col = x@treatment_col,

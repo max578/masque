@@ -126,7 +126,7 @@ test_that("incompatible role/action combinations are rejected", {
   expect_error(roles_validate(r3, iris), "cannot be scrambled")
 })
 
-test_that("a v1 roles tibble upgrades with a deprecation warning", {
+test_that("a v1 roles table upgrades with a deprecation warning", {
   v1 <- data.frame(
     col = c("Rep", "Genotype", "yield", "note"),
     role = c("design", "treatment", "outcome", "ignore"),

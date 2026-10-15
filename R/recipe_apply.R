@@ -33,7 +33,7 @@
 #'   bypass when the missingness has legitimately changed since the
 #'   recipe was built.
 #'
-#' @return A tibble in the synthetic namespace, ready for the pipeline.
+#' @return A data.table in the synthetic namespace, ready for the pipeline.
 #'
 #' @examples
 #' r <- propose_roles(iris)
@@ -103,7 +103,7 @@ apply_recipe <- function(original, rec, check_integrity = TRUE) {
     names(out) <- nm
   }
 
-  tibble::as_tibble(out)
+  .as_owned_dt(out)
 }
 
 #' Translate data from the synthetic namespace back to the original
@@ -194,7 +194,7 @@ unmask <- function(x, rec, column = NULL) {
       nm[hits] <- unname(inv[nm[hits]])
       names(out) <- nm
     }
-    return(tibble::as_tibble(out))
+    return(.as_owned_dt(out))
   }
 
   if (is.atomic(x) && is.null(dim(x))) {

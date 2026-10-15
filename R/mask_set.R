@@ -106,8 +106,8 @@ mask_set <- function(input,
           ),
           "i" = paste0(
             "Defaulting to {.val local}. Pass {.code mode =} explicitly, ",
-            "or keep the tibbles from {.fn propose_roles} (a ",
-            "{.fn data.table} or {.fn saveRDS} round-trip strips the mode ",
+            "or keep the tables from {.fn propose_roles} (a ",
+            "{.fn data.table} copy or a CSV round-trip strips the mode ",
             "attribute)."
           )
         ), class = "masque_mode_unset")

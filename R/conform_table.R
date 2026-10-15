@@ -44,7 +44,7 @@
 #'
 #' @return An object of class `masque_conformance`: a list with
 #'   \itemize{
-#'     \item `data` - the conformed data frame;
+#'     \item `data` - the conformed data.table;
 #'     \item `cleaning` - the `masque_cleaning` record from [clean_table()];
 #'     \item `merges` - one row per near-duplicate pair considered
 #'       (`col`, `from`, `to`, `n_from`, `n_to`, `applied`, `reason`);
@@ -107,10 +107,10 @@ conform_table <- function(df,
   }
 
   out <- list(
-    data = out_df,
+    data = .as_owned_dt(out_df),
     cleaning = cl,
-    merges = merges,
-    types = tps,
+    merges = data.table::as.data.table(merges),
+    types = data.table::as.data.table(tps),
     assumptions = .conform_assumptions(merges, tps),
     modes = c(clean = clean, merge_labels = merge_labels, types = types)
   )

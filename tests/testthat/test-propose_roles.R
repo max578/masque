@@ -1,6 +1,6 @@
-test_that("propose_roles returns a tibble with the expected schema", {
+test_that("propose_roles returns a data.table with the expected schema", {
   r <- propose_roles(iris)
-  expect_s3_class(r, "tbl_df")
+  expect_s3_class(r, "data.table")
   expect_named(r, c(
     "col", "role", "action", "kind", "freq_or_range", "pii_suspected",
     "notes"

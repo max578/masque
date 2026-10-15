@@ -42,7 +42,7 @@
 #' }
 #'
 #' @param roles A roles table from [propose_roles()] (possibly edited),
-#'   or a v1 roles tibble (deprecated, upgraded with a warning).
+#'   or a v1 roles table (deprecated, upgraded with a warning).
 #' @param df Optional data frame. If supplied, `roles` is checked for
 #'   one-to-one column-name correspondence with `df`.
 #' @param mode Optional mode (`"local"` or `"collaborate"`) used to
@@ -63,7 +63,7 @@
 roles_validate <- function(roles, df = NULL, mode = NULL) {
   if (!is.data.frame(roles)) {
     cli::cli_abort(
-      "`roles` must be a data frame / tibble; got {.cls {class(roles)[1]}}."
+      "`roles` must be a data frame; got {.cls {class(roles)[1]}}."
     )
   }
   if (is.null(mode)) {

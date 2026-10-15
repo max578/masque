@@ -4,7 +4,7 @@ make_valid_roles <- function() {
   r
 }
 
-test_that("roles_validate accepts a clean roles tibble", {
+test_that("roles_validate accepts a clean roles table", {
   r <- make_valid_roles()
   expect_invisible(roles_validate(r))
   expect_invisible(roles_validate(r, iris))
@@ -99,7 +99,7 @@ test_that("roles_validate cross-checks df columns when df supplied", {
   expect_error(roles_validate(r_extra, iris), "not in.*df")
 })
 
-test_that("roles_validate returns the roles tibble invisibly", {
+test_that("roles_validate returns the roles table invisibly", {
   r <- make_valid_roles()
   out <- withVisible(roles_validate(r))
   expect_false(out$visible)

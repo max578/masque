@@ -15,16 +15,16 @@ in local mode). Used to recompute exact-match-pct etc. on demand.}
 \item{print}{Logical; if TRUE (default), print a styled report.}
 }
 \value{
-The audit tibble, returned invisibly.
+The audit data.table, returned invisibly.
 }
 \description{
-Returns a per-column audit tibble and prints a severity-grouped report.
+Returns a per-column audit data.table and prints a severity-grouped report.
 Auto-runs in \code{mode = "collaborate"} at \code{\link[=mask]{mask()}} time and stores the
 result on the masque object (\code{m@audit}); for local-mode audits or
 explicit re-audits, pass the original data frame via \code{original}.
 }
 \details{
-Each row of the returned tibble holds:
+Each row of the returned data.table holds:
 
 \itemize{
 \item \code{col}: column name in the original.

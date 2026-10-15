@@ -19,7 +19,7 @@ test_that("apply_recipe renames treatment levels to opaque aliases", {
   f <- make_collab_fixture_for_apply()
   out <- apply_recipe(f$df, f$rec)
 
-  expect_true(inherits(out, "tbl_df"))
+  expect_true(inherits(out, "data.table"))
   expect_true(all(grepl("^trt_\\d{3}$", as.character(out$Genotype))))
   # Should match the synthetic namespace's columns
   expect_setequal(names(out), names(synthetic(f$m)))

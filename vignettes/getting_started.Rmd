@@ -148,7 +148,7 @@ outcome: with none marked, every scrambled numeric is re-simulated jointly.
 
 ### Editing the plan as code
 
-The plan is a data frame, so you can edit it in code. The spreadsheet the
+The plan is a data.table, so you can edit it in code. The spreadsheet the
 guided prompt opens when the custodian chooses `e` edits the same table.
 `set_role()` is vectorised over columns:
 
@@ -161,8 +161,7 @@ setting the action back to `NA` tells `mask()` to re-resolve the default
 for the new role:
 
 ```{r edit-direct}
-r2$role[r2$col == "rep"] <- "covariate"
-r2$action[r2$col == "rep"] <- NA
+r2[col == "rep", `:=`(role = "covariate", action = NA_character_)]
 knitr::kable(
   r2[, c("col", "role", "action")],
   caption = paste0(
@@ -196,7 +195,7 @@ scan reads names, not content, so when a harmlessly named column holds
 sensitive values, flagging it by hand is the correct fix:
 
 ```{r pii-by-hand, eval = FALSE}
-roles$pii_suspected[roles$col == "comments"] <- TRUE
+roles[col == "comments", pii_suspected := TRUE]
 ```
 
 Passing the edited table back to `mask()` (or to `masque(df, roles =
@@ -231,7 +230,7 @@ fault, and lists the three actions that do work for a design column
 
 A confidential dataset often arrives as several related files or a
 multi-sheet workbook. `masque()` handles those too. Point it at a
-folder, an `.xlsx` file, or a named list of data frames and it masks every
+folder, an `.xlsx` file, or a named list of tables and it masks every
 table at once, aliasing any shared key (a site code, a genotype name)
 *identically across tables* so a join of the synthetic tables still
 resolves.
