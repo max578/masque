@@ -1,3 +1,33 @@
+# masque (development version)
+
+## Breaking changes
+
+* Every table masque returns is now a `data.table`: `synthetic()`,
+  `propose_roles()`, `set_role()`, `role_options()`, `audit_mask()`,
+  `apply_recipe()`, `unmask()`, `read_set()`, the `data` and report tables
+  of `clean_table()` and `conform_table()`, and the `recommended_roles` and
+  `per_env` tables of `detect_design()`. tibble is no longer a dependency.
+  Code that selects columns with `x[c("a", "b")]` should use
+  `x[, c("a", "b")]`, or convert with `as.data.frame()` first.
+
+* `synthetic()`, `audit_mask()`, `set_role()`, `apply_recipe()`,
+  `clean_table()` and `conform_table()` return their own copy, so editing
+  the result by reference with `:=` never changes the input data or the
+  masque object.
+
+## Documentation
+
+* The README states no hard-coded version, carries status badges, and has
+  a *Related packages* section on synthpop and sdcMicro.
+
+* *Getting started* edits the role table with data.table syntax.
+
+## Continuous integration
+
+* New `test-coverage` workflow (covr, uploaded to Codecov) and `lint`
+  workflow (lintr with the package's `.lintr`; it reports and does not
+  fail).
+
 # masque 0.14.1
 
 ## Documentation

@@ -1,5 +1,12 @@
 # masque
 
+<!-- badges: start -->
+[![R-CMD-check](https://github.com/max578/masque/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/max578/masque/actions/workflows/R-CMD-check.yaml)
+[![Codecov test coverage](https://codecov.io/gh/max578/masque/graph/badge.svg)](https://app.codecov.io/gh/max578/masque)
+[![r-universe](https://max578.r-universe.dev/badges/masque)](https://max578.r-universe.dev/masque)
+[![pkgdown](https://github.com/max578/masque/actions/workflows/pkgdown.yaml/badge.svg)](https://max578.github.io/masque/)
+<!-- badges: end -->
+
 > Structurally faithful development surrogates for tabular data.
 
 `masque` makes a synthetic copy of a confidential table that keeps its
@@ -17,9 +24,10 @@ which alias stands for which label. If you shared one, make it again with
 0.14.0 and share the new clone instead. The same seed gives the same
 values.
 
-The current version is 0.14.0. See the
-[changelog](https://max578.github.io/masque/news/index.html) for what
-changed in each release.
+The [changelog](https://max578.github.io/masque/news/index.html) lists
+what changed in each release.
+
+Every table masque returns is a `data.table`.
 
 ---
 
@@ -133,6 +141,24 @@ package can answer. The collaborate workflow assumes only the synthetic
 crosses the trust boundary.
 
 ---
+
+## Related packages
+
+- [synthpop](https://CRAN.R-project.org/package=synthpop) makes synthetic
+  versions of confidential microdata for release, synthesising one
+  variable at a time from conditional models, and measures their utility
+  and disclosure risk.
+- [sdcMicro](https://CRAN.R-project.org/package=sdcMicro) anonymises
+  microdata for public- and scientific-use files and estimates
+  disclosure risk.
+
+Both produce data meant to be analysed in place of the original. masque
+produces a development copy: analysts write code on it and the custodian
+runs that code on the real data through the private recipe. It keeps the
+experimental design (treatments, blocks, plots), and a conditional clone
+(`conditional = TRUE`) also keeps the treatment means of the outcome.
+Every column's role and action is checked against a fixed vocabulary
+before anything is masked.
 
 ## Documentation
 
