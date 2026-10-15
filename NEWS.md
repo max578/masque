@@ -17,6 +17,8 @@
 
 ## Documentation
 
+* The package has a logo.
+
 * The README states no hard-coded version, carries status badges, and has
   a *Related packages* section on synthpop and sdcMicro.
 
