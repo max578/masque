@@ -7,12 +7,18 @@ This is the first submission of masque to CRAN.
 * Local: macOS (Apple Silicon), R 4.6.1.
 * GitHub Actions: Ubuntu R-devel, R-release and R-oldrel-1; macOS
   R-release; Windows R-release.
+* R-hub: Linux R-devel, Ubuntu R-next, Windows R-devel, macOS arm64
+  R-devel.
+* win-builder: Windows R-devel.
 
 ## R CMD check results
 
 0 errors | 0 warnings | 1 note
 
 * New submission.
+
+  win-builder also lists "anonymisation" as possibly misspelled. It is the
+  Australian spelling; the package declares `Language: en-AU`.
 
 ## Reverse dependencies
 
