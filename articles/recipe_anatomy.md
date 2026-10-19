@@ -127,11 +127,11 @@ vocabularies themselves:
 rec
 #> 
 #> ── masque_recipe ───────────────────────────────────────────────────────────────────────────────────
-#> • Created: 2026-10-17 03:01:18 UTC
+#> • Created: 2026-10-19 00:57:29 UTC
 #> • Mode: collaborate
 #> • Clone fidelity: marginal / structural (global copula)
 #> • Seed: present (redacted)
-#> • masque version: 0.14.1.9000
+#> • masque version: 0.15.0
 #> • Integrity fingerprint: 0cec319ba9e2...
 #> 
 #> ── Columns (7 total; 1 level map; 0 column-name maps) ──
@@ -368,11 +368,11 @@ sessionInfo()
 #> [1] stats     graphics  grDevices utils     datasets  methods   base     
 #> 
 #> other attached packages:
-#> [1] masque_0.14.1.9000
+#> [1] masque_0.15.0
 #> 
 #> loaded via a namespace (and not attached):
 #>  [1] vctrs_0.7.3         cli_3.6.6           knitr_1.52          rlang_1.3.0        
-#>  [5] xfun_0.61           otel_0.2.0          textshaping_1.0.5   S7_0.2.2           
+#>  [5] xfun_0.62           otel_0.2.0          textshaping_1.0.5   S7_0.2.2           
 #>  [9] data.table_1.18.6.1 jsonlite_2.0.0      labeling_0.4.3      glue_1.8.1         
 #> [13] htmltools_0.5.9     ragg_1.5.2          sass_0.4.10         scales_1.4.0       
 #> [17] rmarkdown_2.32      grid_4.6.1          evaluate_1.0.5      jquerylib_0.1.4    

@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="index.html">masque</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.14.1.9000</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.15.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -82,7 +82,8 @@
 <li>
 <code>0.14.0</code>: a scrambled factor keeps the original level order, and an aliased join key lists its aliases in sorted order, so <code><a href="https://rdrr.io/r/base/levels.html" class="external-link">levels()</a></code> of a clone no longer reveals its label map. Values under the same seed are unchanged. <code><a href="reference/apply_recipe.html">apply_recipe()</a></code> returns the clone’s level order. <strong>Confidentiality fix, listed first in <code>NEWS.md</code>; re-make any clone shared from 0.13.0 or earlier.</strong>
 </li>
-<li>Development version (after 0.14.1): every returned table is a <code>data.table</code> instead of a tibble, and tibble leaves the dependencies. Signatures and values are unchanged. <strong>Breaking change for code that relies on tibble behaviour, listed first in <code>NEWS.md</code>.</strong>
+<li>
+<code>0.15.0</code>: every returned table is a <code>data.table</code> instead of a tibble, and tibble leaves the dependencies. Signatures and values are unchanged. <strong>Breaking change for code that relies on tibble behaviour, listed first in <code>NEWS.md</code>.</strong>
 </li>
 </ul><p>Additive by intent is not frozen: before 1.0 a release may break an existing signature when a design flaw surfaces, but every such change must be:</p>
 <ol style="list-style-type: decimal"><li>Listed under a <code>## Breaking changes</code> heading in <code>NEWS.md</code>, first.</li>
