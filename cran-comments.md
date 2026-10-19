@@ -7,7 +7,7 @@ This is the first submission of masque to CRAN.
 * Local: macOS (Apple Silicon), R 4.6.1.
 * GitHub Actions: Ubuntu R-devel, R-release and R-oldrel-1; macOS
   R-release; Windows R-release.
-* R-hub: Linux R-devel, Ubuntu R-next, Windows R-devel, macOS arm64
+* R-hub: Linux R-devel, Ubuntu R-patched, Windows R-devel, macOS arm64
   R-devel.
 * win-builder: Windows R-devel.
 
