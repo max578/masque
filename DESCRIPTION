@@ -1,6 +1,6 @@
 Package: masque
 Title: Structurally Faithful Development Surrogates for Tabular Data
-Version: 0.14.1.9000
+Version: 0.15.0
 Authors@R: c(
     person("Max", "Moldovan",
            email = "max.moldovan@gmail.com",
@@ -16,7 +16,7 @@ Description: Turns a confidential tabular dataset - a single table, a folder
     and numeric-covariate values are re-simulated via a Gaussian copula that
     preserves the global covariance structure. Columns shared across tables
     are aliased consistently so the synthetic tables still join. A private
-    'recipe' object round-trips a pipeline written against the synthetic
+    recipe object round-trips a pipeline written against the synthetic
     clone onto the original data. Not a differential-privacy or anonymisation
     tool: outputs are development surrogates, not public-release-safe
     artefacts.

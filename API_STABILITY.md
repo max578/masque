@@ -73,7 +73,7 @@ existing signatures. The track record so far:
   unchanged. `apply_recipe()` returns the clone's level order.
   **Confidentiality fix, listed first in `NEWS.md`; re-make any clone shared
   from 0.13.0 or earlier.**
-- Development version (after 0.14.1): every returned table is a
+- `0.15.0`: every returned table is a
   `data.table` instead of a tibble, and tibble leaves the dependencies.
   Signatures and values are unchanged. **Breaking change for code that
   relies on tibble behaviour, listed first in `NEWS.md`.**

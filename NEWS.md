@@ -1,4 +1,4 @@
-# masque (development version)
+# masque 0.15.0
 
 ## Breaking changes
 
