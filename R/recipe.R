@@ -68,6 +68,9 @@ masque_recipe <- S7::new_class(
     # One entry per declared coordinate pair: jitter parameters, site grouping
     # and site count. Empty before 0.10.0.
     coords = S7::new_property(class = S7::class_list, default = list()),
+    # One entry per linked-event spec: columns, stratification, pattern count
+    # and the small patterns that were pooled. Empty before 0.16.0.
+    events = S7::new_property(class = S7::class_list, default = list()),
     # TRUE when the caller deliberately wrote a real coordinate through
     # unmasked. FALSE, and absent on a recipe written before 0.11.0.
     allow_unmasked_coords = S7::new_property(

@@ -1,5 +1,12 @@
 # masque 0.15.1
 
+* `mask()` gains `events =` for linked time-to-event outcomes: several
+  event times on one row, in the order the events occur, each with a
+  status. The times are re-simulated as gaps
+  within each status pattern, so they stay ordered, a row without the
+  first event keeps both times equal, and the count of each status pattern
+  is exact. Status patterns move across rows, within treatment when
+  `conditional = TRUE`.
 * The interactive review in `masque()` now writes the plan table and the
   edit menus as messages, so `suppressMessages()` silences them.
 * The vignettes restore the `width` option they set.

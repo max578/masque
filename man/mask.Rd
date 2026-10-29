@@ -14,6 +14,7 @@ mask(
   conditional = FALSE,
   ladder = c("hierarchy", "levels"),
   coords = NULL,
+  events = NULL,
   allow_unmasked_coords = FALSE,
   quiet = FALSE,
   .shared_maps = list(),
@@ -114,6 +115,23 @@ identical input coordinate already identify one. A declared pair always
 survives masking, coarsened; the recipe records the parameters and the site
 grouping it was coarsened under, and \code{\link[=apply_recipe]{apply_recipe()}} retargets to the real
 coordinates.}
+
+\item{events}{Optional linked time-to-event outcomes. One spec per group of
+linked events, \code{list(time = c(...), status = c(...))}, with the time and
+status columns listed in the order the events occur; pass several specs
+as a list. Every column must have role \code{outcome} and action \code{scramble},
+times must be numeric and in order in \code{df}, status columns must hold
+whole-numbered codes, and none may be missing. The times are turned into
+gaps between successive events, the rows' status patterns are permuted
+(within treatment when \code{conditional = TRUE}), and the gaps are
+re-simulated within each status pattern by the empirical copula, then
+summed back into times. Times therefore stay ordered, a gap that every
+row of a pattern holds at zero stays zero, and the count of each status
+pattern is exact. A pattern with fewer than five rows draws each of its
+free gaps from every pattern in which that gap is free, with a
+\code{masque_events_pooled} warning; when no other pattern has the gap free,
+\code{mask()} stops. No hazard model is fitted and no covariate-to-event
+relation is kept.}
 
 \item{allow_unmasked_coords}{Single logical. A masked table must not carry
 a real coordinate, so by default \code{mask()} \strong{stops} when a column whose

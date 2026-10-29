@@ -39,6 +39,15 @@ local(S7::method(print, masque_recipe) <- function(x, ...) {
     }
   }
 
+  events <- S7::prop(x, "events")
+  if (length(events)) {
+    cli::cli_h2("Linked events ({length(events)} group{?s})")
+    for (er in events) {
+      line <- .event_report_line(er)
+      cli::cli_bullets(c("*" = "{line}"))
+    }
+  }
+
   n_lvl_maps <- length(x@level_maps)
   n_col_map <- if (is.null(x@column_name_map)) 0L else length(x@column_name_map)
   cli::cli_h2(paste0(

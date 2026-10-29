@@ -131,6 +131,22 @@
 #'   survives masking, coarsened; the recipe records the parameters and the site
 #'   grouping it was coarsened under, and [apply_recipe()] retargets to the real
 #'   coordinates.
+#' @param events Optional linked time-to-event outcomes. One spec per group of
+#'   linked events, `list(time = c(...), status = c(...))`, with the time and
+#'   status columns listed in the order the events occur; pass several specs
+#'   as a list. Every column must have role `outcome` and action `scramble`,
+#'   times must be numeric and in order in `df`, status columns must hold
+#'   whole-numbered codes, and none may be missing. The times are turned into
+#'   gaps between successive events, the rows' status patterns are permuted
+#'   (within treatment when `conditional = TRUE`), and the gaps are
+#'   re-simulated within each status pattern by the empirical copula, then
+#'   summed back into times. Times therefore stay ordered, a gap that every
+#'   row of a pattern holds at zero stays zero, and the count of each status
+#'   pattern is exact. A pattern with fewer than five rows draws each of its
+#'   free gaps from every pattern in which that gap is free, with a
+#'   `masque_events_pooled` warning; when no other pattern has the gap free,
+#'   `mask()` stops. No hazard model is fitted and no covariate-to-event
+#'   relation is kept.
 #' @param allow_unmasked_coords Single logical. A masked table must not carry
 #'   a real coordinate, so by default `mask()` **stops** when a column whose
 #'   name says coordinate (`gps`, `lat`, `lon`, `easting`, ...) would be
@@ -172,6 +188,7 @@ mask <- function(df,
                  conditional = FALSE,
                  ladder = c("hierarchy", "levels"),
                  coords = NULL,
+                 events = NULL,
                  allow_unmasked_coords = FALSE,
                  quiet = FALSE,
                  .shared_maps = list(),
@@ -297,6 +314,9 @@ mask <- function(df,
     roles$action[roles$col %in% coord_cols] <- "keep"
   }
 
+  # Linked event outcomes skip the copula; they are re-simulated as gaps.
+  event_specs <- .normalise_events(events, df, roles)
+
   # Refuse a real coordinate the caller has not declared; declared pairs are
   # jittered below.
   if (!is.logical(allow_unmasked_coords) ||
@@ -329,12 +349,31 @@ mask <- function(df,
   result <- with_rng_state(
     seed,
     .mask_orchestrate(
-      df, roles, mode, opts, .shared_maps, conditional, ladder
+      df, roles, mode, opts, .shared_maps, conditional, ladder,
+      events = event_specs
     )
   )
   synth <- result$synth
   level_maps <- result$level_maps
   warnings_acc <- c(warnings_acc, result$warnings)
+
+  event_reports <- result$events
+  for (er in event_reports) {
+    warnings_acc <- c(warnings_acc, .event_report_line(er))
+    if (length(er$pooled)) {
+      msg <- sprintf(
+        paste0(
+          "events: status pattern%s %s of %s had fewer than %d rows; their ",
+          "free gaps were drawn from every pattern in which each is free."
+        ),
+        if (length(er$pooled) > 1L) "s" else "",
+        paste(er$pooled, collapse = ", "),
+        paste(er$time, collapse = ", "), .MIN_STRATUM
+      )
+      warning(warningCondition(msg, class = "masque_events_pooled"))
+      warnings_acc <- c(warnings_acc, msg)
+    }
+  }
 
   # Warn when the ladder dropped a rung or pooled rows: the clone is then less
   # conditional than requested.
@@ -479,6 +518,7 @@ mask <- function(df,
     factor_meta       = factor_meta,
     cleaning          = cleaning_rec,
     coords            = coord_reports,
+    events            = event_reports,
     allow_unmasked_coords = isTRUE(allow_unmasked_coords),
     warnings          = warnings_acc,
     integrity_fp      = digest::digest(is.na(df), algo = "sha256")
@@ -579,7 +619,8 @@ mask <- function(df,
 # Internal: per-action synthesis, with the RNG already seeded. The action
 # column decides what happens to each column; mode only adds numeric jitter.
 .mask_orchestrate <- function(df, roles, mode, opts, shared_maps = list(),
-                              conditional = FALSE, ladder = "hierarchy") {
+                              conditional = FALSE, ladder = "hierarchy",
+                              events = list()) {
   synth <- df
   level_maps <- list()
   warnings <- character()
@@ -596,11 +637,13 @@ mask <- function(df,
     level_maps[[col]] <- shared_maps[[col]]
   }
   is_shared <- roles$col %in% shared_cols
+  event_cols <- unlist(lapply(events, function(s) c(s$time, s$status)))
+  is_event <- roles$col %in% event_cols
 
   # All scrambled numeric columns go through one Gaussian copula, fitted within
   # each treatment x design stratum when `conditional = TRUE`.
   num_idx <- which(action == "scramble" & kind %in% .numeric_kinds() &
-    !is_shared)
+    !is_shared & !is_event)
   conditional_report <- NULL
   if (length(num_idx) >= 1L) {
     x_num <- df[, num_idx, drop = FALSE]
@@ -650,12 +693,31 @@ mask <- function(df,
     }
   }
 
+  # Linked events: status patterns permuted, gaps re-simulated per pattern.
+  event_reports <- list()
+  if (length(events)) {
+    trt_cols <- roles$col[role == "treatment" & action != "drop"]
+    strata <- if (isTRUE(conditional) && length(trt_cols)) {
+      do.call(paste, c(lapply(df[trt_cols], as.character), sep = "/"))
+    }
+    for (spec in events) {
+      ev <- .synthesise_events(
+        df, spec, strata,
+        jitter = isTRUE(opts$jitter_numeric), min_stratum = .MIN_STRATUM
+      )
+      for (col in names(ev$columns)) {
+        synth[[col]] <- ev$columns[[col]]
+      }
+      event_reports <- c(event_reports, list(ev$report))
+    }
+  }
+
   # Scrambled categorical, date and text columns are row-permuted; treatment
   # labels never move rows.
   perm_idx <- which(
     action == "scramble" &
       kind %in% c(.categorical_kinds(), .date_kinds()) &
-      role != "treatment" & !is_shared
+      role != "treatment" & !is_shared & !is_event
   )
   for (j in perm_idx) {
     col <- roles$col[j]
@@ -730,7 +792,8 @@ mask <- function(df,
     synth       = synth,
     level_maps  = level_maps,
     warnings    = warnings,
-    conditional = conditional_report
+    conditional = conditional_report,
+    events      = event_reports
   )
 }
 
