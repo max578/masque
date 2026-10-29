@@ -210,9 +210,9 @@ masque <- function(input,
     sprintf("Proposed masking plan - table '%s'", label)
   }
   cli::cli_h2(hdr)
-  print(roles[, intersect(
+  cli::cli_verbatim(utils::capture.output(print(roles[, intersect(
     c("col", "role", "action", "kind"), names(roles)
-  )])
+  )])))
 
   repeat {
     ans <- tolower(trimws(readline(
@@ -226,9 +226,9 @@ masque <- function(input,
     if (ans %in% c("e", "edit")) {
       roles <- .masque_edit(roles)
       cli::cli_alert_success("Roles updated.")
-      print(roles[, intersect(
+      cli::cli_verbatim(utils::capture.output(print(roles[, intersect(
         c("col", "role", "action", "kind"), names(roles)
-      )])
+      )])))
       next
     }
     if (ans %in% c("q", "quit")) {
@@ -268,7 +268,7 @@ masque <- function(input,
     shown <- roles[, intersect(c("col", "role", "action", "kind"),
       names(roles)
     )]
-    print(shown)
+    cli::cli_verbatim(utils::capture.output(print(shown)))
     ans <- trimws(.masque_readline(
       "Column to edit (name or row number; blank when done): "
     ))
@@ -316,8 +316,8 @@ masque <- function(input,
 # Numbered single-choice prompt; blank (or an invalid entry) keeps the
 # current value and returns NULL.
 .masque_pick <- function(what, current, vocab) {
-  cat(sprintf(
-    "  %s: %s\n", what,
+  cli::cli_verbatim(sprintf(
+    "  %s: %s", what,
     paste(sprintf("[%d] %s", seq_along(vocab), vocab), collapse = "  ")
   ))
   ans <- trimws(.masque_readline(sprintf(

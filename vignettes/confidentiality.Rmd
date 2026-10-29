@@ -19,7 +19,7 @@ knitr::opts_chunk$set(
   fig.height = 4.5,
   dpi = 150
 )
-options(width = 100)
+old_options <- options(width = 100)
 library(masque)
 set.seed(1)
 ```
@@ -651,3 +651,7 @@ Epidemiology, 172*(9), 1062-1069. <https://doi.org/10.1093/aje/kwq248>
 Zandbergen, P. A. (2014). Ensuring confidentiality of geocoded health data:
 assessing geographic masking strategies for individual-level data. *Advances in
 Medicine, 2014*, 567049. <https://doi.org/10.1155/2014/567049>
+
+```{r reset-options, include = FALSE}
+options(old_options)
+```

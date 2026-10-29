@@ -1,6 +1,14 @@
-## Submission
+## Resubmission
 
-This is the first submission of masque to CRAN.
+This is a resubmission of a new package. In response to the review of
+0.15.0:
+
+* The text that `R/masque.R` wrote to the console with `print()` and
+  `cat()` during the interactive review now goes through `message()`
+  (via cli), so it can be suppressed. The output that remains on the
+  console comes from `print()` and `summary()` methods.
+* Each vignette saves the user's `options()` before changing `width` and
+  restores them in its last chunk.
 
 ## Test environments
 

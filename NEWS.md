@@ -1,3 +1,9 @@
+# masque 0.15.1
+
+* The interactive review in `masque()` now writes the plan table and the
+  edit menus as messages, so `suppressMessages()` silences them.
+* The vignettes restore the `width` option they set.
+
 # masque 0.15.0
 
 ## Breaking changes
