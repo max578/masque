@@ -3,6 +3,9 @@
 * The interactive review in `masque()` now writes the plan table and the
   edit menus as messages, so `suppressMessages()` silences them.
 * The vignettes restore the `width` option they set.
+* In collaborate mode, a double column whose values are all whole numbers
+  now stays whole-numbered, as an integer column already did. A column
+  with only two observed values is no longer jittered and keeps both.
 
 # masque 0.15.0
 

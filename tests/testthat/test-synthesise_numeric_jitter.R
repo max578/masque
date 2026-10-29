@@ -154,3 +154,56 @@ test_that("Collaborate mode preserves integer storage on int outcome columns", {
   expect_gte(rng[1], min(df$grain_count))
   expect_lte(rng[2], max(df$grain_count))
 })
+
+test_that("collaborate keeps a 0/1 double column on its two values", {
+  set.seed(1)
+  x_obs <- as.numeric(rbinom(300, 1, 0.3))
+  expect_type(x_obs, "double")
+  x_new <- masque:::synthesise_numeric_local(data.frame(z = x_obs))$z
+  out <- masque:::synthesise_numeric_collaborate(x_obs, x_new)
+  expect_type(out, "double")
+  expect_setequal(unique(out), c(0, 1))
+  expect_identical(out, x_new)
+})
+
+test_that("collaborate does not flip a two-valued integer column", {
+  set.seed(1)
+  x_obs <- rbinom(300, 1, 0.3)
+  x_new <- masque:::synthesise_numeric_local(data.frame(z = x_obs))$z
+  out <- masque:::synthesise_numeric_collaborate(x_obs, x_new)
+  expect_type(out, "integer")
+  expect_identical(out, x_new)
+})
+
+test_that("collaborate keeps a whole-valued double column whole", {
+  set.seed(1)
+  x_obs <- c(as.numeric(sample(1:2000, 400, replace = TRUE)), NA)
+  x_new <- masque:::synthesise_numeric_local(data.frame(z = x_obs))$z
+  out <- masque:::synthesise_numeric_collaborate(x_obs, x_new)
+  expect_type(out, "double")
+  kept <- out[!is.na(out)]
+  expect_true(all(kept == round(kept)))
+  expect_true(all(kept >= 1 & kept <= 2000))
+  expect_identical(is.na(out), is.na(x_new))
+  # Still perturbed, not a copy of the local draw
+  expect_lt(mean(out == x_new, na.rm = TRUE), 0.9)
+})
+
+test_that("collaborate mask() keeps whole-day and 0/1 double outcomes whole", {
+  set.seed(1)
+  n <- 400
+  df <- data.frame(
+    Rep = rep(1:4, n / 4),
+    days = as.numeric(sample(10:3000, n, replace = TRUE)),
+    flag = as.numeric(rbinom(n, 1, 0.4)),
+    cov_n = rnorm(n),
+    stringsAsFactors = FALSE
+  )
+  r <- propose_roles(df)
+  r$role[r$col %in% c("days", "flag")] <- "outcome"
+  m <- suppressWarnings(mask(df, r, mode = "collaborate", seed = 1))
+  s <- synthetic(m)
+  expect_type(s$days, "double")
+  expect_true(all(s$days == round(s$days)))
+  expect_setequal(unique(s$flag), c(0, 1))
+})
