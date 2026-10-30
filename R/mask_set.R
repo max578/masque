@@ -47,6 +47,8 @@
 #'   [mask()] for the full account.
 #' @param ladder Drop order of the conditioning ladder, `"hierarchy"` (default)
 #'   or `"levels"`; passed through to each [mask()] call.
+#' @param grain Single logical (default `TRUE`); passed through to each
+#'   [mask()] call, which synthesises a unit-constant column once per unit.
 #' @param quiet Logical; suppress the link / hygiene report, including the
 #'   hint that a table looks like documentation.
 #' @param sheets For an Excel workbook, the sheets to read (default: all);
@@ -92,6 +94,7 @@ mask_set <- function(input,
                      alias_names = FALSE,
                      conditional = FALSE,
                      ladder = c("hierarchy", "levels"),
+                     grain = TRUE,
                      quiet = FALSE,
                      sheets = NULL,
                      info = NULL,
@@ -212,6 +215,7 @@ mask_set <- function(input,
       alias_names = aln,
       conditional = conditional,
       ladder = ladder,
+      grain = grain,
       .shared_maps = shared_by_table[[nm]],
       .cleaning = cleaning[[nm]]
     )
