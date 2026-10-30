@@ -601,9 +601,7 @@ jitter_coordinates <- function(df, lat_col, lon_col,
   if (!n) {
     return(list(df = synth, reports = list()))
   }
-  sub_seeds <- with_rng_state(
-    seed, sample.int(.Machine$integer.max, n)
-  )
+  sub_seeds <- .sub_seeds(seed, n)
   reports <- vector("list", n)
   for (i in seq_len(n)) {
     s <- specs[[i]]
