@@ -83,9 +83,8 @@
 #'   column names and types alone.
 #' @param sheets For an Excel workbook, the sheets to read (default: all).
 #'   See [mask_set()].
-#' @param info For a set, tables that hold documentation rather than data
-#'   (a data dictionary, a read-me): set aside, not masked and not written.
-#'   See [mask_set()].
+#' @param info For a set, names of documentation tables to set aside: not
+#'   masked and not written. See [mask_set()].
 #' @param ... Further arguments for the masking verb: [mask()] for one
 #'   table (for example `coords`, `events`, `allow_unmasked_coords`),
 #'   [mask_set()] for a set (for example `links`). An argument the verb

@@ -51,16 +51,16 @@
 #'   hint that a table looks like documentation.
 #' @param sheets For an Excel workbook, the sheets to read (default: all);
 #'   passed to [read_set()].
-#' @param info Optional character vector naming tables (sheet names or file
-#'   names without extension) that hold documentation rather than data,
-#'   such as a data dictionary or a read-me. They are set aside before
-#'   masking: not masked, not in the synthetic set, not written by
-#'   [write_set()], and their content is not kept. Their names are
+#' @param info Optional character vector of table names (sheet names, or
+#'   file names without extension) to set aside as documentation, for
+#'   example a data dictionary. They are set aside before masking: not
+#'   masked, not in the synthetic set, not written by [write_set()], and
+#'   their content is not kept. Their names are
 #'   recorded on the recipe bundle. A table that looks like documentation
 #'   and is not named here raises a hint (a message of class
 #'   `masque_info_hint`); the hint decides nothing.
-#' @param ... Must be empty. A misspelled argument is refused
-#'   (`masque_unused_arg_refusal`) rather than ignored.
+#' @param ... Must be empty: any argument here is refused with
+#'   `masque_unused_arg_refusal`.
 #'
 #' @return A `masque_set` S7 object. Use [synthetic()] for the named list
 #'   of synthetic tables and [recipe()] for the private recipe bundle.
@@ -310,7 +310,7 @@ mask_set <- function(input,
   cli::cli_inform(c(
     i = paste0(
       "{cli::qty(length(hits))}Table{?s} {.val {hits}} look{?s/} like ",
-      "documentation rather than data."
+      "documentation."
     ),
     " " = paste0(
       "Name {cli::qty(length(hits))}{?it/them} in {.arg info} to set ",

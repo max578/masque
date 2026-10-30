@@ -247,9 +247,8 @@ MIN_EDIT_NCHAR <- 4L   # below this, a one-character difference means nothing
   as.data.frame(out)
 }
 
-# The effective merge map: each source follows its merges until it reaches a
-# label nothing is merged away from. A source that reaches two such labels has
-# no single target, so none of its merges is applied.
+# The effective merge map: each source follows its merges to a label nothing
+# is merged away from. A source that reaches two such labels is not merged.
 .resolve_merges <- function(merges) {
   .datatable.aware <- TRUE
   none <- list(

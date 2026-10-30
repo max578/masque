@@ -347,9 +347,8 @@ trimws_keep_class <- function(x) {
   roles
 }
 
-# Line a roles table up with the cleaned names. A table already keyed by the
-# cleaned names is left alone: remapping it would move `Site.Name` onto
-# `Site.Name_1` when `Site Name` and `Site.Name` both exist.
+# Line a roles table up with the cleaned names. One keyed by them already is
+# left alone: with `Site Name` beside `Site.Name` a remap would move it.
 .align_roles_cols <- function(roles, name_map, clean_names) {
   if (!length(name_map) || !("col" %in% names(roles))) {
     return(roles)
