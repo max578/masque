@@ -49,8 +49,8 @@
 * `audit_mask()` grades each column on its excess over a chance baseline
   and adds table-level checks (whole-row matches, rare combinations) in
   `attr(audit, "joint")`. A column synthesised per unit, or a whole-numbered
-  covariate such as age, is graded on that excess instead of on raw exact
-  matches, which it reaches by construction.
+  covariate (age in years), is graded on that excess instead of on raw
+  exact matches, which it reaches by construction.
 * `audit_mask()` grades such a column HIGH when it matches the original
   row by row far above chance, as when the real values were copied back.
 * `save_recipe()`, `read_recipe()`, `reveal_maps(table = )` and
