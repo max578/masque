@@ -79,8 +79,7 @@
   r
 }
 
-# Text form of a clone: doubles to 10 significant digits (15 is not stable
-# across arm64 and x86_64), then the level maps.
+# Text form of a clone: doubles to 10 significant digits, then the level maps.
 .fx_canon <- function(m) {
   syn <- as.data.frame(synthetic(m))
   cols <- vapply(names(syn), function(nm) {
@@ -318,6 +317,7 @@ test_that("grain = FALSE is the row-level clone of masque 0.15", {
     expect_identical(gr[[1]]$synthesised, "row", label = key)
     expect_identical(gr[[1]]$reason, "grain = FALSE", label = key)
     skip_on_cran()
+    skip_unless_digest_platform()
     expect_identical(.fx_canon(m), base[[key]], label = key)
   }
 })

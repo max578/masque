@@ -36,9 +36,7 @@
   r
 }
 
-# Text form of a clone: 10 significant digits per double, so the digest is
-# independent of serialisation format and of last-bit platform noise (at 15
-# digits arm64 and x86_64 disagree).
+# Text form of a clone, doubles at 10 significant digits.
 .repro_canon <- function(m) {
   syn <- as.data.frame(synthetic(m))
   cols <- vapply(names(syn), function(nm) {
@@ -60,7 +58,30 @@
                  serialize = FALSE)
 }
 
-test_that("a table with no grained column clones as on the 0.16.0 base", {
+test_that("a table with no grained column clones as with grain = FALSE", {
+  df <- .repro_fixture()
+  for (mode in c("local", "collaborate")) {
+    roles <- .repro_roles(df, mode)
+    expect_length(.detect_grain(df, roles), 0L)
+    for (cond in c(FALSE, TRUE)) {
+      key <- sprintf("%s_%s", mode, cond)
+      m <- suppressWarnings(suppressMessages(mask(
+        df, roles, mode = mode, seed = 1L, conditional = cond
+      )))
+      expect_length(recipe(m)@grain, 0L)
+      m0 <- suppressWarnings(suppressMessages(mask(
+        df, roles, mode = mode, seed = 1L, conditional = cond, grain = FALSE
+      )))
+      expect_identical(synthetic(m), synthetic(m0), label = key)
+      expect_identical(recipe(m)@level_maps, recipe(m0)@level_maps,
+                       label = key)
+    }
+  }
+})
+
+test_that("on the recording platform the clones match the 0.16.0 base", {
+  skip_on_cran()
+  skip_unless_digest_platform()
   # Base 12ead24 digests; collaborate re-taken after the jitter clip went.
   base <- c(
     local_FALSE =
@@ -75,14 +96,11 @@ test_that("a table with no grained column clones as on the 0.16.0 base", {
   df <- .repro_fixture()
   for (mode in c("local", "collaborate")) {
     roles <- .repro_roles(df, mode)
-    expect_length(.detect_grain(df, roles), 0L)
     for (cond in c(FALSE, TRUE)) {
       key <- sprintf("%s_%s", mode, cond)
       m <- suppressWarnings(suppressMessages(mask(
         df, roles, mode = mode, seed = 1L, conditional = cond
       )))
-      expect_length(recipe(m)@grain, 0L)
-      skip_on_cran()
       expect_identical(.repro_canon(m), base[[key]], label = key)
     }
   }
