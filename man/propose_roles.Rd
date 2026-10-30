@@ -93,16 +93,21 @@ action \code{scramble} (row permutation).
 \item ID-pattern names (\verb{\\\\bid\\\\b}, \verb{_id$}, \verb{^id_}) -> role \code{id}; kept
 in local mode, dropped in collaborate mode.
 \item Design-pattern names (\code{rep}, \code{block}, \code{row}, \verb{col(umn)?},
-\code{range}, \verb{plot(no)?}, \code{site}, \verb{env(ironment)?}, \code{trial}, \code{year},
-\code{season}, \code{colrep}, \code{tos}) -> role \code{design}, action \code{keep}.
+\code{range}, \verb{plot(no)?}, \code{site}, \code{site_name}, \code{trial_site},
+\verb{env(ironment)?}, \code{trial}, \code{year}, \code{season}, \code{colrep}, \code{tos}; the
+two-word names also spaced or dotted, as in \verb{Site Name} and
+\code{Site.Name}) -> role \code{design}, action \code{keep}.
 \item Treatment-pattern names (\code{treatment}, \code{variety}, \code{cultivar},
 \code{genotype}, \verb{^trt}, \verb{^dose}) -> role \code{treatment}; kept in local
 mode, aliased in collaborate mode.
+\item Numeric columns with an outcome-pattern name (\code{yield}, \code{yield_t_ha},
+\code{Yield..t.ha.}, \code{grain_yield}, \code{response}, \code{outcome}) -> role
+\code{outcome}, action \code{scramble}.
 \item Character columns with > 50\% unique values on non-NA -> role
 \code{text}; kept in local mode, dropped in collaborate mode.
 \item Unsupported classes -> role \code{other}, action \code{keep}, with a note.
 \item Everything else -> role \code{covariate}, action \code{scramble}. Re-role
-response variables as \code{outcome}.
+other response variables as \code{outcome}.
 }
 
 No outcome is required: with no column roled \code{outcome}, the copula
@@ -114,6 +119,14 @@ default (\code{detect = TRUE}) and applies the detected design's
 the default action for any promoted column. The design summary is
 stashed as \code{attr(roles, "design")}. Pass \code{detect = FALSE} for the
 name-only heuristic.
+
+For a column without a treatment-pattern name, a treatment hint from the
+design rules is applied only when the column is crossed with a design
+column: a design-pattern name, a column roled \code{design}, or a detected
+environment. A column with one value per level of a design
+column is a unit-level covariate and is never promoted. Hints that fail
+are listed in \code{attr(roles, "design")@recommended_roles} with
+\code{auto_apply = FALSE} and the reason.
 }
 
 \section{Multi-environment trials}{

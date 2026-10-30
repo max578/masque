@@ -65,12 +65,27 @@ masque_recipe <- S7::new_class(
       class   = S7::new_union(S7::class_list, NULL),
       default = NULL
     ),
+    # conform_table() decisions (merge map, type changes, modes, max_levels);
+    # NULL unless mask() was given a conformance object. Absent before 0.16.0.
+    conform = S7::new_property(
+      class   = S7::new_union(S7::class_list, NULL),
+      default = NULL
+    ),
     # One entry per declared coordinate pair: jitter parameters, site grouping
     # and site count. Empty before 0.10.0.
     coords = S7::new_property(class = S7::class_list, default = list()),
+    # One entry per linked-event spec: columns, stratification, pattern count
+    # and the small patterns that were pooled. Empty before 0.16.0.
+    events = S7::new_property(class = S7::class_list, default = list()),
+    # One entry per design unit holding grained columns; see .detect_grain().
+    grain = S7::new_property(class = S7::class_list, default = list()),
     # TRUE when the caller deliberately wrote a real coordinate through
     # unmasked. FALSE, and absent on a recipe written before 0.11.0.
     allow_unmasked_coords = S7::new_property(
+      class = S7::class_logical, default = FALSE
+    ),
+    # TRUE when a kept outcome was allowed; absent before 0.16.0.
+    allow_kept_outcome = S7::new_property(
       class = S7::class_logical, default = FALSE
     ),
     warnings = S7::new_property(
@@ -122,8 +137,11 @@ synthetic <- function(m) {
   }
   if (!S7::S7_inherits(m, masque_obj)) {
     cli::cli_abort(
-      "`m` must be a {.cls masque} or {.cls masque_set} object; got ",
-      "{.cls {class(m)[1]}}."
+      paste0(
+        "`m` must be a {.cls masque} or {.cls masque_set} object; got ",
+        "{.cls {class(m)[1]}}."
+      ),
+      class = c("masque_bad_masque_obj_refusal", "orchestra_refusal")
     )
   }
   data.table::copy(m@synthetic)
@@ -151,8 +169,11 @@ recipe <- function(m) {
   }
   if (!S7::S7_inherits(m, masque_obj)) {
     cli::cli_abort(
-      "`m` must be a {.cls masque} or {.cls masque_set} object; got ",
-      "{.cls {class(m)[1]}}."
+      paste0(
+        "`m` must be a {.cls masque} or {.cls masque_set} object; got ",
+        "{.cls {class(m)[1]}}."
+      ),
+      class = c("masque_bad_masque_obj_refusal", "orchestra_refusal")
     )
   }
   m@recipe

@@ -11,7 +11,8 @@ read_set(input, sheets = NULL, pattern = NULL)
 of data frames.}
 
 \item{sheets}{For an Excel workbook, an optional character vector of
-sheet names to read (default: all sheets).}
+sheet names to read (default: all sheets). Any other input with
+\code{sheets} set is refused (\code{masque_bad_sheets_refusal}).}
 
 \item{pattern}{For a folder, an optional regular expression to select
 files (default: all \code{.csv} / \code{.tsv} / \code{.fst}).}

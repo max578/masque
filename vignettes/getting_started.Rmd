@@ -19,7 +19,7 @@ knitr::opts_chunk$set(
   fig.height = 4.5,
   dpi = 150
 )
-options(width = 100)
+old_options <- options(width = 100)
 set.seed(1)
 ```
 
@@ -74,7 +74,8 @@ The `mode` argument sets the defaults for both axes at once:
 * `local` is for the custodian's own development and keeps labels intact.
 * `collaborate` is for handing the synthetic to someone else. It aliases
   treatment and categorical labels, jitters numerics, drops identifiers and
-  free text, and runs the leakage audit.
+  free text (a character column in which more than half the values are
+  distinct), and runs the leakage audit.
 
 A per-column `action` always overrides the mode's default.
 
@@ -117,10 +118,10 @@ knitr::kable(
 Under the one-call path, `masque()` built the roles table without asking.
 Building and reviewing it directly gives full control:
 
-```{r roles}
-roles <- propose_roles(df, mode = "collaborate")
+```{r plan}
+plan <- propose_roles(df, mode = "collaborate")
 knitr::kable(
-  roles[, c("col", "role", "action", "kind")],
+  plan[, c("col", "role", "action", "kind")],
   caption = paste0(
     "The proposed masking plan for the alpha-design trial ",
     "(collaborate mode)."
@@ -130,15 +131,17 @@ knitr::kable(
 
 `propose_roles()` fills in a sensible action for each column given the
 mode, so the table reviewed here is the plan that will run. `yield` was
-proposed as a `covariate`. Naming it the trial's `outcome` does not change
-how it is masked. It records intent, and the *conditional* clone (see
-*Confidentiality and the threat model*) reads it to find the response:
+proposed as the trial's `outcome` from its name. The role records intent,
+and the *conditional* clone (see *Confidentiality and the threat model*)
+reads it to find the response. Any role can be changed with `set_role()`.
+Here the plot number is re-roled as an identifier, which collaborate mode
+drops:
 
 ```{r set-role}
-roles <- set_role(roles, "yield", role = "outcome")
+plan_id <- set_role(plan, "plot", role = "id")
 knitr::kable(
-  roles[, c("col", "role", "action")],
-  caption = "The plan after naming `yield` as the trial outcome."
+  plan_id[, c("col", "role", "action")],
+  caption = "The plan after re-roling `plot` as an identifier."
 )
 ```
 
@@ -153,7 +156,7 @@ guided prompt opens when the custodian chooses `e` edits the same table.
 `set_role()` is vectorised over columns:
 
 ```{r edit-vectorised}
-r2 <- set_role(roles, c("row", "col"), action = "drop")
+r2 <- set_role(plan, c("row", "col"), action = "drop")
 ```
 
 Direct edits work too. A direct `role` edit leaves `action` untouched, so
@@ -195,14 +198,14 @@ scan reads names, not content, so when a harmlessly named column holds
 sensitive values, flagging it by hand is the correct fix:
 
 ```{r pii-by-hand, eval = FALSE}
-roles[col == "comments", pii_suspected := TRUE]
+plan[col == "comments", pii_suspected := TRUE]
 ```
 
 Passing the edited table back to `mask()` (or to `masque(df, roles =
-roles)`) runs the plan:
+plan)`) runs the plan:
 
 ```{r mask}
-m <- mask(df, roles, mode = "collaborate", seed = 1L)
+m <- mask(df, plan, mode = "collaborate", seed = 1L)
 synth <- synthetic(m)
 byte_identical_plot <- identical(synth$plot, df$plot)
 gen_levels_changed <- !setequal(levels(synth$gen), levels(df$gen))
@@ -217,8 +220,8 @@ head(levels(synth$gen))
 and `mask()` refuses:
 
 ```{r fail-closed, error = TRUE}
-bad_roles <- set_role(roles, "plot", role = "design", action = "scramble")
-mask(df, bad_roles, mode = "collaborate", seed = 1L)
+bad_plan <- set_role(plan, "plot", role = "design", action = "scramble")
+mask(df, bad_plan, mode = "collaborate", seed = 1L)
 ```
 
 The call stops before any masking, names the column and the combination at
@@ -242,8 +245,68 @@ ms
 ```
 
 The genotype column `gen` appears in both tables and is masked to the same
-codes in each, so the field and laboratory tables still join. See
-*Confidentiality and the threat model* for the set-level controls.
+codes in each, so the field and laboratory tables still join.
+
+The warning is about `year`. It is an environment column, but it is
+numeric, so collaborate mode keeps its real values. To alias it, read the
+tables, convert `year` to a factor, and mask the list:
+
+```{r set-year}
+tabs <- read_set(set_dir)
+tabs$agronomy[, year := factor(year)]
+ms <- masque(tabs, mode = "collaborate", seed = 1L, ask = FALSE, quiet = TRUE)
+knitr::kable(
+  head(synthetic(ms)$agronomy[, c("env", "loc", "year", "gen")], 3L),
+  caption = "The first rows of the clone, with `year` now aliased."
+)
+```
+
+For a workbook, `sheets =` picks which sheets to read, and `info =` names
+documentation sheets, such as a data dictionary, to set aside: they are
+not masked and not written. See *Confidentiality and the threat model* for
+the set-level controls.
+
+### Describing the clone: the data card
+
+A collaborator planning an analysis needs to know the shape of the data
+before any code is written: how many rows, which columns are the design,
+which is the outcome, how much is missing. `data_card()` writes those
+facts down without a single value of any column. It reads only the clone
+and its role table, which `roles()` returns in the clone's own column
+names:
+
+```{r data-card-roles}
+knitr::kable(
+  roles(m),
+  caption = "The role table of the clone, as the data card reads it."
+)
+```
+
+The role table says which columns are design columns, but not which of
+them give a plot's position or identify the plot. The custodian names
+those when writing the card:
+
+```{r data-card}
+card_file <- tempfile(fileext = ".yaml")
+card <- data_card(
+  m,
+  file = card_file,
+  name = "alpha_trial",
+  spatial = c("row", "col"),
+  unit = "plot"
+)
+writeLines(head(readLines(card_file), 30))
+```
+
+Every count carries a provenance class. `structure` marks a count that is
+exact in the clone and so equal on the real table, such as the number of
+missing values or the number of genotypes. `clone_estimate` marks one
+that was re-simulated, such as the number of distinct yields. `analyst`
+marks what was named in the call. Level labels never appear: the card
+says there are 24 genotypes and does not list them. When column names
+are aliased, the card uses the aliases. For a set, `data_card(ms)`
+returns one card per table, and `data_card(ms, file = dir)` writes one
+file per table.
 
 ### Multi-environment structure
 
@@ -339,14 +402,15 @@ scientific inference.
 ## Results
 
 ```{r audit-tally, include = FALSE}
-audit_class <- audit_mask(m)$leakage_class
-n_high <- sum(audit_class == "HIGH")
-n_medium <- sum(audit_class == "medium")
+audit <- audit_mask(m, print = FALSE)
+grades <- c(audit$leakage_class, attr(audit, "joint")$leakage_class)
+n_high <- sum(grades == "high")
+n_medium <- sum(grades == "medium")
 ```
 
-On this trial the audit graded `r n_high` columns HIGH and `r n_medium`
-medium. A HIGH finding would stop the package writing the synthetic to
-disk. A design column left at `keep` comes back unchanged
+On this trial the audit, counting its column and table-level checks
+together, gave `r n_high` HIGH and `r n_medium` medium findings. A HIGH
+finding would stop the package writing the synthetic to disk. A design column left at `keep` comes back unchanged
 and an aliased treatment comes back as `trt_001` to `trt_024`; a plan that
 asks for something the package cannot do is refused before it runs. Related
 tables are masked together and still join.
@@ -391,4 +455,8 @@ Package versions follow.
 
 ```{r session-info}
 sessionInfo()
+```
+
+```{r reset-options, include = FALSE}
+options(old_options)
 ```

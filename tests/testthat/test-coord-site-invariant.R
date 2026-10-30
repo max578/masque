@@ -183,6 +183,8 @@ test_that("`by` rejects a non-grouping", {
 
 .masked_sites <- function(df, coords, ...) {
   roles <- suppressWarnings(propose_roles(df, detect = FALSE))
+  cols <- unlist(lapply(coords, function(s) c(s[["lat"]], s[["lon"]])))
+  roles <- set_role(roles, cols, action = "keep")
   m <- suppressWarnings(mask(df, roles, seed = 1, coords = coords, ...))
   synthetic(m)
 }
@@ -193,8 +195,8 @@ test_that("mask(coords=) inherits the site invariant by default", {
   syn <- .masked_sites(
     df, list(list(lat = "lat", lon = "lon", on_land = FALSE))
   )
-  expect_equal(nrow(unique(as.data.frame(syn[c("lat", "lon")]))), 5L)
-  by_site <- split(as.data.frame(syn[c("lat", "lon")]), df$trial)
+  expect_equal(nrow(unique(as.data.frame(syn[, c("lat", "lon")]))), 5L)
+  by_site <- split(as.data.frame(syn[, c("lat", "lon")]), df$trial)
   one_pair <- function(s) nrow(unique(s)) == 1L
   expect_true(all(vapply(by_site, one_pair, logical(1))))
 })
@@ -207,13 +209,14 @@ test_that("mask(coords=) accepts `by` and groups on the original table", {
     y = stats::rnorm(12)
   )
   roles <- suppressWarnings(propose_roles(df, mode = "collaborate"))
+  roles <- set_role(roles, c("lat", "lon"), action = "keep")
   # `trial` is aliased in the synthetic; the grouping must still hold, because
   # it is taken from the original table rather than the masked one.
   m <- suppressWarnings(mask(df, roles, mode = "collaborate", seed = 1,
     coords = list(list(lat = "lat", lon = "lon", by = "trial",
                        on_land = FALSE))))
   syn <- synthetic(m)
-  expect_equal(nrow(unique(as.data.frame(syn[c("lat", "lon")]))), 3L)
+  expect_equal(nrow(unique(as.data.frame(syn[, c("lat", "lon")]))), 3L)
   expect_equal(length(unique(syn$lat[1:4])), 1L)
 
   rec <- recipe(m)

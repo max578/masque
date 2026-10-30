@@ -38,6 +38,8 @@ reference:
   - write_set
   - synthetic
   - recipe
+  - roles
+  - data_card
 
 - title: Recipe round-trip
   desc: Persist a recipe and re-target a pipeline between original and synthetic.

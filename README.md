@@ -4,7 +4,7 @@
 [![Lifecycle: experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
 [![R-CMD-check](https://github.com/max578/masque/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/max578/masque/actions/workflows/R-CMD-check.yaml)
 [![Codecov test coverage](https://codecov.io/gh/max578/masque/graph/badge.svg)](https://app.codecov.io/gh/max578/masque)
-[![r-universe](https://max578.r-universe.dev/badges/masque)](https://max578.r-universe.dev/masque)
+[![r-universe](https://max578.r-universe.dev/masque/badges/version)](https://max578.r-universe.dev/masque)
 [![pkgdown](https://github.com/max578/masque/actions/workflows/pkgdown.yaml/badge.svg)](https://max578.github.io/masque/)
 <!-- badges: end -->
 
@@ -74,6 +74,10 @@ fit <- lm(yield ~ gen + rep, data = synth)
 
 # ... and the custodian re-targets it to the original data.
 preds <- predict(fit, newdata = apply_recipe(df, rec))
+
+# A description of the clone the analyst can plan with: sizes, roles and
+# counts, never a value.
+card <- data_card(m, name = "alpha_trial")
 ```
 
 A folder of files or a multi-sheet workbook works the same way. Pass the
@@ -106,8 +110,14 @@ before using it.
 
 - Preserves enough structure for pipelines to run unchanged.
 - Provides two explicit modes: `local` for owner-only realistic surrogates,
-  and `collaborate` for controlled sharing with opaque aliasing, numeric
-  jitter, and an automatic leakage audit.
+  and `collaborate` for controlled sharing with opaque aliasing (numeric
+  doses included), numeric jitter, and an automatic leakage audit.
+  Collaborate mode drops identifiers and free text (character columns in
+  which most values are distinct), and refuses to re-simulate a table of
+  fewer than five rows.
+- Synthesises a column that is constant within a trial or site once per
+  unit, so the clone keeps one value per trial, and keeps linked event
+  times in order (`events =`).
 - Keeps treatment, block and environment means on request
   (`conditional = TRUE`). Treatment means on the clone then track those of
   the real data, and block and environment effects stay detectable.

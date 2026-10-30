@@ -1,3 +1,76 @@
+# masque 0.16.0
+
+## Behaviour changes
+
+* `mask()` synthesises a column that is constant within a design unit (a
+  trial-level rainfall, a site soil type) once per unit, so the clone keeps
+  one value per trial. `grain = FALSE` restores the row-by-row clone. In
+  collaborate mode, fewer than five units fall back to row-by-row with a
+  `masque_grain_small_units` warning.
+* Collaborate mode no longer clips jittered numbers to the observed range,
+  which copied the real extremes into the clone.
+* A numeric treatment (a dose, an N rate) can be aliased or permuted, and
+  collaborate mode aliases it by default; `unmask()` restores the values.
+* In collaborate mode a kept outcome audits HIGH and blocks the package
+  writers unless `allow_kept_outcome = TRUE`, which the recipe records.
+  A collaborate clone of fewer than five rows is refused.
+* A coordinate declared in `coords` must have the action `keep` in `roles`.
+  Any other action, including the `drop` that `propose_roles()` proposes,
+  is refused (`masque_coords_action_refusal`) instead of being overridden.
+* `propose_roles()` proposes a treatment only when it is crossed with the
+  design, `yield`-like names as outcomes, and `Site Name`-like names as
+  design.
+* New arguments of `mask()` and `mask_set()` come before `quiet`; pass
+  `quiet` and `allow_unmasked_coords` by name.
+* `mask_set()` link aliases follow `seed` from their own stream, so a seeded
+  set from 0.15.0 gets different link aliases when made again.
+* masque needs data.table 1.15.0 or later.
+
+## New features
+
+* `data_card()` describes a clone or a set: size, design, and per-column
+  counts marked exact or re-simulated. It never lists a level label.
+  `roles()` returns a clone's role table under the clone's column names.
+* `mask()` gains `events`: linked time-to-event outcomes keep their order,
+  the exact count of each status pattern, and no time past the longest
+  observed follow-up.
+* `mask_set()` and `masque()` gain `sheets` and `info` (documentation
+  sheets set aside, not masked). `masque()` takes `detect` and passes other
+  arguments on to `mask()` or `mask_set()`, refusing any they do not take.
+* `audit_mask()` grades each column on its excess over chance and adds
+  whole-row and rare-combination checks in `attr(audit, "joint")`. A
+  per-unit column is HIGH when its unit values are the real ones, even moved
+  between units. With 5 to 8 units and few distinct values a copy cannot be
+  told from chance, and grades low.
+* `save_recipe()`, `read_recipe()`, `reveal_maps(table = )` and
+  `audit_mask()` accept a `mask_set()` result. The recipe records
+  `conform_table()` decisions, and `apply_recipe()` replays them.
+* Every warning carries a `masque_` class.
+
+## Bug fixes
+
+* `print()`, `format()`, `str()` and knitr output of recipes and clones no
+  longer show the seed or the label maps.
+* `masque()` used local mode with a collaborate plan and returned real
+  labels; it now follows the plan's mode.
+* `conform_table(merge_labels = "auto")` no longer merges codes that differ
+  in a run of digits (`G002`, `G011`), and prints labels as text instead of
+  evaluating braces in them.
+* `detect_design()` no longer names an environment column (a year) as the
+  block of a multi-environment trial.
+* Guided `masque()` no longer stops on a folder or workbook whose column
+  names need repair, and `apply_recipe()` keeps a linked key marked `drop`.
+* Whole-numbered columns stay whole in conditional and collaborate clones,
+  and two-valued columns are no longer jittered.
+* `apply_recipe()` maps an aliased numeric column instead of passing real
+  values through.
+* Duplicate input column names are refused. The near-duplicate report
+  prints at most 20 pairs. `save_recipe()` accepts only `.rds`; a seed must
+  be one whole number.
+* Recipes saved by 0.15.0 still print, apply, unmask and audit.
+* Console output of the guided review is written as messages, and the
+  vignettes restore the `options()` they set.
+
 # masque 0.15.0
 
 ## Breaking changes

@@ -7,18 +7,23 @@
 audit_mask(m, original = NULL, print = TRUE)
 }
 \arguments{
-\item{m}{A \code{masque} object from \code{\link[=mask]{mask()}}.}
+\item{m}{A \code{masque} object from \code{\link[=mask]{mask()}}, or a \code{masque_set} from
+\code{\link[=mask_set]{mask_set()}}.}
 
 \item{original}{Optional. Required when \code{m@audit} is NULL (typically
-in local mode). Used to recompute exact-match-pct etc. on demand.}
+in local mode). Used to recompute exact-match-pct etc. on demand.
+The original data frame for a \code{masque}; for a \code{masque_set}, a named
+list holding the original table of every table in the set.}
 
 \item{print}{Logical; if TRUE (default), print a styled report.}
 }
 \value{
-The audit data.table, returned invisibly.
+The audit data.table, returned invisibly. For a \code{masque_set}, a
+named list of per-table audit data.tables, printed table by table.
 }
 \description{
-Returns a per-column audit data.table and prints a severity-grouped report.
+Returns a per-column audit data.table, with table-level checks attached, and
+prints a severity-grouped report.
 Auto-runs in \code{mode = "collaborate"} at \code{\link[=mask]{mask()}} time and stores the
 result on the masque object (\code{m@audit}); for local-mode audits or
 explicit re-audits, pass the original data frame via \code{original}.
@@ -39,22 +44,73 @@ original cell (numeric only; cell-by-cell).
 \item \code{na_pattern_uniqueness}: fraction of rows in the original with
 a globally unique NA pattern (one number per data frame, repeated
 on every row).
-\item \code{alias_status}: \code{aliased}, \code{passthrough}, or \code{dropped}.
+\item \code{alias_status}: \code{aliased}, \code{permuted}, \code{passthrough}, or
+\code{dropped}.
 \item \code{notes}: short human summary.
+\item \code{same_row_pct}: percentage of rows where the clone value equals
+the original value in the same row, read back through the level map
+(categorical, logical, date and two-valued numeric columns).
+\item \code{baseline_pct}: the same share expected by chance, under a random
+permutation of the original column: \eqn{100 \sum_k p_k^2} over its
+level frequencies (within the conditioning strata for a scrambled
+numeric column of a conditional clone).
+\item \code{excess_pct}: \code{same_row_pct - baseline_pct}.
+}
+
+The table-level checks sit in \code{attr(audit, "joint")}, a data.table with
+one row per check (\code{check}, \code{cols}, \code{observed}, \code{baseline}, \code{excess},
+\code{sd}, \code{leakage_class}, \code{notes}). Each baseline comes from independent
+permutations of the original content columns (outcomes, covariates,
+dates, kept text), drawn under a fixed internal seed that leaves the
+caller's random number stream untouched; design, treatment, id, aliased
+text and linked columns are held fixed:
+
+\itemize{
+\item \code{same_row_joint}: rows whose every content column equals the
+original row.
+\item \code{whole_row}: clone rows equal to some original row on every
+retained column.
+\item \code{rare_cross}: in the cross of visible (not aliased) categorical
+covariates and outcomes, clone cells holding one row whose
+combination is also a single row in the original.
+\item \code{unit_sizes}: a note, never graded, when design units differ in
+size, since the multiset of sizes can link a clone to a public trial
+list.
 }
 
 Classification heuristics:
 
 \itemize{
 \item Retained PII-pattern column -> \code{high}.
-\item Treatment unaliased in collaborate -> \code{high}.
+\item Outcome with action \code{keep} in collaborate -> \code{high}, or \code{medium}
+when \code{\link[=mask]{mask()}} was called with \code{allow_kept_outcome = TRUE}, which the
+recipe records.
+\item Treatment unaliased in collaborate -> \code{high}. A numeric treatment
+(a dose) is aliased like a categorical one.
 \item Categorical covariate with a frequency-1 level in collaborate ->
 \code{high}.
 \item Outcome with exact-match-pct > 1\\% in collaborate -> \code{medium}.
 \item Numeric covariate with exact-match-pct > 5\\% in collaborate ->
 \code{medium}.
+\item Two-valued numeric columns skip the two exact-match rules: a 0/1
+column matches its own cell about half the time by chance. So do
+columns synthesised once per design unit (see \code{grain} in \code{\link[=mask]{mask()}})
+and whole-valued numeric covariates, which repeat real values by
+construction; all three are graded on \code{excess_pct} instead.
+\item Content column whose \code{excess_pct} is at least 10 points and four
+binomial standard deviations in collaborate -> \code{medium}.
+\item Joint match excess of at least 20 points and four permutation
+standard deviations -> \code{high} (5 points -> \code{medium}); rare-cross
+excess of at least 3 cells and four standard deviations -> \code{high}
+(1 cell and three -> \code{medium}). In collaborate mode these verdicts
+raise \code{masque_high_leakage} and block package-managed writers; in
+local mode they are reported in the notes and graded \code{low}.
 \item Ignore column retained in local -> \code{low} (informational).
 }
+
+A column constant within a design unit that was synthesised row by row
+(\code{grain = FALSE}, or a collaborate grain with fewer than five units) carries
+a note saying the clone does not keep that grain.
 
 As a reference point, a collaborate-mode clone of \code{agridat::besag.met}
 (yield as the outcome, design columns kept) scores \code{low} on every

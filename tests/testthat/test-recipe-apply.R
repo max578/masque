@@ -43,7 +43,7 @@ test_that("logical covariate aliases round-trip back to logical values", {
   n <- 90
   df <- data.frame(
     Rep = rep(1:3, length.out = n),
-    sprayed = rep(c(TRUE, FALSE, NA), length.out = n),
+    sprayed = rep(c(TRUE, FALSE, NA), each = n / 3),
     yield = rnorm(n),
     stringsAsFactors = FALSE
   )

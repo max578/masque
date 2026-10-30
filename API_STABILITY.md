@@ -77,6 +77,23 @@ existing signatures. The track record so far:
   `data.table` instead of a tibble, and tibble leaves the dependencies.
   Signatures and values are unchanged. **Breaking change for code that
   relies on tibble behaviour, listed first in `NEWS.md`.**
+- `0.16.0`: new exports `data_card()` and `roles()`. New arguments, each
+  with a default:
+  - `mask()`: `events`, `grain`, `allow_kept_outcome`
+  - `mask_set()`: `grain`, `allow_kept_outcome`, `sheets`, `info`, `...`
+  - `masque()`: `detect`, `sheets`, `info`, `...`
+  - `reveal_maps()`: `table`
+
+  In `mask()` the new arguments sit before `allow_unmasked_coords` and
+  `quiet`, and in `mask_set()` before `quiet`, so a call that passes those
+  by position must name them.
+
+  Default clones change for tables with a column constant within a design
+  unit (`grain = FALSE` restores 0.15.0), for collaborate jitter (no longer
+  clipped to the observed range), for numeric treatments (aliased in
+  collaborate mode) and for `mask_set()` link aliases made with a seed. A
+  kept outcome audits HIGH in collaborate mode. Recipes saved by 0.15.0
+  still load and apply. **Behaviour changes, listed first in `NEWS.md`.**
 
 Additive by intent is not frozen: before 1.0 a release may break an
 existing signature when a design flaw surfaces, but every such change must

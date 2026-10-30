@@ -89,6 +89,7 @@ test_that("mask(coords=) coarsens a declared pair on land and records it", {
   df$gps_s[1] <- NA
   df$gps_e[1] <- NA
   roles <- suppressWarnings(propose_roles(df, mode = "collaborate"))
+  roles <- set_role(roles, c("gps_s", "gps_e"), action = "keep")
   m <- suppressWarnings(mask(df, roles, mode = "collaborate", seed = 1,
                              coords = list(c(lat = "gps_s", lon = "gps_e"))))
   syn <- synthetic(m)
@@ -119,6 +120,7 @@ test_that("coords accepts the c() form with numeric params (string-coerced)", {
   df <- data.frame(gps_s = lat[onl][1:40], gps_e = lon[onl][1:40],
                    y = stats::rnorm(40))
   roles <- suppressWarnings(propose_roles(df, detect = FALSE))
+  roles <- set_role(roles, c("gps_s", "gps_e"), action = "keep")
   # c() coerces 10 / 18 to "10" / "18"; the coarsening must still honour them
   m <- suppressWarnings(mask(df, roles, seed = 1, mode = "local",
     coords = list(c(lat = "gps_s", lon = "gps_e", min_km = 10, max_km = 18))))

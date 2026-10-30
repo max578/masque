@@ -60,7 +60,18 @@ test_that("print methods dispatch from an installed copy of the package", {
         recipe_lines = length(capture.output(
           print(recipe(mask(iris, propose_roles(iris), seed = 1L))),
           type = "message"
-        ))
+        )),
+        # str() and knit_print() redaction must also register when installed.
+        str_seed = any(grepl("424242", capture.output(
+          str(recipe(mask(iris, propose_roles(iris), seed = 424242L)))
+        ), fixed = TRUE)),
+        knit_class = if (requireNamespace("knitr", quietly = TRUE)) {
+          class(knitr::knit_print(
+            recipe(mask(iris, propose_roles(iris), seed = 1L))
+          ))[1L]
+        } else {
+          "knit_asis"
+        }
       )
     },
     args = list(pkg = pkg, lib = lib, from_source = from_source)
@@ -69,4 +80,6 @@ test_that("print methods dispatch from an installed copy of the package", {
   expect_true(res$cleaning)
   expect_false(res$raw_list)
   expect_gt(res$recipe_lines, 0L)
+  expect_false(res$str_seed)
+  expect_identical(res$knit_class, "knit_asis")
 })

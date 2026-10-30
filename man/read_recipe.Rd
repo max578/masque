@@ -10,13 +10,13 @@ read_recipe(path)
 \item{path}{File path.}
 }
 \value{
-A \code{masque_recipe} object.
+A \code{masque_recipe}, or a \code{masque_recipe_set} bundle.
 }
 \description{
 Loads a recipe written by \code{\link[=save_recipe]{save_recipe()}}. Validates that the file
-contains a \code{masque_recipe} and informs (does not error) if the recipe
-was written by a different package version than the one currently
-installed.
+contains a \code{masque_recipe} or a \code{masque_recipe_set} bundle and informs
+(does not error) if it was written by a different package version than
+the one currently installed. Bundles are read from masque 0.16.0 on.
 }
 \examples{
 r <- propose_roles(iris)

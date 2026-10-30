@@ -30,12 +30,13 @@ test_that(".bounded_stochastic_round preserves average (expectation)", {
   expect_equal(mean(out), 3.5, tolerance = 0.05)
 })
 
-test_that("synthesise_numeric_collaborate stays within observed range", {
+test_that("synthesise_numeric_collaborate stays within half a step of range", {
   set.seed(1)
   x_obs <- rgamma(200, 2, 1)
   x_new <- masque:::synthesise_numeric_local(data.frame(z = x_obs))$z
   out <- masque:::synthesise_numeric_collaborate(x_obs, x_new)
-  expect_true(all(out >= min(x_obs)) && all(out <= max(x_obs)))
+  half <- masque:::.detect_resolution(x_obs) / 2
+  expect_true(all(out >= min(x_obs) - half) && all(out <= max(x_obs) + half))
 })
 
 test_that("synthesise_numeric_collaborate preserves integer class", {
@@ -45,7 +46,8 @@ test_that("synthesise_numeric_collaborate preserves integer class", {
   x_new <- masque:::synthesise_numeric_local(data.frame(z = x_obs))$z
   out <- masque:::synthesise_numeric_collaborate(x_obs, x_new)
   expect_type(out, "integer")
-  expect_true(all(out >= min(x_obs)) && all(out <= max(x_obs)))
+  # Unclipped rounding can step one unit past the observed range.
+  expect_true(all(out >= min(x_obs) - 1L) && all(out <= max(x_obs) + 1L))
 })
 
 test_that("synthesise_numeric_collaborate drops exact-match below local", {
@@ -73,12 +75,8 @@ test_that("Collaborate mode lowers numeric exact-match in mask()", {
   r <- propose_roles(df)
   r$role[r$col == "yield"] <- "outcome"
 
-  # audit_mask() flags Rep (integer design column) HIGH in collaborate mode.
-  # The assignment sits inside expect_warning() so `m` is the masque object.
-  expect_warning(
-    m <- mask(df, r, mode = "collaborate", seed = 1),
-    "HIGH leakage"
-  )
+  # Rep stays a kept design column (graded low), so no HIGH warning.
+  m <- mask(df, r, mode = "collaborate", seed = 1)
   audit <- audit_mask(m, print = FALSE)
 
   # Continuous outcome: exact_match_pct < 1
@@ -122,11 +120,7 @@ test_that("Mask() RNG hygiene holds with jitter in collaborate", {
   # initialised internal state); the test is specifically about mask().
   set.seed(999)
   before <- .Random.seed
-  # Expected HIGH-leakage warning on Rep; see jitter test above.
-  expect_warning(
-    m <- mask(df, r, mode = "collaborate", seed = 42),
-    "HIGH leakage"
-  )
+  m <- mask(df, r, mode = "collaborate", seed = 42)
   after <- .Random.seed
   expect_identical(before, after)
 })
@@ -144,13 +138,62 @@ test_that("Collaborate mode preserves integer storage on int outcome columns", {
   r <- propose_roles(df)
   r$role[r$col == "grain_count"] <- "outcome"
 
-  # Expected HIGH-leakage warning on Rep; see jitter test above.
-  expect_warning(
-    m <- mask(df, r, mode = "collaborate", seed = 1),
-    "HIGH leakage"
-  )
+  m <- mask(df, r, mode = "collaborate", seed = 1)
   expect_type(synthetic(m)$grain_count, "integer")
   rng <- range(synthetic(m)$grain_count, na.rm = TRUE)
-  expect_gte(rng[1], min(df$grain_count))
-  expect_lte(rng[2], max(df$grain_count))
+  expect_gte(rng[1], min(df$grain_count) - 1L)
+  expect_lte(rng[2], max(df$grain_count) + 1L)
+})
+
+test_that("collaborate keeps a 0/1 double column on its two values", {
+  set.seed(1)
+  x_obs <- as.numeric(rbinom(300, 1, 0.3))
+  expect_type(x_obs, "double")
+  x_new <- masque:::synthesise_numeric_local(data.frame(z = x_obs))$z
+  out <- masque:::synthesise_numeric_collaborate(x_obs, x_new)
+  expect_type(out, "double")
+  expect_setequal(unique(out), c(0, 1))
+  expect_identical(out, x_new)
+})
+
+test_that("collaborate does not flip a two-valued integer column", {
+  set.seed(1)
+  x_obs <- rbinom(300, 1, 0.3)
+  x_new <- masque:::synthesise_numeric_local(data.frame(z = x_obs))$z
+  out <- masque:::synthesise_numeric_collaborate(x_obs, x_new)
+  expect_type(out, "integer")
+  expect_identical(out, x_new)
+})
+
+test_that("collaborate keeps a whole-valued double column whole", {
+  set.seed(1)
+  x_obs <- c(as.numeric(sample(1:2000, 400, replace = TRUE)), NA)
+  x_new <- masque:::synthesise_numeric_local(data.frame(z = x_obs))$z
+  out <- masque:::synthesise_numeric_collaborate(x_obs, x_new)
+  expect_type(out, "double")
+  kept <- out[!is.na(out)]
+  expect_true(all(kept == round(kept)))
+  expect_true(all(kept >= 0 & kept <= 2001))
+  expect_identical(is.na(out), is.na(x_new))
+  # Still perturbed, not a copy of the local draw
+  expect_lt(mean(out == x_new, na.rm = TRUE), 0.9)
+})
+
+test_that("collaborate mask() keeps whole-day and 0/1 double outcomes whole", {
+  set.seed(1)
+  n <- 400
+  df <- data.frame(
+    Rep = rep(1:4, n / 4),
+    days = as.numeric(sample(10:3000, n, replace = TRUE)),
+    flag = as.numeric(rbinom(n, 1, 0.4)),
+    cov_n = rnorm(n),
+    stringsAsFactors = FALSE
+  )
+  r <- propose_roles(df)
+  r$role[r$col %in% c("days", "flag")] <- "outcome"
+  m <- suppressWarnings(mask(df, r, mode = "collaborate", seed = 1))
+  s <- synthetic(m)
+  expect_type(s$days, "double")
+  expect_true(all(s$days == round(s$days)))
+  expect_setequal(unique(s$flag), c(0, 1))
 })

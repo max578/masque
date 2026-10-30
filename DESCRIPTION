@@ -1,6 +1,6 @@
 Package: masque
 Title: Structurally Faithful Development Surrogates for Tabular Data
-Version: 0.15.0
+Version: 0.16.0
 Authors@R: c(
     person("Max", "Moldovan",
            email = "max.moldovan@gmail.com",
@@ -28,7 +28,7 @@ Depends:
     R (>= 4.2.0)
 Imports:
     cli,
-    data.table,
+    data.table (>= 1.15.0),
     digest,
     Matrix,
     S7,
@@ -46,7 +46,8 @@ Suggests:
     rmarkdown,
     spelling,
     testthat (>= 3.0.0),
-    writexl
+    writexl,
+    yaml
 VignetteBuilder: knitr
 Config/testthat/edition: 3
 URL: https://max578.github.io/masque/, https://github.com/max578/masque

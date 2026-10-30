@@ -6,7 +6,7 @@ high_fixture <- function() {
   set.seed(0)
   df <- data.frame(
     Rep = rep(1:4, 25),
-    contact_email = factor(rep(c("a", "b"), 50)),
+    contact_email = factor(rep(c("a", "b"), each = 50)),
     yield = rnorm(100),
     stringsAsFactors = FALSE
   )
@@ -52,7 +52,8 @@ test_that("guided masque() surfaces the HIGH leakage warning (set)", {
   f <- high_fixture()
   tables <- list(
     trial = f$df,
-    sites = data.frame(loc = c("x", "y"), depth = c(1.2, 3.4))
+    sites = data.frame(loc = c("x", "y", "z", "u", "v"),
+                       depth = c(1.2, 3.4, 2.2, 0.8, 2.9))
   )
   roles <- list(trial = f$roles, sites = propose_roles(tables$sites))
   seen <- FALSE
@@ -89,7 +90,8 @@ test_that("blocked write: write_set() refuses and writes nothing", {
   f <- high_fixture()
   tables <- list(
     trial = f$df,
-    sites = data.frame(loc = c("x", "y"), depth = c(1.2, 3.4))
+    sites = data.frame(loc = c("x", "y", "z", "u", "v"),
+                       depth = c(1.2, 3.4, 2.2, 0.8, 2.9))
   )
   roles <- list(trial = f$roles, sites = propose_roles(tables$sites))
   m <- suppressWarnings(mask_set(
@@ -134,9 +136,9 @@ test_that("blocked summary is status-first and avoids release language", {
     ))
   )
   expect_true(any(grepl("BLOCKED", msgs)))
-  # The fixture trips two HIGH rules: the retained PII-pattern column and
-  # the byte-identical Rep design column.
-  expect_true(any(grepl("2 HIGH", msgs)))
+  # The fixture trips one HIGH rule, the retained PII-pattern column; Rep is
+  # a kept design column, graded low.
+  expect_true(any(grepl("1 HIGH", msgs)))
   expect_false(any(grepl("\\bshare\\b|\\bsend\\b|\\bsafe\\b", msgs,
     ignore.case = TRUE
   )))
@@ -177,4 +179,50 @@ test_that("local mode is never gated", {
     )
   )
   expect_true(file.exists(out))
+})
+
+test_that("a joint HIGH finding blocks write_set() and names the check", {
+  set.seed(3L)
+  tables <- list(
+    plots = data.frame(
+      site = rep(c("S1", "S2", "S3"), each = 20L),
+      gen = rep(sprintf("G%02d", 1:10), 6L),
+      yield = round(rnorm(60L, 4, 0.5), 2)
+    ),
+    sites = data.frame(
+      site = rep(c("S1", "S2", "S3"), 2L),
+      year = rep(2019:2020, each = 3L),
+      rain = c(410, 520, 300, 455, 610, 395)
+    )
+  )
+  roles <- list(
+    plots = set_role(
+      set_role(
+        set_role(propose_roles(tables$plots, mode = "collaborate"), "site",
+          role = "design", action = "alias"
+        ),
+        "gen", role = "treatment"
+      ),
+      "yield", role = "outcome", action = "keep"
+    ),
+    sites = set_role(
+      set_role(
+        set_role(propose_roles(tables$sites, mode = "collaborate"), "site",
+          role = "design", action = "alias"
+        ),
+        "year", role = "design", action = "keep"
+      ),
+      "rain", role = "covariate", action = "scramble"
+    )
+  )
+  m <- suppressWarnings(mask_set(
+    tables, roles = roles, mode = "collaborate", seed = 1L, quiet = TRUE
+  ))
+  dir <- file.path(tempdir(), "masque-joint-blocked-set")
+  on.exit(unlink(dir, recursive = TRUE), add = TRUE)
+  err <- expect_error(write_set(m, dir), class = "masque_blocked_write")
+  expect_match(
+    conditionMessage(err), "plots$[same-row joint match]", fixed = TRUE
+  )
+  expect_false(dir.exists(dir))
 })

@@ -99,7 +99,9 @@ GROUP_MAX_SHARED_FRACTION <- 0.05
     )
   }
 
-  all_missing <- env[vapply(df[env], function(x) all(is.na(x)), logical(1L))]
+  all_missing <- env[vapply(
+    .cols(df, env), function(x) all(is.na(x)), logical(1L)
+  )]
   if (length(all_missing) > 0L) {
     .abort_invalid_environment(
       "Environment column{?s} {?is/are} all-missing: {.field {all_missing}}."
@@ -114,7 +116,7 @@ GROUP_MAX_SHARED_FRACTION <- 0.05
     return(factor(df[[cols]], exclude = NA))
   }
   args <- c(
-    unname(df[cols]),
+    unname(.cols(df, cols)),
     list(drop = TRUE, lex.order = TRUE, sep = ":")
   )
   do.call(interaction, args)
@@ -160,7 +162,7 @@ GROUP_MAX_SHARED_FRACTION <- 0.05
 
 .evaluate_environment_candidate <- function(df, candidate, treatment_key,
                                             allow_no_treatment = FALSE) {
-  env_complete <- stats::complete.cases(df[candidate$cols])
+  env_complete <- stats::complete.cases(.cols(df, candidate$cols))
   coverage <- mean(env_complete)
   env_key <- .interaction_key(df, candidate$cols)
   n_env <- nlevels(env_key)
@@ -255,7 +257,10 @@ GROUP_MAX_SHARED_FRACTION <- 0.05
   ]
   site <- available[
     grepl(
-      "^(site|location|loc|county|region|field|farm|place)$",
+      paste0(
+        "^(site|location|loc|county|region|field|farm|place|",
+        "site[ ._]?name|trial[ ._]?site)$"
+      ),
       available,
       ignore.case = TRUE,
       perl = TRUE
@@ -409,7 +414,7 @@ GROUP_MAX_SHARED_FRACTION <- 0.05
       rec[[field]] <- defaults[[field]]
     }
   }
-  rec[names(.empty_role_recommendations())]
+  .cols(rec, names(.empty_role_recommendations()))
 }
 
 .environment_role_recommendations <- function(df, cols, confidence,
@@ -418,7 +423,7 @@ GROUP_MAX_SHARED_FRACTION <- 0.05
   if (length(cols) == 0L) {
     return(.empty_role_recommendations())
   }
-  kinds <- vapply(df[cols], col_kind, character(1L))
+  kinds <- vapply(.cols(df, cols), col_kind, character(1L))
   categorical <- kinds %in% .categorical_kinds()
   # `preserve_only`: a suspected environment is kept unchanged in both modes;
   # only a high-confidence environment is aliased in collaborate mode.
@@ -657,11 +662,11 @@ GROUP_MAX_SHARED_FRACTION <- 0.05
                                  treatment_cols, threshold, tie_delta) {
   slice <- droplevels(df[rows, , drop = FALSE])
   candidate_cols <- setdiff(names(slice), env_cols)
-  is_constant <- vapply(slice[candidate_cols], function(x) {
+  is_constant <- vapply(.cols(slice, candidate_cols), function(x) {
     length(unique(stats::na.omit(x))) <= 1L
   }, logical(1L))
   candidate_cols <- candidate_cols[!is_constant]
-  slice <- slice[, candidate_cols, drop = FALSE]
+  slice <- .cols(slice, candidate_cols)
 
   if (nrow(slice) < 2L || ncol(slice) == 0L) {
     return(data.frame(
@@ -679,7 +684,8 @@ GROUP_MAX_SHARED_FRACTION <- 0.05
     interactive = FALSE,
     threshold = threshold,
     tie_delta = tie_delta,
-    scope = .scope_disabled()
+    scope = .scope_disabled(),
+    revise = TRUE
   )
   treatment_present <- intersect(treatment_cols, names(slice))
   n_treatments <- if (length(treatment_present) == 0L) {
@@ -843,5 +849,82 @@ GROUP_MAX_SHARED_FRACTION <- 0.05
   if (length(treatment_cols) > 0L) {
     out@treatment_col <- treatment_cols
   }
+  .revise_blocks_after_scope(out, env_cols)
+}
+
+# Once scope is resolved, an environment column is never a block: blocks are
+# the within-environment basis when every environment agrees on it, else none.
+.revise_blocks_after_scope <- function(out, env_cols) {
+  pooled <- out@block_cols
+  bases <- unique(out@per_env$block_cols)
+  agree <- length(bases) == 1L
+  consensus <- if (agree && nzchar(bases)) {
+    strsplit(bases, " : ", fixed = TRUE)[[1L]]
+  } else {
+    character()
+  }
+  pooled_text <- if (length(pooled) == 0L) {
+    "none"
+  } else {
+    paste(pooled, collapse = " : ")
+  }
+
+  status <- if (setequal(pooled, consensus)) {
+    "unchanged"
+  } else if (length(consensus) > 0L) {
+    "consensus"
+  } else {
+    "cleared"
+  }
+  message <- switch(status,
+    unchanged = "Pooled blocks match the within-environment basis.",
+    consensus = sprintf(
+      paste0(
+        "Blocks are the within-environment consensus %s; ",
+        "the pooled verdict had %s."
+      ),
+      paste(consensus, collapse = " : "), pooled_text
+    ),
+    cleared = if (agree) {
+      sprintf(
+        paste0(
+          "Blocks left empty: no environment records a block basis; ",
+          "the pooled verdict had %s."
+        ),
+        pooled_text
+      )
+    } else {
+      sprintf(
+        paste0(
+          "Blocks left empty: the within-environment block bases ",
+          "disagree (%s); the pooled verdict had %s."
+        ),
+        paste(ifelse(nzchar(bases), bases, "none"), collapse = "; "),
+        pooled_text
+      )
+    }
+  )
+
+  out@block_cols <- consensus
+  out@whole_plot_col <- setdiff(out@whole_plot_col, env_cols)
+  if (any(out@spatial_cols %in% env_cols)) {
+    out@spatial_cols <- character()
+  }
+  # A pooled block hint that lost its place in block_cols loses its role hint.
+  stale <- setdiff(pooled, c(consensus, env_cols))
+  rec <- out@recommended_roles
+  if (length(stale) > 0L && nrow(rec) > 0L) {
+    out@recommended_roles <- rec[!(rec$role == "design" & rec$col %in% stale), ]
+  }
+
+  evidence <- out@evidence
+  evidence$block_revision <- list(
+    status = status,
+    pooled = pooled,
+    block_cols = consensus,
+    per_env_bases = bases,
+    message = message
+  )
+  out@evidence <- evidence
   out
 }

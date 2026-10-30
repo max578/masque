@@ -145,7 +145,11 @@ set_role <- function(roles, cols, role = NULL, action = NULL) {
   switch(role,
     design = "keep",
     treatment = {
-      if (collab && kind %in% .categorical_kinds()) "alias" else "keep"
+      if (collab && kind %in% c(.categorical_kinds(), .numeric_kinds())) {
+        "alias"
+      } else {
+        "keep"
+      }
     },
     outcome = {
       if (kind %in% .numeric_kinds()) "scramble" else "keep"
@@ -194,16 +198,18 @@ set_role <- function(roles, cols, role = NULL, action = NULL) {
     if (!(kind %in% .categorical_kinds())) {
       return(paste0(
         "design label aliasing requires a factor / character / logical ",
-        "column; numeric design columns can only be kept or dropped"
+        "column; numeric design columns can only be kept or dropped. To ",
+        "hide the labels, convert the column to a factor in the data, re-run ",
+        "propose_roles() and set action \"alias\", or drop it"
       ))
     }
   }
 
-  if (role == "treatment" && !(kind %in% .categorical_kinds())) {
+  if (role == "treatment" &&
+    !(kind %in% c(.categorical_kinds(), .numeric_kinds()))) {
     return(paste0(
       "treatment scramble / alias requires a factor / character / ",
-      "logical column; a numeric treatment (e.g. a dose) can only be ",
-      "kept or dropped"
+      "logical or numeric column"
     ))
   }
 
@@ -326,7 +332,7 @@ set_role <- function(roles, cols, role = NULL, action = NULL) {
 
   roles$role <- role2
   roles$action <- action2
-  roles <- roles[, .reorder_roles_cols(names(roles)), drop = FALSE]
+  roles <- .cols(roles, .reorder_roles_cols(names(roles)))
   attr(roles, "mode") <- mode
   attr(roles, "proposed_actions") <- stats::setNames(
     action2[!pinned], roles$col[!pinned]

@@ -122,11 +122,11 @@ synthesise_geospatial <- function(synth, original,
   }
 
   withr::local_preserve_seed()
-  if (!is.null(seed)) set.seed(seed)
+  if (!is.null(seed)) set.seed(as.integer(.check_seed(seed)))
 
   # 1. Per (anchor, site) replication counts in the original.
   has_xy <- !is.na(original[[lat_col]]) & !is.na(original[[lon_col]])
-  o <- original[has_xy, c(anchor_col, lat_col, lon_col), drop = FALSE]
+  o <- .cols(original, c(anchor_col, lat_col, lon_col))[has_xy, ]
   if (nrow(o) > 0L) {
     o$.key <- paste(as.character(o[[anchor_col]]),
       o[[lat_col]], o[[lon_col]],
@@ -156,7 +156,7 @@ synthesise_geospatial <- function(synth, original,
           "Coordinates for {sum(synth_anchor == a, na.rm = TRUE)} ",
           "synthetic row{?s} will be NA."
         )
-      ))
+      ), class = "masque_geo_anchor_missing")
       next
     }
     n_sites <- length(sites_by_anchor[[a]] %||% integer(0L))

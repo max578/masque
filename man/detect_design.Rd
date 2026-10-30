@@ -60,7 +60,7 @@ evidence gives an explicit uncertain result, never a guessed single
 trial. Supply \code{env} to define the environment basis, or use \code{env = FALSE}
 to run the pre-0.9 whole-table path exactly.
 
-After the scope step, the pooled legacy detector runs six independent
+Before the scope step, the pooled legacy detector runs six independent
 design rules. Each returns a score in \eqn{[0, 1]}. The highest-scoring
 class above \code{threshold} is one of \code{"CRD"}, \code{"RCBD"},
 \code{"IBD/alpha-lattice"}, \code{"row-column"}, \code{"split-plot"}, \code{"factorial"},
@@ -69,6 +69,15 @@ per-environment classes, treatment connectivity, and near-disjoint
 experiment groups are diagnostics only. Dense connectivity calculations
 that exceed the package safety bound are reported as \code{not_computed}.
 None of these diagnostics proves the original randomisation protocol.
+
+When scope resolves, \code{block_cols} is the block basis the environments
+agree on, or empty when they disagree; an environment column is never a
+block. \code{evidence$block_revision} records the change.
+
+For a column without a treatment-pattern name, a treatment hint from the
+rules is auto-applied only when the column is crossed with a design
+column. A column with one value per level of a design column, or with an
+outcome-pattern name, is a covariate and never a candidate.
 
 The detector never edits \code{df}. Its job is to recommend a role
 assignment, surface the evidence, and (optionally) draw a sanity

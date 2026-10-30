@@ -50,7 +50,9 @@ A site that cannot be placed on land is set to \code{NA} on both axes, with a
 warning: masque never emits the true coordinate as though it were masked.}
 
 \item{seed}{Optional integer seed for reproducibility. The caller's RNG state
-is preserved.}
+is preserved. Several published jitters of the same point average toward
+it: keep the seed (a \code{\link[=mask]{mask()}} recipe records it) and do not publish more
+than one jittered release of the same sites.}
 
 \item{.group}{Internal. A pre-computed grouping vector of length
 \code{nrow(df)}, used by \code{\link[=mask]{mask()}} to group by the \emph{original} table's site

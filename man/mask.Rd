@@ -14,15 +14,21 @@ mask(
   conditional = FALSE,
   ladder = c("hierarchy", "levels"),
   coords = NULL,
+  events = NULL,
+  grain = TRUE,
   allow_unmasked_coords = FALSE,
+  allow_kept_outcome = FALSE,
   quiet = FALSE,
   .shared_maps = list(),
+  .cleaning = NULL,
   ...
 )
 }
 \arguments{
 \item{df}{A data frame, or the \code{masque_conformance} object returned by
-\code{\link[=conform_table]{conform_table()}}, whose \code{data} element is then masked.}
+\code{\link[=conform_table]{conform_table()}}, whose \code{data} element is then masked. Its cleaning
+record and its merges and type changes go on the recipe, so
+\code{\link[=apply_recipe]{apply_recipe()}} replays them; \code{clean} is not applied a second time.}
 
 \item{roles}{A roles table from \code{\link[=propose_roles]{propose_roles()}} (possibly edited).
 Tables from masque <= 0.5.0 are upgraded with a deprecation
@@ -31,7 +37,13 @@ warning; see \code{\link[=roles_validate]{roles_validate()}}.}
 \item{mode}{Either \code{"local"} or \code{"collaborate"}. When omitted, inherit
 \code{attr(roles, "mode")}, falling back to \code{"local"} for a roles table with
 no mode provenance. An explicit collaborate-to-local downgrade raises a
-classed \code{masque_mode_downgrade} warning.}
+classed \code{masque_mode_downgrade} warning. A table of fewer than five rows
+in which any column would be re-simulated (a scrambled covariate,
+outcome, date or text column, or an \code{events} spec) is refused in
+collaborate mode with \code{masque_too_few_rows_refusal}, because such a
+clone is the original values resampled; local mode warns with
+\code{masque_too_few_rows}. Kept, aliased and dropped columns are not
+re-simulated, so a short lookup table of those masks in either mode.}
 
 \item{seed}{Optional integer for reproducibility.}
 
@@ -106,14 +118,69 @@ trace in the clone.}
 latitude/longitude pairs and each is coarsened in place by an on-land
 jitter (see \code{\link[=jitter_coordinates]{jitter_coordinates()}}) instead of being copula-scrambled into
 implausible locations. A pair is a named vector \code{c(lat = "lat_col", lon = "lon_col")} or a named list that also carries jitter parameters
-(\code{by}, \code{method}, \code{min_km}, \code{max_km}, \code{sd_km}, \code{on_land}); pass several
-pairs as a list. Defaults to a donut of 5-20 km on land. One displacement
+(\code{by}, \code{method}, \code{min_km}, \code{max_km}, \code{sd_km}, \code{on_land}); a single pair
+may be passed bare, and several pairs as a list of pairs. Defaults to a
+donut of 5-20 km on land. A declared column must have the action \code{keep}
+in \code{roles}; any other action, including the \code{drop} that
+\code{\link[=propose_roles]{propose_roles()}} proposes for a coordinate-named column, is refused
+with a \code{masque_coords_action_refusal} error. One displacement
 is drawn per \strong{site} and broadcast to that site's rows: \code{by} names the
 columns of \code{df} that identify a site, and is omitted when rows sharing an
 identical input coordinate already identify one. A declared pair always
 survives masking, coarsened; the recipe records the parameters and the site
 grouping it was coarsened under, and \code{\link[=apply_recipe]{apply_recipe()}} retargets to the real
-coordinates.}
+coordinates. Several published jitters of the same point average toward
+it: keep the seed, which the recipe records, and do not publish more than
+one jittered release of the same sites.}
+
+\item{events}{Optional linked time-to-event outcomes. One spec per group of
+linked events, \code{list(time = c(...), status = c(...))}, with the time and
+status columns listed in the order the events occur; pass several specs
+as a list. Every column must have role \code{outcome} and action \code{scramble},
+times must be numeric and in order in \code{df}, status columns must hold
+whole-numbered codes, and none may be missing. The times are turned into
+gaps between successive events, the rows' status patterns are permuted
+(within treatment when \code{conditional = TRUE}), and the gaps are
+re-simulated within each status pattern by the empirical copula, then
+summed back into times. Times therefore stay ordered, a gap that every
+row of a pattern holds at zero stays zero, and the count of each status
+pattern is exact. A summed final time is capped at the longest final
+time observed in the rows its gaps were drawn from (the pattern, within
+treatment when conditional), so no clone row runs past the observed
+follow-up. Only the final time and the times tied to it move; a row
+whose earlier time already passes the cap is scaled down as a whole,
+which keeps its order and its zero gaps. The recipe records how many
+rows were capped. A pattern with fewer than five rows draws each of its
+free gaps from every pattern in which that gap is free, with a
+\code{masque_events_pooled} warning; when no other pattern has the gap free,
+\code{mask()} stops. No hazard model is fitted and no covariate-to-event
+relation is kept.}
+
+\item{grain}{Single logical (default \code{TRUE}). Synthesise each column at
+its \strong{grain}: a scrambled covariate, outcome or date column, or an
+aliased categorical covariate, that holds at most one distinct
+non-missing value within every unit of a retained design column, or of a
+pair of them (\code{site:year}), is re-simulated once per unit and each unit's
+new value is written to that unit's rows. The grain is the coarsest such
+unit with
+at least two units and at least two rows per unit on average; a unit with
+no value stays missing. Numeric columns of one grain are drawn jointly
+through the copula on the unit-level table (with collaborate-mode
+jitter against the unit-level values), and categorical and date columns
+are permuted across units, then aliased where their action is \code{alias}.
+The clone therefore keeps one value per unit, the frequencies of a
+categorical across units, and the correlation among columns of the same
+grain. It does \strong{not} keep the correlation between a grained column
+and row-level columns, and grained columns are not conditioned on
+treatment when \code{conditional = TRUE}. In local mode the unit values are
+drawn from the original unit values. In collaborate mode a grain with
+fewer than five units is synthesised row by row instead, with a
+\code{masque_grain_small_units} warning, because resampling that few real
+values would disclose them. Each grain is recorded on the recipe
+(\code{grain}) with a line in its warnings. \code{FALSE} synthesises every column
+row by row, as masque 0.15 did; detected grains are still recorded.
+Coordinates declared to \code{coords}, \code{events} columns and linked columns
+are never grained.}
 
 \item{allow_unmasked_coords}{Single logical. A masked table must not carry
 a real coordinate, so by default \code{mask()} \strong{stops} when a column whose
@@ -124,6 +191,13 @@ shape of its values would be. State otherwise by declaring the pair to
 \code{scramble}), or -- having decided the coordinate is not sensitive --
 setting this to \code{TRUE}, which is recorded on the recipe.}
 
+\item{allow_kept_outcome}{Single logical. In collaborate mode an outcome
+with the action \code{keep} carries its real values beside the re-simulated
+columns, so \code{\link[=audit_mask]{audit_mask()}} grades it HIGH and the collaborate write gate
+stops it. Having decided the real outcome may be shared, set this to
+\code{TRUE}: the column is then graded medium and the choice is recorded on
+the recipe. Local mode is unaffected.}
+
 \item{quiet}{Single logical. \code{TRUE} silences the \code{masque_mode_downgrade}
 warning raised when a roles table prepared for \code{"collaborate"} is used
 in \code{"local"} mode, for a plan that is deliberately shared across both
@@ -133,6 +207,10 @@ raised.}
 \item{.shared_maps}{Internal. A named list of pre-computed
 \code{original -> alias} level maps for cross-table linked columns, set
 by \code{\link[=mask_set]{mask_set()}}. Not for direct use.}
+
+\item{.cleaning}{Internal. The cleaning record of a table \code{\link[=mask_set]{mask_set()}}
+has already cleaned; \code{mask()} then skips its own cleaning and stores
+this record on the recipe. Not for direct use.}
 
 \item{...}{Must be empty. An unused argument, for example a misspelled
 name, is an error.}
@@ -179,10 +257,12 @@ preserved. Treatment columns get a seeded label permutation -
 the assignment structure never moves.}
 \item{\code{alias}}{As \code{scramble} where applicable, plus opaque label
 substitution: treatments become \code{trt_NNN} (\verb{<col>_trt_NNN} when
-two or more treatment factors are aliased), categorical
+two or more treatments are aliased. A numeric treatment becomes
+text, and \code{\link[=unmask]{unmask()}} restores its exact values), categorical
 covariates \verb{<col>_LNNN}, design labels \verb{<col>_DNNN} (in place -
 structure intact), ids \verb{<col>_INNN} (in place - row linkage
-intact), text values \verb{<col>_TNNN}.}
+intact), text values \verb{<col>_TNNN}. A key \code{\link[=mask_set]{mask_set()}} shares across
+tables becomes \verb{<col>_KNNN}. \code{NNN} has at least three digits.}
 \item{\code{drop}}{Column excluded from the synthetic, both modes.}
 }
 
@@ -199,5 +279,6 @@ head(synthetic(m))
 }
 \seealso{
 \code{\link[=propose_roles]{propose_roles()}}, \code{\link[=set_role]{set_role()}}, \code{\link[=roles_validate]{roles_validate()}},
-\code{\link[=synthetic]{synthetic()}}, \code{\link[=recipe]{recipe()}}, \code{\link[=reveal_maps]{reveal_maps()}}.
+\code{\link[=synthetic]{synthetic()}}, \code{\link[=recipe]{recipe()}}, \code{\link[=roles]{roles()}}, \code{\link[=reveal_maps]{reveal_maps()}}, \code{\link[=audit_mask]{audit_mask()}},
+\code{\link[=data_card]{data_card()}}.
 }

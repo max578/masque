@@ -17,7 +17,11 @@ masque(
   ask = interactive(),
   overwrite = FALSE,
   quiet = FALSE,
-  allow_high = FALSE
+  allow_high = FALSE,
+  detect = TRUE,
+  sheets = NULL,
+  info = NULL,
+  ...
 )
 }
 \arguments{
@@ -33,7 +37,13 @@ review is skipped.}
 \code{.xlsx} with \code{writexl}). For a set, a folder (one CSV per table) or
 an \code{.xlsx} workbook. When \code{NULL} (default) nothing is written.}
 
-\item{mode}{Either \code{"local"} (default) or \code{"collaborate"}.}
+\item{mode}{Either \code{"local"} or \code{"collaborate"}. \code{"local"} makes an
+owner-only development copy (real labels may remain); \code{"collaborate"}
+makes a copy meant to be shared, with labels aliased, numbers jittered,
+free text dropped and the leakage audit run. When omitted and \code{roles}
+are supplied, the mode the roles were proposed for is used, exactly as
+in \code{\link[=mask]{mask()}} and \code{\link[=mask_set]{mask_set()}}; with no \code{roles}, the proposal is made for
+\code{"local"}.}
 
 \item{seed}{Optional integer for reproducibility.}
 
@@ -65,6 +75,21 @@ the collaborate-mode audit flagged HIGH leakage, the write is
 refused. Pass \code{TRUE} to write anyway after your own review; the
 override raises a \code{masque_high_override} warning and is recorded in
 the recipe's warnings, so the exception stays auditable.}
+
+\item{detect}{Logical (default \code{TRUE}). Passed to \code{\link[=propose_roles]{propose_roles()}} when
+roles are proposed: \code{FALSE} skips design detection and proposes from
+column names and types alone.}
+
+\item{sheets}{For an Excel workbook, the sheets to read (default: all).
+See \code{\link[=mask_set]{mask_set()}}.}
+
+\item{info}{For a set, names of documentation tables to set aside: not
+masked and not written. See \code{\link[=mask_set]{mask_set()}}.}
+
+\item{...}{Further arguments for the masking verb: \code{\link[=mask]{mask()}} for one
+table (for example \code{coords}, \code{events}, \code{allow_unmasked_coords},
+\code{grain}), \code{\link[=mask_set]{mask_set()}} for a set (for example \code{links}, \code{grain}). An argument the verb
+does not take is refused (\code{masque_unused_arg_refusal}).}
 }
 \value{
 A \code{masque} object (single-table input) or a \code{masque_set}
@@ -125,5 +150,7 @@ head(synthetic(m))
 }
 \seealso{
 \code{\link[=mask]{mask()}}, \code{\link[=mask_set]{mask_set()}}, \code{\link[=propose_roles]{propose_roles()}}, \code{\link[=set_role]{set_role()}},
-\code{\link[=write_set]{write_set()}}, \code{\link[=save_recipe]{save_recipe()}}.
+\code{\link[=apply_recipe]{apply_recipe()}} and \code{\link[=unmask]{unmask()}} for the round trip, \code{\link[=save_recipe]{save_recipe()}} to
+keep the recipe, \code{\link[=audit_mask]{audit_mask()}}, \code{\link[=data_card]{data_card()}} and \code{\link[=roles]{roles()}} to describe
+the clone, \code{\link[=write_set]{write_set()}}.
 }

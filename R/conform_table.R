@@ -23,6 +23,21 @@
 #' numeric columns keep their storage. Anything not changed for these reasons
 #' is reported as a `not applied` row with the reason.
 #'
+#' Merges follow chains: if `"Nsw"` merges onto `"nsw"` and `"nsw"` onto
+#' `"NSW"`, both end on `"NSW"`. A label whose merges end on two different
+#' labels (`"colur"` beside `"color"` and `"colour"` that occur equally
+#' often) is not merged; it is reported, and a `masque_conform_ambiguous_merge`
+#' warning is raised under `merge_labels = "auto"`. Codes that differ only
+#' inside a run of digits (`"G01"` and `"G02"`) are never treated as
+#' near-duplicates. Which columns hold categories is decided the same way
+#' whatever `types` is, so `types = "off"` still merges labels and leaves
+#' storage as it is.
+#'
+#' Pass the result to [mask()] (or as a table of [mask_set()]): the recipe
+#' records the merges and type changes, and [apply_recipe()] replays them on
+#' the original so a pipeline built on the conformed clone sees the same
+#' labels and storage.
+#'
 #' @param df A data frame.
 #' @param merge_labels One of `"report"` (default), `"auto"` or `"off"`.
 #'   Governs near-duplicate category labels, and treats the two kinds
@@ -48,11 +63,16 @@
 #'     \item `cleaning` - the `masque_cleaning` record from [clean_table()];
 #'     \item `merges` - one row per near-duplicate pair considered
 #'       (`col`, `from`, `to`, `n_from`, `n_to`, `applied`, `reason`);
+#'     \item `merge_map` - the merges as applied to the data (`col`, `from`,
+#'       `to`), one row per merged-away label, each `to` a label left in
+#'       the column. This is what [mask()] records and [apply_recipe()]
+#'       replays;
 #'     \item `types` - one row per column whose storage was considered
 #'       (`col`, `from`, `to`, `applied`, `reason`);
 #'     \item `assumptions` - every decision as a plain sentence
 #'       (`col`, `assumption`, `applied`), which is the thing to read;
-#'     \item `modes` - the modes applied.
+#'     \item `modes` - the modes applied;
+#'     \item `max_levels` - the cardinality threshold used.
 #'   }
 #'
 #' @examples
@@ -94,13 +114,19 @@ conform_table <- function(df,
   out_df <- cl$data
 
   # Storage first: numbers or dates held as text are not categories, and
-  # merging "4.2" into "4.4" would destroy data.
+  # merging "4.2" into "4.4" would destroy data. Which columns are categories
+  # is read from a report-only storage pass, so it holds under types = "off".
   tps <- .conform_types(out_df, types, max_levels)
+  cat_cols <- .categorical_cols(
+    out_df, .conform_types(out_df, "report", max_levels), max_levels
+  )
 
-  cat_cols <- .categorical_cols(out_df, tps, max_levels)
   merges <- .conform_merges(out_df, cl$near_duplicates, merge_labels, cat_cols)
-  if (identical(merge_labels, "auto") && nrow(merges)) {
-    out_df <- .apply_merges(out_df, merges[merges$applied, , drop = FALSE])
+  resolved <- .resolve_merges(merges)
+  merges <- resolved$merges
+  if (identical(merge_labels, "auto")) {
+    .warn_ambiguous_merges(resolved$ambiguous)
+    out_df <- .apply_merge_map(out_df, resolved$map)
   }
   if (identical(types, "auto") && nrow(tps)) {
     out_df <- .apply_types(out_df, tps[tps$applied, , drop = FALSE])
@@ -110,9 +136,11 @@ conform_table <- function(df,
     data = .as_owned_dt(out_df),
     cleaning = cl,
     merges = data.table::as.data.table(merges),
+    merge_map = data.table::as.data.table(resolved$map),
     types = data.table::as.data.table(tps),
     assumptions = .conform_assumptions(merges, tps),
-    modes = c(clean = clean, merge_labels = merge_labels, types = types)
+    modes = c(clean = clean, merge_labels = merge_labels, types = types),
+    max_levels = max_levels
   )
   class(out) <- "masque_conformance"
 
@@ -151,6 +179,20 @@ print.masque_conformance <- function(x, ...) {
   )
 }
 
+.empty_merge_map <- function() {
+  data.frame(
+    col = character(), from = character(), to = character(),
+    stringsAsFactors = FALSE
+  )
+}
+
+utils::globalVariables(c(
+  ".N", "a", "a_wins", "b", "candidate", "col", "first_a", "first_b",
+  "from",
+  "i.first", "i.from", "i.n", "i.to", "kind", "label", "n_a", "n_b", "n_to",
+  "pos", "reason", "to", "x.to"
+))
+
 # For each near-duplicate pair in a categorical column the commoner spelling
 # wins. A case-only tie goes to the first seen; an edit-distance tie is refused.
 MIN_EDIT_NCHAR <- 4L   # below this, a one-character difference means nothing
@@ -159,71 +201,147 @@ MIN_EDIT_NCHAR <- 4L   # below this, a one-character difference means nothing
   if (identical(mode, "off") || is.null(near_dups) || !nrow(near_dups)) {
     return(.empty_merges())
   }
-  near_dups <- near_dups[near_dups$col %in% cat_cols, , drop = FALSE]
-  if (!nrow(near_dups)) return(.empty_merges())
-
-  rows <- list()
-  for (i in seq_len(nrow(near_dups))) {
-    col <- near_dups$col[i]
-    a <- near_dups$a[i]
-    b <- near_dups$b[i]
-    kind <- near_dups$kind[i]
-    is_case <- identical(kind, "case")
-
-    # A one-character edit between short labels is not evidence of a typo:
-    # "a" and "b" are one edit apart and are plainly different categories.
-    if (!is_case && min(nchar(a), nchar(b)) < MIN_EDIT_NCHAR) next
-
-    v <- as.character(df[[col]])
-    na_ <- sum(v == a, na.rm = TRUE)
-    nb_ <- sum(v == b, na.rm = TRUE)
-
-    if (na_ == nb_ && !is_case) {
-      # differing by an edit, with no majority: this may be two real categories
-      rows[[length(rows) + 1L]] <- data.frame(
-        col = col, from = a, to = b, n_from = na_, n_to = nb_, applied = FALSE,
-        reason = paste("the spellings differ by one edit and occur equally",
-                       "often; masque will not choose between them"),
-        stringsAsFactors = FALSE)
-      next
-    }
-
-    if (na_ > nb_)      { keep <- a; drop <- b }
-    else if (nb_ > na_) { keep <- b; drop <- a }
-    else {
-      # a case-only tie: the two ARE one category, only the spelling is open.
-      # The first spelling to appear wins, which is deterministic and stated.
-      first <- v[!is.na(v) & v %in% c(a, b)][1]
-      keep <- first; drop <- if (identical(first, a)) b else a
-    }
-
-    rows[[length(rows) + 1L]] <- data.frame(
-      col = col, from = drop, to = keep,
-      n_from = min(na_, nb_), n_to = max(na_, nb_),
-      applied = identical(mode, "auto"),
-      reason = if (is_case) {
-        sprintf("differs from %s by capitalisation only", keep)
-      } else {
-        sprintf("differs from %s by a single character", keep)
-      },
-      stringsAsFactors = FALSE)
+  nd <- data.table::as.data.table(near_dups)[col %in% cat_cols]
+  # A one-character edit between short labels is not evidence of a typo:
+  # "a" and "b" are one edit apart and are plainly different categories.
+  nd <- nd[kind == "case" | pmin(nchar(a), nchar(b)) >= MIN_EDIT_NCHAR]
+  if (!nrow(nd)) {
+    return(.empty_merges())
   }
-  if (!length(rows)) return(.empty_merges())
-  do.call(rbind, rows)
+
+  # Count and first position of every label in the columns concerned.
+  labels <- data.table::rbindlist(lapply(unique(nd$col), function(cc) {
+    x <- as.character(df[[cc]])
+    data.table::data.table(col = cc, label = x, pos = seq_along(x))
+  }))
+  counts <- labels[!is.na(label), list(n = .N, first = min(pos)),
+    by = c("col", "label")
+  ]
+  nd[counts, `:=`(n_a = i.n, first_a = i.first), on = c("col", a = "label")]
+  nd[counts, `:=`(n_b = i.n, first_b = i.first), on = c("col", b = "label")]
+
+  # The commoner spelling wins; a case-only tie goes to the first seen.
+  nd[, candidate := kind == "case" | n_a != n_b]
+  nd[, a_wins := n_a > n_b | (n_a == n_b & kind == "case" & first_a < first_b)]
+  nd[, `:=`(
+    from = data.table::fifelse(a_wins, b, a),
+    to = data.table::fifelse(a_wins, a, b)
+  )]
+  nd[, reason := data.table::fifelse(
+    kind == "case",
+    sprintf("differs from %s by capitalisation only", to),
+    sprintf("differs from %s by a single character", to)
+  )]
+  nd[candidate == FALSE, reason := paste(
+    "the spellings differ by one edit and occur equally",
+    "often; masque will not choose between them"
+  )]
+  out <- nd[, list(
+    col, from, to,
+    n_from = pmin(n_a, n_b), n_to = pmax(n_a, n_b),
+    applied = candidate & identical(mode, "auto"),
+    reason, candidate
+  )]
+  as.data.frame(out)
 }
 
-.apply_merges <- function(df, m) {
-  if (!nrow(m)) return(df)
-  for (i in seq_len(nrow(m))) {
-    col <- m$col[i]
-    x <- df[[col]]
+# The effective merge map: each source follows its merges to a label nothing
+# is merged away from. A source that reaches two such labels is not merged.
+.resolve_merges <- function(merges) {
+  none <- list(
+    merges = merges[, setdiff(names(merges), "candidate"), drop = FALSE],
+    map = .empty_merge_map(),
+    ambiguous = data.frame(
+      col = character(), from = character(), to = character(),
+      stringsAsFactors = FALSE
+    )
+  )
+  if (!nrow(merges) || !any(merges$candidate)) {
+    return(none)
+  }
+
+  edges <- unique(data.table::as.data.table(merges)[
+    candidate == TRUE, list(col, from, to)
+  ])
+  paths <- data.table::copy(edges)
+  # Each pass moves every path one merge further. Merges never go to a rarer
+  # label, so the graph has no cycles and nrow(edges) passes bound the loop.
+  for (i1 in seq_len(nrow(edges))) {
+    step <- edges[paths, list(col, from = i.from, to = x.to),
+      on = c("col", from = "to"), nomatch = NULL
+    ]
+    if (!nrow(step)) break
+    paths <- unique(data.table::rbindlist(list(
+      paths[!edges, on = c("col", to = "from")], step
+    )))
+  }
+  sinks <- paths[, list(
+    n_to = data.table::uniqueN(to),
+    to = paste(sort(unique(to)), collapse = '", "')
+  ), by = c("col", "from")]
+
+  ambiguous <- sinks[n_to > 1L, list(col, from, to)]
+  map <- sinks[n_to == 1L, list(col, from, to)]
+
+  report <- data.table::as.data.table(merges)
+  if (nrow(ambiguous)) {
+    report[ambiguous, `:=`(
+      applied = FALSE,
+      reason = sprintf(
+        paste0(
+          "could be merged into more than one label (\"%s\"); masque will ",
+          "not choose between them"
+        ),
+        i.to
+      )
+    ), on = c("col", "from")]
+  }
+  report[, candidate := NULL]
+  list(
+    merges = as.data.frame(report),
+    map = as.data.frame(map),
+    ambiguous = as.data.frame(ambiguous)
+  )
+}
+
+.warn_ambiguous_merges <- function(ambiguous) {
+  if (!nrow(ambiguous)) {
+    return(invisible())
+  }
+  lines <- sprintf(
+    "%s: \"%s\" -> \"%s\"", ambiguous$col, ambiguous$from, ambiguous$to
+  )
+  # Labels are data: cli inserts them by reference, never parses them.
+  bullets <- stats::setNames(
+    sprintf("{lines[%d]}", seq_along(lines)), rep("*", length(lines))
+  )
+  cli::cli_warn(c(
+    paste0(
+      "{cli::qty(length(lines))}Not merged: {length(lines)} label{?s} with ",
+      "more than one candidate target."
+    ),
+    bullets,
+    i = "Merge these by hand if one target is right."
+  ), class = "masque_conform_ambiguous_merge")
+}
+
+# Apply an effective merge map (`col`, `from`, `to`) to a table.
+.apply_merge_map <- function(df, map) {
+  if (is.null(map) || !nrow(map)) {
+    return(df)
+  }
+  for (cc in intersect(unique(map$col), names(df))) {
+    m <- map[map$col == cc, , drop = FALSE]
+    x <- df[[cc]]
     if (is.factor(x)) {
       lv <- levels(x)
-      lv[lv == m$from[i]] <- m$to[i]
-      df[[col]] <- factor(lv[as.integer(x)], levels = unique(lv))
+      hit <- match(lv, m$from)
+      lv[!is.na(hit)] <- m$to[hit[!is.na(hit)]]
+      df[[cc]] <- factor(lv[as.integer(x)], levels = unique(lv))
     } else {
-      x[!is.na(x) & x == m$from[i]] <- m$to[i]
-      df[[col]] <- x
+      hit <- match(x, m$from)
+      x[!is.na(hit)] <- m$to[hit[!is.na(hit)]]
+      df[[cc]] <- x
     }
   }
   df
@@ -309,7 +427,7 @@ MIN_EDIT_NCHAR <- 4L   # below this, a one-character difference means nothing
 }
 
 .apply_types <- function(df, t) {
-  if (!nrow(t)) return(df)
+  if (is.null(t) || !nrow(t)) return(df)
   for (i in seq_len(nrow(t))) {
     col <- t$col[i]
     df[[col]] <- switch(
@@ -321,6 +439,39 @@ MIN_EDIT_NCHAR <- 4L   # below this, a one-character difference means nothing
     )
   }
   df
+}
+
+# --- the recipe record -----------------------------------------------------
+
+# What mask() stores from a conformance object: the effective merge map, the
+# applied type changes, the modes and max_levels, as plain data frames.
+.conform_record <- function(cf) {
+  types <- as.data.frame(cf$types)
+  types <- types[types$applied, c("col", "from", "to"), drop = FALSE]
+  rownames(types) <- NULL
+  map <- as.data.frame(cf$merge_map %||% .empty_merge_map())
+  rownames(map) <- NULL
+  list(
+    merges = map[, c("col", "from", "to"), drop = FALSE],
+    types = types,
+    modes = as.list(cf$modes),
+    max_levels = as.integer(cf$max_levels %||% NA_integer_)
+  )
+}
+
+# Replay a recipe's conform record on a cleaned original: merges, then types,
+# in the order conform_table() applied them.
+.apply_conform_forward <- function(df, conform) {
+  if (is.null(conform)) {
+    return(df)
+  }
+  merges <- conform$merges
+  types <- conform$types
+  if (!is.null(types)) {
+    types <- types[types$col %in% names(df), , drop = FALSE]
+  }
+  df <- .apply_merge_map(df, merges)
+  .apply_types(df, types)
 }
 
 # --- the assumption report --------------------------------------------------
@@ -372,11 +523,11 @@ MIN_EDIT_NCHAR <- 4L   # below this, a one-character difference means nothing
   held <- a[!a$applied, , drop = FALSE]
   if (nrow(done)) {
     cli::cli_alert_info("Applied {nrow(done)} decision{?s}:")
-    cli::cli_ul(sprintf("%s: %s", done$col, done$assumption))
+    cli::cli_ul(.cli_literal(sprintf("%s: %s", done$col, done$assumption)))
   }
   if (nrow(held)) {
     cli::cli_alert_warning("Reported, NOT applied ({nrow(held)}):")
-    cli::cli_ul(sprintf("%s: %s", held$col, held$assumption))
+    cli::cli_ul(.cli_literal(sprintf("%s: %s", held$col, held$assumption)))
     if (identical(unname(x$modes["merge_labels"]), "report") ||
         identical(unname(x$modes["types"]), "report")) {
       cli::cli_text(
@@ -389,3 +540,6 @@ MIN_EDIT_NCHAR <- 4L   # below this, a one-character difference means nothing
   }
   invisible(NULL)
 }
+
+# Data text shown through cli: braces are literal, never glue expressions.
+.cli_literal <- function(x) gsub("([{}])", "\\1\\1", x)

@@ -25,10 +25,18 @@ local(S7::method(print, design_summary) <- function(x, ...) {
   }
   cli::cli_rule(left = pooled_label)
 
+  # After scope, the block columns come from the environments; say so.
+  revision <- x@evidence$block_revision
+  revision_bullet <- character(0L)
+  if (!is.null(revision) && !identical(revision$status, "unchanged")) {
+    revision_bullet <- c("i" = gsub("([{}])", "\\1\\1", revision$message))
+  }
+
   if (x@class_label == "none") {
     cli::cli_bullets(c(
       "i" = "No experimental design detected above threshold.",
-      "*" = "Top rule scores all below 0.5. Treat as observational."
+      "*" = "Top rule scores all below 0.5. Treat as observational.",
+      revision_bullet
     ))
   } else {
     bullets <- character(0L)
@@ -64,7 +72,7 @@ local(S7::method(print, design_summary) <- function(x, ...) {
         )
       )
     }
-    cli::cli_bullets(bullets)
+    cli::cli_bullets(c(bullets, revision_bullet))
   }
 
   # Alternates.
@@ -123,6 +131,17 @@ local(S7::method(print, design_summary) <- function(x, ...) {
           "Collaborate mode retains the environment values of: ",
           paste(retained, collapse = ", "),
           "; review disclosure."
+        ))
+      }
+      held <- x@recommended_roles$col[
+        x@recommended_roles$source == "design_rule" &
+          !x@recommended_roles$auto_apply
+      ]
+      if (length(held) > 0L) {
+        cli::cli_alert_info(paste0(
+          "Not applied: ", paste(held, collapse = ", "),
+          ". A structural hint needs a design column crossing it; see ",
+          "{.code x@recommended_roles$reason}."
         ))
       }
     }

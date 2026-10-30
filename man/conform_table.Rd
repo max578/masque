@@ -45,11 +45,16 @@ An object of class \code{masque_conformance}: a list with
 \item \code{cleaning} - the \code{masque_cleaning} record from \code{\link[=clean_table]{clean_table()}};
 \item \code{merges} - one row per near-duplicate pair considered
 (\code{col}, \code{from}, \code{to}, \code{n_from}, \code{n_to}, \code{applied}, \code{reason});
+\item \code{merge_map} - the merges as applied to the data (\code{col}, \code{from},
+\code{to}), one row per merged-away label, each \code{to} a label left in
+the column. This is what \code{\link[=mask]{mask()}} records and \code{\link[=apply_recipe]{apply_recipe()}}
+replays;
 \item \code{types} - one row per column whose storage was considered
 (\code{col}, \code{from}, \code{to}, \code{applied}, \code{reason});
 \item \code{assumptions} - every decision as a plain sentence
 (\code{col}, \code{assumption}, \code{applied}), which is the thing to read;
-\item \code{modes} - the modes applied.
+\item \code{modes} - the modes applied;
+\item \code{max_levels} - the cardinality threshold used.
 }
 }
 \description{
@@ -76,6 +81,21 @@ Two labels that differ by an edit are merged only when one spelling is
 clearly more common; a column is converted only when every value parses;
 numeric columns keep their storage. Anything not changed for these reasons
 is reported as a \verb{not applied} row with the reason.
+
+Merges follow chains: if \code{"Nsw"} merges onto \code{"nsw"} and \code{"nsw"} onto
+\code{"NSW"}, both end on \code{"NSW"}. A label whose merges end on two different
+labels (\code{"colur"} beside \code{"color"} and \code{"colour"} that occur equally
+often) is not merged; it is reported, and a \code{masque_conform_ambiguous_merge}
+warning is raised under \code{merge_labels = "auto"}. Codes that differ only
+inside a run of digits (\code{"G01"} and \code{"G02"}) are never treated as
+near-duplicates. Which columns hold categories is decided the same way
+whatever \code{types} is, so \code{types = "off"} still merges labels and leaves
+storage as it is.
+
+Pass the result to \code{\link[=mask]{mask()}} (or as a table of \code{\link[=mask_set]{mask_set()}}): the recipe
+records the merges and type changes, and \code{\link[=apply_recipe]{apply_recipe()}} replays them on
+the original so a pipeline built on the conformed clone sees the same
+labels and storage.
 }
 \examples{
 df <- data.frame(

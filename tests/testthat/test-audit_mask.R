@@ -29,7 +29,8 @@ test_that("audit_mask returns a data.table with the spec'd schema", {
     "n_unique_levels", "freq_min", "exact_match_pct",
     "comparable_n",
     "na_pct", "na_pattern_uniqueness",
-    "alias_status", "notes"
+    "alias_status", "notes",
+    "same_row_pct", "baseline_pct", "excess_pct"
   ))
   expect_equal(nrow(out), ncol(df))
   expect_true(all(out$leakage_class %in% c("low", "medium", "high")))
@@ -63,7 +64,7 @@ test_that("audit_mask flags PII-retained as HIGH", {
   set.seed(0)
   df <- data.frame(
     Rep = rep(1:4, 25),
-    contact_person = factor(rep(c("A", "B"), 50)), # PII pattern -> auto ignore
+    contact_person = factor(rep(c("A", "B"), each = 50)), # PII pattern -> auto ignore
     yield = rnorm(100),
     stringsAsFactors = FALSE
   )
@@ -106,7 +107,7 @@ test_that("Collaborate mode warns at mask() time on HIGH leakage", {
   set.seed(0)
   df <- data.frame(
     Rep = rep(1:4, 25),
-    contact_email = factor(rep(c("a", "b"), 50)),
+    contact_email = factor(rep(c("a", "b"), each = 50)),
     yield = rnorm(100),
     stringsAsFactors = FALSE
   )

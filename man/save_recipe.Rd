@@ -7,9 +7,11 @@
 save_recipe(rec, path, include_simulator = FALSE)
 }
 \arguments{
-\item{rec}{A \code{masque_recipe} object, e.g. from \code{recipe(m)}.}
+\item{rec}{A \code{masque_recipe}, or the \code{masque_recipe_set} bundle of a
+\code{\link[=mask_set]{mask_set()}} result, e.g. from \code{recipe(m)}.}
 
-\item{path}{File path. By convention, \code{.rds} extension.}
+\item{path}{File path ending in \code{.rds} (any case); other extensions are
+refused.}
 
 \item{include_simulator}{Logical. Has no effect; the recipe is always
 written without simulator state.}

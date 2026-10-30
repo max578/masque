@@ -14,12 +14,19 @@ mask_set(
   alias_names = FALSE,
   conditional = FALSE,
   ladder = c("hierarchy", "levels"),
-  quiet = FALSE
+  grain = TRUE,
+  allow_kept_outcome = FALSE,
+  quiet = FALSE,
+  sheets = NULL,
+  info = NULL,
+  ...
 )
 }
 \arguments{
 \item{input}{A folder path, an \code{.xlsx} / \code{.xls} path, or a named list
-of data frames - anything \code{\link[=read_set]{read_set()}} accepts.}
+of data frames - anything \code{\link[=read_set]{read_set()}} accepts. A list element may also
+be a \code{\link[=conform_table]{conform_table()}} result: its cleaning record and conform
+decisions are used for that table and recorded on its recipe.}
 
 \item{roles}{Optional named list of roles tables, one per input table
 (names must match). When \code{NULL} (default), \code{\link[=propose_roles]{propose_roles()}} runs on
@@ -53,7 +60,29 @@ the treatment-to-outcome relationship survives the clone. See
 \item{ladder}{Drop order of the conditioning ladder, \code{"hierarchy"} (default)
 or \code{"levels"}; passed through to each \code{\link[=mask]{mask()}} call.}
 
-\item{quiet}{Logical; suppress the link / hygiene report.}
+\item{grain}{Single logical (default \code{TRUE}); passed through to each
+\code{\link[=mask]{mask()}} call, which synthesises a unit-constant column once per unit.}
+
+\item{allow_kept_outcome}{Single logical, passed to each \code{\link[=mask]{mask()}} call:
+\code{TRUE} allows a kept outcome in a collaborate clone and records it.}
+
+\item{quiet}{Logical; suppress the link / hygiene report, including the
+hint that a table looks like documentation.}
+
+\item{sheets}{For an Excel workbook, the sheets to read (default: all);
+passed to \code{\link[=read_set]{read_set()}}.}
+
+\item{info}{Optional character vector of table names (sheet names, or
+file names without extension) to set aside as documentation, for
+example a data dictionary. They are set aside before masking: not
+masked, not in the synthetic set, not written by \code{\link[=write_set]{write_set()}}, and
+their content is not kept. Their names are
+recorded on the recipe bundle. A table that looks like documentation
+and is not named here raises a hint (a message of class
+\code{masque_info_hint}); the hint decides nothing.}
+
+\item{...}{Must be empty: any argument here is refused with
+\code{masque_unused_arg_refusal}.}
 }
 \value{
 A \code{masque_set} S7 object. Use \code{\link[=synthetic]{synthetic()}} for the named list
@@ -76,28 +105,32 @@ compatible kind and overlapping values - the join keys of the set.
 \code{mask_set()} proposes links automatically and prints them; pass
 \code{links} to override. Linked columns are aliased in place with a shared
 map (built over the union of values across all tables), so identical
-original values map to identical aliases in every table. Set a linked
-column's action to \code{keep} in its roles table to pass it through
-unmasked instead.
+original values map to identical aliases in every table. The aliases
+read \verb{<col>_K001}, \verb{<col>_K002}, ..., assigned at random and, when \code{seed}
+is set, the same for the same seed. Set a linked column's action to
+\code{keep} in its roles table to pass it through unmasked instead.
 }
 
 \examples{
 tables <- list(
   plots = data.frame(
-    site = c("A", "A", "B", "B"),
-    gen = c("x", "y", "x", "y"),
-    yield = c(3.1, 2.9, 4.0, 3.7)
+    site = rep(c("A", "B", "C", "D", "E"), each = 2),
+    gen = rep(c("x", "y"), 5),
+    yield = c(3.1, 2.9, 4.0, 3.7, 3.3, 3.5, 2.8, 3.0, 3.9, 3.6)
   ),
   sites = data.frame(
-    site = c("A", "B"),
-    rainfall = c(420, 560)
+    site = c("A", "B", "C", "D", "E"),
+    rainfall = c(420, 560, 390, 610, 480)
   )
 )
-m <- mask_set(tables, mode = "collaborate", seed = 1, quiet = TRUE)
+roles <- lapply(tables, propose_roles, mode = "collaborate")
+roles <- lapply(roles, set_role, "site", action = "alias")
+m <- mask_set(tables, roles = roles, seed = 1, quiet = TRUE)
 synthetic(m)$plots$site
 synthetic(m)$sites$site # same aliases -> the join still works
 
 }
 \seealso{
-\code{\link[=mask]{mask()}}, \code{\link[=read_set]{read_set()}}, \code{\link[=write_set]{write_set()}}.
+\code{\link[=mask]{mask()}}, \code{\link[=read_set]{read_set()}}, \code{\link[=write_set]{write_set()}}, \code{\link[=audit_mask]{audit_mask()}},
+\code{\link[=data_card]{data_card()}}, \code{\link[=reveal_maps]{reveal_maps()}}.
 }
