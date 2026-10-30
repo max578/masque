@@ -69,7 +69,10 @@ plot_design_summary <- function(x, df, engine = c("base", "ggplot2"),
     )
   }
   if (engine == "ggplot2" && !requireNamespace("ggplot2", quietly = TRUE)) {
-    cli::cli_warn("ggplot2 not installed; falling back to base graphics.")
+    cli::cli_warn(
+      "ggplot2 not installed; falling back to base graphics.",
+      class = "masque_plot_fallback"
+    )
     engine <- "base"
   }
 
@@ -253,7 +256,10 @@ local(S7::method(plot, design_summary) <- function(
   trt <- x@treatment_col[1L]
   block <- x@block_cols[1L]
   if (is.null(trt) || is.na(trt) || length(block) == 0L) {
-    cli::cli_warn("Replication tile needs treatment + block; skipping.")
+    cli::cli_warn(
+      "Replication tile needs treatment + block; skipping.",
+      class = "masque_plot_skipped"
+    )
     return(invisible())
   }
   # If block is a pairwise basis (e.g. rep + block), build interaction.
@@ -331,7 +337,10 @@ local(S7::method(plot, design_summary) <- function(
 # row x col grid, fill = treatment, outlined by block if known.
 .plot_spatial <- function(x, df, engine) {
   if (length(x@spatial_cols) < 2L) {
-    cli::cli_warn("Spatial plot needs row + col; skipping.")
+    cli::cli_warn(
+      "Spatial plot needs row + col; skipping.",
+      class = "masque_plot_skipped"
+    )
     return(invisible())
   }
   row_nm <- x@spatial_cols[1L]

@@ -1,6 +1,4 @@
-# F18 and N5: a column becomes a treatment by name, or by structure only when
-# the table holds design evidence: a design column the candidate is crossed
-# with. Expected roles follow from how each fixture is built.
+# A treatment by name, or by structure only beside a crossed design column.
 
 # 80 patients, eight ICD-10 codes of ten patients each, no design column.
 .f18_clinical <- function() {

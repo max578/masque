@@ -46,3 +46,18 @@ with_rng_state <- function(seed, expr) {
     class = c("masque_bad_seed_refusal", "orchestra_refusal")
   )
 }
+
+# `n` seeds drawn from the stream of `seed`, one per independent consumer.
+.sub_seeds <- function(seed, n) {
+  with_rng_state(seed, sample.int(.Machine$integer.max, n))
+}
+
+# Offset that roots the link-map stream away from the tables' own stream.
+.LINK_SALT <- 104729L
+
+# Seed of mask_set()'s link maps, distinct from the seed each table uses.
+.link_seed <- function(seed) {
+  .check_seed(seed)
+  root <- (as.numeric(seed) + .LINK_SALT) %% .Machine$integer.max
+  .sub_seeds(root, 1L)
+}

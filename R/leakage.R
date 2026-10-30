@@ -20,9 +20,8 @@
     rec@roles$col[rec@roles$role == "design"], names(df)
   )
   grain <- if (S7::prop_exists(rec, "grain")) rec@grain else list()
-  grained <- unlist(lapply(grain, function(g) {
-    if (identical(g$synthesised, "unit")) g$cols
-  }), use.names = FALSE)
+  unit_grain <- Filter(function(g) identical(g$synthesised, "unit"), grain)
+  grained <- unlist(lapply(unit_grain, `[[`, "cols"), use.names = FALSE)
   row_grain <- Filter(function(g) identical(g$synthesised, "row"), grain)
   allow_kept_outcome <- S7::prop_exists(rec, "allow_kept_outcome") &&
     isTRUE(rec@allow_kept_outcome)
@@ -56,7 +55,13 @@
     is_grained <- col %in% grained
     by_excess <- in_synth && kind %in% .numeric_kinds() &&
       .audit_numeric_resimulated(action) &&
-      (is_grained || (role == "covariate" && .is_whole_valued(x)))
+      (is_grained ||
+        (role %in% c("covariate", "outcome") && .is_whole_valued(x)))
+    grain_units <- NULL
+    if (is_grained) {
+      g <- Filter(function(g) col %in% g$cols, unit_grain)[[1L]]
+      grain_units <- .unit_id(df, g$unit)
+    }
 
     exact_match_pct <- NA_real_
     comparable_n <- NA_integer_
@@ -82,8 +87,16 @@
       same <- .same_row_stats(
         x, synth[[col]], map,
         groups = groups,
-        units = .constant_unit(x, df, setdiff(design_cols, col))
+        units = if (is_grained) {
+          grain_units
+        } else {
+          .constant_unit(x, df, setdiff(design_cols, col))
+        }
       )
+    }
+    value_set <- if (is_grained && is.null(map) && !two_valued &&
+      is.numeric(x) && !.is_whole_valued(x)) {
+      .unit_value_set(x, synth[[col]], grain_units)
     }
 
     n_unique_levels <- NA_integer_
@@ -107,7 +120,9 @@
       same_row_excess = if (is.null(same)) NA_real_ else same$excess,
       same_row_sd = if (is.null(same)) NA_real_ else same$sd,
       two_valued = two_valued, linked = col %in% linked,
-      by_excess = by_excess, allow_kept_outcome = allow_kept_outcome
+      by_excess = by_excess, grained = is_grained,
+      allow_kept_outcome = allow_kept_outcome,
+      value_set_pct = if (is.null(value_set)) NA_real_ else value_set$pct
     )
 
     notes <- .audit_notes(
@@ -116,7 +131,8 @@
       same = if (col %in% linked) NULL else same,
       two_valued = two_valued || by_excess,
       allow_kept_outcome = allow_kept_outcome,
-      row_grain = Filter(function(g) col %in% g$cols, row_grain)
+      row_grain = Filter(function(g) col %in% g$cols, row_grain),
+      value_set = value_set
     )
 
     data.table::data.table(
@@ -145,17 +161,11 @@
   audit
 }
 
-# Thresholds of the excess-over-chance rules, in percentage points of rows
-# (cells for the rarity check). A finding needs both the absolute excess and
-# `z` standard deviations of the permutation null, so a small table's chance
-# swings are not graded. Calibrated on 20 seeds, conditional and not, of
-# collaborate clones of agridat::john.alpha, a 6-trial MET and a 200-row
-# clinical table: ordinary clones peaked at 9.5 points (z 3.1) per column, 0
-# points jointly and 2.8 cells (z 1.9) for rare crosses; leaky clones (kept
-# outcome, kept binary outcome, kept visible crosses) reached 42.7 points
-# (z 15.7) jointly and 8.8 cells (z 6.0).
+# Percentage points of rows (cells for rare crosses) and z of the chance null.
 .AUDIT_THRESHOLDS <- list(
   same_row_medium = list(excess = 10, z = 4),
+  same_row_high = list(excess = 50, z = 4),
+  value_set_high = 50,
   joint_medium = list(excess = 5, z = 4),
   joint_high = list(excess = 20, z = 4),
   rare_medium = list(excess = 1, z = 3),
@@ -268,6 +278,21 @@
     observed = observed, baseline = 100 * chance,
     excess = observed - 100 * chance, sd = sd
   )
+}
+
+# Share of a grained column's clone unit values that are real unit values.
+.unit_value_set <- function(x, y, units) {
+  first <- function(v) {
+    o <- which(!is.na(v))
+    v[o[!duplicated(units[o])]]
+  }
+  real <- first(x)
+  clone <- first(y)
+  if (!length(clone)) {
+    return(NULL)
+  }
+  hits <- sum(clone %in% real)
+  list(pct = 100 * hits / length(clone), hits = hits, n = length(clone))
 }
 
 # Values comparable by equality: numbers stay numbers, the rest characters.
@@ -557,7 +582,8 @@
   role, kind, action = NA_character_, pii, mode, in_synth, alias_status,
   exact_match_pct, freq_min, n_unique_levels, n_rows, coarsened = FALSE,
   same_row_excess = NA_real_, same_row_sd = NA_real_, two_valued = FALSE,
-  linked = FALSE, by_excess = FALSE, allow_kept_outcome = FALSE
+  linked = FALSE, by_excess = FALSE, grained = FALSE,
+  allow_kept_outcome = FALSE, value_set_pct = NA_real_
 ) {
   collab <- identical(mode, "collaborate")
 
@@ -589,6 +615,16 @@
   # 3. Categorical covariate with a frequency-1 level in collaborate: HIGH
   if (role == "covariate" && kind %in% c("factor", "character", "logical") &&
     collab && !is.na(freq_min) && freq_min == 1L) {
+    return("high")
+  }
+
+  # 3b. Excess-graded column far above chance, or real unit values: HIGH.
+  if (collab && in_synth && (isTRUE(by_excess) || isTRUE(grained)) &&
+    !isTRUE(linked) &&
+    !(role %in% c("design", "treatment", "id")) &&
+    (.excess_clears(
+      same_row_excess, same_row_sd, .AUDIT_THRESHOLDS$same_row_high
+    ) || isTRUE(value_set_pct >= .AUDIT_THRESHOLDS$value_set_high))) {
     return("high")
   }
 
@@ -629,7 +665,8 @@
 .audit_notes <- function(role, kind, action, pii, alias_status, mode,
                          leakage_class, exact_match_pct, freq_min,
                          coarsened = FALSE, same = NULL, two_valued = FALSE,
-                         allow_kept_outcome = FALSE, row_grain = list()) {
+                         allow_kept_outcome = FALSE, row_grain = list(),
+                         value_set = NULL) {
   collab <- identical(mode, "collaborate")
   bits <- character()
   if (pii && !isTRUE(coarsened)) bits <- c(bits, "PII-pattern column name")
@@ -683,6 +720,12 @@
     isTRUE(same$excess >= .AUDIT_THRESHOLDS$same_row_medium$excess)) {
     bits <- c(bits, sprintf(
       "same-row %.1f%% vs chance %.1f%%", same$observed, same$baseline
+    ))
+  }
+  if (!is.null(value_set) && collab &&
+    value_set$pct >= .AUDIT_THRESHOLDS$value_set_high) {
+    bits <- c(bits, sprintf(
+      "%d of %d unit values are real values", value_set$hits, value_set$n
     ))
   }
   if (length(bits) == 0L) bits <- "ok"

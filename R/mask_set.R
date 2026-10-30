@@ -198,7 +198,9 @@ mask_set <- function(input,
   built <- if (is.null(seed)) {
     .build_shared_maps(tables, roles, link_groups, mode)
   } else {
-    with_rng_state(seed, .build_shared_maps(tables, roles, link_groups, mode))
+    with_rng_state(
+      .link_seed(seed), .build_shared_maps(tables, roles, link_groups, mode)
+    )
   }
   link_groups <- built$groups
   shared_by_table <- built$shared_by_table

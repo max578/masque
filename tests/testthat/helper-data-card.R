@@ -1,6 +1,4 @@
-# A copy of composeR's data_card.schema.json (contract C8 v0.1, composeR
-# commit 5f75c2e) and a small validator for the JSON Schema keywords it uses.
-# The schema is parsed with yaml, which reads this JSON as YAML.
+# The data card JSON Schema fixture, read with yaml (JSON is valid YAML).
 
 .card_schema <- function() {
   yaml::read_yaml(testthat::test_path("fixtures", "data_card.schema.json"))
@@ -58,9 +56,7 @@
   errors
 }
 
-# The rules composeR checks beside the schema (composeR R/data_card.R,
-# .card_rule_errors): every statistic has a provenance class and every class
-# names a statistic, counts fit the table, design columns are listed.
+# Card rules checked beside the schema; returns the broken ones.
 .card_rule_errors <- function(card) {
   errors <- character()
   classed <- function(obj, path, unclassed) {

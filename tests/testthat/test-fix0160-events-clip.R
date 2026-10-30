@@ -118,9 +118,7 @@ test_that("the recipe records how many rows were capped", {
 })
 
 test_that("the cap moves the final block, or rescales a row it cannot clip", {
-  # Row 1: plain clip of the last time. Row 2: the last two times are tied by a
-  # zero gap and move together. Row 3: the second time is already past the
-  # cap, so the row is scaled. Row 4: under the cap, untouched.
+  # Rows: plain clip, tied pair moved together, scaled, untouched.
   gaps <- rbind(c(2, 3, 4), c(2, 5, 0), c(6, 5, 1), c(1, 1, 1))
   times <- t(apply(gaps, 1L, cumsum))
   cap <- c(7, 6, 8, 10)

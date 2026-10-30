@@ -1,6 +1,4 @@
-# F6: after environment scope resolves, block columns come from the
-# within-environment block bases, never from an environment column.
-# Every expected answer below follows from how the fixture is built.
+# Block columns come from within-environment bases, never an environment.
 
 # 2 years x 4 sites x 24 genotypes x 3 reps; in each site-year-rep, six blocks
 # of four, labels B1-B6 restarted in every rep. True blocks: rep : block.
@@ -22,9 +20,7 @@
   g[, c("year", "site", "rep", "block", "genotype", "yield")]
 }
 
-# 2 sites, complete blocks B1-B4 restarted in each site, plot P01-P24 the
-# position within block. A cyclic allocation with one swap makes plot
-# positions look almost like regular incomplete blocks. True blocks: block.
+# 2 sites, blocks B1-B4 per site; plot positions mimic incomplete blocks.
 .f6_plot_artefact <- function() {
   set.seed(13)
   g <- expand.grid(
