@@ -53,7 +53,13 @@
 #' @param mode Either `"local"` or `"collaborate"`. When omitted, inherit
 #'   `attr(roles, "mode")`, falling back to `"local"` for a roles table with
 #'   no mode provenance. An explicit collaborate-to-local downgrade raises a
-#'   classed `masque_mode_downgrade` warning.
+#'   classed `masque_mode_downgrade` warning. A table of fewer than five rows
+#'   in which any column would be re-simulated (a scrambled covariate,
+#'   outcome, date or text column, or an `events` spec) is refused in
+#'   collaborate mode with `masque_too_few_rows_refusal`, because such a
+#'   clone is the original values resampled; local mode warns with
+#'   `masque_too_few_rows`. Kept, aliased and dropped columns are not
+#'   re-simulated, so a short lookup table of those masks in either mode.
 #' @param seed Optional integer for reproducibility.
 #' @param clean Label and column-name hygiene before masking, passed to
 #'   [clean_table()]: one of `"auto"` (default - trim whitespace and
@@ -334,6 +340,7 @@ mask <- function(df,
     )
   }
   .guard_unmasked_coords(df, roles, coord_cols, allow_unmasked_coords)
+  warnings_acc <- c(warnings_acc, .check_row_floor(df, roles, mode, event_specs))
 
   opts <- mode_defaults(mode)
 
@@ -826,6 +833,51 @@ mask <- function(df,
 # Minimum rows for a stratum-local copula; smaller cells are coarsened by
 # .conditioning_ladder().
 .MIN_STRATUM <- 5L
+
+# Internal: below .MIN_STRATUM rows a re-simulated column is the original
+# resampled. Collaborate refuses, local warns; returns the recipe line.
+.check_row_floor <- function(df, roles, mode, events = list()) {
+  n <- nrow(df)
+  if (n >= .MIN_STRATUM) {
+    return(character())
+  }
+  resim <- roles$col[
+    roles$action == "scramble" &
+      !roles$role %in% c("treatment", "design") &
+      roles$kind %in% c(.numeric_kinds(), .categorical_kinds(), .date_kinds())
+  ]
+  resim <- unique(c(resim, unlist(lapply(events, function(s) {
+    c(s$time, s$status)
+  }))))
+  if (!length(resim)) {
+    return(character())
+  }
+  if (identical(mode, "collaborate")) {
+    cli::cli_abort(c(
+      paste0(
+        "{.arg df} has {n} row{?s}, fewer than {(.MIN_STRATUM)}, and ",
+        "{.field {resim}} would be re-simulated."
+      ),
+      x = paste0(
+        "A re-simulated column this short is the original values resampled, ",
+        "so a collaborate clone would disclose them."
+      ),
+      i = paste0(
+        "Keep, alias or drop {cli::qty(length(resim))}{?that column/those ",
+        "columns}, or mask a table of at least {(.MIN_STRATUM)} rows."
+      )
+    ), class = c("masque_too_few_rows_refusal", "orchestra_refusal"))
+  }
+  msg <- sprintf(
+    paste0(
+      "df has %d row%s, fewer than %d, so re-simulating %s resamples the ",
+      "original values; the clone is for owner development only."
+    ),
+    n, if (n == 1L) "" else "s", .MIN_STRATUM, paste(resim, collapse = ", ")
+  )
+  warning(warningCondition(msg, class = "masque_too_few_rows"))
+  msg
+}
 
 # Internal: relabel through a shared `original -> alias` map, keeping the
 # type. Numeric values are matched by their character form.
