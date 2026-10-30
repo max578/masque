@@ -111,7 +111,9 @@
 #'   A site that cannot be placed on land is set to `NA` on both axes, with a
 #'   warning: masque never emits the true coordinate as though it were masked.
 #' @param seed Optional integer seed for reproducibility. The caller's RNG state
-#'   is preserved.
+#'   is preserved. Several published jitters of the same point average toward
+#'   it: keep the seed (a [mask()] recipe records it) and do not publish more
+#'   than one jittered release of the same sites.
 #' @param .group Internal. A pre-computed grouping vector of length
 #'   `nrow(df)`, used by [mask()] to group by the *original* table's site
 #'   structure. Takes precedence over `by`. Not for direct use.
@@ -548,9 +550,8 @@ jitter_coordinates <- function(df, lat_col, lon_col,
   unique(unlist(lapply(specs, function(s) c(s$lat, s$lon)), use.names = FALSE))
 }
 
-# Declared coordinates are kept and coarsened. A column still on its proposed
-# action yields to the declaration, with a note for the recipe; an explicit
-# non-keep action, or one whose provenance is unknown, is refused.
+# Declared coordinates get action keep; an explicit or unknown non-keep
+# action is refused, a proposed default yields with a recipe note.
 .coords_take_keep <- function(roles, coord_cols) {
   idx <- which(roles$col %in% coord_cols & roles$action != "keep")
   if (!length(idx)) {

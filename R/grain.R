@@ -93,10 +93,8 @@
   })
 }
 
-# Internal: decide per grain group whether it is synthesised per unit. With
-# `grain = FALSE` every group is synthesised per row; in collaborate mode a
-# group with fewer than .MIN_STRATUM units falls back to rows with a warning.
-# Returns the groups and the recipe lines.
+# Internal: mark each grain group "unit" or "row" (grain = FALSE, or a small
+# collaborate grain, with a warning); returns the groups and recipe lines.
 .resolve_grain <- function(groups, grain, mode) {
   lines <- character()
   for (i in seq_along(groups)) {
@@ -149,11 +147,8 @@
   data.table::frankv(df[, unit, drop = FALSE], ties.method = "dense")
 }
 
-# Internal: synthesise one grain group once per unit and broadcast to rows.
-# Numeric columns go through the copula jointly (with collaborate jitter
-# against the unit-level values), categorical and date columns are permuted
-# across units, and aliased covariates are permuted, then aliased. Rows that
-# were missing stay missing. Returns the new columns and any level maps.
+# Internal: synthesise one grain group on its unit table and broadcast each
+# unit's value to its non-missing rows; returns the columns and level maps.
 .synthesise_grain_group <- function(df, group, roles, jitter) {
   cols <- group$cols
   row_unit <- .unit_id(df, group$unit)

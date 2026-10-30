@@ -141,7 +141,9 @@
 #'   identical input coordinate already identify one. A declared pair always
 #'   survives masking, coarsened; the recipe records the parameters and the site
 #'   grouping it was coarsened under, and [apply_recipe()] retargets to the real
-#'   coordinates.
+#'   coordinates. Several published jitters of the same point average toward
+#'   it: keep the seed, which the recipe records, and do not publish more than
+#'   one jittered release of the same sites.
 #' @param events Optional linked time-to-event outcomes. One spec per group of
 #'   linked events, `list(time = c(...), status = c(...))`, with the time and
 #'   status columns listed in the order the events occur; pass several specs
