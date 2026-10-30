@@ -4,7 +4,7 @@
 [![Lifecycle: experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
 [![R-CMD-check](https://github.com/max578/masque/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/max578/masque/actions/workflows/R-CMD-check.yaml)
 [![Codecov test coverage](https://codecov.io/gh/max578/masque/graph/badge.svg)](https://app.codecov.io/gh/max578/masque)
-[![r-universe](https://max578.r-universe.dev/badges/masque)](https://max578.r-universe.dev/masque)
+[![r-universe](https://max578.r-universe.dev/masque/badges/version)](https://max578.r-universe.dev/masque)
 [![pkgdown](https://github.com/max578/masque/actions/workflows/pkgdown.yaml/badge.svg)](https://max578.github.io/masque/)
 <!-- badges: end -->
 
