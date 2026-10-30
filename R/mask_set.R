@@ -175,7 +175,9 @@ mask_set <- function(input,
       .cleaning = cleaning[[nm]]
     )
     synth_tables[[nm]] <- synthetic(m)
-    recipes[[nm]] <- recipe(m)
+    recipes[[nm]] <- .record_links_retained(
+      recipe(m), names(shared_by_table[[nm]])
+    )
     audits[[nm]] <- m@audit
   }
 
@@ -313,6 +315,18 @@ mask_set <- function(input,
   }
 
   list(groups = kept_groups, shared_by_table = shared_by_table)
+}
+
+# A linked key is aliased by the shared map whatever its own action, so the
+# recipe records it as aliased.
+.record_links_retained <- function(rec, shared_cols) {
+  if (!length(shared_cols)) {
+    return(rec)
+  }
+  roles <- rec@roles
+  roles$action[roles$col %in% shared_cols] <- "alias"
+  rec@roles <- roles
+  rec
 }
 
 .table_alias_names <- function(alias_names, cols, linked_cols) {

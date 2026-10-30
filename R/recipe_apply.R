@@ -290,16 +290,18 @@ unmask <- function(x, rec, column = NULL) {
 }
 
 # Internal: columns mask() dropped. Recipes from masque 0.5.0 and earlier
-# have no action column; `ignore` was dropped in collaborate mode only.
+# have no action column; `ignore` was dropped in collaborate mode only. A
+# column with a level map is in the clone (a linked key always is).
 .recipe_dropped_cols <- function(rec) {
   roles <- rec@roles
-  if ("action" %in% names(roles)) {
-    return(roles$col[roles$action == "drop"])
+  dropped <- if ("action" %in% names(roles)) {
+    roles$col[roles$action == "drop"]
+  } else if (identical(rec@mode, "collaborate")) {
+    roles$col[roles$role == "ignore"]
+  } else {
+    character()
   }
-  if (identical(rec@mode, "collaborate")) {
-    return(roles$col[roles$role == "ignore"])
-  }
-  character()
+  setdiff(dropped, names(rec@level_maps))
 }
 
 # Internal: maps an original-label to its synthetic-label.
