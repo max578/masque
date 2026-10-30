@@ -127,7 +127,7 @@ masque <- function(input,
 # A set is a folder, an Excel workbook, or a named list of data frames.
 # A single data frame or a single tabular file is one table.
 .masque_is_set <- function(input) {
-  if (is.data.frame(input)) {
+  if (is.data.frame(input) || inherits(input, "masque_conformance")) {
     return(FALSE)
   }
   if (is.list(input)) {
@@ -150,7 +150,11 @@ masque <- function(input,
 
 .masque_guided_one <- function(input, roles, mode, seed, clean,
                                alias_names, conditional, ladder, ask, quiet) {
-  df <- if (is.data.frame(input)) input else .read_one_file(input)
+  df <- if (is.data.frame(input) || inherits(input, "masque_conformance")) {
+    input
+  } else {
+    .read_one_file(input)
+  }
   if (!is.null(roles)) {
     return(mask(
       df, roles, mode = mode, seed = seed, clean = clean,
@@ -158,7 +162,9 @@ masque <- function(input,
     ))
   }
 
-  proposed <- propose_roles(df, mode = mode)
+  proposed <- propose_roles(
+    if (inherits(df, "masque_conformance")) df$data else df, mode = mode
+  )
   proposed <- .masque_review(proposed, ask, quiet, label = NULL)
   mask(
     df, proposed, mode = mode, seed = seed, clean = clean,
@@ -178,7 +184,8 @@ masque <- function(input,
 
   # Propose on the names mask_set() will mask under. It cleans again and
   # raises the rename warning once, so the warning is held back here.
-  tables <- read_set(input)
+  split <- .split_conformance(input)
+  tables <- read_set(split$input)
   proposed <- lapply(names(tables), function(nm) {
     cl <- withCallingHandlers(
       clean_table(tables[[nm]], clean = clean, quiet = TRUE),
@@ -188,6 +195,7 @@ masque <- function(input,
     .masque_review(r, ask, quiet, label = nm)
   })
   names(proposed) <- names(tables)
+  tables[names(split$conformed)] <- split$conformed
 
   mask_set(
     tables, roles = proposed, mode = mode, seed = seed, clean = clean,

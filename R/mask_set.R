@@ -20,7 +20,9 @@
 #' unmasked instead.
 #'
 #' @param input A folder path, an `.xlsx` / `.xls` path, or a named list
-#'   of data frames - anything [read_set()] accepts.
+#'   of data frames - anything [read_set()] accepts. A list element may also
+#'   be a [conform_table()] result: its cleaning record and conform
+#'   decisions are used for that table and recorded on its recipe.
 #' @param roles Optional named list of roles tables, one per input table
 #'   (names must match). When `NULL` (default), [propose_roles()] runs on
 #'   each table for the chosen `mode`. Supply edited tables for full
@@ -117,15 +119,26 @@ mask_set <- function(input,
   mode <- match.arg(mode, c("local", "collaborate"))
   clean <- match.arg(clean)
 
-  tables <- read_set(input)
+  # A table given as a conform_table() result was cleaned and conformed
+  # already; its own record is used and its decisions go on its recipe.
+  split <- .split_conformance(input)
+  conformed <- split$conformed
+  tables <- read_set(split$input)
   table_names <- names(tables)
 
   # Hygiene per table (names legalised, whitespace trimmed) up front, so
   # link detection and roles see the cleaned schema. Each table's record goes
   # to its recipe so the set round-trips like a single table.
-  cleaned <- lapply(tables, clean_table, clean = clean, quiet = TRUE)
-  tables <- lapply(cleaned, `[[`, "data")
-  cleaning <- lapply(cleaned, .cleaning_record)
+  cleaning <- stats::setNames(vector("list", length(tables)), table_names)
+  for (nm in table_names) {
+    if (nm %in% names(conformed)) {
+      cleaning[[nm]] <- .cleaning_record(conformed[[nm]]$cleaning)
+    } else {
+      cl <- clean_table(tables[[nm]], clean = clean, quiet = TRUE)
+      tables[[nm]] <- cl$data
+      cleaning[[nm]] <- .cleaning_record(cl)
+    }
+  }
 
   # Roles: proposed per table unless supplied. Supplied roles may name the
   # original headers or the cleaned ones.
@@ -164,7 +177,7 @@ mask_set <- function(input,
   for (nm in table_names) {
     aln <- .table_alias_names(alias_names, names(tables[[nm]]), linked_cols)
     m <- mask(
-      tables[[nm]],
+      conformed[[nm]] %||% tables[[nm]],
       roles = roles[[nm]],
       mode = mode,
       seed = seed,
@@ -199,6 +212,19 @@ mask_set <- function(input,
     mode      = mode,
     audit     = if (identical(mode, "collaborate")) audits else NULL
   )
+}
+
+# Pull conform_table() results out of a list input: `input` with each one
+# replaced by its data, and the conformance objects by table name.
+.split_conformance <- function(input) {
+  if (!is.list(input) || is.data.frame(input) ||
+    inherits(input, "masque_conformance")) {
+    return(list(input = input, conformed = list()))
+  }
+  is_cf <- vapply(input, inherits, logical(1L), what = "masque_conformance")
+  conformed <- input[is_cf]
+  input[is_cf] <- lapply(conformed, `[[`, "data")
+  list(input = input, conformed = conformed)
 }
 
 # The shape half of the roles check, split out so it can run before the

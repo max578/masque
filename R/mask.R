@@ -214,7 +214,12 @@ mask <- function(df,
   # Undo any RNG change made inside mask() on exit, whichever path made it.
   withr::local_preserve_seed()
 
+  # A conformance object carries its own cleaning and the judged decisions;
+  # both go on the recipe so apply_recipe() can replay them.
+  conform_rec <- NULL
   if (inherits(df, "masque_conformance")) {
+    conform_rec <- .conform_record(df)
+    if (is.null(.cleaning)) .cleaning <- .cleaning_record(df$cleaning)
     df <- df$data
   }
   if (!is.data.frame(df)) {
@@ -525,6 +530,7 @@ mask <- function(df,
     storage_classes   = storage_classes,
     factor_meta       = factor_meta,
     cleaning          = cleaning_rec,
+    conform           = conform_rec,
     coords            = coord_reports,
     events            = event_reports,
     allow_unmasked_coords = isTRUE(allow_unmasked_coords),
