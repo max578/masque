@@ -92,10 +92,10 @@
 #' stashed as `attr(roles, "design")`. Pass `detect = FALSE` for the
 #' name-only heuristic.
 #'
-#' A structural treatment hint (one found by the design rules, not by a
-#' treatment-pattern name) is applied only when the column is crossed with a
-#' design column: a design-pattern name, a column roled `design`, or a
-#' detected environment. A column with one value per level of a design
+#' For a column without a treatment-pattern name, a treatment hint from the
+#' design rules is applied only when the column is crossed with a design
+#' column: a design-pattern name, a column roled `design`, or a detected
+#' environment. A column with one value per level of a design
 #' column is a unit-level covariate and is never promoted. Hints that fail
 #' are listed in `attr(roles, "design")@recommended_roles` with
 #' `auto_apply = FALSE` and the reason.
@@ -257,6 +257,11 @@ propose_roles <- function(df, mode = c("local", "collaborate"),
     "i" = paste0(
       "This preserves environment structure but may disclose year or other ",
       "numeric labels; review before release."
+    ),
+    "i" = paste0(
+      "To hide the values, convert the column to a factor in the data and ",
+      "re-run {.fun propose_roles}, which proposes {.val alias} for a ",
+      "categorical environment; or set its action to {.val drop}."
     )
   ), class = "masque_environment_disclosure")
   invisible(NULL)

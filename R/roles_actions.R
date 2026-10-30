@@ -194,7 +194,9 @@ set_role <- function(roles, cols, role = NULL, action = NULL) {
     if (!(kind %in% .categorical_kinds())) {
       return(paste0(
         "design label aliasing requires a factor / character / logical ",
-        "column; numeric design columns can only be kept or dropped"
+        "column; numeric design columns can only be kept or dropped. To ",
+        "hide the labels, convert the column to a factor in the data, re-run ",
+        "propose_roles() and set action \"alias\", or drop it"
       ))
     }
   }
