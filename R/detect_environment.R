@@ -843,5 +843,82 @@ GROUP_MAX_SHARED_FRACTION <- 0.05
   if (length(treatment_cols) > 0L) {
     out@treatment_col <- treatment_cols
   }
+  .revise_blocks_after_scope(out, env_cols)
+}
+
+# Once scope is resolved, an environment column is never a block: blocks are
+# the within-environment basis when every environment agrees on it, else none.
+.revise_blocks_after_scope <- function(out, env_cols) {
+  pooled <- out@block_cols
+  bases <- unique(out@per_env$block_cols)
+  agree <- length(bases) == 1L
+  consensus <- if (agree && nzchar(bases)) {
+    strsplit(bases, " : ", fixed = TRUE)[[1L]]
+  } else {
+    character()
+  }
+  pooled_text <- if (length(pooled) == 0L) {
+    "none"
+  } else {
+    paste(pooled, collapse = " : ")
+  }
+
+  status <- if (setequal(pooled, consensus)) {
+    "unchanged"
+  } else if (length(consensus) > 0L) {
+    "consensus"
+  } else {
+    "cleared"
+  }
+  message <- switch(status,
+    unchanged = "Pooled blocks match the within-environment basis.",
+    consensus = sprintf(
+      paste0(
+        "Blocks are the within-environment consensus %s; ",
+        "the pooled verdict had %s."
+      ),
+      paste(consensus, collapse = " : "), pooled_text
+    ),
+    cleared = if (agree) {
+      sprintf(
+        paste0(
+          "Blocks left empty: no environment records a block basis; ",
+          "the pooled verdict had %s."
+        ),
+        pooled_text
+      )
+    } else {
+      sprintf(
+        paste0(
+          "Blocks left empty: the within-environment block bases ",
+          "disagree (%s); the pooled verdict had %s."
+        ),
+        paste(ifelse(nzchar(bases), bases, "none"), collapse = "; "),
+        pooled_text
+      )
+    }
+  )
+
+  out@block_cols <- consensus
+  out@whole_plot_col <- setdiff(out@whole_plot_col, env_cols)
+  if (any(out@spatial_cols %in% env_cols)) {
+    out@spatial_cols <- character()
+  }
+  # A pooled block hint that lost its place in block_cols loses its role hint.
+  stale <- setdiff(pooled, c(consensus, env_cols))
+  rec <- out@recommended_roles
+  if (length(stale) > 0L && nrow(rec) > 0L) {
+    out@recommended_roles <- rec[!(rec$role == "design" & rec$col %in% stale), ]
+  }
+
+  evidence <- out@evidence
+  evidence$block_revision <- list(
+    status = status,
+    pooled = pooled,
+    block_cols = consensus,
+    per_env_bases = bases,
+    message = message
+  )
+  out@evidence <- evidence
   out
 }

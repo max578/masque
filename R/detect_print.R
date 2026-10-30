@@ -25,10 +25,18 @@ local(S7::method(print, design_summary) <- function(x, ...) {
   }
   cli::cli_rule(left = pooled_label)
 
+  # After scope, the block columns come from the environments; say so.
+  revision <- x@evidence$block_revision
+  revision_bullet <- character(0L)
+  if (!is.null(revision) && !identical(revision$status, "unchanged")) {
+    revision_bullet <- c("i" = gsub("([{}])", "\\1\\1", revision$message))
+  }
+
   if (x@class_label == "none") {
     cli::cli_bullets(c(
       "i" = "No experimental design detected above threshold.",
-      "*" = "Top rule scores all below 0.5. Treat as observational."
+      "*" = "Top rule scores all below 0.5. Treat as observational.",
+      revision_bullet
     ))
   } else {
     bullets <- character(0L)
@@ -64,7 +72,7 @@ local(S7::method(print, design_summary) <- function(x, ...) {
         )
       )
     }
-    cli::cli_bullets(bullets)
+    cli::cli_bullets(c(bullets, revision_bullet))
   }
 
   # Alternates.
