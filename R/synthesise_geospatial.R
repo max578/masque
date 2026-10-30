@@ -156,7 +156,7 @@ synthesise_geospatial <- function(synth, original,
           "Coordinates for {sum(synth_anchor == a, na.rm = TRUE)} ",
           "synthetic row{?s} will be NA."
         )
-      ))
+      ), class = "masque_geo_anchor_missing")
       next
     }
     n_sites <- length(sites_by_anchor[[a]] %||% integer(0L))

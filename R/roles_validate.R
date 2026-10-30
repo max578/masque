@@ -115,7 +115,7 @@ roles_validate <- function(roles, df = NULL, mode = NULL) {
         "{.val {mode}}."
       ),
       i = "Re-run {.fun propose_roles} to silence this warning."
-    ))
+    ), class = "masque_roles_upgraded")
     roles <- .roles_upgrade(roles, mode)
   }
 
@@ -245,7 +245,7 @@ roles_validate <- function(roles, df = NULL, mode = NULL) {
         "Re-run {.code propose_roles(df, mode = \"{mode}\")} if you ",
         "want the {.val {mode}} defaults."
       )
-    ))
+    ), class = "masque_roles_mode_mismatch")
     return(roles)
   }
 
