@@ -25,6 +25,11 @@
 #'   fixes and advisories is printed. Set `TRUE` to suppress it (the
 #'   report object is returned either way).
 #'
+#' @details Two input columns with the same name are refused with a
+#'   `masque_duplicate_names_refusal` error: the recipe records renamed
+#'   columns by their original name, so the two could not be told apart on
+#'   the round trip. Rename them first.
+#'
 #' @return An object of class `masque_cleaning`: a list with
 #'   \itemize{
 #'     \item `data` - the cleaned (or, under `report` / `off`,
@@ -35,7 +40,10 @@
 #'       values were trimmed, each a named character `original -> clean`;
 #'     \item `near_duplicates` - a data.table of report-only label pairs
 #'       (`col`, `a`, `b`, `kind`) that look like typos but were left
-#'       untouched;
+#'       untouched. Labels that differ only inside a run of digits
+#'       (`"G01"` and `"G02"`, `"Plot12"` and `"Plot13"`) are different
+#'       codes and are not listed. The printed report shows the first 20
+#'       pairs and the count, and a recipe keeps the same;
 #'     \item `mode` - the `clean` mode applied.
 #'   }
 #'
@@ -140,7 +148,10 @@ print.masque_cleaning <- function(x, ...) {
     return(invisible(nms))
   }
   cli::cli_abort(c(
-    "{cli::qty(length(dups))}Column name{?s} used more than once: {.val {dups}}.",
+    paste0(
+      "{cli::qty(length(dups))}Column name{?s} used more than once: ",
+      "{.val {dups}}."
+    ),
     i = paste0(
       "masque records renamed columns by their original name, so two ",
       "columns with one name cannot be restored on the round trip."
@@ -206,46 +217,66 @@ print.masque_cleaning <- function(x, ...) {
 }
 
 # Report only: pairs of distinct labels that differ by case or by one edit
-# (utils::adist()).
+# (utils::adist()). An edit inside a run of digits ("G01" and "G02") is a
+# different code, not a typo.
 .near_duplicate_pairs <- function(x) {
   vals <- sort(unique(stats::na.omit(as.character(x))))
   if (length(vals) < 2L) {
     return(.empty_near_dups())
   }
-  pairs <- list()
   lower <- tolower(vals)
   d <- utils::adist(vals)
-  for (i in seq_along(vals)) {
-    for (k in seq_len(i - 1L)) {
-      kind <- if (lower[i] == lower[k]) {
-        "case"
-      } else if (d[i, k] == 1L) {
-        "edit1"
-      } else {
-        next
-      }
-      pairs[[length(pairs) + 1L]] <- data.frame(
-        a = vals[k], b = vals[i], kind = kind,
-        stringsAsFactors = FALSE
-      )
-    }
-  }
-  if (!length(pairs)) {
+  # Upper triangle in column order: pairs listed by `b`, then by `a`.
+  idx <- which(
+    upper.tri(d) & (d == 1L | outer(lower, lower, "==")),
+    arr.ind = TRUE
+  )
+  if (!nrow(idx)) {
     return(.empty_near_dups())
   }
-  out <- do.call(rbind, pairs)
-  out$col <- NA_character_
-  out
+  a <- vals[idx[, 1L]]
+  b <- vals[idx[, 2L]]
+  kind <- ifelse(lower[idx[, 1L]] == lower[idx[, 2L]], "case", "edit1")
+  keep <- kind == "case" | !.edit_in_digits(a, b)
+  if (!any(keep)) {
+    return(.empty_near_dups())
+  }
+  data.frame(
+    a = a[keep], b = b[keep], kind = kind[keep], col = NA_character_,
+    stringsAsFactors = FALSE
+  )
 }
 
+# For pairs one edit apart: is the edited character a digit, either a digit
+# changed for a digit or a digit added or removed?
+.edit_in_digits <- function(a, b) {
+  vapply(seq_along(a), function(i) {
+    x <- strsplit(a[[i]], "", fixed = TRUE)[[1L]]
+    y <- strsplit(b[[i]], "", fixed = TRUE)[[1L]]
+    n <- min(length(x), length(y))
+    p <- which(x[seq_len(n)] != y[seq_len(n)])[1L]
+    if (is.na(p)) p <- n + 1L
+    if (length(x) == length(y)) {
+      return(grepl("[0-9]", x[[p]]) && grepl("[0-9]", y[[p]]))
+    }
+    longer <- if (length(x) > length(y)) x else y
+    grepl("[0-9]", longer[[p]])
+  }, logical(1L))
+}
+
+# Near-duplicate pairs printed by the hygiene report and kept on a recipe.
+.NEAR_DUP_SHOWN <- 20L
+
 # Distil a masque_cleaning object to the reversible record stored on the
-# recipe (the data frame itself is not kept).
+# recipe (the data frame itself is not kept). Near-duplicates are advisory:
+# the count and the first pairs, as a plain data frame.
 .cleaning_record <- function(cl) {
+  nd <- as.data.frame(cl$near_duplicates)
   list(
     name_map          = cl$name_map,
     level_fixes       = cl$level_fixes,
-    near_duplicates   = cl$near_duplicates,
-    n_near_duplicates = nrow(cl$near_duplicates),
+    near_duplicates   = utils::head(nd, .NEAR_DUP_SHOWN),
+    n_near_duplicates = nrow(nd),
     mode              = cl$mode
   )
 }
@@ -359,11 +390,18 @@ trimws_keep_class <- function(x) {
     cli::cli_alert_warning(
       "{n_dups} near-duplicate label pair{?s} found - NOT changed:"
     )
-    for (i in seq_len(n_dups)) {
+    shown <- min(n_dups, .NEAR_DUP_SHOWN)
+    for (i in seq_len(shown)) {
       row <- cl$near_duplicates[i, ]
       cli::cli_li(
         "{.field {row$col}}: {.val {row$a}} ~ {.val {row$b}} ({row$kind})"
       )
+    }
+    if (n_dups > shown) {
+      cli::cli_text(paste0(
+        "... and {n_dups - shown} more; the full list is ",
+        "{.code $near_duplicates}."
+      ))
     }
     cli::cli_text(
       "Resolve these by hand if they are typos; masque will not merge them."

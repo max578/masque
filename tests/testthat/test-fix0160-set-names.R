@@ -1,6 +1,5 @@
-# Set layer with headers that need legalising: the guided path proposes on the
-# cleaned names, roles keyed either way are accepted, and each table's recipe
-# carries its cleaning record so the set round-trips like a single table.
+# Sets whose headers need legalising: guided proposals, roles keyed either way,
+# and the per-table cleaning record that makes the set round-trip.
 
 names_set <- function() {
   set.seed(11)
@@ -155,7 +154,7 @@ collision_set <- function() {
   list(a = a, b = b)
 }
 
-test_that("Site Name and Site.Name legalise without a duplicate, both keyings", {
+test_that("Site Name beside Site.Name legalises without a duplicate", {
   tabs <- collision_set()
   cleaned <- clean_names_of(tabs)
   expect_named(cleaned$a, c("Site.Name", "Site.Name_1", "Yield"))

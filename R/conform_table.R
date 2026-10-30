@@ -268,8 +268,8 @@ MIN_EDIT_NCHAR <- 4L   # below this, a one-character difference means nothing
     candidate == TRUE, list(col, from, to)
   ])
   paths <- data.table::copy(edges)
-  # Each pass moves every path one merge further; the merge graph has no
-  # cycles (a merge never goes to a rarer label), so nrow(edges) passes bound it.
+  # Each pass moves every path one merge further. Merges never go to a rarer
+  # label, so the graph has no cycles and nrow(edges) passes bound the loop.
   for (i1 in seq_len(nrow(edges))) {
     step <- edges[paths, list(col, from = i.from, to = x.to),
       on = c("col", from = "to"), nomatch = NULL
