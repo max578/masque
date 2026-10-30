@@ -3,11 +3,13 @@
 #' Layered on top of `synthesise_numeric_local()` in collaborate mode.
 #' Takes a synthetic column (drawn from the observed multiset by the
 #' local copula path) and perturbs it with uniform jitter inside the
-#' observed measurement resolution, then re-clips to the observed range.
+#' observed measurement resolution. The result is not clipped to the
+#' observed range, since a clip copies the real minimum and maximum into the
+#' clone; a value can fall up to half a resolution step outside it.
 #' Whole-numbered columns (integer class, or a double whose observed values
-#' are all whole) get bounded stochastic rounding, so the output stays
-#' whole-numbered in its original storage class without escaping the
-#' observed range. A column with at most two distinct observed values is
+#' are all whole) get stochastic rounding, so the output stays
+#' whole-numbered in its original storage class. A column with at most two
+#' distinct observed values is
 #' left as drawn: the local copula draw already returns observed values,
 #' and jitter followed by rounding would flip a share of them.
 #'
@@ -16,14 +18,17 @@
 #' the distribution shape and integer storage class intact.
 #'
 #' @param x_obs Original observed numeric vector (used to determine
-#'   resolution and clipping bounds).
+#'   resolution).
 #' @param x_new Synthetic vector to perturb (same length as `x_obs`).
+#' @param lower Hard lower bound applied after jitter and rounding, for a
+#'   quantity that cannot be negative by definition (event gaps); `-Inf`
+#'   (the default) applies none.
 #'
 #' @return A numeric vector of the same length and storage class as
 #'   `x_obs`.
 #' @keywords internal
 #' @noRd
-synthesise_numeric_collaborate <- function(x_obs, x_new) {
+synthesise_numeric_collaborate <- function(x_obs, x_new, lower = -Inf) {
   if (length(x_obs) != length(x_new)) {
     cli::cli_abort("`x_obs` and `x_new` must have the same length.")
   }
@@ -40,19 +45,11 @@ synthesise_numeric_collaborate <- function(x_obs, x_new) {
     x_new <- x_new + stats::runif(length(x_new), -res / 2, res / 2)
   }
 
-  lo <- suppressWarnings(min(x_obs, na.rm = TRUE))
-  hi <- suppressWarnings(max(x_obs, na.rm = TRUE))
-  if (is.finite(lo) && is.finite(hi)) {
-    x_new <- pmin(pmax(x_new, lo), hi)
-  }
-
+  x_new <- pmax(x_new, lower)
   if (is_whole) {
-    if (is.finite(lo) && is.finite(hi)) {
-      x_new <- .bounded_stochastic_round(x_new, lo, hi, as_int = is_int)
-    } else {
-      x_new <- round(x_new)
-      if (is_int) x_new <- as.integer(x_new)
-    }
+    x_new <- .bounded_stochastic_round(
+      x_new, ceiling(lower), Inf, as_int = is_int
+    )
   }
 
   x_new

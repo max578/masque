@@ -30,12 +30,13 @@ test_that(".bounded_stochastic_round preserves average (expectation)", {
   expect_equal(mean(out), 3.5, tolerance = 0.05)
 })
 
-test_that("synthesise_numeric_collaborate stays within observed range", {
+test_that("synthesise_numeric_collaborate stays within half a step of range", {
   set.seed(1)
   x_obs <- rgamma(200, 2, 1)
   x_new <- masque:::synthesise_numeric_local(data.frame(z = x_obs))$z
   out <- masque:::synthesise_numeric_collaborate(x_obs, x_new)
-  expect_true(all(out >= min(x_obs)) && all(out <= max(x_obs)))
+  half <- masque:::.detect_resolution(x_obs) / 2
+  expect_true(all(out >= min(x_obs) - half) && all(out <= max(x_obs) + half))
 })
 
 test_that("synthesise_numeric_collaborate preserves integer class", {
@@ -45,7 +46,8 @@ test_that("synthesise_numeric_collaborate preserves integer class", {
   x_new <- masque:::synthesise_numeric_local(data.frame(z = x_obs))$z
   out <- masque:::synthesise_numeric_collaborate(x_obs, x_new)
   expect_type(out, "integer")
-  expect_true(all(out >= min(x_obs)) && all(out <= max(x_obs)))
+  # Unclipped rounding can step one unit past the observed range.
+  expect_true(all(out >= min(x_obs) - 1L) && all(out <= max(x_obs) + 1L))
 })
 
 test_that("synthesise_numeric_collaborate drops exact-match below local", {
@@ -139,8 +141,8 @@ test_that("Collaborate mode preserves integer storage on int outcome columns", {
   m <- mask(df, r, mode = "collaborate", seed = 1)
   expect_type(synthetic(m)$grain_count, "integer")
   rng <- range(synthetic(m)$grain_count, na.rm = TRUE)
-  expect_gte(rng[1], min(df$grain_count))
-  expect_lte(rng[2], max(df$grain_count))
+  expect_gte(rng[1], min(df$grain_count) - 1L)
+  expect_lte(rng[2], max(df$grain_count) + 1L)
 })
 
 test_that("collaborate keeps a 0/1 double column on its two values", {
@@ -171,7 +173,7 @@ test_that("collaborate keeps a whole-valued double column whole", {
   expect_type(out, "double")
   kept <- out[!is.na(out)]
   expect_true(all(kept == round(kept)))
-  expect_true(all(kept >= 1 & kept <= 2000))
+  expect_true(all(kept >= 0 & kept <= 2001))
   expect_identical(is.na(out), is.na(x_new))
   # Still perturbed, not a copy of the local draw
   expect_lt(mean(out == x_new, na.rm = TRUE), 0.9)

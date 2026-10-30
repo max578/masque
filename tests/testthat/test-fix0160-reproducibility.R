@@ -60,16 +60,16 @@
 }
 
 test_that("a table with no grained column clones as on the 0.16.0 base", {
-  # Digests of the same calls on the unmodified base (12ead24).
+  # Base 12ead24 digests; collaborate re-taken after the jitter clip went.
   base <- c(
     local_FALSE =
       "ba60bae634f27d436a003f1ab22bc4146a77e64aea643d9716349d0325499097",
     local_TRUE =
       "dbecf2f681904bbef71d17f1169cddca7eb78ff67e85040611a038d0046c75c3",
     collaborate_FALSE =
-      "f7e80803ea82d18e6647d2ef6d085eb1d3614ea74fe090aa7393007912b74ecc",
+      "3c4422bc3cbe1ceed6e709e396459ed71e9dbb1a0b32cc7716f2d5b8d2a7fe73",
     collaborate_TRUE =
-      "3290ab8bf490881ab9ec6fe683e1745b57ac9a76d3c082c51480a76cd07c3727"
+      "51faf1085e3f60405f8a21003c09b273a759cb83238197acfa53406185b5863a"
   )
   df <- .repro_fixture()
   for (mode in c("local", "collaborate")) {

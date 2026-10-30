@@ -264,7 +264,9 @@
   x_new <- synthesise_numeric_local(x_obs)
   if (isTRUE(jitter)) {
     for (j in seq_along(x_new)) {
-      x_new[[j]] <- synthesise_numeric_collaborate(x_obs[[j]], x_new[[j]])
+      x_new[[j]] <- synthesise_numeric_collaborate(
+        x_obs[[j]], x_new[[j]], lower = 0
+      )
     }
   }
   as.matrix(x_new)[seq_len(n), , drop = FALSE]
