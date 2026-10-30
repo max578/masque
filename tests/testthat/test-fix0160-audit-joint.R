@@ -167,9 +167,15 @@ test_that("ordinary collaborate clones raise no HIGH from the new rules", {
   for (case in cases) {
     for (conditional in c(FALSE, TRUE)) {
       for (seed in 1:3) {
+        # A coarsened conditional ladder warns on its own; not under test.
         expect_no_warning(
-          m <- .joint_mask(
-            case[[1L]], case[[2L]], seed = seed, conditional = conditional
+          m <- withCallingHandlers(
+            .joint_mask(
+              case[[1L]], case[[2L]], seed = seed, conditional = conditional
+            ),
+            masque_conditional_degraded = function(w) {
+              invokeRestart("muffleWarning")
+            }
           ),
           class = "masque_high_leakage"
         )
@@ -268,7 +274,10 @@ test_that("local mode reports the joint verdicts without grading them", {
   spec <- .alpha_spec
   spec["yield"] <- "outcome/keep"
   roles <- .joint_roles(agridat::john.alpha, spec, mode = "local")
-  m <- mask(agridat::john.alpha, roles, mode = "local", seed = 1L)
+  expect_warning(
+    m <- mask(agridat::john.alpha, roles, mode = "local", seed = 1L),
+    "Every action"
+  )
   a <- audit_mask(m, original = agridat::john.alpha, print = FALSE)
   srj <- .joint_row_of(a, "same_row_joint")
   expect_identical(srj$leakage_class, "low")
