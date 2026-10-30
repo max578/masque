@@ -1,18 +1,98 @@
-# masque 0.15.1
+# masque 0.16.0
 
-* `mask()` gains `events =` for linked time-to-event outcomes: several
-  event times on one row, in the order the events occur, each with a
-  status. The times are re-simulated as gaps
-  within each status pattern, so they stay ordered, a row without the
-  first event keeps both times equal, and the count of each status pattern
-  is exact. Status patterns move across rows, within treatment when
-  `conditional = TRUE`.
-* The interactive review in `masque()` now writes the plan table and the
-  edit menus as messages, so `suppressMessages()` silences them.
-* The vignettes restore the `width` option they set.
-* In collaborate mode, a double column whose values are all whole numbers
-  now stays whole-numbered, as an integer column already did. A column
-  with only two observed values is no longer jittered and keeps both.
+## Behaviour changes
+
+* `mask()` synthesises a column that is constant within a design unit (a
+  trial-level rainfall, a site soil type) once per unit, so the clone keeps
+  one value per trial. This changes the default clone of such tables.
+  `grain = FALSE` gives the row-by-row clone of 0.15.0. In collaborate mode
+  a design column with fewer than five units falls back to row-by-row
+  synthesis with a `masque_grain_small_units` warning.
+* Collaborate mode no longer clips jittered numbers to the observed range,
+  which copied the real minimum and maximum into the clone. A value can
+  now sit up to half a measurement step outside the range.
+* A numeric treatment (a dose, an N rate) can be aliased or permuted, and
+  collaborate mode aliases it by default (`trt_NNN`). `unmask()` and
+  `apply_recipe()` restore the exact numeric values.
+* In collaborate mode an outcome left at `keep` audits HIGH and blocks the
+  package writers. `allow_kept_outcome = TRUE` allows it after review and
+  is recorded on the recipe.
+* A collaborate clone of fewer than five rows that re-simulates any column
+  is refused (`masque_too_few_rows_refusal`). Local mode warns.
+* `propose_roles()` promotes a column to treatment only when it is crossed
+  with the design, so a clinical `diagnosis` or a trial-level covariate
+  stays a covariate. `yield` and similar names are proposed as outcomes,
+  and `Site Name` or `trial_site` as design.
+* In `mask()` and `mask_set()` the new arguments come before `quiet` (and
+  before `allow_unmasked_coords` in `mask()`), so pass those by name.
+* masque needs data.table 1.15.0 or later. Returned tables are data.tables,
+  as before.
+* `mask_set()` link aliases now follow `seed` whatever the caller's random
+  state, so a set made with a seed in 0.15.0 gets different link aliases
+  when it is made again.
+
+## New features
+
+* `data_card()` writes a data card for a clone, or one per table of a set:
+  size, design columns and per-column counts, each marked as exact in the
+  clone or re-simulated. It never lists a level label.
+* `roles()` returns the role table of a clone under the clone's column
+  names.
+* `mask()` gains `grain`, `events` (linked time-to-event outcomes kept in
+  order, with exact counts of each status pattern and no time past the
+  longest observed follow-up) and
+  `allow_kept_outcome`. `mask_set()` gains `grain`, `allow_kept_outcome`,
+  `sheets` and `info` (documentation sheets set aside, not masked).
+* `masque()` takes `detect`, `sheets` and `info`, and passes other
+  arguments to `mask()` or `mask_set()`. An argument the verb does not take
+  is refused.
+* `audit_mask()` grades each column on its excess over a chance baseline
+  and adds table-level checks (whole-row matches, rare combinations) in
+  `attr(audit, "joint")`. A column synthesised per unit, or a whole-numbered
+  covariate (age in years), is graded on that excess instead of on raw
+  exact matches, which it reaches by construction.
+* `audit_mask()` grades such a column HIGH when it matches the original
+  row by row far above chance, as when the real values were copied back.
+* `save_recipe()`, `read_recipe()`, `reveal_maps(table = )` and
+  `audit_mask()` work on a `mask_set()` result.
+* The recipe records `conform_table()` decisions, and `apply_recipe()`
+  replays them on the original.
+
+## Bug fixes
+
+* `conform_table(merge_labels = "auto")` merged distinct genotype codes
+  (`G002` and `G011` into `G001`). Codes that differ only in a run of
+  digits are never merged now. A label whose merges end on two different
+  labels is left alone, with a warning.
+* `conform_table()` ran a label containing braces as R code when printing
+  its report. Labels now print as text.
+* `masque()` given a roles table made for collaborate mode masked in local
+  mode and returned real labels. It now uses the plan's mode.
+* `print()`, `format()`, `str()` and knitr output of a recipe, a recipe
+  bundle, a `masque` or a `masque_set` no longer show the seed or the label
+  maps.
+* The interactive review in `masque()` writes the plan and its menus as
+  messages, so `suppressMessages()` silences them.
+* Guided `masque()` on a folder or workbook with column names that needed
+  repair stopped with an error. Set recipes now keep each table's cleaning,
+  and `apply_recipe()` keeps a linked key that the roles mark `drop`.
+* A coordinate declared in `coords` whose action you set to `drop` or
+  `scramble` is refused (`masque_coords_action_refusal`). Before, the
+  declaration silently kept it. A single pair may be passed bare, and its
+  names must be `lat` and `lon` exactly.
+* Whole-numbered columns stay whole in local conditional clones and in
+  collaborate mode, and a two-valued column is no longer jittered.
+* Duplicate input column names are refused once, by name. The
+  near-duplicate report prints at most 20 pairs.
+* `save_recipe()` accepts only a `.rds` path. A seed must be one whole
+  number, in `jitter_coordinates()` and `synthesise_geospatial()` too.
+* A recipe saved by masque 0.15.0 still prints, applies, unmasks and
+  audits.
+* `apply_recipe()` maps a numeric column that has an alias map instead of
+  passing real values through.
+* The guided summary counts columns as the audit does, and the
+  non-interactive notice no longer suggests an argument already passed.
+* The vignettes restore the `options()` they set.
 
 # masque 0.15.0
 

@@ -151,5 +151,6 @@ head(synthetic(m))
 \seealso{
 \code{\link[=mask]{mask()}}, \code{\link[=mask_set]{mask_set()}}, \code{\link[=propose_roles]{propose_roles()}}, \code{\link[=set_role]{set_role()}},
 \code{\link[=apply_recipe]{apply_recipe()}} and \code{\link[=unmask]{unmask()}} for the round trip, \code{\link[=save_recipe]{save_recipe()}} to
-keep the recipe, \code{\link[=write_set]{write_set()}}.
+keep the recipe, \code{\link[=audit_mask]{audit_mask()}}, \code{\link[=data_card]{data_card()}} and \code{\link[=roles]{roles()}} to describe
+the clone, \code{\link[=write_set]{write_set()}}.
 }

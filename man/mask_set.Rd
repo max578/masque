@@ -105,9 +105,10 @@ compatible kind and overlapping values - the join keys of the set.
 \code{mask_set()} proposes links automatically and prints them; pass
 \code{links} to override. Linked columns are aliased in place with a shared
 map (built over the union of values across all tables), so identical
-original values map to identical aliases in every table. Set a linked
-column's action to \code{keep} in its roles table to pass it through
-unmasked instead.
+original values map to identical aliases in every table. The aliases
+read \verb{<col>_K001}, \verb{<col>_K002}, ..., assigned at random and, when \code{seed}
+is set, the same for the same seed. Set a linked column's action to
+\code{keep} in its roles table to pass it through unmasked instead.
 }
 
 \examples{
@@ -130,5 +131,6 @@ synthetic(m)$sites$site # same aliases -> the join still works
 
 }
 \seealso{
-\code{\link[=mask]{mask()}}, \code{\link[=read_set]{read_set()}}, \code{\link[=write_set]{write_set()}}.
+\code{\link[=mask]{mask()}}, \code{\link[=read_set]{read_set()}}, \code{\link[=write_set]{write_set()}}, \code{\link[=audit_mask]{audit_mask()}},
+\code{\link[=data_card]{data_card()}}, \code{\link[=reveal_maps]{reveal_maps()}}.
 }

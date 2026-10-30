@@ -18,7 +18,9 @@
 #' workbook, or named list flows through [mask_set()], which aliases
 #' shared keys identically across tables so the synthetic set still
 #' joins. [apply_recipe()] and [unmask()] re-target a finished pipeline
-#' onto the original data.
+#' onto the original data. [audit_mask()] grades what the clone discloses,
+#' and [data_card()] describes the clone for a collaborator without
+#' listing any value.
 #'
 #' @section Scope and limits:
 #' `masque` is **not** a differential-privacy or anonymisation tool. Its outputs
@@ -32,7 +34,8 @@
 #'   level vocabularies; may emit observed values; not for external sharing.
 #' - `mode = "collaborate"`: opaque aliasing for treatment and
 #'   categorical-covariate levels; within-resolution jitter on numerics;
-#'   integers stochastically rounded; `audit_mask()` auto-runs at construction.
+#'   whole numbers stochastically rounded; `audit_mask()` auto-runs at
+#'   construction.
 #'
 #' @keywords internal
 "_PACKAGE"

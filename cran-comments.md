@@ -1,23 +1,31 @@
 ## Resubmission
 
-This is a resubmission of a new package. In response to the review of
-0.15.0:
+This is a resubmission of a new package, now version 0.16.0. The review of
+0.15.0 asked for two changes:
 
-* The text that `R/masque.R` wrote to the console with `print()` and
-  `cat()` during the interactive review now goes through `message()`
-  (via cli), so it can be suppressed. The output that remains on the
-  console comes from `print()` and `summary()` methods.
-* Each vignette saves the user's `options()` before changing `width` and
-  restores them in its last chunk.
+* **Console output that cannot be suppressed.** The interactive review in
+  `R/masque.R` wrote the plan table and its menus with `print()` and
+  `cat()`. It now captures that text and writes it with
+  `cli::cli_verbatim()`, which signals a message, so `suppressMessages()`
+  silences it. The `print()` and `cat()` calls left in
+  the package are inside `print()`, `format()`, `str()` and `knit_print()`
+  methods, and in `reveal_maps()`, whose only purpose is to print the
+  label maps a user asks to see.
+* **Vignettes that change `options()`.** Each of the four vignettes saves
+  the user's options with `old_options <- options(width = 100)` in its
+  setup chunk and restores them with `options(old_options)` in its last
+  chunk. Rendering every vignette leaves `options()` unchanged.
+
+Since 0.15.0 the package has also gained `data_card()` and `roles()`,
+synthesis of unit-constant columns once per design unit, linked
+time-to-event outcomes, and fixes to the leakage audit and the
+multi-table round trip. `NEWS.md` lists them.
 
 ## Test environments
 
 * Local: macOS (Apple Silicon), R 4.6.1.
-* GitHub Actions: Ubuntu R-devel, R-release and R-oldrel-1; macOS
-  R-release; Windows R-release.
-* R-hub: Linux R-devel, Ubuntu R-patched, Windows R-devel, macOS arm64
-  R-devel.
-* win-builder: Windows R-devel.
+* [TO COMPLETE AFTER CI: GitHub Actions, R-hub and win-builder runs for
+  0.16.0, with the R versions and platforms.]
 
 ## R CMD check results
 

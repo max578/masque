@@ -15,9 +15,10 @@
 #' `mask_set()` proposes links automatically and prints them; pass
 #' `links` to override. Linked columns are aliased in place with a shared
 #' map (built over the union of values across all tables), so identical
-#' original values map to identical aliases in every table. Set a linked
-#' column's action to `keep` in its roles table to pass it through
-#' unmasked instead.
+#' original values map to identical aliases in every table. The aliases
+#' read `<col>_K001`, `<col>_K002`, ..., assigned at random and, when `seed`
+#' is set, the same for the same seed. Set a linked column's action to
+#' `keep` in its roles table to pass it through unmasked instead.
 #'
 #' @param input A folder path, an `.xlsx` / `.xls` path, or a named list
 #'   of data frames - anything [read_set()] accepts. A list element may also
@@ -87,7 +88,8 @@
 #' synthetic(m)$plots$site
 #' synthetic(m)$sites$site # same aliases -> the join still works
 #'
-#' @seealso [mask()], [read_set()], [write_set()].
+#' @seealso [mask()], [read_set()], [write_set()], [audit_mask()],
+#'   [data_card()], [reveal_maps()].
 #' @export
 mask_set <- function(input,
                      roles = NULL,

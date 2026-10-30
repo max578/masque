@@ -258,10 +258,12 @@ preserved. Treatment columns get a seeded label permutation -
 the assignment structure never moves.}
 \item{\code{alias}}{As \code{scramble} where applicable, plus opaque label
 substitution: treatments become \code{trt_NNN} (\verb{<col>_trt_NNN} when
-two or more treatment factors are aliased), categorical
+two or more treatments are aliased. A numeric treatment becomes
+text, and \code{\link[=unmask]{unmask()}} restores its exact values), categorical
 covariates \verb{<col>_LNNN}, design labels \verb{<col>_DNNN} (in place -
 structure intact), ids \verb{<col>_INNN} (in place - row linkage
-intact), text values \verb{<col>_TNNN}.}
+intact), text values \verb{<col>_TNNN}. A key \code{\link[=mask_set]{mask_set()}} shares across
+tables becomes \verb{<col>_KNNN}. \code{NNN} has at least three digits.}
 \item{\code{drop}}{Column excluded from the synthetic, both modes.}
 }
 
@@ -278,5 +280,6 @@ head(synthetic(m))
 }
 \seealso{
 \code{\link[=propose_roles]{propose_roles()}}, \code{\link[=set_role]{set_role()}}, \code{\link[=roles_validate]{roles_validate()}},
-\code{\link[=synthetic]{synthetic()}}, \code{\link[=recipe]{recipe()}}, \code{\link[=reveal_maps]{reveal_maps()}}.
+\code{\link[=synthetic]{synthetic()}}, \code{\link[=recipe]{recipe()}}, \code{\link[=roles]{roles()}}, \code{\link[=reveal_maps]{reveal_maps()}}, \code{\link[=audit_mask]{audit_mask()}},
+\code{\link[=data_card]{data_card()}}.
 }

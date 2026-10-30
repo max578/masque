@@ -35,10 +35,12 @@
 #'     the assignment structure never moves.}
 #'   \item{`alias`}{As `scramble` where applicable, plus opaque label
 #'     substitution: treatments become `trt_NNN` (`<col>_trt_NNN` when
-#'     two or more treatment factors are aliased), categorical
+#'     two or more treatments are aliased. A numeric treatment becomes
+#'     text, and [unmask()] restores its exact values), categorical
 #'     covariates `<col>_LNNN`, design labels `<col>_DNNN` (in place -
 #'     structure intact), ids `<col>_INNN` (in place - row linkage
-#'     intact), text values `<col>_TNNN`.}
+#'     intact), text values `<col>_TNNN`. A key [mask_set()] shares across
+#'     tables becomes `<col>_KNNN`. `NNN` has at least three digits.}
 #'   \item{`drop`}{Column excluded from the synthetic, both modes.}
 #' }
 #'
@@ -231,7 +233,8 @@
 #' head(synthetic(m))
 #'
 #' @seealso [propose_roles()], [set_role()], [roles_validate()],
-#'   [synthetic()], [recipe()], [reveal_maps()].
+#'   [synthetic()], [recipe()], [roles()], [reveal_maps()], [audit_mask()],
+#'   [data_card()].
 #'
 #' @export
 mask <- function(df,
