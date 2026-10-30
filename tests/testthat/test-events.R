@@ -28,11 +28,14 @@ test_that("event times are re-simulated, not carried by their rows", {
   same_row <- .pattern_of(s) == .pattern_of(df) &
     s$time_death == df$time_death & s$time_rec == df$time_rec
   expect_lt(mean(same_row), 0.05)
-  # Gaps come from the rows of the same status pattern.
+  # Gaps come from the rows of the same status pattern, except where a row's
+  # final time was capped at the pattern's longest follow-up.
   for (p in unique(.pattern_of(df))) {
     g_obs <- with(df[.pattern_of(df) == p, ], time_death - time_rec)
     g_new <- with(s[.pattern_of(s) == p, ], time_death - time_rec)
-    expect_true(all(g_new %in% g_obs))
+    capped <- s$time_death[.pattern_of(s) == p] ==
+      max(df$time_death[.pattern_of(df) == p])
+    expect_true(all(g_new %in% g_obs | capped))
   }
 })
 

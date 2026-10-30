@@ -153,7 +153,13 @@
 #'   re-simulated within each status pattern by the empirical copula, then
 #'   summed back into times. Times therefore stay ordered, a gap that every
 #'   row of a pattern holds at zero stays zero, and the count of each status
-#'   pattern is exact. A pattern with fewer than five rows draws each of its
+#'   pattern is exact. A summed final time is capped at the longest final
+#'   time observed in the rows its gaps were drawn from (the pattern, within
+#'   treatment when conditional), so no clone row runs past the observed
+#'   follow-up. Only the final time and the times tied to it move; a row
+#'   whose earlier time already passes the cap is scaled down as a whole,
+#'   which keeps its order and its zero gaps. The recipe records how many
+#'   rows were capped. A pattern with fewer than five rows draws each of its
 #'   free gaps from every pattern in which that gap is free, with a
 #'   `masque_events_pooled` warning; when no other pattern has the gap free,
 #'   `mask()` stops. No hazard model is fitted and no covariate-to-event
