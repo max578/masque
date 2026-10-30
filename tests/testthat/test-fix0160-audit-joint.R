@@ -191,8 +191,11 @@ test_that("an outcome kept as-is trips the joint checks and blocks the write", {
   skip_if_not_installed("agridat")
   spec <- .alpha_spec
   spec["yield"] <- "outcome/keep"
+  # allow_kept_outcome lifts the column HIGH, leaving the joint checks alone.
   w <- expect_warning(
-    m <- .joint_mask(agridat::john.alpha, spec, seed = 1L),
+    m <- .joint_mask(
+      agridat::john.alpha, spec, seed = 1L, allow_kept_outcome = TRUE
+    ),
     class = "masque_high_leakage"
   )
   expect_match(conditionMessage(w), "[same-row joint match]", fixed = TRUE)
@@ -213,7 +216,8 @@ test_that("an outcome kept as-is trips the joint checks and blocks the write", {
     suppressWarnings(masque(
       agridat::john.alpha,
       roles = .joint_roles(agridat::john.alpha, spec), mode = "collaborate",
-      seed = 1L, ask = FALSE, quiet = TRUE, out = out
+      seed = 1L, ask = FALSE, quiet = TRUE, out = out,
+      allow_kept_outcome = TRUE
     )),
     class = "masque_blocked_write"
   )

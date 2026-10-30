@@ -59,14 +59,21 @@
 #'
 #' \itemize{
 #'   \item Retained PII-pattern column -> `high`.
-#'   \item Treatment unaliased in collaborate -> `high`.
+#'   \item Outcome with action `keep` in collaborate -> `high`, or `medium`
+#'     when [mask()] was called with `allow_kept_outcome = TRUE`, which the
+#'     recipe records.
+#'   \item Treatment unaliased in collaborate -> `high`. A numeric treatment
+#'     (a dose) is aliased like a categorical one.
 #'   \item Categorical covariate with a frequency-1 level in collaborate ->
 #'     `high`.
 #'   \item Outcome with exact-match-pct > 1\% in collaborate -> `medium`.
 #'   \item Numeric covariate with exact-match-pct > 5\% in collaborate ->
 #'     `medium`.
 #'   \item Two-valued numeric columns skip the two exact-match rules: a 0/1
-#'     column matches its own cell about half the time by chance.
+#'     column matches its own cell about half the time by chance. So do
+#'     columns synthesised once per design unit (see `grain` in [mask()])
+#'     and whole-valued numeric covariates, which repeat real values by
+#'     construction; all three are graded on `excess_pct` instead.
 #'   \item Content column whose `excess_pct` is at least 10 points and four
 #'     binomial standard deviations in collaborate -> `medium`.
 #'   \item Joint match excess of at least 20 points and four permutation
@@ -77,6 +84,10 @@
 #'     local mode they are reported in the notes and graded `low`.
 #'   \item Ignore column retained in local -> `low` (informational).
 #' }
+#'
+#' A column constant within a design unit that was synthesised row by row
+#' (`grain = FALSE`, or a collaborate grain with fewer than five units) carries
+#' a note saying the clone does not keep that grain.
 #'
 #' As a reference point, a collaborate-mode clone of `agridat::besag.met`
 #' (yield as the outcome, design columns kept) scores `low` on every

@@ -19,6 +19,13 @@
   design_cols <- intersect(
     rec@roles$col[rec@roles$role == "design"], names(df)
   )
+  grain <- if (S7::prop_exists(rec, "grain")) rec@grain else list()
+  grained <- unlist(lapply(grain, function(g) {
+    if (identical(g$synthesised, "unit")) g$cols
+  }), use.names = FALSE)
+  row_grain <- Filter(function(g) identical(g$synthesised, "row"), grain)
+  allow_kept_outcome <- S7::prop_exists(rec, "allow_kept_outcome") &&
+    isTRUE(rec@allow_kept_outcome)
 
   rows <- lapply(cols, function(col) {
     i <- which(rec@roles$col == col)
@@ -45,6 +52,11 @@
     x <- df[[col]]
     two_valued <- kind %in% .numeric_kinds() &&
       length(unique(x[!is.na(x)])) == 2L
+    # Grained and whole-valued numerics repeat real values by construction.
+    is_grained <- col %in% grained
+    by_excess <- in_synth && kind %in% .numeric_kinds() &&
+      .audit_numeric_resimulated(action) &&
+      (is_grained || (role == "covariate" && .is_whole_valued(x)))
 
     exact_match_pct <- NA_real_
     comparable_n <- NA_integer_
@@ -61,9 +73,10 @@
     # Same-row match against a permutation baseline: categorical, date and
     # two-valued columns, compared in the original label space.
     same <- NULL
-    if (in_synth && (two_valued ||
+    if (in_synth && (two_valued || by_excess ||
       kind %in% c(.categorical_kinds(), .date_kinds()))) {
-      groups <- if (two_valued && .audit_numeric_resimulated(action)) {
+      groups <- if ((two_valued || by_excess) && !is_grained &&
+        .audit_numeric_resimulated(action)) {
         strata
       }
       same <- .same_row_stats(
@@ -93,13 +106,17 @@
       coarsened = is_coarsened,
       same_row_excess = if (is.null(same)) NA_real_ else same$excess,
       same_row_sd = if (is.null(same)) NA_real_ else same$sd,
-      two_valued = two_valued, linked = col %in% linked
+      two_valued = two_valued, linked = col %in% linked,
+      by_excess = by_excess, allow_kept_outcome = allow_kept_outcome
     )
 
     notes <- .audit_notes(
       role, kind, action, pii, alias_status, mode, leakage_class,
       exact_match_pct, freq_min, coarsened = is_coarsened,
-      same = if (col %in% linked) NULL else same, two_valued = two_valued
+      same = if (col %in% linked) NULL else same,
+      two_valued = two_valued || by_excess,
+      allow_kept_outcome = allow_kept_outcome,
+      row_grain = Filter(function(g) col %in% g$cols, row_grain)
     )
 
     data.table::data.table(
@@ -224,7 +241,7 @@
 # Same-row share, permutation chance share (within `groups`), excess and a
 # binomial SD counted in `units`, for one clone column.
 .same_row_stats <- function(x, y, map, groups = NULL, units = NULL) {
-  x_cmp <- if (is.null(map)) .audit_values(x) else as.character(x)
+  x_cmp <- if (is.null(map)) .audit_values(x) else .level_key(x)
   y_cmp <- .audit_values(.audit_original_space(y, map))
   comparable <- !is.na(x_cmp) & !is.na(y)
   m <- sum(comparable)
@@ -267,7 +284,7 @@
     return(y)
   }
   inv <- stats::setNames(names(map), unname(map))
-  unname(inv[as.character(y)])
+  unname(inv[.level_key(y)])
 }
 
 # Table-level checks against permutation baselines. Design, treatment, id,
@@ -406,7 +423,7 @@
   for (j in seq_along(cols)) {
     map <- rec@level_maps[[cols[j]]]
     x <- if (is.null(map)) .audit_values(df[[cols[j]]]) else
-      as.character(df[[cols[j]]])
+      .level_key(df[[cols[j]]])
     y <- .audit_values(.audit_original_space(synth[[cols[j]]], map))
     if (is.character(x) != is.character(y)) {
       x <- as.character(x)
@@ -537,10 +554,10 @@
 }
 
 .classify_leakage <- function(
-  role, kind, action, pii, mode, in_synth, alias_status,
+  role, kind, action = NA_character_, pii, mode, in_synth, alias_status,
   exact_match_pct, freq_min, n_unique_levels, n_rows, coarsened = FALSE,
   same_row_excess = NA_real_, same_row_sd = NA_real_, two_valued = FALSE,
-  linked = FALSE
+  linked = FALSE, by_excess = FALSE, allow_kept_outcome = FALSE
 ) {
   collab <- identical(mode, "collaborate")
 
@@ -553,6 +570,13 @@
   #    boundary, MEDIUM when the synthetic stays with the owner.
   if (pii && in_synth) {
     return(if (collab) "high" else "medium")
+  }
+
+  # 1b. Outcome kept as real values beside re-simulated columns in
+  #     collaborate: HIGH, MEDIUM under `allow_kept_outcome = TRUE`.
+  if (role == "outcome" && collab && in_synth && !is.na(action) &&
+    action == "keep") {
+    return(if (isTRUE(allow_kept_outcome)) "medium" else "high")
   }
 
   # 2. Treatment vocabulary visible in collaborate: HIGH. Both a plain
@@ -571,13 +595,13 @@
   # 4. Outcome with exact-match-pct > 1% in collaborate: MEDIUM. Two-valued
   #    columns match by chance about half the time; rule 5b grades them.
   if (role == "outcome" && collab && !isTRUE(two_valued) &&
-    !is.na(exact_match_pct) && exact_match_pct > 1) {
+    !isTRUE(by_excess) && !is.na(exact_match_pct) && exact_match_pct > 1) {
     return("medium")
   }
 
   # 5. Numeric covariate with exact-match-pct > 5% in collaborate: MEDIUM
   if (role == "covariate" && kind %in% c("numeric", "integer") &&
-    collab && !isTRUE(two_valued) &&
+    collab && !isTRUE(two_valued) && !isTRUE(by_excess) &&
     !is.na(exact_match_pct) && exact_match_pct > 5) {
     return("medium")
   }
@@ -604,7 +628,8 @@
 
 .audit_notes <- function(role, kind, action, pii, alias_status, mode,
                          leakage_class, exact_match_pct, freq_min,
-                         coarsened = FALSE, same = NULL, two_valued = FALSE) {
+                         coarsened = FALSE, same = NULL, two_valued = FALSE,
+                         allow_kept_outcome = FALSE, row_grain = list()) {
   collab <- identical(mode, "collaborate")
   bits <- character()
   if (pii && !isTRUE(coarsened)) bits <- c(bits, "PII-pattern column name")
@@ -619,6 +644,25 @@
   if (alias_status == "passthrough" && !is.na(action) && action == "keep" &&
     role != "design" && collab && !isTRUE(coarsened)) {
     bits <- c(bits, "kept as-is - visible to collaborators")
+    if (role == "outcome") {
+      bits <- c(bits, if (isTRUE(allow_kept_outcome)) {
+        "real outcome values allowed by allow_kept_outcome = TRUE"
+      } else {
+        paste0(
+          "real outcome values; scramble or drop it, or pass ",
+          "allow_kept_outcome = TRUE"
+        )
+      })
+    }
+  }
+  for (g in row_grain) {
+    bits <- c(bits, sprintf(
+      paste0(
+        "constant within %s but synthesised row by row (%s); the clone ",
+        "does not keep that grain"
+      ),
+      paste(g$unit, collapse = ":"), g$reason
+    ))
   }
   if (alias_status == "passthrough" &&
     (role == "date" || kind %in% c("date", "datetime")) &&

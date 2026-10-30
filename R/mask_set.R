@@ -47,6 +47,8 @@
 #'   [mask()] for the full account.
 #' @param ladder Drop order of the conditioning ladder, `"hierarchy"` (default)
 #'   or `"levels"`; passed through to each [mask()] call.
+#' @param allow_kept_outcome Single logical, passed to each [mask()] call:
+#'   `TRUE` allows a kept outcome in a collaborate clone and records it.
 #' @param quiet Logical; suppress the link / hygiene report, including the
 #'   hint that a table looks like documentation.
 #' @param sheets For an Excel workbook, the sheets to read (default: all);
@@ -92,6 +94,7 @@ mask_set <- function(input,
                      alias_names = FALSE,
                      conditional = FALSE,
                      ladder = c("hierarchy", "levels"),
+                     allow_kept_outcome = FALSE,
                      quiet = FALSE,
                      sheets = NULL,
                      info = NULL,
@@ -212,6 +215,7 @@ mask_set <- function(input,
       alias_names = aln,
       conditional = conditional,
       ladder = ladder,
+      allow_kept_outcome = allow_kept_outcome,
       .shared_maps = shared_by_table[[nm]],
       .cleaning = cleaning[[nm]]
     )
