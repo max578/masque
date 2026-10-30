@@ -52,7 +52,8 @@ test_that("guided masque() surfaces the HIGH leakage warning (set)", {
   f <- high_fixture()
   tables <- list(
     trial = f$df,
-    sites = data.frame(loc = c("x", "y"), depth = c(1.2, 3.4))
+    sites = data.frame(loc = c("x", "y", "z", "u", "v"),
+                       depth = c(1.2, 3.4, 2.2, 0.8, 2.9))
   )
   roles <- list(trial = f$roles, sites = propose_roles(tables$sites))
   seen <- FALSE
@@ -89,7 +90,8 @@ test_that("blocked write: write_set() refuses and writes nothing", {
   f <- high_fixture()
   tables <- list(
     trial = f$df,
-    sites = data.frame(loc = c("x", "y"), depth = c(1.2, 3.4))
+    sites = data.frame(loc = c("x", "y", "z", "u", "v"),
+                       depth = c(1.2, 3.4, 2.2, 0.8, 2.9))
   )
   roles <- list(trial = f$roles, sites = propose_roles(tables$sites))
   m <- suppressWarnings(mask_set(

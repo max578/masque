@@ -140,6 +140,8 @@
   # Re-simulate free gaps within each stratum x pattern cell ------------------
   free_in <- function(rows) colSums(gaps[rows, , drop = FALSE] != 0) > 0L
   gaps_new <- matrix(0, nrow = n, ncol = k)
+  # Longest observed final time of the rows each draw came from.
+  cap <- rep(Inf, n)
   pooled <- character()
   for (cl in unique(cell)) {
     rows_new <- which(cell == cl)
@@ -150,6 +152,7 @@
       gaps_new[rows_new, free] <- .draw_gaps(
         gaps[rows_obs, free, drop = FALSE], length(rows_new), jitter
       )
+      cap[rows_new] <- max(tm[rows_obs, k])
       next
     }
     # Small cell: fall back to the same pattern across strata, then pool each
@@ -160,8 +163,12 @@
       gaps_new[rows_new, free] <- .draw_gaps(
         gaps[pat_rows, free, drop = FALSE], length(rows_new), jitter
       )
+      cap[rows_new] <- max(tm[pat_rows, k])
       next
     }
+    # A pooled pattern's own maximum is a real row's time; cap at the
+    # table's longest follow-up instead.
+    cap[rows_new] <- max(tm[, k])
     pooled <- c(pooled, pat)
     for (j in which(free)) {
       pool <- .gap_pool(gaps, pattern, j)
@@ -189,6 +196,8 @@
   for (j in seq_len(k)[-1L]) {
     times_new[, j] <- times_new[, j - 1L] + gaps_new[, j]
   }
+  capped <- .cap_final_time(times_new, gaps_new, cap)
+  times_new <- capped$times
   out <- list()
   for (j in seq_len(k)) {
     v <- times_new[, j]
@@ -210,9 +219,35 @@
       status   = spec$status,
       strata   = !is.null(strata),
       patterns = length(unique(pattern)),
-      pooled   = pooled
+      pooled   = pooled,
+      clipped  = capped$clipped,
+      rescaled = capped$rescaled
     )
   )
+}
+
+# Cap each row's final time at `cap`. The final time moves together with the
+# times tied to it by zero gaps, so those gaps stay zero; the earlier times
+# are left alone. When the time before that block is already at or past the
+# cap, capping would turn a positive gap into a zero gap (a tie the pattern
+# need not have) or a negative one, so the whole row is scaled by
+# cap / final time instead: order kept, zero gaps zero, positive gaps
+# positive.
+.cap_final_time <- function(times, gaps, cap) {
+  k <- ncol(times)
+  over <- which(times[, k] > cap)
+  rescaled <- 0L
+  for (i in over) {
+    pos <- which(gaps[i, -1L] > 0) + 1L
+    z <- if (length(pos)) max(pos) else 1L
+    if (z == 1L || times[i, z - 1L] < cap[i]) {
+      times[i, z:k] <- cap[i]
+    } else {
+      times[i, ] <- times[i, ] * cap[i] / times[i, k]
+      rescaled <- rescaled + 1L
+    }
+  }
+  list(times = times, clipped = length(over), rescaled = rescaled)
 }
 
 # Rows of every status pattern in which gap `j` is free.
@@ -247,6 +282,12 @@
     line <- paste0(
       line, "; pooled small pattern", if (length(er$pooled) > 1L) "s" else "",
       " ", paste(er$pooled, collapse = ", ")
+    )
+  }
+  if (isTRUE(er$clipped > 0L)) {
+    line <- paste0(
+      line, "; final time capped at the pattern's longest observed ",
+      "follow-up in ", er$clipped, " row", if (er$clipped > 1L) "s" else ""
     )
   }
   paste0(line, ".")

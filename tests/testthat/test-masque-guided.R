@@ -19,7 +19,8 @@ test_that("masque() dispatches a named list to the set path", {
   tabs <- list(
     a = data.frame(gen = rep(c("x", "y"), 3), v = rnorm(6),
       stringsAsFactors = FALSE),
-    b = data.frame(gen = c("x", "y"), w = c(1, 2), stringsAsFactors = FALSE)
+    b = data.frame(gen = c("x", "y", "x", "y", "x"), w = c(1, 2, 4, 3, 5),
+      stringsAsFactors = FALSE)
   )
   m <- masque(tabs, mode = "collaborate", seed = 1, ask = FALSE, quiet = TRUE)
   expect_true(S7::S7_inherits(m, masque_set))
@@ -42,7 +43,7 @@ test_that("masque() reads a folder as a set", {
     file.path(d, "t1.csv"), row.names = FALSE
   )
   utils::write.csv(
-    data.frame(gen = c("x", "y"), w = c(1, 2)),
+    data.frame(gen = c("x", "y", "x", "y", "x"), w = c(1, 2, 4, 3, 5)),
     file.path(d, "t2.csv"), row.names = FALSE
   )
   m <- masque(d, seed = 1, ask = FALSE, quiet = TRUE)
@@ -64,7 +65,7 @@ test_that("masque() writes single-table output to a CSV", {
 test_that("masque() writes a set to a folder", {
   tabs <- list(
     a = data.frame(gen = rep(c("x", "y"), 3), v = rnorm(6)),
-    b = data.frame(gen = c("x", "y"), w = c(1, 2))
+    b = data.frame(gen = c("x", "y", "x", "y", "x"), w = c(1, 2, 4, 3, 5))
   )
   d <- withr::local_tempdir()
   out <- file.path(d, "masked_set")
