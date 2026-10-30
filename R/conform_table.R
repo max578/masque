@@ -198,8 +198,6 @@ utils::globalVariables(c(
 MIN_EDIT_NCHAR <- 4L   # below this, a one-character difference means nothing
 
 .conform_merges <- function(df, near_dups, mode, cat_cols) {
-  # data.table syntax in this frame only (data.table >= 1.15.0).
-  .datatable.aware <- TRUE
   if (identical(mode, "off") || is.null(near_dups) || !nrow(near_dups)) {
     return(.empty_merges())
   }
@@ -250,7 +248,6 @@ MIN_EDIT_NCHAR <- 4L   # below this, a one-character difference means nothing
 # The effective merge map: each source follows its merges to a label nothing
 # is merged away from. A source that reaches two such labels is not merged.
 .resolve_merges <- function(merges) {
-  .datatable.aware <- TRUE
   none <- list(
     merges = merges[, setdiff(names(merges), "candidate"), drop = FALSE],
     map = .empty_merge_map(),

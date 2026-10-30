@@ -242,7 +242,7 @@ synthesise_numeric_conditional <- function(x_num, groups, min_stratum = 5L) {
   if (length(parts) == 1L) {
     return(df[[parts]])
   }
-  interaction(lapply(df[parts], as.character), drop = TRUE, sep = ":")
+  interaction(lapply(.cols(df, parts), as.character), drop = TRUE, sep = ":")
 }
 
 # Levels with a single row share one pooled level, so the shift a row

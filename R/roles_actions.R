@@ -328,7 +328,7 @@ set_role <- function(roles, cols, role = NULL, action = NULL) {
 
   roles$role <- role2
   roles$action <- action2
-  roles <- roles[, .reorder_roles_cols(names(roles)), drop = FALSE]
+  roles <- .cols(roles, .reorder_roles_cols(names(roles)))
   attr(roles, "mode") <- mode
   attr(roles, "proposed_actions") <- stats::setNames(
     action2[!pinned], roles$col[!pinned]

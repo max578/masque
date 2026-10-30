@@ -28,7 +28,7 @@ Depends:
     R (>= 4.2.0)
 Imports:
     cli,
-    data.table,
+    data.table (>= 1.15.0),
     digest,
     Matrix,
     S7,

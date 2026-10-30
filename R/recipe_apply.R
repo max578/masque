@@ -94,7 +94,7 @@ apply_recipe <- function(original, rec, check_integrity = TRUE) {
     .check_recipe_integrity(original, rec)
   }
 
-  out <- original[, retained, drop = FALSE]
+  out <- .cols(original, retained)
 
   for (col in names(rec@level_maps)) {
     if (!(col %in% names(out))) next

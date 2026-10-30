@@ -66,13 +66,13 @@
   }
 
   # roles_validate() has already refused a non-numeric outcome.
-  not_whole <- status[!vapply(df[status], .is_whole_valued, logical(1))]
+  not_whole <- status[!vapply(.cols(df, status), .is_whole_valued, logical(1))]
   if (length(not_whole)) {
     .events_refuse(
       "Event status{?es} {.field {not_whole}} must be whole-numbered codes."
     )
   }
-  has_na <- cols[vapply(df[cols], anyNA, logical(1))]
+  has_na <- cols[vapply(.cols(df, cols), anyNA, logical(1))]
   if (length(has_na)) {
     .events_refuse(c(
       "Event column{?s} {.field {has_na}} contain{?s/} missing values.",
@@ -84,7 +84,7 @@
   }
 
   if (length(time) > 1L) {
-    tm <- as.matrix(df[time])
+    tm <- as.matrix(.cols(df, time))
     back <- which(apply(tm, 1L, function(r) any(diff(r) < 0)))
     if (length(back)) {
       .events_refuse(c(
@@ -119,12 +119,14 @@
   k <- length(spec$time)
 
   # Gaps and status patterns ---------------------------------------------------
-  tm <- as.matrix(df[spec$time])
+  tm <- as.matrix(.cols(df, spec$time))
   gaps <- tm
   if (k > 1L) {
     gaps[, -1L] <- tm[, -1L, drop = FALSE] - tm[, -k, drop = FALSE]
   }
-  pattern <- do.call(paste, c(lapply(df[spec$status], as.character), sep = "/"))
+  pattern <- do.call(
+    paste, c(lapply(.cols(df, spec$status), as.character), sep = "/")
+  )
 
   # Permute whole status rows, within strata when the clone is conditional, so
   # pattern counts (per stratum) are exact and no real row keeps its own.

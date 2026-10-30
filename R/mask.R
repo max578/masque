@@ -751,7 +751,7 @@ mask <- function(df,
     !is_shared & !is_event & !is_grain)
   conditional_report <- NULL
   if (length(num_idx) >= 1L) {
-    x_num <- df[, num_idx, drop = FALSE]
+    x_num <- .cols(df, num_idx)
     if (isTRUE(conditional)) {
       conditional_report <- .conditioning_ladder(
         df,
@@ -807,7 +807,7 @@ mask <- function(df,
   if (length(events)) {
     trt_cols <- roles$col[role == "treatment" & action != "drop"]
     strata <- if (isTRUE(conditional) && length(trt_cols)) {
-      do.call(paste, c(lapply(df[trt_cols], as.character), sep = "/"))
+      do.call(paste, c(lapply(.cols(df, trt_cols), as.character), sep = "/"))
     }
     for (spec in events) {
       ev <- .synthesise_events(
@@ -897,7 +897,7 @@ mask <- function(df,
   drop_idx <- which(action == "drop" & !is_shared)
   if (length(drop_idx)) {
     dropped <- roles$col[drop_idx]
-    synth <- synth[, setdiff(names(synth), dropped), drop = FALSE]
+    synth <- .cols(synth, setdiff(names(synth), dropped))
     warnings <- c(
       warnings,
       sprintf(

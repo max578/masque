@@ -126,7 +126,7 @@ synthesise_geospatial <- function(synth, original,
 
   # 1. Per (anchor, site) replication counts in the original.
   has_xy <- !is.na(original[[lat_col]]) & !is.na(original[[lon_col]])
-  o <- original[has_xy, c(anchor_col, lat_col, lon_col), drop = FALSE]
+  o <- .cols(original, c(anchor_col, lat_col, lon_col))[has_xy, ]
   if (nrow(o) > 0L) {
     o$.key <- paste(as.character(o[[anchor_col]]),
       o[[lat_col]], o[[lon_col]],

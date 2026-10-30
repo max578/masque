@@ -400,7 +400,7 @@ jitter_coordinates <- function(df, lat_col, lon_col,
       "`by` column{?s} not found in `df`: {.field {missing_cols}}."
     )
   }
-  list(mode = "column", key = unname(as.list(df[, by, drop = FALSE])))
+  list(mode = "column", key = unname(as.list(.cols(df, by))))
 }
 
 # Collapse one or more grouping vectors into a single site key. NA is a level
@@ -614,7 +614,7 @@ jitter_coordinates <- function(df, lat_col, lon_col,
           "Internal: coordinate grouping needs the original table."
         )
       }
-      grp <- .site_key(unname(as.list(original[, s$by, drop = FALSE])))
+      grp <- .site_key(unname(as.list(.cols(original, s$by))))
     }
     res <- .jitter_coords_impl(
       synth, lat_col = s$lat, lon_col = s$lon,

@@ -65,10 +65,7 @@
       if (!ok) {
         return(FALSE)
       }
-      x <- df[[cl]]
-      obs <- !is.na(x)
-      pairs <- data.table::data.table(g = gid[obs], x = x[obs])
-      data.table::uniqueN(pairs) == data.table::uniqueN(pairs$g)
+      .constant_within(gid, df[[cl]])
     }, logical(1L))
     list(n_groups = n_groups, constant = constant)
   })
@@ -147,7 +144,7 @@
 # Internal: dense group id (1, 2, ...) of each row over the unit columns; a
 # missing design value is a group of its own.
 .unit_id <- function(df, unit) {
-  data.table::frankv(df[, unit, drop = FALSE], ties.method = "dense")
+  data.table::frankv(.cols(df, unit), ties.method = "dense")
 }
 
 # Internal: synthesise one grain group on its unit table and broadcast each
@@ -161,7 +158,7 @@
     o <- which(!is.na(x))
     x[o[match(seq_len(n_units), row_unit[o])]]
   }
-  ut <- lapply(df[cols], unit_value)
+  ut <- lapply(.cols(df, cols), unit_value)
 
   kind <- roles$kind[match(cols, roles$col)]
   action <- roles$action[match(cols, roles$col)]
@@ -200,4 +197,13 @@
     out[[cl]] <- x
   }
   list(columns = out, level_maps = maps)
+}
+
+
+# TRUE when `x` holds at most one distinct non-missing value per group id.
+.constant_within <- function(gid, x) {
+  g <- V1 <- NULL
+  obs <- !is.na(x)
+  pairs <- data.table::data.table(g = gid[obs], x = x[obs])
+  pairs[, data.table::uniqueN(x), by = g][, all(V1 <= 1L)]
 }
