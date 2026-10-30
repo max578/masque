@@ -4,10 +4,15 @@
 \alias{reveal_maps}
 \title{Reveal the level maps held inside a recipe}
 \usage{
-reveal_maps(rec)
+reveal_maps(rec, table = NULL)
 }
 \arguments{
-\item{rec}{A \code{masque_recipe} object (e.g., from \code{recipe(m)}).}
+\item{rec}{A \code{masque_recipe} object (e.g., from \code{recipe(m)}), or the
+\code{masque_recipe_set} bundle of a \code{\link[=mask_set]{mask_set()}} result.}
+
+\item{table}{For a bundle, the names of the tables whose maps to reveal.
+\code{NULL} (default) reveals every table. Must be \code{NULL} for a single
+recipe.}
 }
 \value{
 \code{rec}, invisibly.
@@ -16,7 +21,9 @@ reveal_maps(rec)
 Explicit, audited reveal: prints each \code{original -> synthetic} level map
 held by the recipe. \strong{Use sparingly.} Recipe maps are at least as
 sensitive as the original data; printing them defeats the redaction
-built into \code{\link[=print]{print()}} and \code{\link[=summary]{summary()}}.
+built into the \code{print()}, \code{format()}, \code{str()} and \code{knitr::knit_print()}
+methods of recipes, recipe bundles, \code{masque} and \code{masque_set} objects.
+\code{saveRDS()} and \code{dput()} write the maps by design.
 }
 \examples{
 r <- propose_roles(iris)

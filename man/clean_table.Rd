@@ -33,7 +33,10 @@ column whose name changed (empty if none);
 values were trimmed, each a named character \code{original -> clean};
 \item \code{near_duplicates} - a data.table of report-only label pairs
 (\code{col}, \code{a}, \code{b}, \code{kind}) that look like typos but were left
-untouched;
+untouched. Labels that differ only inside a run of digits
+(\code{"G01"} and \code{"G02"}, \code{"Plot12"} and \code{"Plot13"}) are different
+codes and are not listed. The printed report shows the first 20
+pairs and the count, and a recipe keeps the same;
 \item \code{mode} - the \code{clean} mode applied.
 }
 }
@@ -50,6 +53,11 @@ labels that look alike is a judgement call; \code{\link[=conform_table]{conform_
 The corrections are returned alongside the cleaned data, so \code{\link[=mask]{mask()}}
 records them in the recipe and \code{\link[=apply_recipe]{apply_recipe()}} re-applies the same
 cleaning to the original.
+
+Two input columns with the same name are refused with a
+\code{masque_duplicate_names_refusal} error: the recipe records renamed
+columns by their original name, so the two could not be told apart on
+the round trip. Rename them first.
 }
 \examples{
 df <- data.frame(

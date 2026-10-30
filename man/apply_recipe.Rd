@@ -29,11 +29,16 @@ synthetic) against the original data without modifying pipeline code.
 \details{
 Operations applied (in order):
 \enumerate{
+\item \strong{Re-apply cleaning and conform decisions}: the legalised names and
+trimmed labels from \code{\link[=clean_table]{clean_table()}}, then the label merges and type
+changes from \code{\link[=conform_table]{conform_table()}} when the clone was built on a
+conformance object.
 \item \strong{Verify integrity} by comparing the NA mask of \code{original} to the
 SHA-256 fingerprint stored on the recipe (controlled by
 \code{check_integrity}).
 \item \strong{Drop} every column whose resolved \code{action} was \code{"drop"} on the
-roles table \code{mask()} masked with, in either mode.
+roles table \code{mask()} masked with, in either mode. A linked join key
+of a set is aliased in the clone and is kept.
 \item \strong{Subset and reorder} to the columns the recipe knows about.
 \item \strong{Re-label factors / characters} for any column with a level map
 held by the recipe (i.e., treatment and categorical covariates in

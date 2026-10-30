@@ -14,12 +14,17 @@ mask_set(
   alias_names = FALSE,
   conditional = FALSE,
   ladder = c("hierarchy", "levels"),
-  quiet = FALSE
+  quiet = FALSE,
+  sheets = NULL,
+  info = NULL,
+  ...
 )
 }
 \arguments{
 \item{input}{A folder path, an \code{.xlsx} / \code{.xls} path, or a named list
-of data frames - anything \code{\link[=read_set]{read_set()}} accepts.}
+of data frames - anything \code{\link[=read_set]{read_set()}} accepts. A list element may also
+be a \code{\link[=conform_table]{conform_table()}} result: its cleaning record and conform
+decisions are used for that table and recorded on its recipe.}
 
 \item{roles}{Optional named list of roles tables, one per input table
 (names must match). When \code{NULL} (default), \code{\link[=propose_roles]{propose_roles()}} runs on
@@ -53,7 +58,23 @@ the treatment-to-outcome relationship survives the clone. See
 \item{ladder}{Drop order of the conditioning ladder, \code{"hierarchy"} (default)
 or \code{"levels"}; passed through to each \code{\link[=mask]{mask()}} call.}
 
-\item{quiet}{Logical; suppress the link / hygiene report.}
+\item{quiet}{Logical; suppress the link / hygiene report, including the
+hint that a table looks like documentation.}
+
+\item{sheets}{For an Excel workbook, the sheets to read (default: all);
+passed to \code{\link[=read_set]{read_set()}}.}
+
+\item{info}{Optional character vector of table names (sheet names, or
+file names without extension) to set aside as documentation, for
+example a data dictionary. They are set aside before masking: not
+masked, not in the synthetic set, not written by \code{\link[=write_set]{write_set()}}, and
+their content is not kept. Their names are
+recorded on the recipe bundle. A table that looks like documentation
+and is not named here raises a hint (a message of class
+\code{masque_info_hint}); the hint decides nothing.}
+
+\item{...}{Must be empty: any argument here is refused with
+\code{masque_unused_arg_refusal}.}
 }
 \value{
 A \code{masque_set} S7 object. Use \code{\link[=synthetic]{synthetic()}} for the named list
