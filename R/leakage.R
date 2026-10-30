@@ -203,9 +203,8 @@
   sum(in_cand == 1L & in_ref == 1L)
 }
 
-# The coarsest replicated design unit within which `x` takes one value, as an
-# integer id per row; NULL when `x` varies within every design column. Such a
-# column carries one value per unit, so its chance matches move unit by unit.
+# Row ids of the coarsest replicated design unit within which `x` takes one
+# value (its chance matches move unit by unit); NULL when there is none.
 .constant_unit <- function(x, df, design_cols) {
   best <- NULL
   best_units <- Inf
@@ -222,10 +221,8 @@
   best
 }
 
-# Same-row match share of a clone column, its chance share under a random
-# permutation of the original (within `groups` when given), the excess and a
-# binomial SD of the chance share, counted in `units` when the column is
-# constant within them.
+# Same-row share, permutation chance share (within `groups`), excess and a
+# binomial SD counted in `units`, for one clone column.
 .same_row_stats <- function(x, y, map, groups = NULL, units = NULL) {
   x_cmp <- if (is.null(map)) .audit_values(x) else as.character(x)
   y_cmp <- .audit_values(.audit_original_space(y, map))
@@ -273,11 +270,8 @@
   unname(inv[as.character(y)])
 }
 
-# Table-level checks an adversary would run, each against a permutation
-# baseline: same-row and whole-row joint matches over the retained content
-# columns, singleton crosses of visible categorical labels, and the unit-size
-# fingerprint (a note, never graded). Design, treatment, id, aliased text and
-# linked columns are preserved by construction and only held fixed.
+# Table-level checks against permutation baselines. Design, treatment, id,
+# aliased text and linked columns match by construction and are held fixed.
 .joint_audit <- function(df, synth, rec, mode, audit, linked, strata) {
   collab <- identical(mode, "collaborate")
   coarsened <- unlist(lapply(rec@coords, function(cr) c(cr$lat, cr$lon)),
@@ -429,9 +423,8 @@
   )
 }
 
-# Observed, mean and SD (in percent of rows) of the same-row joint match over
-# `content` and the whole-row match over every column, against clones whose
-# content columns are independent permutations of the original's.
+# Same-row joint and whole-row shares (percent of rows) of the clone and of
+# clones whose content columns are independent permutations of the original.
 .joint_match_stats <- function(orig, clone, content, groups, fixed) {
   n <- nrow(orig)
   same_row <- function(cand) {
@@ -481,9 +474,8 @@
   }))
 }
 
-# Clone cells (combinations of the visible categorical labels) holding exactly
-# one row whose combination is also a single row in the original, against
-# the same count for independent permutations of the original columns.
+# Clone singleton cells of the visible labels that are also singletons in the
+# original, for the clone and for independent permutations of the columns.
 .rare_cross_stats <- function(df, synth, cols) {
   orig <- vector("list", length(cols))
   clone <- vector("list", length(cols))
@@ -576,9 +568,8 @@
     return("high")
   }
 
-  # 4. Outcome with exact-match-pct > 1% in collaborate: MEDIUM. A two-valued
-  #    column matches its own cell by chance about half the time; rule 5b
-  #    grades it on the excess over that chance instead.
+  # 4. Outcome with exact-match-pct > 1% in collaborate: MEDIUM. Two-valued
+  #    columns match by chance about half the time; rule 5b grades them.
   if (role == "outcome" && collab && !isTRUE(two_valued) &&
     !is.na(exact_match_pct) && exact_match_pct > 1) {
     return("medium")

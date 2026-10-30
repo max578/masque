@@ -1,6 +1,5 @@
-# F10 and F20: the audit grades re-identification on excess over a
-# permutation baseline, per column and jointly, and the joint verdicts feed the
-# collaborate HIGH gate.
+# F10 and F20: excess over a permutation baseline, per column and jointly; the
+# joint verdicts feed the collaborate HIGH gate.
 
 .joint_roles <- function(df, spec, mode = "collaborate") {
   r <- propose_roles(df, mode = mode)
