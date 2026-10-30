@@ -42,7 +42,7 @@ test_that("ordinary clones of grained and whole-valued columns audit low", {
   }
 })
 
-test_that("a leaky grained or whole-valued column is still flagged", {
+test_that("a leaky grained or whole-valued column is HIGH", {
   df <- .fx_ag()
   m <- suppressWarnings(mask(df, .fx_ag_roles(df), mode = "collaborate",
                              seed = 1))
@@ -52,7 +52,7 @@ test_that("a leaky grained or whole-valued column is still flagged", {
     a <- masque:::.compute_audit(
       data.table::as.data.table(df), leak, recipe(m), "collaborate"
     )
-    expect_identical(a$leakage_class[a$col == cl], "medium", label = cl)
+    expect_identical(a$leakage_class[a$col == cl], "high", label = cl)
   }
 
   # As the only content column, the leak is a table-level HIGH.
@@ -64,7 +64,7 @@ test_that("a leaky grained or whole-valued column is still flagged", {
   a2 <- masque:::.compute_audit(
     data.table::as.data.table(df2), leak, recipe(m2), "collaborate"
   )
-  expect_identical(a2$leakage_class[a2$col == "sow_day"], "medium")
+  expect_identical(a2$leakage_class[a2$col == "sow_day"], "high")
   expect_true("high" %in% attr(a2, "joint")$leakage_class)
 })
 
