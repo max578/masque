@@ -47,7 +47,20 @@
 #'   [mask()] for the full account.
 #' @param ladder Drop order of the conditioning ladder, `"hierarchy"` (default)
 #'   or `"levels"`; passed through to each [mask()] call.
-#' @param quiet Logical; suppress the link / hygiene report.
+#' @param quiet Logical; suppress the link / hygiene report, including the
+#'   hint that a table looks like documentation.
+#' @param sheets For an Excel workbook, the sheets to read (default: all);
+#'   passed to [read_set()].
+#' @param info Optional character vector naming tables (sheet names or file
+#'   names without extension) that hold documentation rather than data,
+#'   such as a data dictionary or a read-me. They are set aside before
+#'   masking: not masked, not in the synthetic set, not written by
+#'   [write_set()], and their content is not kept. Their names are
+#'   recorded on the recipe bundle. A table that looks like documentation
+#'   and is not named here raises a hint (a message of class
+#'   `masque_info_hint`); the hint decides nothing.
+#' @param ... Must be empty. A misspelled argument is refused
+#'   (`masque_unused_arg_refusal`) rather than ignored.
 #'
 #' @return A `masque_set` S7 object. Use [synthetic()] for the named list
 #'   of synthetic tables and [recipe()] for the private recipe bundle.
@@ -79,7 +92,11 @@ mask_set <- function(input,
                      alias_names = FALSE,
                      conditional = FALSE,
                      ladder = c("hierarchy", "levels"),
-                     quiet = FALSE) {
+                     quiet = FALSE,
+                     sheets = NULL,
+                     info = NULL,
+                     ...) {
+  .refuse_unused_dots("mask_set", ...)
   withr::local_preserve_seed()
   ladder <- match.arg(ladder)
   # Check the shape of `roles` before reading its mode, so a wrong argument
@@ -122,9 +139,20 @@ mask_set <- function(input,
   # A table given as a conform_table() result was cleaned and conformed
   # already; its own record is used and its decisions go on its recipe.
   split <- .split_conformance(input)
-  conformed <- split$conformed
-  tables <- read_set(split$input)
+  tables <- read_set(split$input, sheets = sheets)
+
+  # Documentation tables are set aside before anything reads their content;
+  # only their names are kept.
+  info <- .check_info(info, names(tables))
+  tables <- tables[setdiff(names(tables), info)]
+  conformed <- split$conformed[setdiff(names(split$conformed), info)]
   table_names <- names(tables)
+  if (!quiet) {
+    if (length(info)) {
+      cli::cli_alert_info("Set aside, not masked: {.val {info}}.")
+    }
+    .hint_info(tables)
+  }
 
   # Hygiene per table (names legalised, whitespace trimmed) up front, so
   # link detection and roles see the cleaned schema. Each table's record goes
@@ -203,7 +231,8 @@ mask_set <- function(input,
     created_at     = Sys.time(),
     mode           = mode,
     recipes        = recipes,
-    links          = link_record
+    links          = link_record,
+    info           = info
   )
 
   masque_set(
@@ -212,6 +241,99 @@ mask_set <- function(input,
     mode      = mode,
     audit     = if (identical(mode, "collaborate")) audits else NULL
   )
+}
+
+# The same refusal mask() gives: a misspelled argument must not vanish.
+.refuse_unused_dots <- function(fn, ...) {
+  if (!...length()) {
+    return(invisible())
+  }
+  dot_names <- names(list(...))
+  dot_names <- dot_names[nzchar(dot_names)]
+  unused <- if (length(dot_names)) {
+    paste0(" ", paste0("`", dot_names, "`", collapse = ", "))
+  } else {
+    ""
+  }
+  label <- if (...length() == 1L) "argument" else "arguments"
+  cli::cli_abort(c(
+    paste0("Unused ", label, unused, " passed to `", fn, "()`."),
+    i = "Check for misspelled argument names."
+  ), class = c("masque_unused_arg_refusal", "orchestra_refusal"))
+}
+
+# `info` names tables to set aside: each must be in the set, and at least one
+# table must remain to mask.
+.check_info <- function(info, table_names) {
+  if (is.null(info)) {
+    return(character())
+  }
+  if (!is.character(info) || anyNA(info)) {
+    cli::cli_abort(
+      "{.arg info} must be a character vector of table names.",
+      class = c("masque_bad_info_refusal", "orchestra_refusal")
+    )
+  }
+  unknown <- setdiff(info, table_names)
+  if (length(unknown)) {
+    cli::cli_abort(c(
+      paste0(
+        "{.arg info} names {cli::qty(length(unknown))}table{?s} not in ",
+        "the set: {.val {unknown}}."
+      ),
+      i = "Tables: {.val {table_names}}."
+    ), class = c("masque_bad_info_refusal", "orchestra_refusal"))
+  }
+  if (!length(setdiff(table_names, info))) {
+    cli::cli_abort(
+      "{.arg info} sets aside every table; nothing is left to mask.",
+      class = c("masque_bad_info_refusal", "orchestra_refusal")
+    )
+  }
+  unique(info)
+}
+
+# Hygiene hint, never a decision: a table named like documentation, or of at
+# most three columns with one of long free text, is offered to `info =`.
+.INFO_NAME_PATTERN <- paste0(
+  "dictionar|read[ ._-]?me|notes|info|meta[ ._-]?data|code[ ._-]?book"
+)
+
+.hint_info <- function(tables) {
+  looks <- vapply(names(tables), function(nm) {
+    .looks_like_info(nm, tables[[nm]])
+  }, logical(1L))
+  hits <- names(tables)[looks]
+  if (!length(hits)) {
+    return(invisible())
+  }
+  cli::cli_inform(c(
+    i = paste0(
+      "{cli::qty(length(hits))}Table{?s} {.val {hits}} look{?s/} like ",
+      "documentation rather than data."
+    ),
+    " " = paste0(
+      "Name {cli::qty(length(hits))}{?it/them} in {.arg info} to set ",
+      "{?it/them} aside: not masked and not written."
+    )
+  ), class = "masque_info_hint")
+}
+
+.looks_like_info <- function(nm, tab) {
+  if (grepl(.INFO_NAME_PATTERN, nm, ignore.case = TRUE)) {
+    return(TRUE)
+  }
+  if (ncol(tab) > 3L) {
+    return(FALSE)
+  }
+  long_text <- vapply(tab, function(x) {
+    if (!(is.character(x) || is.factor(x))) {
+      return(FALSE)
+    }
+    x <- as.character(x[!is.na(x)])
+    length(x) > 0L && stats::median(nchar(x)) >= 25
+  }, logical(1L))
+  any(long_text)
 }
 
 # Pull conform_table() results out of a list input: `input` with each one

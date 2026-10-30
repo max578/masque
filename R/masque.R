@@ -49,7 +49,13 @@
 #' @param out Optional output path. For a single table, a `.csv` file (or
 #'   `.xlsx` with `writexl`). For a set, a folder (one CSV per table) or
 #'   an `.xlsx` workbook. When `NULL` (default) nothing is written.
-#' @param mode Either `"local"` (default) or `"collaborate"`.
+#' @param mode Either `"local"` or `"collaborate"`. `"local"` makes an
+#'   owner-only development copy (real labels may remain); `"collaborate"`
+#'   makes a copy meant to be shared, with labels aliased, numbers jittered,
+#'   free text dropped and the leakage audit run. When omitted and `roles`
+#'   are supplied, the mode the roles were proposed for is used, exactly as
+#'   in [mask()] and [mask_set()]; with no `roles`, the proposal is made for
+#'   `"local"`.
 #' @param seed Optional integer for reproducibility.
 #' @param clean Hygiene mode passed to [clean_table()] (`"auto"`,
 #'   `"report"`, `"off"`).
@@ -72,6 +78,18 @@
 #'   refused. Pass `TRUE` to write anyway after your own review; the
 #'   override raises a `masque_high_override` warning and is recorded in
 #'   the recipe's warnings, so the exception stays auditable.
+#' @param detect Logical (default `TRUE`). Passed to [propose_roles()] when
+#'   roles are proposed: `FALSE` skips design detection and proposes from
+#'   column names and types alone.
+#' @param sheets For an Excel workbook, the sheets to read (default: all).
+#'   See [mask_set()].
+#' @param info For a set, tables that hold documentation rather than data
+#'   (a data dictionary, a read-me): set aside, not masked and not written.
+#'   See [mask_set()].
+#' @param ... Further arguments for the masking verb: [mask()] for one
+#'   table (for example `coords`, `events`, `allow_unmasked_coords`),
+#'   [mask_set()] for a set (for example `links`). An argument the verb
+#'   does not take is refused (`masque_unused_arg_refusal`).
 #'
 #' @return A `masque` object (single-table input) or a `masque_set`
 #'   object (set input), invisibly. Use [synthetic()] and [recipe()].
@@ -84,7 +102,8 @@
 #' head(synthetic(m))
 #'
 #' @seealso [mask()], [mask_set()], [propose_roles()], [set_role()],
-#'   [write_set()], [save_recipe()].
+#'   [apply_recipe()] and [unmask()] for the round trip, [save_recipe()] to
+#'   keep the recipe, [write_set()].
 #' @export
 masque <- function(input,
                    roles = NULL,
@@ -98,22 +117,33 @@ masque <- function(input,
                    ask = interactive(),
                    overwrite = FALSE,
                    quiet = FALSE,
-                   allow_high = FALSE) {
-  mode <- match.arg(mode)
+                   allow_high = FALSE,
+                   detect = TRUE,
+                   sheets = NULL,
+                   info = NULL,
+                   ...) {
+  # NULL: let the verb inherit the mode of the supplied roles.
+  mode <- if (missing(mode)) NULL else match.arg(mode)
   clean <- match.arg(clean)
   ladder <- match.arg(ladder)
 
   is_set <- .masque_is_set(input)
+  if (!is_set && (!is.null(sheets) || !is.null(info))) {
+    cli::cli_abort(c(
+      "{.arg sheets} and {.arg info} apply to a workbook, folder or list.",
+      i = "A single table has no sheets or tables to set aside."
+    ), class = c("masque_bad_info_refusal", "orchestra_refusal"))
+  }
 
   if (is_set) {
     m <- .masque_guided_set(
       input, roles, mode, seed, clean, alias_names, conditional, ladder,
-      ask, quiet
+      ask, quiet, detect, sheets, info, ...
     )
   } else {
     m <- .masque_guided_one(
       input, roles, mode, seed, clean, alias_names, conditional, ladder,
-      ask, quiet
+      ask, quiet, detect, ...
     )
   }
 
@@ -148,59 +178,60 @@ masque <- function(input,
   ))
 }
 
+# Call a masking verb with `mode` only when one was chosen, so the verb's own
+# inheritance from the roles applies otherwise.
+.with_mode <- function(verb, mode, ...) {
+  if (is.null(mode)) verb(...) else verb(..., mode = mode)
+}
+
 .masque_guided_one <- function(input, roles, mode, seed, clean,
-                               alias_names, conditional, ladder, ask, quiet) {
+                               alias_names, conditional, ladder, ask, quiet,
+                               detect, ...) {
   df <- if (is.data.frame(input) || inherits(input, "masque_conformance")) {
     input
   } else {
     .read_one_file(input)
   }
-  if (!is.null(roles)) {
-    return(mask(
-      df, roles, mode = mode, seed = seed, clean = clean,
-      alias_names = alias_names, conditional = conditional, ladder = ladder
-    ))
+  if (is.null(roles)) {
+    tab <- if (inherits(df, "masque_conformance")) df$data else df
+    roles <- propose_roles(tab, mode = mode %||% "local", detect = detect)
+    roles <- .masque_review(roles, ask, quiet, label = NULL)
   }
-
-  proposed <- propose_roles(
-    if (inherits(df, "masque_conformance")) df$data else df, mode = mode
-  )
-  proposed <- .masque_review(proposed, ask, quiet, label = NULL)
-  mask(
-    df, proposed, mode = mode, seed = seed, clean = clean,
-    alias_names = alias_names, conditional = conditional, ladder = ladder
+  .with_mode(
+    mask, mode, df, roles, seed = seed, clean = clean,
+    alias_names = alias_names, conditional = conditional, ladder = ladder,
+    ...
   )
 }
 
 .masque_guided_set <- function(input, roles, mode, seed, clean,
-                               alias_names, conditional, ladder, ask, quiet) {
-  if (!is.null(roles)) {
-    return(mask_set(
-      input, roles = roles, mode = mode, seed = seed, clean = clean,
-      alias_names = alias_names, conditional = conditional, ladder = ladder,
-      quiet = quiet
-    ))
+                               alias_names, conditional, ladder, ask, quiet,
+                               detect, sheets, info, ...) {
+  if (is.null(roles)) {
+    # Propose on the names mask_set() will mask under. It cleans again and
+    # raises the rename warning once, so the warning is held back here.
+    split <- .split_conformance(input)
+    tables <- read_set(split$input, sheets = sheets)
+    to_mask <- setdiff(names(tables), info)
+    roles <- lapply(to_mask, function(nm) {
+      cl <- withCallingHandlers(
+        clean_table(tables[[nm]], clean = clean, quiet = TRUE),
+        masque_name_repaired = function(w) invokeRestart("muffleWarning")
+      )
+      r <- propose_roles(cl$data, mode = mode %||% "local", detect = detect)
+      .masque_review(r, ask, quiet, label = nm)
+    })
+    names(roles) <- to_mask
+    tables[names(split$conformed)] <- split$conformed
+    # Read once: the tables go on, not the path.
+    input <- tables
+    sheets <- NULL
   }
 
-  # Propose on the names mask_set() will mask under. It cleans again and
-  # raises the rename warning once, so the warning is held back here.
-  split <- .split_conformance(input)
-  tables <- read_set(split$input)
-  proposed <- lapply(names(tables), function(nm) {
-    cl <- withCallingHandlers(
-      clean_table(tables[[nm]], clean = clean, quiet = TRUE),
-      masque_name_repaired = function(w) invokeRestart("muffleWarning")
-    )
-    r <- propose_roles(cl$data, mode = mode)
-    .masque_review(r, ask, quiet, label = nm)
-  })
-  names(proposed) <- names(tables)
-  tables[names(split$conformed)] <- split$conformed
-
-  mask_set(
-    tables, roles = proposed, mode = mode, seed = seed, clean = clean,
+  .with_mode(
+    mask_set, mode, input, roles = roles, seed = seed, clean = clean,
     alias_names = alias_names, conditional = conditional, ladder = ladder,
-    quiet = quiet
+    quiet = quiet, sheets = sheets, info = info, ...
   )
 }
 
@@ -210,10 +241,15 @@ masque <- function(input,
   if (!isTRUE(ask) || !interactive()) {
     if (!quiet) {
       where <- if (is.null(label)) "" else sprintf(" for {.field {label}}")
-      cli::cli_alert_info(paste0(
-        "Using the proposed masking plan", where,
+      how <- if (isTRUE(ask)) {
+        paste0(
+          " ({.code ask = TRUE} needs an interactive session; pass ",
+          "{.arg roles} to review the plan in a script)."
+        )
+      } else {
         " (pass {.arg roles} or set {.code ask = TRUE} to review)."
-      ))
+      }
+      cli::cli_alert_info(paste0("Using the proposed masking plan", where, how))
     }
     return(roles)
   }
@@ -391,11 +427,24 @@ masque <- function(input,
 }
 
 .masque_summary <- function(m) {
+  # Count every column of the plan, as the audit does, and name the dropped.
   if (S7::S7_inherits(m, masque_set)) {
-    n <- length(m@synthetic)
-    headline <- "Masked {n} table{?s} in {.val {m@mode}} mode"
+    recs <- m@recipe@recipes
+    n <- length(recs)
+    n_cols <- sum(vapply(recs, function(r) nrow(r@roles), integer(1L)))
+    dropped <- unlist(lapply(names(recs), function(nm) {
+      cols <- .recipe_dropped_cols(recs[[nm]])
+      if (length(cols)) paste0(nm, ":", cols) else character()
+    }))
+    info <- m@recipe@info
+    headline <- paste0(
+      "Masked {n} table{?s} ({n_cols} column{?s}) in {.val {m@mode}} mode"
+    )
   } else {
-    headline <- "Masked {ncol(synthetic(m))} column{?s} in {.val {m@mode}} mode"
+    n_cols <- nrow(recipe(m)@roles)
+    dropped <- .recipe_dropped_cols(recipe(m))
+    info <- character()
+    headline <- "Masked {n_cols} column{?s} in {.val {m@mode}} mode"
   }
 
   status <- .release_status(m)
@@ -410,6 +459,16 @@ masque <- function(input,
     ))
   } else {
     cli::cli_alert_success(paste0(headline, "."))
+  }
+  if (length(dropped)) {
+    cli::cli_alert_info(
+      "{length(dropped)} dropped, not in the clone: {.field {dropped}}."
+    )
+  }
+  if (length(info)) {
+    cli::cli_alert_info(
+      "Set aside, not masked and not written: {.val {info}}."
+    )
   }
 
   if (identical(status, "blocked")) {

@@ -23,7 +23,8 @@
 #' @param input A folder path, an `.xlsx` / `.xls` path, or a named list
 #'   of data frames.
 #' @param sheets For an Excel workbook, an optional character vector of
-#'   sheet names to read (default: all sheets).
+#'   sheet names to read (default: all sheets). Any other input with
+#'   `sheets` set is refused (`masque_bad_sheets_refusal`).
 #' @param pattern For a folder, an optional regular expression to select
 #'   files (default: all `.csv` / `.tsv` / `.fst`).
 #'
@@ -39,6 +40,18 @@
 #' @seealso [mask_set()], [write_set()].
 #' @export
 read_set <- function(input, sheets = NULL, pattern = NULL) {
+  is_workbook <- is.character(input) && length(input) == 1L &&
+    file.exists(input) && !dir.exists(input) &&
+    tolower(tools::file_ext(input)) %in% c("xlsx", "xls")
+  if (!is.null(sheets) && !is_workbook) {
+    cli::cli_abort(c(
+      "{.arg sheets} selects sheets of an Excel workbook.",
+      i = paste0(
+        "For a folder use {.arg pattern}; to leave a table out of the ",
+        "masking, name it in {.arg info}."
+      )
+    ), class = c("masque_bad_sheets_refusal", "orchestra_refusal"))
+  }
   if (is.list(input) && !is.data.frame(input)) {
     return(.validate_table_list(input))
   }
