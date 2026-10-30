@@ -55,9 +55,7 @@ synthesise_numeric_collaborate <- function(x_obs, x_new, lower = -Inf) {
   x_new
 }
 
-# Internal: measurement resolution per column: 1 for whole-valued columns,
-# else the smallest gap between sorted unique values, floored at a share of
-# the range.
+# Internal: resolution, 1 for whole-valued columns, else the smallest gap.
 .detect_resolution <- function(x) {
   x_clean <- x[!is.na(x)]
   if (length(x_clean) == 0L) {
