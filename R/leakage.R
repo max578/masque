@@ -171,7 +171,7 @@
   if (!length(used)) {
     return(NULL)
   }
-  .row_group_id(df[used])
+  .row_group_id(.cols(df, used))
 }
 
 # Dense integer id of each row's combination of the columns in `cols` (a list

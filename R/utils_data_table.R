@@ -7,3 +7,12 @@
     data.table::as.data.table(x)
   }
 }
+
+# Column subset of a data.frame or data.table that keeps its class.
+.cols <- function(x, j) {
+  if (data.table::is.data.table(x)) {
+    x[, j, with = FALSE]
+  } else {
+    x[, j, drop = FALSE]
+  }
+}

@@ -99,7 +99,9 @@ GROUP_MAX_SHARED_FRACTION <- 0.05
     )
   }
 
-  all_missing <- env[vapply(df[env], function(x) all(is.na(x)), logical(1L))]
+  all_missing <- env[vapply(
+    .cols(df, env), function(x) all(is.na(x)), logical(1L)
+  )]
   if (length(all_missing) > 0L) {
     .abort_invalid_environment(
       "Environment column{?s} {?is/are} all-missing: {.field {all_missing}}."
@@ -114,7 +116,7 @@ GROUP_MAX_SHARED_FRACTION <- 0.05
     return(factor(df[[cols]], exclude = NA))
   }
   args <- c(
-    unname(df[cols]),
+    unname(.cols(df, cols)),
     list(drop = TRUE, lex.order = TRUE, sep = ":")
   )
   do.call(interaction, args)
@@ -160,7 +162,7 @@ GROUP_MAX_SHARED_FRACTION <- 0.05
 
 .evaluate_environment_candidate <- function(df, candidate, treatment_key,
                                             allow_no_treatment = FALSE) {
-  env_complete <- stats::complete.cases(df[candidate$cols])
+  env_complete <- stats::complete.cases(.cols(df, candidate$cols))
   coverage <- mean(env_complete)
   env_key <- .interaction_key(df, candidate$cols)
   n_env <- nlevels(env_key)
@@ -412,7 +414,7 @@ GROUP_MAX_SHARED_FRACTION <- 0.05
       rec[[field]] <- defaults[[field]]
     }
   }
-  rec[names(.empty_role_recommendations())]
+  .cols(rec, names(.empty_role_recommendations()))
 }
 
 .environment_role_recommendations <- function(df, cols, confidence,
@@ -421,7 +423,7 @@ GROUP_MAX_SHARED_FRACTION <- 0.05
   if (length(cols) == 0L) {
     return(.empty_role_recommendations())
   }
-  kinds <- vapply(df[cols], col_kind, character(1L))
+  kinds <- vapply(.cols(df, cols), col_kind, character(1L))
   categorical <- kinds %in% .categorical_kinds()
   # `preserve_only`: a suspected environment is kept unchanged in both modes;
   # only a high-confidence environment is aliased in collaborate mode.
@@ -660,11 +662,11 @@ GROUP_MAX_SHARED_FRACTION <- 0.05
                                  treatment_cols, threshold, tie_delta) {
   slice <- droplevels(df[rows, , drop = FALSE])
   candidate_cols <- setdiff(names(slice), env_cols)
-  is_constant <- vapply(slice[candidate_cols], function(x) {
+  is_constant <- vapply(.cols(slice, candidate_cols), function(x) {
     length(unique(stats::na.omit(x))) <= 1L
   }, logical(1L))
   candidate_cols <- candidate_cols[!is_constant]
-  slice <- slice[, candidate_cols, drop = FALSE]
+  slice <- .cols(slice, candidate_cols)
 
   if (nrow(slice) < 2L || ncol(slice) == 0L) {
     return(data.frame(

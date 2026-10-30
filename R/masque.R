@@ -86,8 +86,8 @@
 #' @param info For a set, names of documentation tables to set aside: not
 #'   masked and not written. See [mask_set()].
 #' @param ... Further arguments for the masking verb: [mask()] for one
-#'   table (for example `coords`, `events`, `allow_unmasked_coords`),
-#'   [mask_set()] for a set (for example `links`). An argument the verb
+#'   table (for example `coords`, `events`, `allow_unmasked_coords`,
+#'   `grain`), [mask_set()] for a set (for example `links`, `grain`). An argument the verb
 #'   does not take is refused (`masque_unused_arg_refusal`).
 #'
 #' @return A `masque` object (single-table input) or a `masque_set`

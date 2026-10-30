@@ -198,7 +198,7 @@ jitter_coordinates <- function(df, lat_col, lon_col,
   land_fn <- .resolve_land_fn(on_land)
 
   withr::local_preserve_seed()
-  if (!is.null(seed)) set.seed(seed)
+  if (!is.null(seed)) set.seed(as.integer(.check_seed(seed)))
 
   lat <- df[[lat_col]]
   lon <- df[[lon_col]]
@@ -400,7 +400,7 @@ jitter_coordinates <- function(df, lat_col, lon_col,
       "`by` column{?s} not found in `df`: {.field {missing_cols}}."
     )
   }
-  list(mode = "column", key = unname(as.list(df[, by, drop = FALSE])))
+  list(mode = "column", key = unname(as.list(.cols(df, by))))
 }
 
 # Collapse one or more grouping vectors into a single site key. NA is a level
@@ -470,10 +470,10 @@ jitter_coordinates <- function(df, lat_col, lon_col,
   }
   lapply(coords, function(spec) {
     if (is.character(spec)) spec <- as.list(spec)
-    if (is.null(spec$lat) || is.null(spec$lon)) {
+    if (is.null(spec[["lat"]]) || is.null(spec[["lon"]])) {
       cli::cli_abort("Each `coords` entry needs `lat` and `lon` column names.")
     }
-    for (cn in c(spec$lat, spec$lon)) {
+    for (cn in c(spec[["lat"]], spec[["lon"]])) {
       if (!cn %in% names(df)) {
         cli::cli_abort("Coordinate column {.field {cn}} not found in `df`.")
       }
@@ -486,20 +486,20 @@ jitter_coordinates <- function(df, lat_col, lon_col,
     # A `c(lat = "a", lon = "b", min_km = 5)` vector coerces the numbers to
     # strings; coerce them back so both the vector and the list forms work.
     num <- function(x, default) if (is.null(x)) default else as.numeric(x)
-    on_land <- spec$on_land
+    on_land <- spec[["on_land"]]
     if (is.null(on_land)) {
       on_land <- TRUE
     } else if (is.character(on_land)) {
       on_land <- as.logical(on_land)
     }
     list(
-      lat     = as.character(spec$lat),
-      lon     = as.character(spec$lon),
-      by      = .normalise_coord_by(spec$by, df),
-      method  = spec$method %||% "donut",
-      min_km  = num(spec$min_km, 5),
-      max_km  = num(spec$max_km, 20),
-      sd_km   = num(spec$sd_km, 10),
+      lat     = as.character(spec[["lat"]]),
+      lon     = as.character(spec[["lon"]]),
+      by      = .normalise_coord_by(spec[["by"]], df),
+      method  = spec[["method"]] %||% "donut",
+      min_km  = num(spec[["min_km"]], 5),
+      max_km  = num(spec[["max_km"]], 20),
+      sd_km   = num(spec[["sd_km"]], 10),
       on_land = on_land
     )
   })
@@ -614,7 +614,7 @@ jitter_coordinates <- function(df, lat_col, lon_col,
           "Internal: coordinate grouping needs the original table."
         )
       }
-      grp <- .site_key(unname(as.list(original[, s$by, drop = FALSE])))
+      grp <- .site_key(unname(as.list(.cols(original, s$by))))
     }
     res <- .jitter_coords_impl(
       synth, lat_col = s$lat, lon_col = s$lon,

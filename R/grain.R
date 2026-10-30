@@ -1,10 +1,4 @@
-# grain.R -- The grain of a column, and synthesis at that grain.
-#
-# A column whose value is fixed for a whole design unit (a trial's rainfall, a
-# site's soil class) has the unit as its grain. mask() synthesises such columns
-# once per unit and broadcasts each unit's new value to the unit's rows, as the
-# geomask does for coordinates, so the clone carries one value per unit and
-# averaging a unit's rows recovers nothing.
+# A column constant within a design unit is synthesised once per unit.
 
 #' Detect the grain of the columns mask() re-simulates
 #'
@@ -65,10 +59,7 @@
       if (!ok) {
         return(FALSE)
       }
-      x <- df[[cl]]
-      obs <- !is.na(x)
-      pairs <- data.table::data.table(g = gid[obs], x = x[obs])
-      data.table::uniqueN(pairs) == data.table::uniqueN(pairs$g)
+      .constant_within(gid, df[[cl]])
     }, logical(1L))
     list(n_groups = n_groups, constant = constant)
   })
@@ -147,7 +138,7 @@
 # Internal: dense group id (1, 2, ...) of each row over the unit columns; a
 # missing design value is a group of its own.
 .unit_id <- function(df, unit) {
-  data.table::frankv(df[, unit, drop = FALSE], ties.method = "dense")
+  data.table::frankv(.cols(df, unit), ties.method = "dense")
 }
 
 # Internal: synthesise one grain group on its unit table and broadcast each
@@ -161,7 +152,7 @@
     o <- which(!is.na(x))
     x[o[match(seq_len(n_units), row_unit[o])]]
   }
-  ut <- lapply(df[cols], unit_value)
+  ut <- lapply(.cols(df, cols), unit_value)
 
   kind <- roles$kind[match(cols, roles$col)]
   action <- roles$action[match(cols, roles$col)]
@@ -200,4 +191,26 @@
     out[[cl]] <- x
   }
   list(columns = out, level_maps = maps)
+}
+
+
+# TRUE when `x` holds at most one distinct non-missing value per group id.
+.constant_within <- function(gid, x) {
+  g <- V1 <- NULL
+  obs <- !is.na(x)
+  pairs <- data.table::data.table(g = gid[obs], x = x[obs])
+  pairs[, data.table::uniqueN(x), by = g][, all(V1 <= 1L)]
+}
+
+# Unit and column count only; aliased unit names show their alias.
+.grain_print_line <- function(g, name_map = NULL) {
+  unit <- g$unit
+  hits <- unit %in% names(name_map)
+  unit[hits] <- unlist(name_map[unit[hits]], use.names = FALSE)
+  n <- length(g$cols)
+  sprintf(
+    "%s: %d column%s, synthesised per %s%s",
+    paste(unit, collapse = " : "), n, if (n == 1L) "" else "s",
+    g$synthesised, if (nzchar(g$reason)) sprintf(" (%s)", g$reason) else ""
+  )
 }

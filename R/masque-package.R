@@ -36,3 +36,6 @@
 #'
 #' @keywords internal
 "_PACKAGE"
+
+# Lets data.table's `[` see masque code as data.table-aware.
+.datatable.aware <- TRUE

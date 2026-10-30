@@ -323,7 +323,7 @@
     ))
   }
 
-  cells_filled <- nrow(unique(df[, c(sp$row, sp$col), drop = FALSE]))
+  cells_filled <- nrow(unique(.cols(df, c(sp$row, sp$col))))
   cells_total <- sp$n_row * sp$n_col
   fill_pct <- cells_filled / cells_total
 

@@ -222,10 +222,10 @@ local(S7::method(plot, design_summary) <- function(
   rows <- !is.na(env_key) & as.character(env_key) == env_label
   slice <- droplevels(df[rows, , drop = FALSE])
   candidate_cols <- setdiff(names(slice), x@env_cols)
-  constants <- vapply(slice[candidate_cols], function(column) {
+  constants <- vapply(.cols(slice, candidate_cols), function(column) {
     length(unique(stats::na.omit(column))) <= 1L
   }, logical(1L))
-  slice <- slice[, candidate_cols[!constants], drop = FALSE]
+  slice <- .cols(slice, candidate_cols[!constants])
   detected <- .detect_design_legacy(slice, scope = .scope_disabled())
   if (length(x@treatment_col) > 0L) {
     detected@treatment_col <- intersect(x@treatment_col, names(slice))

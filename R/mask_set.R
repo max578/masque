@@ -47,6 +47,8 @@
 #'   [mask()] for the full account.
 #' @param ladder Drop order of the conditioning ladder, `"hierarchy"` (default)
 #'   or `"levels"`; passed through to each [mask()] call.
+#' @param grain Single logical (default `TRUE`); passed through to each
+#'   [mask()] call, which synthesises a unit-constant column once per unit.
 #' @param quiet Logical; suppress the link / hygiene report, including the
 #'   hint that a table looks like documentation.
 #' @param sheets For an Excel workbook, the sheets to read (default: all);
@@ -92,6 +94,7 @@ mask_set <- function(input,
                      alias_names = FALSE,
                      conditional = FALSE,
                      ladder = c("hierarchy", "levels"),
+                     grain = TRUE,
                      quiet = FALSE,
                      sheets = NULL,
                      info = NULL,
@@ -187,7 +190,11 @@ mask_set <- function(input,
   # Link detection -> shared alias maps. `.build_shared_maps()` fills each
   # group's `$map` and indexes the maps by table for the mask() calls.
   link_groups <- .resolve_links(tables, roles, links, mode)
-  built <- .build_shared_maps(tables, roles, link_groups, mode)
+  built <- if (is.null(seed)) {
+    .build_shared_maps(tables, roles, link_groups, mode)
+  } else {
+    with_rng_state(seed, .build_shared_maps(tables, roles, link_groups, mode))
+  }
   link_groups <- built$groups
   shared_by_table <- built$shared_by_table
 
@@ -212,6 +219,7 @@ mask_set <- function(input,
       alias_names = aln,
       conditional = conditional,
       ladder = ladder,
+      grain = grain,
       .shared_maps = shared_by_table[[nm]],
       .cleaning = cleaning[[nm]]
     )

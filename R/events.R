@@ -1,11 +1,4 @@
-# events.R -- Linked time-to-event outcomes for mask(events =).
-#
-# A spec names the time and status columns of one group of linked events, in
-# the order the events occur. Times are turned into non-negative gaps, rows are
-# grouped by their status pattern, and the gaps are re-simulated within each
-# pattern, then summed back into times. Status patterns are permuted across
-# rows (within treatment when the clone is conditional), so the count of each
-# pattern is exact and a gap the pattern holds at zero stays zero.
+# Linked events for mask(events =): gaps re-simulated per status pattern.
 
 # Normalise and validate mask()'s `events` against the original table and the
 # validated roles. Returns a list of `list(time =, status =)`.
@@ -66,13 +59,13 @@
   }
 
   # roles_validate() has already refused a non-numeric outcome.
-  not_whole <- status[!vapply(df[status], .is_whole_valued, logical(1))]
+  not_whole <- status[!vapply(.cols(df, status), .is_whole_valued, logical(1))]
   if (length(not_whole)) {
     .events_refuse(
       "Event status{?es} {.field {not_whole}} must be whole-numbered codes."
     )
   }
-  has_na <- cols[vapply(df[cols], anyNA, logical(1))]
+  has_na <- cols[vapply(.cols(df, cols), anyNA, logical(1))]
   if (length(has_na)) {
     .events_refuse(c(
       "Event column{?s} {.field {has_na}} contain{?s/} missing values.",
@@ -84,7 +77,7 @@
   }
 
   if (length(time) > 1L) {
-    tm <- as.matrix(df[time])
+    tm <- as.matrix(.cols(df, time))
     back <- which(apply(tm, 1L, function(r) any(diff(r) < 0)))
     if (length(back)) {
       .events_refuse(c(
@@ -110,21 +103,20 @@
   )
 }
 
-# Synthesise one event spec. `strata` is NULL (arm-blind) or a character
-# vector of row strata, normally the treatment, within which status patterns
-# are permuted and gaps re-simulated. Returns the synthetic event columns and a
-# report for the recipe.
+# `strata`: NULL (arm-blind) or the row strata patterns are permuted in.
 .synthesise_events <- function(df, spec, strata, jitter, min_stratum) {
   n <- nrow(df)
   k <- length(spec$time)
 
   # Gaps and status patterns ---------------------------------------------------
-  tm <- as.matrix(df[spec$time])
+  tm <- as.matrix(.cols(df, spec$time))
   gaps <- tm
   if (k > 1L) {
     gaps[, -1L] <- tm[, -1L, drop = FALSE] - tm[, -k, drop = FALSE]
   }
-  pattern <- do.call(paste, c(lapply(df[spec$status], as.character), sep = "/"))
+  pattern <- do.call(
+    paste, c(lapply(.cols(df, spec$status), as.character), sep = "/")
+  )
 
   # Permute whole status rows, within strata when the clone is conditional, so
   # pattern counts (per stratum) are exact and no real row keeps its own.
@@ -226,13 +218,7 @@
   )
 }
 
-# Cap each row's final time at `cap`. The final time moves together with the
-# times tied to it by zero gaps, so those gaps stay zero; the earlier times
-# are left alone. When the time before that block is already at or past the
-# cap, capping would turn a positive gap into a zero gap (a tie the pattern
-# need not have) or a negative one, so the whole row is scaled by
-# cap / final time instead: order kept, zero gaps zero, positive gaps
-# positive.
+# A row whose earlier times reach `cap` is scaled, so no gap changes sign.
 .cap_final_time <- function(times, gaps, cap) {
   k <- ncol(times)
   over <- which(times[, k] > cap)
@@ -256,9 +242,7 @@
   which(pattern %in% names(free_pat)[free_pat])
 }
 
-# Draw `n` rows of gaps from the observed gap rows through the empirical
-# copula, with collaborate-mode jitter when asked. The pool has at least `n`
-# rows; a pool-sized draw is jittered against the pool, then cut to `n`.
+# The pool has at least `n` rows; a pool-sized draw is jittered, then cut.
 .draw_gaps <- function(obs, n, jitter) {
   x_obs <- as.data.frame(obs)
   x_new <- synthesise_numeric_local(x_obs)

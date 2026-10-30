@@ -48,6 +48,7 @@ local(S7::method(print, masque_set) <- function(x, ...) {
     "*" = sprintf("Mode: %s", x@mode),
     "*" = sprintf("Tables: %d", length(x@synthetic))
   ))
+  .print_info_line(x@recipe)
   for (nm in names(x@synthetic)) {
     tab <- x@synthetic[[nm]]
     cli::cli_li(
@@ -79,6 +80,15 @@ local(S7::method(print, masque_set) <- function(x, ...) {
   invisible(x)})
 
 
+# Table names only; a set-aside table's content is never read for display.
+.print_info_line <- function(bundle) {
+  info <- .prop_or(bundle, "info", character())
+  if (length(info)) {
+    line <- sprintf("Set aside, not masked: %s", paste(info, collapse = ", "))
+    cli::cli_bullets(c("*" = "{line}"))
+  }
+}
+
 # local(): see the plot method in detect_plot.R.
 local(S7::method(print, masque_recipe_set) <- function(x, ...) {
   cli::cli_h1("masque_recipe_set")
@@ -88,6 +98,7 @@ local(S7::method(print, masque_recipe_set) <- function(x, ...) {
     "*" = sprintf("Tables: %d", length(x@recipes)),
     "*" = sprintf("masque version: %s", x@masque_version)
   ))
+  .print_info_line(x)
 
   # Link names and tables only; the shared maps stay redacted.
   if (length(x@links)) {

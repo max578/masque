@@ -193,8 +193,8 @@ test_that("mask(coords=) inherits the site invariant by default", {
   syn <- .masked_sites(
     df, list(list(lat = "lat", lon = "lon", on_land = FALSE))
   )
-  expect_equal(nrow(unique(as.data.frame(syn[c("lat", "lon")]))), 5L)
-  by_site <- split(as.data.frame(syn[c("lat", "lon")]), df$trial)
+  expect_equal(nrow(unique(as.data.frame(syn[, c("lat", "lon")]))), 5L)
+  by_site <- split(as.data.frame(syn[, c("lat", "lon")]), df$trial)
   one_pair <- function(s) nrow(unique(s)) == 1L
   expect_true(all(vapply(by_site, one_pair, logical(1))))
 })
@@ -213,7 +213,7 @@ test_that("mask(coords=) accepts `by` and groups on the original table", {
     coords = list(list(lat = "lat", lon = "lon", by = "trial",
                        on_land = FALSE))))
   syn <- synthetic(m)
-  expect_equal(nrow(unique(as.data.frame(syn[c("lat", "lon")]))), 3L)
+  expect_equal(nrow(unique(as.data.frame(syn[, c("lat", "lon")]))), 3L)
   expect_equal(length(unique(syn$lat[1:4])), 1L)
 
   rec <- recipe(m)

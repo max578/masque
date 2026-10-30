@@ -165,22 +165,29 @@ propose_roles <- function(df, mode = c("local", "collaborate"),
   attr(roles, "mode") <- mode
   attr(roles, "proposed_actions") <- stats::setNames(roles$action, roles$col)
 
-  if (!isTRUE(detect)) {
-    return(roles)
-  }
-
   # Structural overlay: detect_design() consumes the name-based proposal.
   # Need at least 2 rows for detection to be meaningful.
-  if (nrow(df) < 2L) {
-    return(roles)
+  if (isTRUE(detect) && nrow(df) >= 2L) {
+    ds <- detect_design(df, roles = roles)
+    if (nrow(ds@recommended_roles) > 0L) {
+      roles <- .overlay_recommended_roles(roles, ds@recommended_roles, mode)
+    }
+    .warn_environment_disclosure(roles, ds, mode)
+    attr(roles, "design") <- ds
   }
+  .note_grain(roles, df, mode)
+}
 
-  ds <- detect_design(df, roles = roles)
-  if (nrow(ds@recommended_roles) > 0L) {
-    roles <- .overlay_recommended_roles(roles, ds@recommended_roles, mode)
+# Notes each column mask() would synthesise once per design unit.
+.note_grain <- function(roles, df, mode) {
+  for (g in .detect_grain(df, roles)) {
+    if (identical(mode, "collaborate") && g$n_units < .MIN_STRATUM) next
+    unit <- paste(g$unit, collapse = ":")
+    idx <- match(g$cols, roles$col)
+    hint <- sprintf("Constant within %s; synthesised per %s.", unit, unit)
+    data.table::set(roles, i = idx, j = "notes",
+                    value = paste(roles$notes[idx], hint))
   }
-  .warn_environment_disclosure(roles, ds, mode)
-  attr(roles, "design") <- ds
   roles
 }
 
