@@ -28,8 +28,10 @@
 * masque needs data.table 1.15.0 or later. Returned tables are data.tables,
   as before.
 * `mask_set()` link aliases now follow `seed` whatever the caller's random
-  state, so a set made with a seed in 0.15.0 gets different link aliases
-  when it is made again.
+  state, from their own stream derived from `seed`, so a set made with a
+  seed in 0.15.0 gets different link aliases when it is made again.
+* A whole-numbered outcome (a count) is graded on its excess over chance:
+  an ordinary clone audits low instead of medium.
 
 ## New features
 
@@ -51,8 +53,14 @@
   `attr(audit, "joint")`. A column synthesised per unit, or a whole-numbered
   covariate (age in years), is graded on that excess instead of on raw
   exact matches, which it reaches by construction.
-* `audit_mask()` grades such a column HIGH when it matches the original
-  row by row far above chance, as when the real values were copied back.
+* `audit_mask()` grades such a column HIGH when it matches its own row or
+  design unit far above chance (50 points and 4 standard deviations), and a
+  continuous per-unit column HIGH when its unit values are the real ones,
+  even moved between units. With 5 to 8 units and few distinct values a
+  copy cannot be told from chance, and the audit grades it low.
+* Every warning carries a `masque_` class, including
+  `masque_roles_upgraded`, `masque_roles_mode_mismatch`,
+  `masque_plot_skipped` and `masque_geo_anchor_missing`.
 * `save_recipe()`, `read_recipe()`, `reveal_maps(table = )` and
   `audit_mask()` work on a `mask_set()` result.
 * The recipe records `conform_table()` decisions, and `apply_recipe()`
@@ -93,6 +101,8 @@
 * The guided summary counts columns as the audit does, and the
   non-interactive notice no longer suggests an argument already passed.
 * The vignettes restore the `options()` they set.
+* The design plot skips the replication panel with a warning, instead of
+  an error, when there is no block column.
 
 # masque 0.15.0
 
