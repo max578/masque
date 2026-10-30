@@ -225,12 +225,16 @@ print.masque_cleaning <- function(x, ...) {
     return(.empty_near_dups())
   }
   lower <- tolower(vals)
-  d <- utils::adist(vals)
-  # Upper triangle in column order: pairs listed by `b`, then by `a`.
-  idx <- which(
-    upper.tri(d) & (d == 1L | outer(lower, lower, "==")),
-    arr.ind = TRUE
-  )
+  idx <- which(utils::adist(vals) == 1L, arr.ind = TRUE)
+  # Case variants can be several edits apart ("NSW", "nsw").
+  shared <- which(duplicated(lower) | duplicated(lower, fromLast = TRUE))
+  if (length(shared)) {
+    same <- which(outer(lower[shared], lower[shared], "=="), arr.ind = TRUE)
+    idx <- rbind(idx, cbind(shared[same[, 1L]], shared[same[, 2L]]))
+  }
+  # Each pair once, listed by `b`, then by `a`.
+  idx <- unique(idx[idx[, 1L] < idx[, 2L], , drop = FALSE])
+  idx <- idx[order(idx[, 2L], idx[, 1L]), , drop = FALSE]
   if (!nrow(idx)) {
     return(.empty_near_dups())
   }
