@@ -9,8 +9,10 @@
 #' Detect the grain of the columns mask() re-simulates
 #'
 #' Candidates are scrambled covariate and outcome columns of numeric,
-#' categorical or date kind, and aliased categorical covariates, less
-#' `exclude`. Units are the design columns of `df`, singly and in pairs. A
+#' categorical or date kind, scrambled date columns, and aliased categorical
+#' covariates, less `exclude`. Units are the retained (not dropped) design
+#' columns of `df`, singly and in pairs, since a dropped unit broadcast into
+#' the clone would publish the grouping the plan removed. A
 #' column's grain is the unit with the fewest groups within which every group
 #' holds at most one distinct non-missing value, among units with at least two
 #' groups and at most `nrow(df) / 2`; ties go to fewer columns, then column
@@ -28,12 +30,13 @@
   cand <- roles$col[
     ((role %in% c("covariate", "outcome") & action == "scramble" &
       kind %in% c(.numeric_kinds(), .categorical_kinds(), .date_kinds())) |
+      (role == "date" & action == "scramble" & kind %in% .date_kinds()) |
       (role == "covariate" & action == "alias" &
         kind %in% .categorical_kinds())) &
       !roles$col %in% exclude
   ]
   cand <- intersect(names(df), cand)
-  design <- intersect(names(df), roles$col[role == "design"])
+  design <- intersect(names(df), roles$col[role == "design" & action != "drop"])
   n <- nrow(df)
   if (!length(cand) || !length(design) || n < 4L) {
     return(list())

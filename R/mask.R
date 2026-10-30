@@ -167,11 +167,12 @@
 #'   `mask()` stops. No hazard model is fitted and no covariate-to-event
 #'   relation is kept.
 #' @param grain Single logical (default `TRUE`). Synthesise each column at
-#'   its **grain**: a scrambled covariate or outcome, or an aliased
-#'   categorical covariate, that holds at most one distinct non-missing value
-#'   within every unit of a design column, or of a pair of design columns
-#'   (`site:year`), is re-simulated once per unit and each unit's new value
-#'   is written to that unit's rows. The grain is the coarsest such unit with
+#'   its **grain**: a scrambled covariate, outcome or date column, or an
+#'   aliased categorical covariate, that holds at most one distinct
+#'   non-missing value within every unit of a retained design column, or of a
+#'   pair of them (`site:year`), is re-simulated once per unit and each unit's
+#'   new value is written to that unit's rows. The grain is the coarsest such
+#'   unit with
 #'   at least two units and at least two rows per unit on average; a unit with
 #'   no value stays missing. Numeric columns of one grain are drawn jointly
 #'   through the copula on the unit-level table (with collaborate-mode

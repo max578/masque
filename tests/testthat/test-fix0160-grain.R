@@ -341,3 +341,25 @@ test_that("a grained clone round-trips through apply_recipe() and unmask()", {
   expect_identical(back$soil, df$soil)
   expect_identical(back$genotype, df$genotype)
 })
+
+test_that("a per-trial date is synthesised once per trial", {
+  df <- .fx_met()
+  sown <- as.Date("2025-05-01") + c(3L, 11L, 0L, 20L, 7L, 15L)
+  df$sown <- sown[match(df$trial, sprintf("T%d", 1:6))]
+  roles <- set_role(.fx_met_roles(df, "local"), "sown", role = "date",
+                    action = "scramble")
+  expect_identical(.detect_grain(df, roles)[[1]]$cols, c("aet", "soil", "sown"))
+  m <- suppressWarnings(mask(df, roles, mode = "local", seed = 4))
+  syn <- synthetic(m)
+  expect_s3_class(syn$sown, "Date")
+  expect_identical(.fx_distinct_by(syn$sown, df$trial), rep(1L, 6))
+  expect_setequal(syn$sown, sown)
+})
+
+test_that("a dropped design column is not a unit", {
+  df <- .fx_met()
+  roles <- set_role(.fx_met_roles(df, "local"), "trial", action = "drop")
+  expect_length(.detect_grain(df, roles), 0L)
+  m <- suppressWarnings(mask(df, roles, mode = "local", seed = 1))
+  expect_length(recipe(m)@grain, 0L)
+})
