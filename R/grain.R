@@ -175,7 +175,9 @@
     x_new <- synthesise_numeric_local(x_unit)
     for (cl in num) {
       new_unit[[cl]] <- if (isTRUE(jitter)) {
-        synthesise_numeric_collaborate(x_obs = x_unit[[cl]], x_new = x_new[[cl]])
+        synthesise_numeric_collaborate(
+          x_obs = x_unit[[cl]], x_new = x_new[[cl]]
+        )
       } else {
         x_new[[cl]]
       }

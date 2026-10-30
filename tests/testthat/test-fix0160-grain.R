@@ -149,7 +149,7 @@ test_that("a crossed site:year covariate is found on the interaction", {
   expect_identical(g[[1]]$n_units, 6L)
 })
 
-test_that("constant columns, unreplicated units and kept columns have no grain", {
+test_that("constant, unreplicated and kept columns have no grain", {
   df <- .fx_met()
   df$const <- 7.5
   df$plot <- seq_len(nrow(df))
@@ -177,7 +177,8 @@ test_that("trial-level columns keep one value per trial in every mode", {
       conditional = cb$cond
     ))
     syn <- synthetic(m)
-    expect_identical(.fx_distinct_by(syn$aet, df$trial), rep(1L, 6), label = lab)
+    expect_identical(.fx_distinct_by(syn$aet, df$trial), rep(1L, 6),
+                     label = lab)
     expect_identical(.fx_distinct_by(syn$soil, df$trial), rep(1L, 6),
                      label = lab)
     # Row-level columns still vary within trial.

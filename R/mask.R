@@ -380,7 +380,9 @@ mask <- function(df,
     )
   }
   .guard_unmasked_coords(df, roles, coord_cols, allow_unmasked_coords)
-  warnings_acc <- c(warnings_acc, .check_row_floor(df, roles, mode, event_specs))
+  warnings_acc <- c(
+    warnings_acc, .check_row_floor(df, roles, mode, event_specs)
+  )
 
   # Columns constant within a design unit are synthesised once per unit.
   event_cols <- unlist(lapply(event_specs, function(s) c(s$time, s$status)))
