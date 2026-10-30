@@ -1,10 +1,4 @@
-# grain.R -- The grain of a column, and synthesis at that grain.
-#
-# A column whose value is fixed for a whole design unit (a trial's rainfall, a
-# site's soil class) has the unit as its grain. mask() synthesises such columns
-# once per unit and broadcasts each unit's new value to the unit's rows, as the
-# geomask does for coordinates, so the clone carries one value per unit and
-# averaging a unit's rows recovers nothing.
+# A column constant within a design unit is synthesised once per unit.
 
 #' Detect the grain of the columns mask() re-simulates
 #'

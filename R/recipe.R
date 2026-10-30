@@ -77,9 +77,7 @@ masque_recipe <- S7::new_class(
     # One entry per linked-event spec: columns, stratification, pattern count
     # and the small patterns that were pooled. Empty before 0.16.0.
     events = S7::new_property(class = S7::class_list, default = list()),
-    # One entry per design unit holding grained columns: the unit, its
-    # columns, the unit count, and whether they were synthesised per "unit"
-    # or per "row" with the reason. Empty before 0.16.0.
+    # One entry per design unit holding grained columns; see .detect_grain().
     grain = S7::new_property(class = S7::class_list, default = list()),
     # TRUE when the caller deliberately wrote a real coordinate through
     # unmasked. FALSE, and absent on a recipe written before 0.11.0.
