@@ -121,11 +121,14 @@ mask_set <- function(input,
   table_names <- names(tables)
 
   # Hygiene per table (names legalised, whitespace trimmed) up front, so
-  # link detection and roles see the cleaned schema.
+  # link detection and roles see the cleaned schema. Each table's record goes
+  # to its recipe so the set round-trips like a single table.
   cleaned <- lapply(tables, clean_table, clean = clean, quiet = TRUE)
   tables <- lapply(cleaned, `[[`, "data")
+  cleaning <- lapply(cleaned, .cleaning_record)
 
-  # Roles: proposed per table unless supplied.
+  # Roles: proposed per table unless supplied. Supplied roles may name the
+  # original headers or the cleaned ones.
   if (is.null(roles)) {
     roles <- lapply(tables, function(tab) {
       propose_roles(tab, mode = mode)
@@ -133,6 +136,11 @@ mask_set <- function(input,
     names(roles) <- table_names
   } else {
     .check_roles_list(roles, tables)
+    for (nm in table_names) {
+      roles[[nm]] <- .align_roles_cols(
+        roles[[nm]], cleaning[[nm]]$name_map, names(tables[[nm]])
+      )
+    }
   }
 
   # Link detection -> shared alias maps. `.build_shared_maps()` fills each
@@ -160,11 +168,11 @@ mask_set <- function(input,
       roles = roles[[nm]],
       mode = mode,
       seed = seed,
-      clean = "off", # already cleaned at set level
       alias_names = aln,
       conditional = conditional,
       ladder = ladder,
-      .shared_maps = shared_by_table[[nm]]
+      .shared_maps = shared_by_table[[nm]],
+      .cleaning = cleaning[[nm]]
     )
     synth_tables[[nm]] <- synthetic(m)
     recipes[[nm]] <- recipe(m)

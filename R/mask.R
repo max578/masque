@@ -192,6 +192,7 @@ mask <- function(df,
                  allow_unmasked_coords = FALSE,
                  quiet = FALSE,
                  .shared_maps = list(),
+                 .cleaning = NULL,
                  ...) {
   # A misspelled argument silently swallowed by `...` looks like success;
   # error on anything unused.
@@ -285,18 +286,25 @@ mask <- function(df,
   warnings_acc <- character()
 
   # Names are legalised in every clean mode, since a rewritten name breaks the
-  # round trip; whitespace trimming follows `clean`.
-  cl <- clean_table(df, clean = clean, quiet = TRUE)
-  df <- cl$data
-  roles <- .remap_roles_cols(roles, cl$name_map)
-  cleaning_rec <- if (length(cl$name_map) || length(cl$level_fixes) ||
-    nrow(cl$near_duplicates)) {
-    .cleaning_record(cl)
+  # round trip; whitespace trimming follows `clean`. A caller that cleaned
+  # already (mask_set(), conform_table()) passes its record instead.
+  if (is.null(.cleaning)) {
+    cl <- clean_table(df, clean = clean, quiet = TRUE)
+    df <- cl$data
+    .cleaning <- .cleaning_record(cl)
+  } else {
+    df <- .as_owned_dt(df)
+  }
+  name_map <- .cleaning$name_map
+  roles <- .align_roles_cols(roles, name_map, names(df))
+  cleaning_rec <- if (length(name_map) || length(.cleaning$level_fixes) ||
+    .near_dup_count(.cleaning) > 0L) {
+    .cleaning
   } else {
     NULL
   }
-  if (length(cl$name_map)) {
-    warnings_acc <- c(warnings_acc, .name_repair_message(cl$name_map))
+  if (length(name_map)) {
+    warnings_acc <- c(warnings_acc, .name_repair_message(name_map))
   }
 
   roles <- withCallingHandlers(

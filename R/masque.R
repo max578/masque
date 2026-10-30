@@ -176,9 +176,15 @@ masque <- function(input,
     ))
   }
 
+  # Propose on the names mask_set() will mask under. It cleans again and
+  # raises the rename warning once, so the warning is held back here.
   tables <- read_set(input)
   proposed <- lapply(names(tables), function(nm) {
-    r <- propose_roles(tables[[nm]], mode = mode)
+    cl <- withCallingHandlers(
+      clean_table(tables[[nm]], clean = clean, quiet = TRUE),
+      masque_name_repaired = function(w) invokeRestart("muffleWarning")
+    )
+    r <- propose_roles(cl$data, mode = mode)
     .masque_review(r, ask, quiet, label = nm)
   })
   names(proposed) <- names(tables)

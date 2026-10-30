@@ -60,6 +60,7 @@ clean_table <- function(df, clean = c("auto", "report", "off"), quiet = FALSE) {
   # Names are legalised in every mode, since a name rewritten later by
   # make.names() breaks the round trip. `clean` governs only the steps below.
   orig_names <- names(df)
+  .refuse_duplicate_names(orig_names)
   legal <- .legalise_names(orig_names)
   name_map <- stats::setNames(legal, orig_names)
   name_map <- name_map[orig_names != legal]
@@ -129,6 +130,26 @@ print.masque_cleaning <- function(x, ...) {
     col = character(), a = character(), b = character(),
     kind = character(), stringsAsFactors = FALSE
   )
+}
+
+# Two input columns with one name cannot be told apart by the name map, so
+# the round trip would swap them; refuse before anything is renamed.
+.refuse_duplicate_names <- function(nms) {
+  dups <- unique(nms[duplicated(nms)])
+  if (!length(dups)) {
+    return(invisible(nms))
+  }
+  cli::cli_abort(c(
+    "{cli::qty(length(dups))}Column name{?s} used more than once: {.val {dups}}.",
+    i = paste0(
+      "masque records renamed columns by their original name, so two ",
+      "columns with one name cannot be restored on the round trip."
+    ),
+    "*" = paste0(
+      "Give each column its own name first, for example ",
+      "{.code names(df) <- make.unique(names(df), sep = \"_\")}."
+    )
+  ), class = c("masque_duplicate_names_refusal", "orchestra_refusal"))
 }
 
 # Trim, make.names(), then make.unique() for any collisions this introduces.
@@ -221,11 +242,17 @@ print.masque_cleaning <- function(x, ...) {
 # recipe (the data frame itself is not kept).
 .cleaning_record <- function(cl) {
   list(
-    name_map        = cl$name_map,
-    level_fixes     = cl$level_fixes,
-    near_duplicates = cl$near_duplicates,
-    mode            = cl$mode
+    name_map          = cl$name_map,
+    level_fixes       = cl$level_fixes,
+    near_duplicates   = cl$near_duplicates,
+    n_near_duplicates = nrow(cl$near_duplicates),
+    mode              = cl$mode
   )
+}
+
+# Near-duplicate pairs found, including those not kept on the record.
+.near_dup_count <- function(rec) {
+  rec$n_near_duplicates %||% NROW(rec$near_duplicates)
 }
 
 # Re-apply a recipe's cleaning record to the original, so a pipeline written
@@ -287,6 +314,19 @@ trimws_keep_class <- function(x) {
     attr(roles, "proposed_actions") <- pa
   }
   roles
+}
+
+# Line a roles table up with the cleaned names. A table already keyed by the
+# cleaned names is left alone: remapping it would move `Site.Name` onto
+# `Site.Name_1` when `Site Name` and `Site.Name` both exist.
+.align_roles_cols <- function(roles, name_map, clean_names) {
+  if (!length(name_map) || !("col" %in% names(roles))) {
+    return(roles)
+  }
+  if (all(roles$col %in% clean_names) && !anyDuplicated(roles$col)) {
+    return(roles)
+  }
+  .remap_roles_cols(roles, name_map)
 }
 
 .report_cleaning <- function(cl) {
