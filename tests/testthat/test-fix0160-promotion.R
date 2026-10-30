@@ -26,7 +26,9 @@
   blocks <- lapply(1:3, function(b) {
     data.frame(
       block = b,
-      genotype = sample(c(tests[(b - 1L) * 6L + 1:6], rep(c("CHK1", "CHK2"), 2))),
+      genotype = sample(
+        c(tests[(b - 1L) * 6L + 1:6], rep(c("CHK1", "CHK2"), 2))
+      ),
       stringsAsFactors = FALSE
     )
   })
