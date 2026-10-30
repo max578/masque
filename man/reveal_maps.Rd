@@ -25,6 +25,14 @@ built into the \code{print()}, \code{format()}, \code{str()} and \code{knitr::kn
 methods of recipes, recipe bundles, \code{masque} and \code{masque_set} objects.
 \code{saveRDS()} and \code{dput()} write the maps by design.
 }
+\details{
+For each recipe it prints the column-name map (when names were
+aliased), every level map as \code{original -> alias}, and the seed. The
+alias labels follow the scheme described under \code{alias} in \code{\link[=mask]{mask()}}:
+\code{trt_NNN} or \verb{<col>_trt_NNN} for treatments, \verb{<col>_LNNN}, \verb{<col>_DNNN},
+\verb{<col>_INNN} and \verb{<col>_TNNN} for covariates, design columns, ids and
+text, and \verb{<col>_KNNN} for a key shared across the tables of a set.
+}
 \examples{
 r <- propose_roles(iris)
 r$role[r$col == "Sepal.Length"] <- "outcome"

@@ -249,6 +249,13 @@ local({
 #' methods of recipes, recipe bundles, `masque` and `masque_set` objects.
 #' `saveRDS()` and `dput()` write the maps by design.
 #'
+#' For each recipe it prints the column-name map (when names were
+#' aliased), every level map as `original -> alias`, and the seed. The
+#' alias labels follow the scheme described under `alias` in [mask()]:
+#' `trt_NNN` or `<col>_trt_NNN` for treatments, `<col>_LNNN`, `<col>_DNNN`,
+#' `<col>_INNN` and `<col>_TNNN` for covariates, design columns, ids and
+#' text, and `<col>_KNNN` for a key shared across the tables of a set.
+#'
 #' @param rec A `masque_recipe` object (e.g., from `recipe(m)`), or the
 #'   `masque_recipe_set` bundle of a [mask_set()] result.
 #' @param table For a bundle, the names of the tables whose maps to reveal.

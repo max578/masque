@@ -102,7 +102,8 @@
 #'
 #' @seealso [mask()], [mask_set()], [propose_roles()], [set_role()],
 #'   [apply_recipe()] and [unmask()] for the round trip, [save_recipe()] to
-#'   keep the recipe, [write_set()].
+#'   keep the recipe, [audit_mask()], [data_card()] and [roles()] to describe
+#'   the clone, [write_set()].
 #' @export
 masque <- function(input,
                    roles = NULL,

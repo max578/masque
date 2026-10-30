@@ -24,7 +24,9 @@ writes the result. A single table flows through \code{\link[=mask]{mask()}}; a f
 workbook, or named list flows through \code{\link[=mask_set]{mask_set()}}, which aliases
 shared keys identically across tables so the synthetic set still
 joins. \code{\link[=apply_recipe]{apply_recipe()}} and \code{\link[=unmask]{unmask()}} re-target a finished pipeline
-onto the original data.
+onto the original data. \code{\link[=audit_mask]{audit_mask()}} grades what the clone discloses,
+and \code{\link[=data_card]{data_card()}} describes the clone for a collaborator without
+listing any value.
 }
 
 \section{Scope and limits}{
@@ -43,7 +45,8 @@ the full threat model and limitations.
 level vocabularies; may emit observed values; not for external sharing.
 \item \code{mode = "collaborate"}: opaque aliasing for treatment and
 categorical-covariate levels; within-resolution jitter on numerics;
-integers stochastically rounded; \code{audit_mask()} auto-runs at construction.
+whole numbers stochastically rounded; \code{audit_mask()} auto-runs at
+construction.
 }
 }
 

@@ -1,7 +1,7 @@
 #' Collaborate-mode opaque aliasing of categorical levels
 #'
 #' Replaces the level vocabulary with opaque aliases of the form
-#' `<prefix>_001`, `<prefix>_002`, ..., assigned to the levels by a
+#' `<prefix>001`, `<prefix>002`, ... (`trt_001`, `site_D001`), assigned to the levels by a
 #' **random permutation** drawn from the RNG stream `mask()` has already
 #' seeded. The alias vocabulary itself is fixed and sorted; which level
 #' receives which alias is not.
