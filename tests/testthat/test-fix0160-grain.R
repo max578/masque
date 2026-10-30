@@ -79,13 +79,14 @@
   r
 }
 
-# Text form of a clone: doubles to 15 significant digits, then the level maps.
+# Text form of a clone: doubles to 10 significant digits (15 is not stable
+# across arm64 and x86_64), then the level maps.
 .fx_canon <- function(m) {
   syn <- as.data.frame(synthetic(m))
   cols <- vapply(names(syn), function(nm) {
     x <- syn[[nm]]
     v <- if (is.double(x) && !inherits(x, "Date")) {
-      sprintf("%.15g", x)
+      sprintf("%.10g", x)
     } else {
       as.character(x)
     }
@@ -300,11 +301,11 @@ test_that("grain = FALSE is the row-level clone of masque 0.15", {
     local_FALSE =
       "65154f4d80860124e54c67e3fcccc934d3757823dac158f5d2dda8ac98764601",
     local_TRUE =
-      "789a764980d220b4924e1367dd6e47fe8db31c903d9b02196d5635390a689808",
+      "73d686ac8878aa5b73cddb8bfed9d29a5151cd582316206e00d496d74da2307e",
     collaborate_FALSE =
-      "684cc07c5fa22d2c70bd897250250a0f79fde0b2091b149b539623f688ac5de1",
+      "a14edc6096ebd4e41aee38b4bf105fa085423a0ffd7f0a907f7af243ef59a6fc",
     collaborate_TRUE =
-      "154490c0135a592e49167c306127438a6723266fb96142762682674673db10e6"
+      "d5cae870dc9308415ce59945dc98bc00998fdb882bfffe243f10c1848f5022ba"
   )
   df <- .fx_met()
   for (cb in .fx_combos) {

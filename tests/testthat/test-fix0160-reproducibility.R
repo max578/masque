@@ -36,14 +36,15 @@
   r
 }
 
-# Text form of a clone: 15 significant digits per double, so the digest is
-# independent of serialisation format and of last-bit platform noise.
+# Text form of a clone: 10 significant digits per double, so the digest is
+# independent of serialisation format and of last-bit platform noise (at 15
+# digits arm64 and x86_64 disagree).
 .repro_canon <- function(m) {
   syn <- as.data.frame(synthetic(m))
   cols <- vapply(names(syn), function(nm) {
     x <- syn[[nm]]
     v <- if (is.double(x) && !inherits(x, "Date")) {
-      sprintf("%.15g", x)
+      sprintf("%.10g", x)
     } else {
       as.character(x)
     }
@@ -65,11 +66,11 @@ test_that("a table with no grained column clones as on the 0.16.0 base", {
     local_FALSE =
       "ba60bae634f27d436a003f1ab22bc4146a77e64aea643d9716349d0325499097",
     local_TRUE =
-      "dbecf2f681904bbef71d17f1169cddca7eb78ff67e85040611a038d0046c75c3",
+      "50992aff8e147e21a46c7aeee0276b2e3a47e140a67998d679a3869ecbc24b52",
     collaborate_FALSE =
-      "3c4422bc3cbe1ceed6e709e396459ed71e9dbb1a0b32cc7716f2d5b8d2a7fe73",
+      "816c6e8d7c466a000bed73c43b4b5d4a2a7c70a252e70c79d7a670d99f7ad0a8",
     collaborate_TRUE =
-      "51faf1085e3f60405f8a21003c09b273a759cb83238197acfa53406185b5863a"
+      "de986487ca13bd4e9e76d2eed909d7925bd5dcf7a0c81dabc0aafcd582121d4b"
   )
   df <- .repro_fixture()
   for (mode in c("local", "collaborate")) {
