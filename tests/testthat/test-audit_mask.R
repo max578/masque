@@ -29,7 +29,8 @@ test_that("audit_mask returns a data.table with the spec'd schema", {
     "n_unique_levels", "freq_min", "exact_match_pct",
     "comparable_n",
     "na_pct", "na_pattern_uniqueness",
-    "alias_status", "notes"
+    "alias_status", "notes",
+    "same_row_pct", "baseline_pct", "excess_pct"
   ))
   expect_equal(nrow(out), ncol(df))
   expect_true(all(out$leakage_class %in% c("low", "medium", "high")))

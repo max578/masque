@@ -472,6 +472,8 @@ mask <- function(df,
       mode            = mode,
       seed            = if (is.null(seed)) NULL else as.integer(seed),
       roles           = .strip_roles_provenance(as.data.frame(roles)),
+      conditional     = conditional,
+      conditioning_used = conditioning_used,
       column_name_map = NULL,
       level_maps      = level_maps,
       storage_classes = list(),
@@ -480,13 +482,28 @@ mask <- function(df,
       warnings        = character(),
       integrity_fp    = ""
     )
-    audit_tbl <- .compute_audit(df, synth, .tmp_rec, mode)
-    high_leaks <- audit_tbl$col[audit_tbl$leakage_class == "high"]
-    if (length(high_leaks)) {
-      msg <- sprintf(
-        "audit_mask() flagged HIGH leakage on %s: %s",
-        ngettext(length(high_leaks), "column", "columns"),
-        paste(high_leaks, collapse = ", ")
+    audit_tbl <- .compute_audit(
+      df, synth, .tmp_rec, mode, linked = names(.shared_maps)
+    )
+    high_cols <- audit_tbl$col[audit_tbl$leakage_class == "high"]
+    high_checks <- setdiff(.audit_high_findings(audit_tbl), high_cols)
+    if (length(high_cols) || length(high_checks)) {
+      parts <- c(
+        if (length(high_cols)) {
+          sprintf(
+            "%s: %s", ngettext(length(high_cols), "column", "columns"),
+            paste(high_cols, collapse = ", ")
+          )
+        },
+        if (length(high_checks)) {
+          sprintf(
+            "table %s: %s", ngettext(length(high_checks), "check", "checks"),
+            paste(high_checks, collapse = ", ")
+          )
+        }
+      )
+      msg <- paste0(
+        "audit_mask() flagged HIGH leakage on ", paste(parts, collapse = "; ")
       )
       # Classed so callers can handle it programmatically; safety
       # findings are never suppressed by package code.
