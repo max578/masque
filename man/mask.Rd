@@ -121,10 +121,9 @@ implausible locations. A pair is a named vector \code{c(lat = "lat_col", lon = "
 (\code{by}, \code{method}, \code{min_km}, \code{max_km}, \code{sd_km}, \code{on_land}); a single pair
 may be passed bare, and several pairs as a list of pairs. Defaults to a
 donut of 5-20 km on land. A declared column must have the action \code{keep}
-in \code{roles}, or still carry the action \code{\link[=propose_roles]{propose_roles()}} proposed, which
-the declaration replaces with \code{keep} (noted on the recipe); an
-explicitly chosen \code{drop} or \code{scramble} is refused with a
-\code{masque_coords_action_refusal} error. One displacement
+in \code{roles}; any other action, including the \code{drop} that
+\code{\link[=propose_roles]{propose_roles()}} proposes for a coordinate-named column, is refused
+with a \code{masque_coords_action_refusal} error. One displacement
 is drawn per \strong{site} and broadcast to that site's rows: \code{by} names the
 columns of \code{df} that identify a site, and is omitted when rows sharing an
 identical input coordinate already identify one. A declared pair always

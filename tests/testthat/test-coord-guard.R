@@ -137,6 +137,7 @@ test_that("a coarsened coordinate audits as medium, described correctly", {
     y     = stats::rnorm(n * k)
   )
   r <- suppressWarnings(propose_roles(d, mode = "collaborate"))
+  r <- set_role(r, c("gps_s", "gps_e"), action = "keep")
   m <- suppressWarnings(mask(
     d, r, mode = "collaborate", seed = 1,
     coords = list(list(lat = "gps_s", lon = "gps_e", by = "trial",

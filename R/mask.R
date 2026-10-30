@@ -136,10 +136,9 @@
 #'   (`by`, `method`, `min_km`, `max_km`, `sd_km`, `on_land`); a single pair
 #'   may be passed bare, and several pairs as a list of pairs. Defaults to a
 #'   donut of 5-20 km on land. A declared column must have the action `keep`
-#'   in `roles`, or still carry the action [propose_roles()] proposed, which
-#'   the declaration replaces with `keep` (noted on the recipe); an
-#'   explicitly chosen `drop` or `scramble` is refused with a
-#'   `masque_coords_action_refusal` error. One displacement
+#'   in `roles`; any other action, including the `drop` that
+#'   [propose_roles()] proposes for a coordinate-named column, is refused
+#'   with a `masque_coords_action_refusal` error. One displacement
 #'   is drawn per **site** and broadcast to that site's rows: `by` names the
 #'   columns of `df` that identify a site, and is omitted when rows sharing an
 #'   identical input coordinate already identify one. A declared pair always
@@ -390,9 +389,7 @@ mask <- function(df,
   coord_specs <- .normalise_coords(coords, df)
   coord_cols <- .coord_cols(coord_specs)
   if (length(coord_cols)) {
-    taken <- .coords_take_keep(roles, coord_cols)
-    roles <- taken$roles
-    warnings_acc <- c(warnings_acc, taken$note)
+    .coords_require_keep(roles, coord_cols)
   }
 
   # Linked event outcomes skip the copula; they are re-simulated as gaps.

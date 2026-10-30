@@ -114,19 +114,26 @@ test_that("a direct edit away from the proposal is also explicit", {
   expect_match(conditionMessage(err), "keep")
 })
 
-test_that("the proposed default yields to the declaration and says so", {
+test_that("the proposed default is a reviewed action and is refused too", {
   df <- .fx_sites()
   roles <- .fx_site_roles(df, coord_action = NULL)
   # propose_roles() proposes drop for a coordinate-named column.
-  expect_true(all(roles$action[roles$col %in% c("lat", "lon")] != "keep"))
+  expect_true(all(roles$action[roles$col %in% c("lat", "lon")] == "drop"))
+  err <- tryCatch(
+    suppressWarnings(mask(
+      df, roles, mode = "local", seed = 1,
+      coords = list(list(lat = "lat", lon = "lon", on_land = FALSE))
+    )),
+    masque_coords_action_refusal = function(e) e
+  )
+  expect_s3_class(err, "masque_coords_action_refusal")
+  expect_match(conditionMessage(err), "drop")
+  # The documented escape runs and keeps one displacement per site.
+  roles <- set_role(roles, c("lat", "lon"), action = "keep")
   m <- suppressWarnings(mask(
     df, roles, mode = "local", seed = 1,
     coords = list(list(lat = "lat", lon = "lon", on_land = FALSE))
   ))
-  rec <- recipe(m)
-  expect_identical(rec@roles$action[rec@roles$col %in% c("lat", "lon")],
-                   c("keep", "keep"))
-  expect_true(any(grepl("set to keep for the geomask", rec@warnings)))
   expect_true(.fx_one_displacement_per_site(df, synthetic(m)))
 })
 

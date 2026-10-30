@@ -183,6 +183,8 @@ test_that("`by` rejects a non-grouping", {
 
 .masked_sites <- function(df, coords, ...) {
   roles <- suppressWarnings(propose_roles(df, detect = FALSE))
+  cols <- unlist(lapply(coords, function(s) c(s[["lat"]], s[["lon"]])))
+  roles <- set_role(roles, cols, action = "keep")
   m <- suppressWarnings(mask(df, roles, seed = 1, coords = coords, ...))
   synthetic(m)
 }
@@ -207,6 +209,7 @@ test_that("mask(coords=) accepts `by` and groups on the original table", {
     y = stats::rnorm(12)
   )
   roles <- suppressWarnings(propose_roles(df, mode = "collaborate"))
+  roles <- set_role(roles, c("lat", "lon"), action = "keep")
   # `trial` is aliased in the synthetic; the grouping must still hold, because
   # it is taken from the original table rather than the masked one.
   m <- suppressWarnings(mask(df, roles, mode = "collaborate", seed = 1,

@@ -769,6 +769,7 @@ Declaring the pair to `mask()` applies the same coarsening as part of
 masking, so the coordinates never pass through the copula:
 
 ```{r geo-mask, eval = FALSE}
+plan <- set_role(plan, c("GPS_S", "GPS_E"), action = "keep")
 m <- mask(df, plan, mode = "collaborate",
           coords = list(list(lat = "GPS_S", lon = "GPS_E", by = "TRIAL")),
           seed = 1L)

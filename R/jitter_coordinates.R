@@ -550,48 +550,32 @@ jitter_coordinates <- function(df, lat_col, lon_col,
   unique(unlist(lapply(specs, function(s) c(s$lat, s$lon)), use.names = FALSE))
 }
 
-# Declared coordinates get action keep; an explicit or unknown non-keep
-# action is refused, a proposed default yields with a recipe note.
-.coords_take_keep <- function(roles, coord_cols) {
+# A declared coordinate must already have action keep in the reviewed roles;
+# any other action, proposed or chosen, is refused rather than overridden.
+.coords_require_keep <- function(roles, coord_cols) {
   idx <- which(roles$col %in% coord_cols & roles$action != "keep")
   if (!length(idx)) {
-    return(list(roles = roles, note = character()))
+    return(invisible(roles))
   }
-  cols <- roles$col[idx]
-  acts <- roles$action[idx]
-  pa <- attr(roles, "proposed_actions")
-  proposed <- if (is.null(pa)) {
-    rep(FALSE, length(idx))
-  } else {
-    cols %in% names(pa) & acts == unname(pa[cols])
-  }
-  if (!all(proposed)) {
-    bad <- cols[!proposed]
-    bad_act <- unique(acts[!proposed])
-    noun <- if (length(bad) == 1L) "column" else "columns"
-    verb <- if (length(bad) == 1L) "has" else "have"
-    bad_code <- paste0("c(", paste0("\"", bad, "\"", collapse = ", "), ")")
-    cli::cli_abort(c(
-      paste0(
-        "Declared coordinate {noun} {.field {bad}} {verb} the action ",
-        "{.val {bad_act}} in {.arg roles}."
-      ),
-      x = paste0(
-        "A coordinate declared to {.arg coords} is coarsened and kept, which ",
-        "would override the reviewed action."
-      ),
-      i = paste0(
-        "Set the action to {.val keep} ({.code set_role(roles, {bad_code}, ",
-        "action = \"keep\")}), or remove the pair from {.arg coords}."
-      )
-    ), class = c("masque_coords_action_refusal", "orchestra_refusal"))
-  }
-  roles$action[idx] <- "keep"
-  note <- sprintf(
-    "coords: %s had the proposed action %s; set to keep for the geomask.",
-    paste(cols, collapse = ", "), paste(unique(acts), collapse = "/")
-  )
-  list(roles = roles, note = note)
+  bad <- roles$col[idx]
+  bad_act <- unique(roles$action[idx])
+  noun <- if (length(bad) == 1L) "column" else "columns"
+  verb <- if (length(bad) == 1L) "has" else "have"
+  bad_code <- paste0("c(", paste0("\"", bad, "\"", collapse = ", "), ")")
+  cli::cli_abort(c(
+    paste0(
+      "Declared coordinate {noun} {.field {bad}} {verb} the action ",
+      "{.val {bad_act}} in {.arg roles}."
+    ),
+    x = paste0(
+      "A coordinate declared to {.arg coords} is coarsened and kept, which ",
+      "would override the reviewed action."
+    ),
+    i = paste0(
+      "Set the action to {.val keep} ({.code set_role(roles, {bad_code}, ",
+      "action = \"keep\")}), or remove the pair from {.arg coords}."
+    )
+  ), class = c("masque_coords_action_refusal", "orchestra_refusal"))
 }
 
 # Jitter each spec in place and return the frame with one report per spec.
