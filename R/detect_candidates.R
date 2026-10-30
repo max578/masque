@@ -140,9 +140,8 @@
   out
 }
 
-# Design columns whose levels are replicated units: design-pattern names and
-# columns roled design, unless the roles table says otherwise, with at least
-# two levels and two rows per level on average.
+# Design-pattern names and columns roled design (the roles table wins) with at
+# least two levels and two rows per level on average.
 .design_unit_cols <- function(df, roles = NULL, extra = character(0L)) {
   cols <- names(df)
   design <- cols[matches_pattern(cols, DESIGN_PATTERN)]

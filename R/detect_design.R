@@ -29,10 +29,10 @@
 #' agree on, or empty when they disagree; an environment column is never a
 #' block. `evidence$block_revision` records the change.
 #'
-#' A treatment hint found by the rules rather than by a treatment-pattern
-#' name is auto-applied only when the column is crossed with a design
+#' For a column without a treatment-pattern name, a treatment hint from the
+#' rules is auto-applied only when the column is crossed with a design
 #' column. A column with one value per level of a design column, or with an
-#' outcome-pattern name, is a covariate and not a candidate.
+#' outcome-pattern name, is a covariate and never a candidate.
 #'
 #' The detector never edits `df`. Its job is to recommend a role
 #' assignment, surface the evidence, and (optionally) draw a sanity
@@ -153,9 +153,7 @@ detect_design <- function(df,
 }
 
 # Legacy whole-table detector. Keep this path free of environment inference so
-# `env = FALSE` remains a stable compatibility escape hatch. `revise = TRUE`
-# (scoped path only) applies the candidate revisions of .propose_candidates()
-# and names both split-plot factors as the treatment.
+# `env = FALSE` remains a stable compatibility escape hatch.
 .detect_design_legacy <- function(df,
                                   roles = NULL,
                                   interactive = FALSE,
@@ -203,9 +201,8 @@ detect_design <- function(df,
   out
 }
 
-# A treatment hint from the design rules stays auto-applied only for a
-# treatment-pattern name, a user treatment, or a column crossed with a design
-# column; otherwise auto_apply becomes FALSE and the reason says why.
+# A rule's treatment hint keeps auto_apply for a treatment name, a user
+# treatment or a column crossed with a design column; else the reason says why.
 .gate_treatment_hints <- function(out, df, roles) {
   rec <- out@recommended_roles
   hints <- which(
