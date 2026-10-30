@@ -35,7 +35,10 @@
 #'   exposure can be checked. This is a re-identification
 #'   cost, not a differential-privacy guarantee.
 #'
-#' @param x A factor, character, or logical vector.
+#' A numeric vector (a dose, an N rate) is aliased through its exact
+#' character form ([.level_key()]), so the map restores every value.
+#'
+#' @param x A factor, character, logical, or numeric vector.
 #' @param prefix Character scalar used as the alias prefix (e.g., `"trt"`
 #'   for treatment, `"<col>_L"` for covariate level).
 #' @return A list with elements:
@@ -62,6 +65,9 @@ alias_levels <- function(x, prefix) {
     out <- factor(unname(map[as.character(x)]), levels = alias_pool)
     return(list(x = out, map = map))
   }
+  if (is.numeric(x)) {
+    x <- .level_key(x)
+  }
   if (is.character(x) || is.logical(x)) {
     x_chr <- as.character(x)
     uvals <- sort(unique(stats::na.omit(x_chr)))
@@ -76,7 +82,7 @@ alias_levels <- function(x, prefix) {
 
   cli::cli_abort(
     paste0(
-      "alias_levels() supports factor, character, or logical; ",
+      "alias_levels() supports factor, character, logical, or numeric; ",
       "got {.cls {class(x)[1]}}."
     )
   )
@@ -104,4 +110,18 @@ alias_levels <- function(x, prefix) {
 
 is_aliasable_level_vector <- function(x) {
   is.factor(x) || is.character(x) || is.logical(x)
+}
+
+# Exact character key of numeric values: the first form that reads back.
+.level_key <- function(x) {
+  if (!is.numeric(x)) {
+    return(as.character(x))
+  }
+  key <- as.character(x)
+  for (fmt in c("%.16g", "%.17g", "%a")) {
+    inexact <- !is.na(x) & suppressWarnings(as.numeric(key)) != x
+    if (!any(inexact)) break
+    key[inexact] <- sprintf(fmt, x[inexact])
+  }
+  key
 }

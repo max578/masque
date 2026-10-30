@@ -8,7 +8,7 @@
 #' This is the local-mode opt-in path. The collaborate-mode default
 #' is `alias_levels()` (opaque rename), not permutation.
 #'
-#' @param x A factor (or character vector).
+#' @param x A factor, character or numeric vector.
 #' @return A list with elements:
 #'   \itemize{
 #'     \item `x`: the permuted vector (same type and length as input).
@@ -39,7 +39,22 @@ permute_levels <- function(x) {
     out <- ifelse(is.na(x), NA_character_, map[as.character(x)])
     return(list(x = out, map = map))
   }
-  cli::cli_abort(
-    "permute_levels() supports factor or character; got {.cls {class(x)[1]}}."
-  )
+  if (is.numeric(x)) {
+    # A numeric treatment keeps its storage class; the map holds exact keys.
+    key <- .level_key(x)
+    uvals <- unique(stats::na.omit(key))
+    if (length(uvals) <= 1L) {
+      return(list(x = x, map = stats::setNames(uvals, uvals)))
+    }
+    perm <- sample(uvals, length(uvals), replace = FALSE)
+    map <- stats::setNames(perm, uvals)
+    out <- x
+    obs <- !is.na(x)
+    out[obs] <- x[obs][match(map[key[obs]], key[obs])]
+    return(list(x = out, map = map))
+  }
+  cli::cli_abort(paste0(
+    "permute_levels() supports factor, character or numeric; got ",
+    "{.cls {class(x)[1]}}."
+  ))
 }

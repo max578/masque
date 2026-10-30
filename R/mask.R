@@ -201,6 +201,12 @@
 #'   `coords` (coarsened), giving the column a masking action (`drop` or
 #'   `scramble`), or -- having decided the coordinate is not sensitive --
 #'   setting this to `TRUE`, which is recorded on the recipe.
+#' @param allow_kept_outcome Single logical. In collaborate mode an outcome
+#'   with the action `keep` carries its real values beside the re-simulated
+#'   columns, so [audit_mask()] grades it HIGH and the collaborate write gate
+#'   stops it. Having decided the real outcome may be shared, set this to
+#'   `TRUE`: the column is then graded medium and the choice is recorded on
+#'   the recipe. Local mode is unaffected.
 #' @param quiet Single logical. `TRUE` silences the `masque_mode_downgrade`
 #'   warning raised when a roles table prepared for `"collaborate"` is used
 #'   in `"local"` mode, for a plan that is deliberately shared across both
@@ -240,6 +246,7 @@ mask <- function(df,
                  events = NULL,
                  grain = TRUE,
                  allow_unmasked_coords = FALSE,
+                 allow_kept_outcome = FALSE,
                  quiet = FALSE,
                  .shared_maps = list(),
                  .cleaning = NULL,
@@ -398,6 +405,13 @@ mask <- function(df,
     )
   }
   .guard_unmasked_coords(df, roles, coord_cols, allow_unmasked_coords)
+  if (!is.logical(allow_kept_outcome) || length(allow_kept_outcome) != 1L ||
+    is.na(allow_kept_outcome)) {
+    cli::cli_abort(
+      "`allow_kept_outcome` must be a single `TRUE` or `FALSE`.",
+      class = c("masque_bad_allow_kept_outcome_refusal", "orchestra_refusal")
+    )
+  }
   warnings_acc <- c(
     warnings_acc, .check_row_floor(df, roles, mode, event_specs)
   )
@@ -545,6 +559,8 @@ mask <- function(df,
       storage_classes = list(),
       factor_meta     = list(),
       coords          = coord_reports,
+      grain           = grain_res$groups,
+      allow_kept_outcome = allow_kept_outcome,
       warnings        = character(),
       integrity_fp    = ""
     )
@@ -623,6 +639,7 @@ mask <- function(df,
     events            = event_reports,
     grain             = grain_res$groups,
     allow_unmasked_coords = isTRUE(allow_unmasked_coords),
+    allow_kept_outcome = allow_kept_outcome,
     warnings          = warnings_acc,
     integrity_fp      = digest::digest(is.na(df), algo = "sha256")
   )

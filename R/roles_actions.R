@@ -145,7 +145,11 @@ set_role <- function(roles, cols, role = NULL, action = NULL) {
   switch(role,
     design = "keep",
     treatment = {
-      if (collab && kind %in% .categorical_kinds()) "alias" else "keep"
+      if (collab && kind %in% c(.categorical_kinds(), .numeric_kinds())) {
+        "alias"
+      } else {
+        "keep"
+      }
     },
     outcome = {
       if (kind %in% .numeric_kinds()) "scramble" else "keep"
@@ -201,11 +205,11 @@ set_role <- function(roles, cols, role = NULL, action = NULL) {
     }
   }
 
-  if (role == "treatment" && !(kind %in% .categorical_kinds())) {
+  if (role == "treatment" &&
+    !(kind %in% c(.categorical_kinds(), .numeric_kinds()))) {
     return(paste0(
       "treatment scramble / alias requires a factor / character / ",
-      "logical column; a numeric treatment (e.g. a dose) can only be ",
-      "kept or dropped"
+      "logical or numeric column"
     ))
   }
 

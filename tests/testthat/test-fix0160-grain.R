@@ -230,7 +230,10 @@ test_that("collaborate unit values are not confined to the original values", {
   ))
   vals <- .fx_unit_values(synthetic(m)$aet, df$trial)
   expect_lt(mean(vals %in% orig), 1)
-  expect_true(all(vals >= min(orig) & vals <= max(orig)))
+  # No clip: a value may sit up to half a resolution step past the range.
+  half <- masque:::.detect_resolution(orig) / 2
+  expect_true(all(vals >= min(orig) - half & vals <= max(orig) + half))
+  expect_false(any(vals %in% range(orig)))
   expect_identical(recipe(m)@grain[[1]]$n_units, 6L)
   # Soil is aliased after the unit-level permutation.
   expect_false(any(synthetic(m)$soil %in% df$soil))
@@ -292,16 +295,16 @@ test_that("fewer than five units in collaborate mode fall back to rows", {
 })
 
 test_that("grain = FALSE is the row-level clone of masque 0.15", {
-  # Digests of the same calls on the unmodified 0.16.0 base (12ead24).
+  # Base 12ead24 digests; collaborate re-taken after the jitter clip went.
   base <- c(
     local_FALSE =
       "65154f4d80860124e54c67e3fcccc934d3757823dac158f5d2dda8ac98764601",
     local_TRUE =
       "789a764980d220b4924e1367dd6e47fe8db31c903d9b02196d5635390a689808",
     collaborate_FALSE =
-      "bb8c3fa8180eb32a18887d517ca9e709b5049f8e5306bd6c5b6294b6fbbd2f39",
+      "684cc07c5fa22d2c70bd897250250a0f79fde0b2091b149b539623f688ac5de1",
     collaborate_TRUE =
-      "cf60a1627fc0b9aff9c81a6ffa1fe5c733e7605134d9b9ba0bd3e0e804fc106f"
+      "154490c0135a592e49167c306127438a6723266fb96142762682674673db10e6"
   )
   df <- .fx_met()
   for (cb in .fx_combos) {

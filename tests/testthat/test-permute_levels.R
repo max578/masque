@@ -39,5 +39,7 @@ test_that("permute_levels singleton-vocab is identity", {
 })
 
 test_that("permute_levels errors on non-categorical input", {
-  expect_error(masque:::permute_levels(1:5), "supports")
+  expect_error(
+    masque:::permute_levels(as.Date("2024-01-01") + 0:4), "supports"
+  )
 })

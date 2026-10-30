@@ -84,6 +84,10 @@ masque_recipe <- S7::new_class(
     allow_unmasked_coords = S7::new_property(
       class = S7::class_logical, default = FALSE
     ),
+    # TRUE when a kept outcome was allowed; absent before 0.16.0.
+    allow_kept_outcome = S7::new_property(
+      class = S7::class_logical, default = FALSE
+    ),
     warnings = S7::new_property(
       class = S7::class_character, default = character()
     ),

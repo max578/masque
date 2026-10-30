@@ -54,5 +54,8 @@ test_that("alias_levels errors on bad prefix", {
 })
 
 test_that("alias_levels errors on non-categorical input", {
-  expect_error(masque:::alias_levels(1:5, prefix = "x"), "supports")
+  expect_error(
+    masque:::alias_levels(as.Date("2024-01-01") + 0:4, prefix = "x"),
+    "supports"
+  )
 })

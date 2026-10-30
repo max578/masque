@@ -49,6 +49,8 @@
 #'   or `"levels"`; passed through to each [mask()] call.
 #' @param grain Single logical (default `TRUE`); passed through to each
 #'   [mask()] call, which synthesises a unit-constant column once per unit.
+#' @param allow_kept_outcome Single logical, passed to each [mask()] call:
+#'   `TRUE` allows a kept outcome in a collaborate clone and records it.
 #' @param quiet Logical; suppress the link / hygiene report, including the
 #'   hint that a table looks like documentation.
 #' @param sheets For an Excel workbook, the sheets to read (default: all);
@@ -95,6 +97,7 @@ mask_set <- function(input,
                      conditional = FALSE,
                      ladder = c("hierarchy", "levels"),
                      grain = TRUE,
+                     allow_kept_outcome = FALSE,
                      quiet = FALSE,
                      sheets = NULL,
                      info = NULL,
@@ -220,6 +223,7 @@ mask_set <- function(input,
       conditional = conditional,
       ladder = ladder,
       grain = grain,
+      allow_kept_outcome = allow_kept_outcome,
       .shared_maps = shared_by_table[[nm]],
       .cleaning = cleaning[[nm]]
     )

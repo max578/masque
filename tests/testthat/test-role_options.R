@@ -36,7 +36,7 @@ test_that("known constraints render as expected", {
 
   expect_identical(
     row_of("treatment", "alias")$kinds,
-    "factor, character, logical"
+    "numeric, integer, factor, character, logical"
   )
   expect_identical(row_of("outcome", "scramble")$kinds, "numeric, integer")
   expect_identical(row_of("outcome", "alias")$kinds, "none")
@@ -77,7 +77,7 @@ test_that("kind filters to the combinations valid for that kind", {
 
   num <- role_options(kind = "numeric")
   expect_true(any(num$role == "outcome" & num$action == "scramble"))
-  expect_false(any(num$role == "treatment" & num$action == "alias"))
+  expect_true(any(num$role == "treatment" & num$action == "alias"))
 
   oth <- role_options(kind = "other")
   expect_setequal(unique(oth$action), c("keep", "drop"))
