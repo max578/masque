@@ -97,14 +97,19 @@
   data.table::as.data.table(do.call(rbind, rows))
 }
 
+# Share of rows whose NA pattern no other row shares, grouped on the NA matrix.
 .global_na_pattern_uniqueness <- function(df) {
-  if (nrow(df) == 0L) {
+  n <- nrow(df)
+  if (n == 0L) {
     return(NA_real_)
   }
-  na_mat <- is.na(df)
-  patterns <- apply(na_mat, 1L, function(r) paste(as.integer(r), collapse = ""))
-  freqs <- table(patterns)
-  sum(freqs == 1L) / nrow(df)
+  if (ncol(df) == 0L) {
+    return(if (n == 1L) 1 else 0)
+  }
+  na_dt <- data.table::as.data.table(lapply(df, is.na))
+  data.table::setnames(na_dt, sprintf("v%d", seq_along(na_dt)))
+  counts <- na_dt[, .N, by = c(names(na_dt))]$N
+  sum(counts == 1L) / n
 }
 
 .classify_leakage <- function(
@@ -194,3 +199,8 @@
   if (length(bits) == 0L) bits <- "ok"
   paste(bits, collapse = "; ")
 }
+
+# data.table's `[` uses data.table semantics only in a namespace that declares
+# itself aware; masque imports data.table through `::` alone.
+.datatable.aware <- TRUE
+utils::globalVariables(c(".N", ".I"))
