@@ -17,6 +17,7 @@ mask(
   events = NULL,
   grain = TRUE,
   allow_unmasked_coords = FALSE,
+  allow_kept_outcome = FALSE,
   quiet = FALSE,
   .shared_maps = list(),
   .cleaning = NULL,
@@ -190,6 +191,13 @@ shape of its values would be. State otherwise by declaring the pair to
 \code{coords} (coarsened), giving the column a masking action (\code{drop} or
 \code{scramble}), or -- having decided the coordinate is not sensitive --
 setting this to \code{TRUE}, which is recorded on the recipe.}
+
+\item{allow_kept_outcome}{Single logical. In collaborate mode an outcome
+with the action \code{keep} carries its real values beside the re-simulated
+columns, so \code{\link[=audit_mask]{audit_mask()}} grades it HIGH and the collaborate write gate
+stops it. Having decided the real outcome may be shared, set this to
+\code{TRUE}: the column is then graded medium and the choice is recorded on
+the recipe. Local mode is unaffected.}
 
 \item{quiet}{Single logical. \code{TRUE} silences the \code{masque_mode_downgrade}
 warning raised when a roles table prepared for \code{"collaborate"} is used

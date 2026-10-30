@@ -14,6 +14,8 @@ mask_set(
   alias_names = FALSE,
   conditional = FALSE,
   ladder = c("hierarchy", "levels"),
+  grain = TRUE,
+  allow_kept_outcome = FALSE,
   quiet = FALSE,
   sheets = NULL,
   info = NULL,
@@ -57,6 +59,12 @@ the treatment-to-outcome relationship survives the clone. See
 
 \item{ladder}{Drop order of the conditioning ladder, \code{"hierarchy"} (default)
 or \code{"levels"}; passed through to each \code{\link[=mask]{mask()}} call.}
+
+\item{grain}{Single logical (default \code{TRUE}); passed through to each
+\code{\link[=mask]{mask()}} call, which synthesises a unit-constant column once per unit.}
+
+\item{allow_kept_outcome}{Single logical, passed to each \code{\link[=mask]{mask()}} call:
+\code{TRUE} allows a kept outcome in a collaborate clone and records it.}
 
 \item{quiet}{Logical; suppress the link / hygiene report, including the
 hint that a table looks like documentation.}
@@ -105,16 +113,18 @@ unmasked instead.
 \examples{
 tables <- list(
   plots = data.frame(
-    site = c("A", "A", "B", "B"),
-    gen = c("x", "y", "x", "y"),
-    yield = c(3.1, 2.9, 4.0, 3.7)
+    site = rep(c("A", "B", "C", "D", "E"), each = 2),
+    gen = rep(c("x", "y"), 5),
+    yield = c(3.1, 2.9, 4.0, 3.7, 3.3, 3.5, 2.8, 3.0, 3.9, 3.6)
   ),
   sites = data.frame(
-    site = c("A", "B"),
-    rainfall = c(420, 560)
+    site = c("A", "B", "C", "D", "E"),
+    rainfall = c(420, 560, 390, 610, 480)
   )
 )
-m <- mask_set(tables, mode = "collaborate", seed = 1, quiet = TRUE)
+roles <- lapply(tables, propose_roles, mode = "collaborate")
+roles <- lapply(roles, set_role, "site", action = "alias")
+m <- mask_set(tables, roles = roles, seed = 1, quiet = TRUE)
 synthetic(m)$plots$site
 synthetic(m)$sites$site # same aliases -> the join still works
 

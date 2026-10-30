@@ -87,8 +87,8 @@ See \code{\link[=mask_set]{mask_set()}}.}
 masked and not written. See \code{\link[=mask_set]{mask_set()}}.}
 
 \item{...}{Further arguments for the masking verb: \code{\link[=mask]{mask()}} for one
-table (for example \code{coords}, \code{events}, \code{allow_unmasked_coords}),
-\code{\link[=mask_set]{mask_set()}} for a set (for example \code{links}). An argument the verb
+table (for example \code{coords}, \code{events}, \code{allow_unmasked_coords},
+\code{grain}), \code{\link[=mask_set]{mask_set()}} for a set (for example \code{links}, \code{grain}). An argument the verb
 does not take is refused (\code{masque_unused_arg_refusal}).}
 }
 \value{

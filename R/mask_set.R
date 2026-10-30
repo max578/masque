@@ -72,16 +72,18 @@
 #' @examples
 #' tables <- list(
 #'   plots = data.frame(
-#'     site = c("A", "A", "B", "B"),
-#'     gen = c("x", "y", "x", "y"),
-#'     yield = c(3.1, 2.9, 4.0, 3.7)
+#'     site = rep(c("A", "B", "C", "D", "E"), each = 2),
+#'     gen = rep(c("x", "y"), 5),
+#'     yield = c(3.1, 2.9, 4.0, 3.7, 3.3, 3.5, 2.8, 3.0, 3.9, 3.6)
 #'   ),
 #'   sites = data.frame(
-#'     site = c("A", "B"),
-#'     rainfall = c(420, 560)
+#'     site = c("A", "B", "C", "D", "E"),
+#'     rainfall = c(420, 560, 390, 610, 480)
 #'   )
 #' )
-#' m <- mask_set(tables, mode = "collaborate", seed = 1, quiet = TRUE)
+#' roles <- lapply(tables, propose_roles, mode = "collaborate")
+#' roles <- lapply(roles, set_role, "site", action = "alias")
+#' m <- mask_set(tables, roles = roles, seed = 1, quiet = TRUE)
 #' synthetic(m)$plots$site
 #' synthetic(m)$sites$site # same aliases -> the join still works
 #'

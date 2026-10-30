@@ -36,7 +36,7 @@
 #'   cost, not a differential-privacy guarantee.
 #'
 #' A numeric vector (a dose, an N rate) is aliased through its exact
-#' character form ([.level_key()]), so the map restores every value.
+#' character form, so the map restores every value.
 #'
 #' @param x A factor, character, logical, or numeric vector.
 #' @param prefix Character scalar used as the alias prefix (e.g., `"trt"`

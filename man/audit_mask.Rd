@@ -82,14 +82,21 @@ Classification heuristics:
 
 \itemize{
 \item Retained PII-pattern column -> \code{high}.
-\item Treatment unaliased in collaborate -> \code{high}.
+\item Outcome with action \code{keep} in collaborate -> \code{high}, or \code{medium}
+when \code{\link[=mask]{mask()}} was called with \code{allow_kept_outcome = TRUE}, which the
+recipe records.
+\item Treatment unaliased in collaborate -> \code{high}. A numeric treatment
+(a dose) is aliased like a categorical one.
 \item Categorical covariate with a frequency-1 level in collaborate ->
 \code{high}.
 \item Outcome with exact-match-pct > 1\\% in collaborate -> \code{medium}.
 \item Numeric covariate with exact-match-pct > 5\\% in collaborate ->
 \code{medium}.
 \item Two-valued numeric columns skip the two exact-match rules: a 0/1
-column matches its own cell about half the time by chance.
+column matches its own cell about half the time by chance. So do
+columns synthesised once per design unit (see \code{grain} in \code{\link[=mask]{mask()}})
+and whole-valued numeric covariates, which repeat real values by
+construction; all three are graded on \code{excess_pct} instead.
 \item Content column whose \code{excess_pct} is at least 10 points and four
 binomial standard deviations in collaborate -> \code{medium}.
 \item Joint match excess of at least 20 points and four permutation
@@ -100,6 +107,10 @@ raise \code{masque_high_leakage} and block package-managed writers; in
 local mode they are reported in the notes and graded \code{low}.
 \item Ignore column retained in local -> \code{low} (informational).
 }
+
+A column constant within a design unit that was synthesised row by row
+(\code{grain = FALSE}, or a collaborate grain with fewer than five units) carries
+a note saying the clone does not keep that grain.
 
 As a reference point, a collaborate-mode clone of \code{agridat::besag.met}
 (yield as the outcome, design columns kept) scores \code{low} on every
