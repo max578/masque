@@ -14,7 +14,8 @@ masque_recipe_set <- S7::new_class(
     created_at = S7::class_POSIXct,
     mode = S7::class_character,
     recipes = S7::new_property(class = S7::class_list, default = list()),
-    links = S7::new_property(class = S7::class_list, default = list())
+    links = S7::new_property(class = S7::class_list, default = list()),
+    info = S7::new_property(class = S7::class_character, default = character())
   )
 )
 

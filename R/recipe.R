@@ -65,6 +65,12 @@ masque_recipe <- S7::new_class(
       class   = S7::new_union(S7::class_list, NULL),
       default = NULL
     ),
+    # conform_table() decisions (merge map, type changes, modes, max_levels);
+    # NULL unless mask() was given a conformance object. Absent before 0.16.0.
+    conform = S7::new_property(
+      class   = S7::new_union(S7::class_list, NULL),
+      default = NULL
+    ),
     # One entry per declared coordinate pair: jitter parameters, site grouping
     # and site count. Empty before 0.10.0.
     coords = S7::new_property(class = S7::class_list, default = list()),

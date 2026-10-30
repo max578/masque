@@ -46,7 +46,9 @@
 #' state is preserved across the call.
 #'
 #' @param df A data frame, or the `masque_conformance` object returned by
-#'   [conform_table()], whose `data` element is then masked.
+#'   [conform_table()], whose `data` element is then masked. Its cleaning
+#'   record and its merges and type changes go on the recipe, so
+#'   [apply_recipe()] replays them; `clean` is not applied a second time.
 #' @param roles A roles table from [propose_roles()] (possibly edited).
 #'   Tables from masque <= 0.5.0 are upgraded with a deprecation
 #'   warning; see [roles_validate()].
@@ -163,6 +165,9 @@
 #' @param .shared_maps Internal. A named list of pre-computed
 #'   `original -> alias` level maps for cross-table linked columns, set
 #'   by [mask_set()]. Not for direct use.
+#' @param .cleaning Internal. The cleaning record of a table [mask_set()]
+#'   has already cleaned; `mask()` then skips its own cleaning and stores
+#'   this record on the recipe. Not for direct use.
 #' @param ... Must be empty. An unused argument, for example a misspelled
 #'   name, is an error.
 #'
@@ -192,6 +197,7 @@ mask <- function(df,
                  allow_unmasked_coords = FALSE,
                  quiet = FALSE,
                  .shared_maps = list(),
+                 .cleaning = NULL,
                  ...) {
   # A misspelled argument silently swallowed by `...` looks like success;
   # error on anything unused.
@@ -213,7 +219,12 @@ mask <- function(df,
   # Undo any RNG change made inside mask() on exit, whichever path made it.
   withr::local_preserve_seed()
 
+  # A conformance object carries its own cleaning and the judged decisions;
+  # both go on the recipe so apply_recipe() can replay them.
+  conform_rec <- NULL
   if (inherits(df, "masque_conformance")) {
+    conform_rec <- .conform_record(df)
+    if (is.null(.cleaning)) .cleaning <- .cleaning_record(df$cleaning)
     df <- df$data
   }
   if (!is.data.frame(df)) {
@@ -285,18 +296,25 @@ mask <- function(df,
   warnings_acc <- character()
 
   # Names are legalised in every clean mode, since a rewritten name breaks the
-  # round trip; whitespace trimming follows `clean`.
-  cl <- clean_table(df, clean = clean, quiet = TRUE)
-  df <- cl$data
-  roles <- .remap_roles_cols(roles, cl$name_map)
-  cleaning_rec <- if (length(cl$name_map) || length(cl$level_fixes) ||
-    nrow(cl$near_duplicates)) {
-    .cleaning_record(cl)
+  # round trip; whitespace trimming follows `clean`. A caller that cleaned
+  # already (mask_set(), conform_table()) passes its record instead.
+  if (is.null(.cleaning)) {
+    cl <- clean_table(df, clean = clean, quiet = TRUE)
+    df <- cl$data
+    .cleaning <- .cleaning_record(cl)
+  } else {
+    df <- .as_owned_dt(df)
+  }
+  name_map <- .cleaning$name_map
+  roles <- .align_roles_cols(roles, name_map, names(df))
+  cleaning_rec <- if (length(name_map) || length(.cleaning$level_fixes) ||
+    .near_dup_count(.cleaning) > 0L) {
+    .cleaning
   } else {
     NULL
   }
-  if (length(cl$name_map)) {
-    warnings_acc <- c(warnings_acc, .name_repair_message(cl$name_map))
+  if (length(name_map)) {
+    warnings_acc <- c(warnings_acc, .name_repair_message(name_map))
   }
 
   roles <- withCallingHandlers(
@@ -517,6 +535,7 @@ mask <- function(df,
     storage_classes   = storage_classes,
     factor_meta       = factor_meta,
     cleaning          = cleaning_rec,
+    conform           = conform_rec,
     coords            = coord_reports,
     events            = event_reports,
     allow_unmasked_coords = isTRUE(allow_unmasked_coords),

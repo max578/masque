@@ -7,17 +7,22 @@
 #'
 #' Operations applied (in order):
 #'
-#' 1. **Verify integrity** by comparing the NA mask of `original` to the
+#' 1. **Re-apply cleaning and conform decisions**: the legalised names and
+#'    trimmed labels from [clean_table()], then the label merges and type
+#'    changes from [conform_table()] when the clone was built on a
+#'    conformance object.
+#' 2. **Verify integrity** by comparing the NA mask of `original` to the
 #'    SHA-256 fingerprint stored on the recipe (controlled by
 #'    `check_integrity`).
-#' 2. **Drop** every column whose resolved `action` was `"drop"` on the
-#'    roles table `mask()` masked with, in either mode.
-#' 3. **Subset and reorder** to the columns the recipe knows about.
-#' 4. **Re-label factors / characters** for any column with a level map
+#' 3. **Drop** every column whose resolved `action` was `"drop"` on the
+#'    roles table `mask()` masked with, in either mode. A linked join key
+#'    of a set is aliased in the clone and is kept.
+#' 4. **Subset and reorder** to the columns the recipe knows about.
+#' 5. **Re-label factors / characters** for any column with a level map
 #'    held by the recipe (i.e., treatment and categorical covariates in
 #'    `collaborate` mode; or treatment in `local` mode with opt-in
 #'    permutation). Unknown non-NA values fail closed.
-#' 5. **Rename columns** per `recipe@column_name_map` when `mask()` was
+#' 6. **Rename columns** per `recipe@column_name_map` when `mask()` was
 #'    called with `alias_names` (otherwise `NULL`, and names are
 #'    unchanged).
 #'
@@ -64,8 +69,12 @@ apply_recipe <- function(original, rec, check_integrity = TRUE) {
     cli::cli_abort("`check_integrity` must be a single logical.")
   }
 
-  # Re-apply the recipe's cleaning (legal names, trimmed whitespace).
+  # Re-apply the recipe's cleaning (legal names, trimmed whitespace), then the
+  # conform_table() merges and type changes the clone was built on.
   original <- .apply_cleaning_forward(original, rec@cleaning)
+  # A recipe saved before 0.16.0 has no `conform` property at all.
+  conform <- if (S7::prop_exists(rec, "conform")) rec@conform else NULL
+  original <- .apply_conform_forward(original, conform)
 
   dropped <- .recipe_dropped_cols(rec)
   retained <- setdiff(rec@roles$col, dropped)
@@ -290,16 +299,18 @@ unmask <- function(x, rec, column = NULL) {
 }
 
 # Internal: columns mask() dropped. Recipes from masque 0.5.0 and earlier
-# have no action column; `ignore` was dropped in collaborate mode only.
+# have no action column; `ignore` was dropped in collaborate mode only. A
+# column with a level map is in the clone (a linked key always is).
 .recipe_dropped_cols <- function(rec) {
   roles <- rec@roles
-  if ("action" %in% names(roles)) {
-    return(roles$col[roles$action == "drop"])
+  dropped <- if ("action" %in% names(roles)) {
+    roles$col[roles$action == "drop"]
+  } else if (identical(rec@mode, "collaborate")) {
+    roles$col[roles$role == "ignore"]
+  } else {
+    character()
   }
-  if (identical(rec@mode, "collaborate")) {
-    return(roles$col[roles$role == "ignore"])
-  }
-  character()
+  setdiff(dropped, names(rec@level_maps))
 }
 
 # Internal: maps an original-label to its synthetic-label.
