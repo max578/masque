@@ -1,6 +1,5 @@
-# F14 + N1: no accidental display of a recipe-holding object shows an original
-# label or the seed. saveRDS(), dput() and reveal_maps() are the deliberate
-# routes to the maps and are not covered here.
+# F14 + N1: no accidental display of a recipe-holding object shows a label or
+# the seed. saveRDS(), dput() and reveal_maps() show the maps by design.
 
 .leak_tokens <- c("LEAKTOKEN_ALPHA", "LEAKTOKEN_BETA", "424242")
 

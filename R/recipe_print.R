@@ -155,9 +155,7 @@ local(S7::method(format, masque_obj) <- function(x, ...) {
   )})
 
 
-# str() on a recipe-holding object shows the one-line format() and nothing
-# else: listing properties would print the maps, the seed, factor levels and
-# any property added later.
+# str() shows format() only: any property, present or future, may hold labels.
 .str_redacted <- function(object, ...) {
   nest_lev <- list(...)$nest.lev %||% 0L
   cat(" ", format(object), "\n", sep = "")
@@ -219,7 +217,11 @@ local({
 #' methods of recipes, recipe bundles, `masque` and `masque_set` objects.
 #' `saveRDS()` and `dput()` write the maps by design.
 #'
-#' @param rec A `masque_recipe` object (e.g., from `recipe(m)`).
+#' @param rec A `masque_recipe` object (e.g., from `recipe(m)`), or the
+#'   `masque_recipe_set` bundle of a [mask_set()] result.
+#' @param table For a bundle, the names of the tables whose maps to reveal.
+#'   `NULL` (default) reveals every table. Must be `NULL` for a single
+#'   recipe.
 #' @return `rec`, invisibly.
 #' @examples
 #' r <- propose_roles(iris)
@@ -229,11 +231,36 @@ local({
 #' rec <- recipe(m)
 #' reveal_maps(rec)
 #' @export
-reveal_maps <- function(rec) {
-  if (!S7::S7_inherits(rec, masque_recipe)) {
+reveal_maps <- function(rec, table = NULL) {
+  is_set <- S7::S7_inherits(rec, masque_recipe_set)
+  if (!is_set && !S7::S7_inherits(rec, masque_recipe)) {
     cli::cli_abort(
-      "`rec` must be a {.cls masque_recipe} object; got {.cls {class(rec)[1]}}."
+      paste0(
+        "`rec` must be a {.cls masque_recipe} or {.cls masque_recipe_set} ",
+        "object; got {.cls {class(rec)[1]}}."
+      ),
+      class = c("masque_bad_recipe_refusal", "orchestra_refusal")
     )
+  }
+  tables <- if (is_set) names(rec@recipes) else character()
+  if (!is.null(table)) {
+    if (!is_set) {
+      cli::cli_abort(
+        "`table` applies to a recipe bundle; `rec` is a single recipe.",
+        class = c("masque_bad_table_refusal", "orchestra_refusal")
+      )
+    }
+    if (!is.character(table) || !length(table) || anyNA(table) ||
+      !all(table %in% tables)) {
+      cli::cli_abort(
+        c(
+          "`table` must name tables in the bundle.",
+          i = "Bundle tables: {.val {tables}}."
+        ),
+        class = c("masque_bad_table_refusal", "orchestra_refusal")
+      )
+    }
+    tables <- table
   }
 
   cli::cli_alert_warning(
@@ -241,6 +268,20 @@ reveal_maps <- function(rec) {
   )
   cli::cli_text("")
 
+  if (!is_set) {
+    .reveal_one(rec)
+    return(invisible(rec))
+  }
+  for (nm in tables) {
+    cli::cli_rule(left = "table: {nm}")
+    .reveal_one(rec@recipes[[nm]])
+    cli::cli_text("")
+  }
+  invisible(rec)
+}
+
+# Internal: print one recipe's column-name map, level maps and seed.
+.reveal_one <- function(rec) {
   if (!is.null(rec@column_name_map) && length(rec@column_name_map)) {
     cli::cli_h3("column names (original -> alias)")
     cmap <- rec@column_name_map
@@ -268,7 +309,6 @@ reveal_maps <- function(rec) {
     cli::cli_h3("seed")
     cat(sprintf("  %d\n", rec@seed))
   }
-
   invisible(rec)
 }
 
