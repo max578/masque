@@ -1,0 +1,110 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "composeR/data_card.schema.json",
+  "title": "Data card, contract version 0.1",
+  "description": "Facts about one table and no value of any column: its size, its design columns (with, for a time-to-event outcome, the time, status and competing-status columns and the event and censoring counts), and for each column a role, a kind and counts. Every statistic carries a provenance class in the provenance map beside it: structure (exact in a masked clone), clone_estimate (re-simulated in a clone, approximate), computed (from the table itself), dictionary (from a published data dictionary) or analyst (stated by the analyst). Level labels are values and never appear; levels are counted.",
+  "type": "object",
+  "required": ["card_version", "produced_by", "table"],
+  "additionalProperties": false,
+  "properties": {
+    "card_version": {"type": "string", "enum": ["0.1"]},
+    "produced_by": {
+      "type": "object",
+      "required": ["package", "version"],
+      "additionalProperties": false,
+      "properties": {
+        "package": {"type": "string", "pattern": "^[A-Za-z][A-Za-z0-9.]*$"},
+        "version": {"type": "string", "pattern": "^[0-9]+([.-][0-9]+)+$"},
+        "mode": {"type": "string"}
+      }
+    },
+    "table": {
+      "type": "object",
+      "required": ["name", "n_rows", "n_cols", "provenance"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {"type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_.]*$"},
+        "source": {"type": "string", "enum": ["clone", "data_frame", "dictionary", "datahub"]},
+        "n_rows": {"type": "integer"},
+        "n_cols": {"type": "integer"},
+        "provenance": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "n_rows": {"$ref": "#/$defs/class"},
+            "n_cols": {"$ref": "#/$defs/class"}
+          }
+        }
+      }
+    },
+    "design": {
+      "type": "object",
+      "required": ["provenance"],
+      "additionalProperties": false,
+      "properties": {
+        "class": {"type": "string"},
+        "treatment_cols": {"$ref": "#/$defs/names"},
+        "block_cols": {"$ref": "#/$defs/names"},
+        "env_cols": {"$ref": "#/$defs/names"},
+        "spatial_cols": {"$ref": "#/$defs/names"},
+        "unit_col": {"type": "string"},
+        "n_env": {"type": "integer"},
+        "event_time_col": {"type": "string"},
+        "event_status_col": {"type": "string"},
+        "competing_status_cols": {"$ref": "#/$defs/names"},
+        "n_events": {"type": "integer"},
+        "censored_share": {"type": "number"},
+        "provenance": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "class": {"$ref": "#/$defs/class"},
+            "treatment_cols": {"$ref": "#/$defs/class"},
+            "block_cols": {"$ref": "#/$defs/class"},
+            "env_cols": {"$ref": "#/$defs/class"},
+            "spatial_cols": {"$ref": "#/$defs/class"},
+            "unit_col": {"$ref": "#/$defs/class"},
+            "n_env": {"$ref": "#/$defs/class"},
+            "event_time_col": {"$ref": "#/$defs/class"},
+            "event_status_col": {"$ref": "#/$defs/class"},
+            "competing_status_cols": {"$ref": "#/$defs/class"},
+            "n_events": {"$ref": "#/$defs/class"},
+            "censored_share": {"$ref": "#/$defs/class"}
+          }
+        }
+      }
+    },
+    "columns": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name"],
+        "additionalProperties": false,
+        "properties": {
+          "name": {"type": "string"},
+          "role": {"type": "string", "enum": ["id", "date", "subject", "context", "design", "treatment", "outcome", "covariate", "text", "other"]},
+          "kind": {"type": "string", "enum": ["numeric", "integer", "logical", "factor", "ordered", "character", "date", "datetime", "other"]},
+          "n_levels": {"type": "integer"},
+          "n_missing": {"type": "integer"},
+          "na_share": {"type": "number"},
+          "zero_share": {"type": "number"},
+          "provenance": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kind": {"$ref": "#/$defs/class"},
+              "n_levels": {"$ref": "#/$defs/class"},
+              "n_missing": {"$ref": "#/$defs/class"},
+              "na_share": {"$ref": "#/$defs/class"},
+              "zero_share": {"$ref": "#/$defs/class"}
+            }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "class": {"type": "string", "enum": ["structure", "clone_estimate", "computed", "dictionary", "analyst"]},
+    "names": {"type": "array", "items": {"type": "string"}}
+  }
+}

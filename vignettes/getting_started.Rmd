@@ -245,6 +245,48 @@ The genotype column `gen` appears in both tables and is masked to the same
 codes in each, so the field and laboratory tables still join. See
 *Confidentiality and the threat model* for the set-level controls.
 
+### Describing the clone: the data card
+
+A collaborator planning an analysis needs to know the shape of the data
+before any code is written: how many rows, which columns are the design,
+which is the outcome, how much is missing. `data_card()` writes those
+facts down without a single value of any column. It reads only the clone
+and its role table, which `roles()` returns in the clone's own column
+names:
+
+```{r data-card-roles}
+knitr::kable(
+  roles(m),
+  caption = "The role table of the clone, as the data card reads it."
+)
+```
+
+The role table says which columns are design columns, but not which of
+them give a plot's position or identify the plot. The custodian names
+those when writing the card:
+
+```{r data-card}
+card_file <- tempfile(fileext = ".yaml")
+card <- data_card(
+  m,
+  file = card_file,
+  name = "alpha_trial",
+  spatial = c("row", "col"),
+  unit = "plot"
+)
+writeLines(head(readLines(card_file), 30))
+```
+
+Every count carries a provenance class. `structure` marks a count that is
+exact in the clone and so equal on the real table, such as the number of
+missing values or the number of genotypes. `clone_estimate` marks one
+that was re-simulated, such as the number of distinct yields. `analyst`
+marks what was named in the call. Level labels never appear: the card
+says there are 24 genotypes and does not list them. When column names
+are aliased, the card uses the aliases. For a set, `data_card(ms)`
+returns one card per table, and `data_card(ms, file = dir)` writes one
+file per table.
+
 ### Multi-environment structure
 
 For a multi-environment trial, `detect_design()` answers three questions

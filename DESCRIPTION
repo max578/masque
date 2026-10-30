@@ -46,7 +46,8 @@ Suggests:
     rmarkdown,
     spelling,
     testthat (>= 3.0.0),
-    writexl
+    writexl,
+    yaml
 VignetteBuilder: knitr
 Config/testthat/edition: 3
 URL: https://max578.github.io/masque/, https://github.com/max578/masque
