@@ -163,6 +163,9 @@
 #' @param .shared_maps Internal. A named list of pre-computed
 #'   `original -> alias` level maps for cross-table linked columns, set
 #'   by [mask_set()]. Not for direct use.
+#' @param .cleaning Internal. The cleaning record of a table [mask_set()]
+#'   has already cleaned; `mask()` then skips its own cleaning and stores
+#'   this record on the recipe. Not for direct use.
 #' @param ... Must be empty. An unused argument, for example a misspelled
 #'   name, is an error.
 #'
