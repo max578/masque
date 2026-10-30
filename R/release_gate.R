@@ -3,7 +3,8 @@
 # Generation never implies release: package writers refuse a collaborate-mode
 # object with unresolved HIGH findings unless `allow_high = TRUE`.
 
-# Columns flagged HIGH at mask time; for a masque_set, as "<table>$<col>".
+# Findings flagged HIGH at mask time: columns, then table-level checks named
+# "[<check>]". For a masque_set, each is prefixed "<table>$".
 .audit_high_cols <- function(m) {
   audit <- m@audit
   if (is.null(audit)) {
@@ -12,20 +13,45 @@
   if (S7::S7_inherits(m, masque_set)) {
     out <- character()
     for (nm in names(audit)) {
-      tbl <- audit[[nm]]
-      if (is.null(tbl)) next
-      hits <- tbl$col[tbl$leakage_class == "high"]
+      hits <- .audit_high_findings(audit[[nm]])
       if (length(hits)) {
         out <- c(out, paste0(nm, "$", hits))
       }
     }
     return(out)
   }
-  audit$col[audit$leakage_class == "high"]
+  .audit_high_findings(audit)
+}
+
+# HIGH findings of one audit table.
+.audit_high_findings <- function(audit) {
+  if (is.null(audit)) {
+    return(character())
+  }
+  joint <- attr(audit, "joint")
+  checks <- if (is.null(joint)) {
+    character()
+  } else {
+    high <- joint$check[joint$leakage_class == "high"]
+    if (length(high)) sprintf("[%s]", .joint_check_label(high)) else character()
+  }
+  c(audit$col[audit$leakage_class == "high"], checks)
+}
+
+# Reader-facing names of the table-level checks.
+.joint_check_label <- function(check) {
+  labels <- c(
+    same_row_joint = "same-row joint match",
+    whole_row = "whole-row match",
+    rare_cross = "rare category cross",
+    unit_sizes = "unit sizes"
+  )
+  unname(labels[check])
 }
 
 # HIGH / medium / low counts across the whole object (summed over tables
-# for a set). NULL when no audit was run (local mode).
+# for a set). Graded table-level checks add to the high and medium counts.
+# NULL when no audit was run (local mode).
 .audit_tally <- function(m) {
   audit <- m@audit
   if (is.null(audit)) {
@@ -35,9 +61,12 @@
   cls <- unlist(lapply(tbls, function(tbl) {
     if (is.null(tbl)) character() else tbl$leakage_class
   }), use.names = FALSE)
+  joint <- unlist(lapply(tbls, function(tbl) {
+    attr(tbl, "joint")$leakage_class
+  }), use.names = FALSE)
   c(
-    high   = sum(cls == "high"),
-    medium = sum(cls == "medium"),
+    high   = sum(cls == "high") + sum(joint == "high"),
+    medium = sum(cls == "medium") + sum(joint == "medium"),
     low    = sum(cls == "low")
   )
 }
@@ -78,7 +107,7 @@
       c(
         paste0(
           "Write blocked: the audit flagged HIGH leakage on ",
-          "{length(high)} column{?s}."
+          "{length(high)} finding{?s}."
         ),
         x = "Flagged: {flagged}.",
         i = "Re-role, alias, or drop each flagged column, then mask again.",
@@ -93,7 +122,7 @@
   warning(warningCondition(
     sprintf(
       "allow_high = TRUE: writing despite HIGH leakage on %s: %s.",
-      ngettext(length(high), "column", "columns"), flagged
+      ngettext(length(high), "finding", "findings"), flagged
     ),
     class = "masque_high_override"
   ))

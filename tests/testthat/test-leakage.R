@@ -87,3 +87,69 @@ test_that(".global_na_pattern_uniqueness on per-row-unique NA = 1", {
   u <- masque:::.global_na_pattern_uniqueness(df2)
   expect_gt(u, 0)
 })
+
+test_that(".classify_leakage: content column beyond chance on its own row is MEDIUM", {
+  args <- list(
+    role = "covariate", kind = "factor", action = "alias", pii = FALSE,
+    mode = "collaborate", in_synth = TRUE, alias_status = "aliased",
+    exact_match_pct = NA_real_, freq_min = 5L, n_unique_levels = 3L,
+    n_rows = 100L
+  )
+  expect_equal(
+    do.call(masque:::.classify_leakage, c(args, list(
+      same_row_excess = 40, same_row_sd = 5
+    ))),
+    "medium"
+  )
+  # Within four SDs of chance, or below ten points, it is not graded.
+  expect_equal(
+    do.call(masque:::.classify_leakage, c(args, list(
+      same_row_excess = 15, same_row_sd = 5
+    ))),
+    "low"
+  )
+  expect_equal(
+    do.call(masque:::.classify_leakage, c(args, list(
+      same_row_excess = 9, same_row_sd = 1
+    ))),
+    "low"
+  )
+  # Structural and linked columns match by construction.
+  design <- modifyList(args, list(role = "design"))
+  expect_equal(
+    do.call(masque:::.classify_leakage, c(design, list(
+      same_row_excess = 60, same_row_sd = 2
+    ))),
+    "low"
+  )
+  expect_equal(
+    do.call(masque:::.classify_leakage, c(args, list(
+      same_row_excess = 60, same_row_sd = 2, linked = TRUE
+    ))),
+    "low"
+  )
+  # Local mode reports only.
+  local <- modifyList(args, list(mode = "local"))
+  expect_equal(
+    do.call(masque:::.classify_leakage, c(local, list(
+      same_row_excess = 60, same_row_sd = 2
+    ))),
+    "low"
+  )
+})
+
+test_that(".classify_leakage: a two-valued outcome skips the exact-match rule", {
+  args <- list(
+    role = "outcome", kind = "integer", action = "scramble", pii = FALSE,
+    mode = "collaborate", in_synth = TRUE, alias_status = "passthrough",
+    exact_match_pct = 52, freq_min = NA_integer_,
+    n_unique_levels = NA_integer_, n_rows = 200L
+  )
+  expect_equal(do.call(masque:::.classify_leakage, args), "medium")
+  expect_equal(
+    do.call(masque:::.classify_leakage, c(args, list(
+      two_valued = TRUE, same_row_excess = 1.5, same_row_sd = 3.5
+    ))),
+    "low"
+  )
+})

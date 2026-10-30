@@ -1,6 +1,7 @@
 #' Audit a masque object for leakage and shareability risks
 #'
-#' Returns a per-column audit data.table and prints a severity-grouped report.
+#' Returns a per-column audit data.table, with table-level checks attached, and
+#' prints a severity-grouped report.
 #' Auto-runs in `mode = "collaborate"` at [mask()] time and stores the
 #' result on the masque object (`m@audit`); for local-mode audits or
 #' explicit re-audits, pass the original data frame via `original`.
@@ -20,8 +21,38 @@
 #'   \item `na_pattern_uniqueness`: fraction of rows in the original with
 #'     a globally unique NA pattern (one number per data frame, repeated
 #'     on every row).
-#'   \item `alias_status`: `aliased`, `passthrough`, or `dropped`.
+#'   \item `alias_status`: `aliased`, `permuted`, `passthrough`, or
+#'     `dropped`.
 #'   \item `notes`: short human summary.
+#'   \item `same_row_pct`: percentage of rows where the clone value equals
+#'     the original value in the same row, read back through the level map
+#'     (categorical, logical, date and two-valued numeric columns).
+#'   \item `baseline_pct`: the same share expected by chance, under a random
+#'     permutation of the original column: \eqn{100 \sum_k p_k^2} over its
+#'     level frequencies (within the conditioning strata for a scrambled
+#'     numeric column of a conditional clone).
+#'   \item `excess_pct`: `same_row_pct - baseline_pct`.
+#' }
+#'
+#' The table-level checks sit in `attr(audit, "joint")`, a data.table with
+#' one row per check (`check`, `cols`, `observed`, `baseline`, `excess`,
+#' `sd`, `leakage_class`, `notes`). Each baseline comes from independent
+#' permutations of the original content columns (outcomes, covariates,
+#' dates, kept text), drawn under a fixed internal seed that leaves the
+#' caller's random number stream untouched; design, treatment, id, aliased
+#' text and linked columns are held fixed:
+#'
+#' \itemize{
+#'   \item `same_row_joint`: rows whose every content column equals the
+#'     original row.
+#'   \item `whole_row`: clone rows equal to some original row on every
+#'     retained column.
+#'   \item `rare_cross`: in the cross of visible (not aliased) categorical
+#'     covariates and outcomes, clone cells holding one row whose
+#'     combination is also a single row in the original.
+#'   \item `unit_sizes`: a note, never graded, when design units differ in
+#'     size, since the multiset of sizes can link a clone to a public trial
+#'     list.
 #' }
 #'
 #' Classification heuristics:
@@ -34,6 +65,16 @@
 #'   \item Outcome with exact-match-pct > 1\% in collaborate -> `medium`.
 #'   \item Numeric covariate with exact-match-pct > 5\% in collaborate ->
 #'     `medium`.
+#'   \item Two-valued numeric columns skip the two exact-match rules: a 0/1
+#'     column matches its own cell about half the time by chance.
+#'   \item Content column whose `excess_pct` is at least 10 points and four
+#'     binomial standard deviations in collaborate -> `medium`.
+#'   \item Joint match excess of at least 20 points and four permutation
+#'     standard deviations -> `high` (5 points -> `medium`); rare-cross
+#'     excess of at least 3 cells and four standard deviations -> `high`
+#'     (1 cell and three -> `medium`). In collaborate mode these verdicts
+#'     raise `masque_high_leakage` and block package-managed writers; in
+#'     local mode they are reported in the notes and graded `low`.
 #'   \item Ignore column retained in local -> `low` (informational).
 #' }
 #'
@@ -126,8 +167,12 @@ audit_mask <- function(m, original = NULL, print = TRUE) {
       )
     }
     audits <- lapply(tables, function(nm) {
+      linked <- unlist(lapply(m@recipe@links, function(lk) {
+        if (nm %in% lk$tables) lk$name
+      }), use.names = FALSE)
       .audit_recompute(
-        original[[nm]], m@synthetic[[nm]], m@recipe@recipes[[nm]], m@mode
+        original[[nm]], m@synthetic[[nm]], m@recipe@recipes[[nm]], m@mode,
+        linked = as.character(linked)
       )
     })
     names(audits) <- tables
@@ -141,10 +186,10 @@ audit_mask <- function(m, original = NULL, print = TRUE) {
   invisible(audits)
 }
 
-# Internal: recompute an audit from the caller's original. The recipe's
-# cleaning renames the original as mask() did, and aliased column names in
-# the clone are read back to the names the recipe's roles use.
-.audit_recompute <- function(original, synth, rec, mode) {
+# Internal: recompute an audit from the caller's original, renamed as mask()
+# cleaned it, against the clone under the names the recipe's roles use.
+.audit_recompute <- function(original, synth, rec, mode,
+                             linked = character()) {
   if (!is.data.frame(original)) {
     cli::cli_abort(
       "`original` must be a data frame; got {.cls {class(original)[1]}}.",
@@ -161,7 +206,7 @@ audit_mask <- function(m, original = NULL, print = TRUE) {
     synth <- data.table::copy(synth)
     data.table::setnames(synth, nm)
   }
-  .compute_audit(original, synth, rec, mode)
+  .compute_audit(original, synth, rec, mode, linked = linked)
 }
 
 .print_audit <- function(audit, mode, table = NULL) {
@@ -202,6 +247,25 @@ audit_mask <- function(m, original = NULL, print = TRUE) {
         high   = cli::cli_alert_danger(line),
         medium = cli::cli_alert_warning(line),
         low    = cli::cli_alert_info(line)
+      )
+    }
+  }
+
+  # Table-level checks: joint matches, rare crosses, then informational notes.
+  joint <- attr(audit, "joint")
+  if (!is.null(joint) && nrow(joint)) {
+    cli::cli_h2("Table-level checks")
+    for (i in seq_len(nrow(joint))) {
+      line <- sprintf(
+        "  %-9s %s",
+        if (joint$leakage_class[i] == "info") "note" else
+          toupper(joint$leakage_class[i]),
+        joint$notes[i]
+      )
+      switch(joint$leakage_class[i],
+        high   = cli::cli_alert_danger(line),
+        medium = cli::cli_alert_warning(line),
+        cli::cli_alert_info(line)
       )
     }
   }

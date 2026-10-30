@@ -178,3 +178,49 @@ test_that("local mode is never gated", {
   )
   expect_true(file.exists(out))
 })
+
+test_that("a joint HIGH finding blocks write_set() and names the check", {
+  set.seed(3L)
+  tables <- list(
+    plots = data.frame(
+      site = rep(c("S1", "S2", "S3"), each = 20L),
+      gen = rep(sprintf("G%02d", 1:10), 6L),
+      yield = round(rnorm(60L, 4, 0.5), 2)
+    ),
+    sites = data.frame(
+      site = rep(c("S1", "S2", "S3"), 2L),
+      year = rep(2019:2020, each = 3L),
+      rain = c(410, 520, 300, 455, 610, 395)
+    )
+  )
+  roles <- list(
+    plots = set_role(
+      set_role(
+        set_role(propose_roles(tables$plots, mode = "collaborate"), "site",
+          role = "design", action = "alias"
+        ),
+        "gen", role = "treatment"
+      ),
+      "yield", role = "outcome", action = "keep"
+    ),
+    sites = set_role(
+      set_role(
+        set_role(propose_roles(tables$sites, mode = "collaborate"), "site",
+          role = "design", action = "alias"
+        ),
+        "year", role = "design", action = "keep"
+      ),
+      "rain", role = "covariate", action = "scramble"
+    )
+  )
+  m <- suppressWarnings(mask_set(
+    tables, roles = roles, mode = "collaborate", seed = 1L, quiet = TRUE
+  ))
+  dir <- file.path(tempdir(), "masque-joint-blocked-set")
+  on.exit(unlink(dir, recursive = TRUE), add = TRUE)
+  err <- expect_error(write_set(m, dir), class = "masque_blocked_write")
+  expect_match(
+    conditionMessage(err), "plots$[same-row joint match]", fixed = TRUE
+  )
+  expect_false(dir.exists(dir))
+})
