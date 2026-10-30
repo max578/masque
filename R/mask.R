@@ -164,6 +164,30 @@
 #'   `masque_events_pooled` warning; when no other pattern has the gap free,
 #'   `mask()` stops. No hazard model is fitted and no covariate-to-event
 #'   relation is kept.
+#' @param grain Single logical (default `TRUE`). Synthesise each column at
+#'   its **grain**: a scrambled covariate or outcome, or an aliased
+#'   categorical covariate, that holds at most one distinct non-missing value
+#'   within every unit of a design column, or of a pair of design columns
+#'   (`site:year`), is re-simulated once per unit and each unit's new value
+#'   is written to that unit's rows. The grain is the coarsest such unit with
+#'   at least two units and at least two rows per unit on average; a unit with
+#'   no value stays missing. Numeric columns of one grain are drawn jointly
+#'   through the copula on the unit-level table (with collaborate-mode
+#'   jitter against the unit-level values), and categorical and date columns
+#'   are permuted across units, then aliased where their action is `alias`.
+#'   The clone therefore keeps one value per unit, the frequencies of a
+#'   categorical across units, and the correlation among columns of the same
+#'   grain. It does **not** keep the correlation between a grained column
+#'   and row-level columns, and grained columns are not conditioned on
+#'   treatment when `conditional = TRUE`. In local mode the unit values are
+#'   drawn from the original unit values. In collaborate mode a grain with
+#'   fewer than five units is synthesised row by row instead, with a
+#'   `masque_grain_small_units` warning, because resampling that few real
+#'   values would disclose them. Each grain is recorded on the recipe
+#'   (`grain`) with a line in its warnings. `FALSE` synthesises every column
+#'   row by row, as masque 0.15 did; detected grains are still recorded.
+#'   Coordinates declared to `coords`, `events` columns and linked columns
+#'   are never grained.
 #' @param allow_unmasked_coords Single logical. A masked table must not carry
 #'   a real coordinate, so by default `mask()` **stops** when a column whose
 #'   name says coordinate (`gps`, `lat`, `lon`, `easting`, ...) would be
@@ -206,6 +230,7 @@ mask <- function(df,
                  ladder = c("hierarchy", "levels"),
                  coords = NULL,
                  events = NULL,
+                 grain = TRUE,
                  allow_unmasked_coords = FALSE,
                  quiet = FALSE,
                  .shared_maps = list(),
@@ -244,6 +269,12 @@ mask <- function(df,
     cli::cli_abort(
       "`conditional` must be a single `TRUE` or `FALSE`.",
       class = c("masque_bad_conditional_refusal", "orchestra_refusal")
+    )
+  }
+  if (!is.logical(grain) || length(grain) != 1L || is.na(grain)) {
+    cli::cli_abort(
+      "`grain` must be a single `TRUE` or `FALSE`.",
+      class = c("masque_bad_grain_refusal", "orchestra_refusal")
     )
   }
   if (!is.character(ladder) || !length(ladder) ||
@@ -348,6 +379,16 @@ mask <- function(df,
   .guard_unmasked_coords(df, roles, coord_cols, allow_unmasked_coords)
   warnings_acc <- c(warnings_acc, .check_row_floor(df, roles, mode, event_specs))
 
+  # Columns constant within a design unit are synthesised once per unit.
+  event_cols <- unlist(lapply(event_specs, function(s) c(s$time, s$status)))
+  grain_res <- .resolve_grain(
+    .detect_grain(
+      df, roles, exclude = c(coord_cols, event_cols, names(.shared_maps))
+    ),
+    grain, mode
+  )
+  warnings_acc <- c(warnings_acc, grain_res$lines)
+
   opts <- mode_defaults(mode)
 
   # With nothing to condition on, a conditional clone uses the global copula.
@@ -370,7 +411,7 @@ mask <- function(df,
     seed,
     .mask_orchestrate(
       df, roles, mode, opts, .shared_maps, conditional, ladder,
-      events = event_specs
+      events = event_specs, grain = grain_res$groups
     )
   )
   synth <- result$synth
@@ -539,6 +580,7 @@ mask <- function(df,
     cleaning          = cleaning_rec,
     coords            = coord_reports,
     events            = event_reports,
+    grain             = grain_res$groups,
     allow_unmasked_coords = isTRUE(allow_unmasked_coords),
     warnings          = warnings_acc,
     integrity_fp      = digest::digest(is.na(df), algo = "sha256")
@@ -640,7 +682,7 @@ mask <- function(df,
 # column decides what happens to each column; mode only adds numeric jitter.
 .mask_orchestrate <- function(df, roles, mode, opts, shared_maps = list(),
                               conditional = FALSE, ladder = "hierarchy",
-                              events = list()) {
+                              events = list(), grain = list()) {
   synth <- df
   level_maps <- list()
   warnings <- character()
@@ -659,11 +701,13 @@ mask <- function(df,
   is_shared <- roles$col %in% shared_cols
   event_cols <- unlist(lapply(events, function(s) c(s$time, s$status)))
   is_event <- roles$col %in% event_cols
+  unit_groups <- Filter(function(g) identical(g$synthesised, "unit"), grain)
+  is_grain <- roles$col %in% unlist(lapply(unit_groups, `[[`, "cols"))
 
   # All scrambled numeric columns go through one Gaussian copula, fitted within
   # each treatment x design stratum when `conditional = TRUE`.
   num_idx <- which(action == "scramble" & kind %in% .numeric_kinds() &
-    !is_shared & !is_event)
+    !is_shared & !is_event & !is_grain)
   conditional_report <- NULL
   if (length(num_idx) >= 1L) {
     x_num <- df[, num_idx, drop = FALSE]
@@ -741,7 +785,7 @@ mask <- function(df,
   perm_idx <- which(
     action == "scramble" &
       kind %in% c(.categorical_kinds(), .date_kinds()) &
-      role != "treatment" & !is_shared & !is_event
+      role != "treatment" & !is_shared & !is_event & !is_grain
   )
   for (j in perm_idx) {
     col <- roles$col[j]
@@ -788,13 +832,24 @@ mask <- function(df,
   }
 
   cov_alias_idx <- which(role == "covariate" & action == "alias" &
-    !is_shared)
+    !is_shared & !is_grain)
   for (j in cov_alias_idx) {
     col <- roles$col[j]
     perm <- synthesise_categorical_local(df[[col]])
     res <- alias_levels(perm, prefix = paste0(col, "_L"))
     synth[[col]] <- res$x
     level_maps[[col]] <- res$map
+  }
+
+  # Grained columns: one draw per unit, broadcast to the unit's rows.
+  for (g in unit_groups) {
+    res <- .synthesise_grain_group(
+      df, g, roles, jitter = isTRUE(opts$jitter_numeric)
+    )
+    for (col in names(res$columns)) {
+      synth[[col]] <- res$columns[[col]]
+    }
+    level_maps[names(res$level_maps)] <- res$level_maps
   }
 
   # Linked columns were aliased by the shared block and are never dropped.

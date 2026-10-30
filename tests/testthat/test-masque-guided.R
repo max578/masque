@@ -43,7 +43,7 @@ test_that("masque() reads a folder as a set", {
     file.path(d, "t1.csv"), row.names = FALSE
   )
   utils::write.csv(
-    data.frame(gen = c("x", "y"), w = c(1, 2)),
+    data.frame(gen = c("x", "y", "x", "y", "x"), w = c(1, 2, 4, 3, 5)),
     file.path(d, "t2.csv"), row.names = FALSE
   )
   m <- masque(d, seed = 1, ask = FALSE, quiet = TRUE)
