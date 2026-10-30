@@ -39,7 +39,22 @@ local(S7::method(print, masque_recipe) <- function(x, ...) {
     }
   }
 
-  events <- S7::prop(x, "events")
+  conform <- .prop_or(x, "conform", NULL)
+  if (!is.null(conform)) {
+    line <- .conform_print_line(conform)
+    cli::cli_bullets(c("*" = "{line}"))
+  }
+
+  grain <- .prop_or(x, "grain", list())
+  if (length(grain)) {
+    cli::cli_h2("Grain ({length(grain)} unit{?s})")
+    for (g in grain) {
+      line <- .grain_print_line(g, x@column_name_map)
+      cli::cli_bullets(c("*" = "{line}"))
+    }
+  }
+
+  events <- .prop_or(x, "events", list())
   if (length(events)) {
     cli::cli_h2("Linked events ({length(events)} group{?s})")
     for (er in events) {
@@ -90,6 +105,23 @@ local(S7::method(print, masque_recipe) <- function(x, ...) {
   )
 
   invisible(x)})
+
+
+# A property of a recipe written by an older masque may be absent.
+.prop_or <- function(x, name, default) {
+  if (S7::prop_exists(x, name)) S7::prop(x, name) else default
+}
+
+# Counts only: merge sources and targets are original labels.
+.conform_print_line <- function(conform) {
+  n_merge <- NROW(conform$merges)
+  n_type <- NROW(conform$types)
+  sprintf(
+    "Conformance: %d label merge%s, %d type change%s",
+    n_merge, if (n_merge == 1L) "" else "s",
+    n_type, if (n_type == 1L) "" else "s"
+  )
+}
 
 
 # local(): see the plot method in detect_plot.R.

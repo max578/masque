@@ -207,3 +207,16 @@
   pairs <- data.table::data.table(g = gid[obs], x = x[obs])
   pairs[, data.table::uniqueN(x), by = g][, all(V1 <= 1L)]
 }
+
+# Unit and column count only; aliased unit names show their alias.
+.grain_print_line <- function(g, name_map = NULL) {
+  unit <- g$unit
+  hits <- unit %in% names(name_map)
+  unit[hits] <- unlist(name_map[unit[hits]], use.names = FALSE)
+  n <- length(g$cols)
+  sprintf(
+    "%s: %d column%s, synthesised per %s%s",
+    paste(unit, collapse = " : "), n, if (n == 1L) "" else "s",
+    g$synthesised, if (nzchar(g$reason)) sprintf(" (%s)", g$reason) else ""
+  )
+}

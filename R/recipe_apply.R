@@ -73,7 +73,7 @@ apply_recipe <- function(original, rec, check_integrity = TRUE) {
   # conform_table() merges and type changes the clone was built on.
   original <- .apply_cleaning_forward(original, rec@cleaning)
   # A recipe saved before 0.16.0 has no `conform` property at all.
-  conform <- if (S7::prop_exists(rec, "conform")) rec@conform else NULL
+  conform <- .prop_or(rec, "conform", NULL)
   original <- .apply_conform_forward(original, conform)
 
   dropped <- .recipe_dropped_cols(rec)

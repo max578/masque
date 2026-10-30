@@ -172,3 +172,55 @@ test_that("a knitted document shows no label or seed", {
   }
   expect_match(text, "masque_recipe_set")
 })
+
+.leak_conform_grain <- function() {
+  df <- .leak_plots()
+  df$soil <- ifelse(
+    df$site == "LEAKTOKEN_ALPHA", "LEAKTOKEN_ALPHA_clay", "LEAKTOKEN_BETA_loam"
+  )
+  df$note <- rep(c("LEAKTOKEN_BETA_X", "LEAKTOKEN_BETA_x"), c(50L, 10L))
+  cf <- conform_table(df, merge_labels = "auto", quiet = TRUE)
+  r <- .leak_roles(cf$data[, c("site", "rep", "gen", "yield")])
+  extra <- propose_roles(cf$data, mode = "collaborate")
+  extra <- extra[extra$col %in% c("soil", "note")]
+  r <- set_role(rbind(r, extra), c("soil", "note"), role = "covariate",
+                action = "alias")
+  suppressWarnings(mask(cf, r, mode = "collaborate", seed = 424242L))
+}
+
+test_that("the recipe print counts conform decisions and names grain units only", {
+  skip_if_not_installed("knitr")
+  m <- .leak_conform_grain()
+  rec <- recipe(m)
+  expect_identical(nrow(rec@conform$merges), 1L)
+  expect_true(length(rec@grain) > 0L)
+
+  out <- capture_full(print(rec))
+  expect_match(out, "Conformance: 1 label merge", fixed = TRUE)
+  expect_match(out, "type change", fixed = TRUE)
+  expect_match(out, "Grain", fixed = TRUE)
+  expect_match(out, "site: 1 column", fixed = TRUE)
+  .expect_no_tokens(.display_routes(rec), "masque_recipe with conform and grain")
+  .expect_no_tokens(.display_routes(m), "masque with conform and grain")
+})
+
+test_that("the bundle print names set-aside tables and shows none of their content", {
+  skip_if_not_installed("knitr")
+  sites <- data.frame(
+    site = factor(rep(c("LEAKTOKEN_ALPHA", "LEAKTOKEN_BETA"), 5L)),
+    year = rep(2016:2020, each = 2L),
+    rain = c(410, 395, 520, 480, 300, 350, 610, 590, 455, 470)
+  )
+  readme <- data.frame(text = c("LEAKTOKEN_ALPHA is the north site", "x"))
+  tables <- list(plots = .leak_plots(), sites = sites, readme = readme)
+  roles <- lapply(tables[c("plots", "sites")], .leak_roles)
+  ms <- mask_set(
+    tables, roles = roles, mode = "collaborate", seed = 424242L,
+    quiet = TRUE, info = "readme"
+  )
+  out <- capture_full(print(recipe(ms)))
+  expect_match(out, "Set aside, not masked: readme", fixed = TRUE)
+  expect_match(capture_full(print(ms)), "readme", fixed = TRUE)
+  .expect_no_tokens(.display_routes(recipe(ms)), "bundle with info")
+  .expect_no_tokens(.display_routes(ms), "masque_set with info")
+})
