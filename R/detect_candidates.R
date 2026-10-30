@@ -4,11 +4,17 @@
 #' @param roles Optional roles table from `propose_roles()`. Columns roled as
 #'   outcome, id, text or unsupported, or dropped, are left out of the
 #'   candidates; a column roled `treatment` goes into `trt_user`.
+#' @param revise If `TRUE` (the scoped path of `detect_design()`), outcome-
+#'   pattern names and columns constant within a design unit leave the
+#'   factors, and a treatment-pattern name is a treatment candidate whatever
+#'   its cardinality. `FALSE` keeps the legacy candidate sets.
 #' @returns A named list: `n_rows`, `cols`, `kinds`, `cardinality`, and the
 #'   candidate sets `factors`, `numerics`, `spatial` (row and column
 #'   coordinates, or `NULL`), `trt_named`, `block_named` and `trt_user`.
+#'   With `revise = TRUE` it also holds `excluded`, the reason per column
+#'   left out.
 #' @noRd
-.propose_candidates <- function(df, roles = NULL) {
+.propose_candidates <- function(df, roles = NULL, revise = FALSE) {
   n <- nrow(df)
   cols <- names(df)
   kinds <- vapply(df, col_kind, character(1L))
@@ -47,6 +53,12 @@
     is_factor_like <- is_factor_like & !(cols %in% drop_candidates)
   }
 
+  excluded <- character(0L)
+  if (revise) {
+    excluded <- .excluded_candidates(df, cols[is_factor_like], roles)
+    is_factor_like <- is_factor_like & !(cols %in% names(excluded))
+  }
+
   factors <- cols[is_factor_like]
   numerics <- cols[
     kinds %in% c("numeric", "integer") &
@@ -60,7 +72,15 @@
   trt_named <- cols[vapply(cols, matches_pattern, logical(1L),
     pat = TREATMENT_PATTERN
   )]
-  trt_named <- intersect(trt_named, factors)
+  # Revised: a named treatment with many levels (an augmented trial) counts.
+  named_ok <- if (revise) {
+    cardinality >= 2L & cardinality < n &
+      kinds %in% c(.categorical_kinds(), .numeric_kinds()) &
+      !(cols %in% drop_candidates)
+  } else {
+    is_factor_like
+  }
+  trt_named <- intersect(trt_named, cols[named_ok])
 
   # Reuse propose_roles()'s DESIGN_PATTERN -- covers rep, block, row, col,
   # range, plot, site, env, trial, year, season.
@@ -74,7 +94,7 @@
     trt_user <- roles$col[roles$role == "treatment"]
   }
 
-  list(
+  out <- list(
     n_rows = n,
     cols = cols,
     kinds = kinds,
@@ -87,6 +107,95 @@
     block_named = block_named,
     trt_user = trt_user
   )
+  if (revise) {
+    out$excluded <- excluded
+  }
+  out
+}
+
+# Factor candidates that are covariates, as a named vector of reasons: an
+# outcome-pattern name, or one value per unit of a design column.
+.excluded_candidates <- function(df, candidates, roles = NULL) {
+  units <- .design_unit_cols(df, roles)
+  user_treatment <- character(0L)
+  if (!is.null(roles) && all(c("col", "role") %in% names(roles))) {
+    user_treatment <- roles$col[roles$role == "treatment"]
+  }
+  protected <- union(units, user_treatment)
+  out <- character(0L)
+  for (col in setdiff(candidates, protected)) {
+    if (matches_pattern(col, TREATMENT_PATTERN) ||
+      matches_pattern(col, DESIGN_PATTERN)) {
+      next
+    }
+    if (matches_pattern(col, OUTCOME_PATTERN)) {
+      out[[col]] <- "outcome-pattern name"
+      next
+    }
+    unit <- .constant_within_unit(df, col, setdiff(units, col))
+    if (!is.na(unit)) {
+      out[[col]] <- sprintf("one value per level of design column %s", unit)
+    }
+  }
+  out
+}
+
+# Design columns whose levels are replicated units: design-pattern names and
+# columns roled design, unless the roles table says otherwise, with at least
+# two levels and two rows per level on average.
+.design_unit_cols <- function(df, roles = NULL, extra = character(0L)) {
+  cols <- names(df)
+  design <- cols[matches_pattern(cols, DESIGN_PATTERN)]
+  if (!is.null(roles) && all(c("col", "role") %in% names(roles))) {
+    dropped <- if ("action" %in% names(roles)) {
+      roles$col[!is.na(roles$action) & roles$action == "drop"]
+    } else {
+      character(0L)
+    }
+    design <- union(
+      setdiff(design, roles$col[roles$role != "design"]),
+      roles$col[roles$role == "design"]
+    )
+    design <- setdiff(design, dropped)
+  }
+  design <- intersect(union(design, extra), cols)
+  replicated <- vapply(design, function(col) {
+    x <- df[[col]]
+    n_levels <- data.table::uniqueN(x, na.rm = TRUE)
+    n_levels >= 2L && sum(!is.na(x)) >= 2L * n_levels
+  }, logical(1L))
+  design[replicated]
+}
+
+# The first unit column within whose every level `col` takes at most one
+# non-missing value, or NA when there is none.
+.constant_within_unit <- function(df, col, units) {
+  for (unit in units) {
+    pairs <- .unit_value_pairs(df, col, unit)
+    if (nrow(pairs) > 0L &&
+      data.table::uniqueN(pairs, by = c("unit", "value")) ==
+        data.table::uniqueN(pairs, by = "unit")) {
+      return(unit)
+    }
+  }
+  NA_character_
+}
+
+# Crossed: some value of `col` in two or more units, and some unit holding two
+# or more values.
+.crossed_with_unit <- function(df, col, unit) {
+  pairs <- .unit_value_pairs(df, col, unit)
+  n_pairs <- data.table::uniqueN(pairs, by = c("unit", "value"))
+  n_pairs > data.table::uniqueN(pairs, by = "unit") &&
+    n_pairs > data.table::uniqueN(pairs, by = "value")
+}
+
+# Complete (unit, value) rows for one candidate and one unit column.
+.unit_value_pairs <- function(df, col, unit) {
+  pairs <- data.frame(
+    unit = df[[unit]], value = df[[col]], stringsAsFactors = FALSE
+  )
+  pairs[stats::complete.cases(pairs), , drop = FALSE]
 }
 
 # Look for an (integer-like, gridded) row + col / column / range pair.

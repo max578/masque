@@ -30,13 +30,27 @@ test_that("propose_roles(detect = FALSE) classifies iris by name (v0.2)", {
 })
 
 test_that("propose_roles(detect = TRUE) overlays design hints (default)", {
+  # `arm` has no treatment-pattern name; the RCBD on `block` promotes it.
+  d <- expand.grid(
+    block = factor(1:4), arm = factor(c("A", "B", "C")),
+    KEEP.OUT.ATTRS = FALSE
+  )
+  d$response <- seq_len(nrow(d)) / 10
+  r <- propose_roles(d)
+  expect_equal(r$role[r$col == "arm"], "treatment")
+  expect_match(r$notes[r$col == "arm"], "detect_design")
+  expect_equal(attr(r, "design")@class_label, "RCBD")
+})
+
+test_that("a CRD with no design column leaves its factor a covariate", {
   r <- propose_roles(iris)
-  # Species has 3 levels balanced 50/50/50 -> looks like CRD treatment.
-  expect_equal(r$role[r$col == "Species"], "treatment")
-  expect_match(r$notes[r$col == "Species"], "detect_design")
+  # Species is balanced 50/50/50, a CRD, but no design column crosses it.
+  expect_equal(r$role[r$col == "Species"], "covariate")
   ds <- attr(r, "design")
   expect_true(inherits(ds, "masque::design_summary"))
   expect_equal(ds@class_label, "CRD")
+  hint <- ds@recommended_roles[ds@recommended_roles$col == "Species", ]
+  expect_false(hint$auto_apply)
 })
 
 test_that("propose_roles classifies mtcars (all numeric -> covariate)", {
@@ -74,7 +88,7 @@ test_that("PII patterns flag obvious cases and set action = drop", {
     pii_cols, c("contact_name", "email_addr", "gps_lat", "farmer")
   )
   expect_true(all(r$action[r$pii_suspected] == "drop"))
-  expect_equal(r$role[r$col == "yield"], "covariate")
+  expect_equal(r$role[r$col == "yield"], "outcome")
 })
 
 test_that("Design patterns assign role = design (case-insensitive)", {
@@ -95,7 +109,7 @@ test_that("Design patterns assign role = design (case-insensitive)", {
   expect_setequal(
     design_cols, c("Rep", "BLOCK", "Row", "col", "site", "year", "plot")
   )
-  expect_equal(r$role[r$col == "yield"], "covariate")
+  expect_equal(r$role[r$col == "yield"], "outcome")
 })
 
 test_that("Treatment patterns assign role = treatment", {
@@ -129,7 +143,7 @@ test_that("ID patterns assign role = id", {
   expect_true(all(r$action[r$role == "id"] == "keep"))
   rc <- propose_roles(df, mode = "collaborate")
   expect_true(all(rc$action[rc$role == "id"] == "drop"))
-  # `something` is numeric -> covariate; `yield` is covariate too
+  # `something` is numeric -> covariate; `yield` is an outcome by name
   expect_equal(r$role[r$col == "something"], "covariate")
 })
 

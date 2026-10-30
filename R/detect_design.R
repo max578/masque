@@ -15,7 +15,7 @@
 #' trial. Supply `env` to define the environment basis, or use `env = FALSE`
 #' to run the pre-0.9 whole-table path exactly.
 #'
-#' After the scope step, the pooled legacy detector runs six independent
+#' Before the scope step, the pooled legacy detector runs six independent
 #' design rules. Each returns a score in \eqn{[0, 1]}. The highest-scoring
 #' class above `threshold` is one of `"CRD"`, `"RCBD"`,
 #' `"IBD/alpha-lattice"`, `"row-column"`, `"split-plot"`, `"factorial"`,
@@ -24,6 +24,15 @@
 #' experiment groups are diagnostics only. Dense connectivity calculations
 #' that exceed the package safety bound are reported as `not_computed`.
 #' None of these diagnostics proves the original randomisation protocol.
+#'
+#' When scope resolves, `block_cols` is the block basis the environments
+#' agree on, or empty when they disagree; an environment column is never a
+#' block. `evidence$block_revision` records the change.
+#'
+#' A treatment hint found by the rules rather than by a treatment-pattern
+#' name is auto-applied only when the column is crossed with a design
+#' column. A column with one value per level of a design column, or with an
+#' outcome-pattern name, is a covariate and not a candidate.
 #'
 #' The detector never edits `df`. Its job is to recommend a role
 #' assignment, surface the evidence, and (optionally) draw a sanity
@@ -112,7 +121,8 @@ detect_design <- function(df,
     interactive = interactive,
     threshold = threshold,
     tie_delta = tie_delta,
-    scope = .scope_unknown()
+    scope = .scope_unknown(),
+    revise = TRUE
   )
 
   if (env_spec$mode == "explicit") {
@@ -138,19 +148,23 @@ detect_design <- function(df,
   out@recommended_roles <- .normalise_role_recommendations(
     out@recommended_roles, df
   )
+  out@recommended_roles <- .gate_treatment_hints(out, df, roles)
   out
 }
 
 # Legacy whole-table detector. Keep this path free of environment inference so
-# `env = FALSE` remains a stable compatibility escape hatch.
+# `env = FALSE` remains a stable compatibility escape hatch. `revise = TRUE`
+# (scoped path only) applies the candidate revisions of .propose_candidates()
+# and names both split-plot factors as the treatment.
 .detect_design_legacy <- function(df,
                                   roles = NULL,
                                   interactive = FALSE,
                                   threshold = 0.5,
                                   tie_delta = 0.02,
-                                  scope = .scope_unknown()) {
+                                  scope = .scope_unknown(),
+                                  revise = FALSE) {
 
-  cands <- .propose_candidates(df, roles = roles)
+  cands <- .propose_candidates(df, roles = roles, revise = revise)
 
   # Run every rule; collect score + result.
   results <- lapply(.rules_all, function(rule) rule(df, cands))
@@ -179,10 +193,70 @@ detect_design <- function(df,
   }
 
   result <- results[[picked]]
-  .build_design_summary(
+  out <- .build_design_summary(
     picked, result, scores, cands, warnings_msgs,
     scope = scope
   )
+  if (revise && identical(picked, "split-plot")) {
+    out@treatment_col <- c(out@whole_plot_col, out@sub_plot_col)
+  }
+  out
+}
+
+# A treatment hint from the design rules stays auto-applied only for a
+# treatment-pattern name, a user treatment, or a column crossed with a design
+# column; otherwise auto_apply becomes FALSE and the reason says why.
+.gate_treatment_hints <- function(out, df, roles) {
+  rec <- out@recommended_roles
+  hints <- which(
+    rec$role == "treatment" & rec$source == "design_rule" & rec$auto_apply
+  )
+  if (length(hints) == 0L) {
+    return(rec)
+  }
+  named <- union(
+    out@candidates$trt_user,
+    names(df)[matches_pattern(names(df), TREATMENT_PATTERN)]
+  )
+  units <- .design_unit_cols(df, roles, extra = out@env_cols)
+  for (i in hints) {
+    col <- rec$col[i]
+    if (col %in% named) next
+    problem <- .treatment_evidence_problem(df, col, setdiff(units, col))
+    if (!is.na(problem)) {
+      rec$auto_apply[i] <- FALSE
+      rec$reason[i] <- sprintf("Not applied: %s.", problem)
+    }
+  }
+  rec
+}
+
+# Why a column found by the design rules is not a treatment, or NA.
+.treatment_evidence_problem <- function(df, col, units) {
+  x <- df[[col]]
+  if (matches_pattern(col, DESIGN_PATTERN)) {
+    return("a design-pattern name")
+  }
+  if (is.numeric(x) && any(table(x) < 2L)) {
+    return("a numeric column with values seen once is a measurement")
+  }
+  if (length(units) == 0L) {
+    return("no design column in the table crosses it")
+  }
+  unit <- .constant_within_unit(df, col, units)
+  if (!is.na(unit)) {
+    return(sprintf(
+      "one value per level of design column %s (a unit-level covariate)",
+      unit
+    ))
+  }
+  crossed <- vapply(units, function(unit) {
+    .crossed_with_unit(df, col, unit)
+  }, logical(1L))
+  if (!any(crossed)) {
+    return("not crossed with any design column")
+  }
+  NA_character_
 }
 
 # Pick the top class label using a simpler-is-better tie-break.

@@ -93,12 +93,10 @@
 
 test_that("the F6 fixtures have the structure they are built with", {
   d <- .f6_two_year_met()
-  per_rep <- data.table::as.data.table(d)[
-    , .(n_blocks = data.table::uniqueN(block), n = .N),
-    by = .(year, site, rep)
-  ]
-  expect_true(all(per_rep$n_blocks == 6L) && all(per_rep$n == 24L))
-  expect_true(all(table(paste(d$year, d$site, d$rep, d$block)) == 4L))
+  site_year_rep <- paste(d$year, d$site, d$rep)
+  expect_true(all(tapply(d$block, site_year_rep, data.table::uniqueN) == 6L))
+  expect_true(all(table(site_year_rep) == 24L))
+  expect_true(all(table(paste(site_year_rep, d$block)) == 4L))
 
   a <- .f6_plot_artefact()
   expect_true(all(table(a$site, a$block, a$genotype) == 1L))

@@ -133,6 +133,17 @@ local(S7::method(print, design_summary) <- function(x, ...) {
           "; review disclosure."
         ))
       }
+      held <- x@recommended_roles$col[
+        x@recommended_roles$source == "design_rule" &
+          !x@recommended_roles$auto_apply
+      ]
+      if (length(held) > 0L) {
+        cli::cli_alert_info(paste0(
+          "Not applied: ", paste(held, collapse = ", "),
+          ". A structural hint needs a design column crossing it; see ",
+          "{.code x@recommended_roles$reason}."
+        ))
+      }
     }
   }
 

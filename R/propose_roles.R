@@ -66,16 +66,21 @@
 #' 3. ID-pattern names (`\\bid\\b`, `_id$`, `^id_`) -> role `id`; kept
 #'    in local mode, dropped in collaborate mode.
 #' 4. Design-pattern names (`rep`, `block`, `row`, `col(umn)?`,
-#'    `range`, `plot(no)?`, `site`, `env(ironment)?`, `trial`, `year`,
-#'    `season`, `colrep`, `tos`) -> role `design`, action `keep`.
+#'    `range`, `plot(no)?`, `site`, `site_name`, `trial_site`,
+#'    `env(ironment)?`, `trial`, `year`, `season`, `colrep`, `tos`; the
+#'    two-word names also spaced or dotted, as in `Site Name` and
+#'    `Site.Name`) -> role `design`, action `keep`.
 #' 5. Treatment-pattern names (`treatment`, `variety`, `cultivar`,
 #'    `genotype`, `^trt`, `^dose`) -> role `treatment`; kept in local
 #'    mode, aliased in collaborate mode.
-#' 6. Character columns with > 50% unique values on non-NA -> role
+#' 6. Numeric columns with an outcome-pattern name (`yield`, `yield_t_ha`,
+#'    `Yield..t.ha.`, `grain_yield`, `response`, `outcome`) -> role
+#'    `outcome`, action `scramble`.
+#' 7. Character columns with > 50% unique values on non-NA -> role
 #'    `text`; kept in local mode, dropped in collaborate mode.
-#' 7. Unsupported classes -> role `other`, action `keep`, with a note.
-#' 8. Everything else -> role `covariate`, action `scramble`. Re-role
-#'    response variables as `outcome`.
+#' 8. Unsupported classes -> role `other`, action `keep`, with a note.
+#' 9. Everything else -> role `covariate`, action `scramble`. Re-role
+#'    other response variables as `outcome`.
 #'
 #' No outcome is required: with no column roled `outcome`, the copula
 #' simply re-simulates all scrambled numeric columns jointly.
@@ -86,6 +91,14 @@
 #' the default action for any promoted column. The design summary is
 #' stashed as `attr(roles, "design")`. Pass `detect = FALSE` for the
 #' name-only heuristic.
+#'
+#' A structural treatment hint (one found by the design rules, not by a
+#' treatment-pattern name) is applied only when the column is crossed with a
+#' design column: a design-pattern name, a column roled `design`, or a
+#' detected environment. A column with one value per level of a design
+#' column is a unit-level covariate and is never promoted. Hints that fail
+#' are listed in `attr(roles, "design")@recommended_roles` with
+#' `auto_apply = FALSE` and the reason.
 #'
 #' @section Multi-environment trials:
 #'
@@ -297,6 +310,11 @@ classify_one_column <- function(nm, x, mode = "local") {
     } else {
       "Treatment-pattern name -> passes through in local mode."
     }
+  } else if (kind %in% .numeric_kinds() &&
+    matches_pattern(nm, OUTCOME_PATTERN)) {
+    role <- "outcome"
+    action <- .default_action(role, kind, mode)
+    notes <- "Outcome-pattern name -> outcome (re-simulated)."
   } else if (kind == "character" && is_free_text(x)) {
     role <- "text"
     action <- .default_action(role, kind, mode)
@@ -371,9 +389,11 @@ is_free_text <- function(x, threshold = 0.5) {
 ID_PATTERN <- "(\\bid\\b|_id$|^id_)"
 DESIGN_PATTERN <- paste0(
   "(^rep[0-9]*$|^block$|^row$|^col(umn)?$|^range$|^plot(no)?$|^site$|",
+  "^site[ ._]?name$|^trial[ ._]?site$|",
   "^env(ironment)?$|^trial(_?acronym)?$|^year$|^season$|^colrep$|^tos$)"
 )
 TREATMENT_PATTERN <- "(treatment|^variety|^cultivar|genotype|^trt|^dose$)"
+OUTCOME_PATTERN <- "(^(grain[ ._]?)?yield([ ._].*)?$|^response$|^outcome$)"
 PII_PATTERN <- paste0(
   "(contact|email|phone|address|gps|latitude|longitude|\\blat\\b|",
   "\\blon\\b|postcode|postal|^zip|ssn|dob|birthdate|password|secret|",

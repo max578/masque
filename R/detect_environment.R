@@ -255,7 +255,10 @@ GROUP_MAX_SHARED_FRACTION <- 0.05
   ]
   site <- available[
     grepl(
-      "^(site|location|loc|county|region|field|farm|place)$",
+      paste0(
+        "^(site|location|loc|county|region|field|farm|place|",
+        "site[ ._]?name|trial[ ._]?site)$"
+      ),
       available,
       ignore.case = TRUE,
       perl = TRUE
@@ -679,7 +682,8 @@ GROUP_MAX_SHARED_FRACTION <- 0.05
     interactive = FALSE,
     threshold = threshold,
     tie_delta = tie_delta,
-    scope = .scope_disabled()
+    scope = .scope_disabled(),
+    revise = TRUE
   )
   treatment_present <- intersect(treatment_cols, names(slice))
   n_treatments <- if (length(treatment_present) == 0L) {
