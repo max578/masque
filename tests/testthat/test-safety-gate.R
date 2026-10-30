@@ -6,7 +6,7 @@ high_fixture <- function() {
   set.seed(0)
   df <- data.frame(
     Rep = rep(1:4, 25),
-    contact_email = factor(rep(c("a", "b"), 50)),
+    contact_email = factor(rep(c("a", "b"), each = 50)),
     yield = rnorm(100),
     stringsAsFactors = FALSE
   )

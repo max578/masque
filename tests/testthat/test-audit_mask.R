@@ -64,7 +64,7 @@ test_that("audit_mask flags PII-retained as HIGH", {
   set.seed(0)
   df <- data.frame(
     Rep = rep(1:4, 25),
-    contact_person = factor(rep(c("A", "B"), 50)), # PII pattern -> auto ignore
+    contact_person = factor(rep(c("A", "B"), each = 50)), # PII pattern -> auto ignore
     yield = rnorm(100),
     stringsAsFactors = FALSE
   )
@@ -107,7 +107,7 @@ test_that("Collaborate mode warns at mask() time on HIGH leakage", {
   set.seed(0)
   df <- data.frame(
     Rep = rep(1:4, 25),
-    contact_email = factor(rep(c("a", "b"), 50)),
+    contact_email = factor(rep(c("a", "b"), each = 50)),
     yield = rnorm(100),
     stringsAsFactors = FALSE
   )

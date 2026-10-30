@@ -109,7 +109,7 @@ test_that("mask_set() takes a conformance object per table and replays it", {
   raw <- state_raw()
   cf <- state_cf(raw)
   other <- data.frame(
-    genotype = sprintf("G%d", 1:4), height = c(80, 95, 102, 88),
+    genotype = sprintf("G%d", 1:5), height = c(80, 95, 102, 88, 91),
     stringsAsFactors = FALSE
   )
   ro <- propose_roles(other, mode = "local", detect = FALSE)

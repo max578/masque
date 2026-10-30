@@ -167,7 +167,8 @@ test_that("a sheet that looks like documentation gets a hint, not a decision", {
   )
   expect_false(any(grepl("documentation", msgs)))
   plain <- list(trial = tabs$trial, lines = data.frame(
-    genotype = c("Scope", "Compass", "Mace"), height = c(80, 95, 102)
+    genotype = c("Scope", "Compass", "Mace", "Trojan", "Spartacus"),
+    height = c(80, 95, 102, 88, 91)
   ))
   msgs <- testthat::capture_messages(
     mask_set(plain, mode = "local", seed = 1)

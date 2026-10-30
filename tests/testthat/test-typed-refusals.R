@@ -189,7 +189,7 @@ test_that("unmask() refuses ambiguous atomic input with multiple level maps and 
   df <- data.frame(
     Rep = rep(1:4, 25),
     Genotype = factor(rep(LETTERS[1:5], each = 20)),
-    cov_c = factor(rep(c("alpha", "beta"), 50)),
+    cov_c = factor(rep(c("alpha", "beta"), each = 50)),
     yield = rnorm(100, mean = 10, sd = 2),
     stringsAsFactors = FALSE
   )

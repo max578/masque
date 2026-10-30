@@ -65,8 +65,8 @@ door_roles <- function(df, mode) {
 door_set <- function() {
   df <- door_trial()
   lines <- data.frame(
-    genotype = c("Scope", "Compass", "Spartacus", "Trojan"),
-    height = c(80, 95, 102, 88), stringsAsFactors = FALSE
+    genotype = c("Scope", "Compass", "Spartacus", "Trojan", "Mace"),
+    height = c(80, 95, 102, 88, 91), stringsAsFactors = FALSE
   )
   list(trial = df, lines = lines)
 }
