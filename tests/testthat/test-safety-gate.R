@@ -136,9 +136,9 @@ test_that("blocked summary is status-first and avoids release language", {
     ))
   )
   expect_true(any(grepl("BLOCKED", msgs)))
-  # The fixture trips two HIGH rules: the retained PII-pattern column and
-  # the byte-identical Rep design column.
-  expect_true(any(grepl("2 HIGH", msgs)))
+  # The fixture trips one HIGH rule, the retained PII-pattern column; Rep is
+  # a kept design column, graded low.
+  expect_true(any(grepl("1 HIGH", msgs)))
   expect_false(any(grepl("\\bshare\\b|\\bsend\\b|\\bsafe\\b", msgs,
     ignore.case = TRUE
   )))

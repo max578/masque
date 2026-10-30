@@ -27,15 +27,18 @@ test_that("set_role validates inputs", {
 })
 
 test_that("default actions differ between local and collaborate", {
-  rl <- propose_roles(iris, mode = "local")
-  rc <- propose_roles(iris, mode = "collaborate")
-  # Species detects as a CRD treatment: kept in local, aliased in collaborate.
+  # A CRD with no design column is not promoted, so set the treatment role:
+  # kept in local, aliased in collaborate.
+  rl <- set_role(propose_roles(iris, mode = "local"), "Species", "treatment")
+  rc <- set_role(
+    propose_roles(iris, mode = "collaborate"), "Species", "treatment"
+  )
   expect_equal(rl$action[rl$col == "Species"], "keep")
   expect_equal(rc$action[rc$col == "Species"], "alias")
 })
 
 test_that("validating a local table for collaborate re-resolves defaults", {
-  r <- propose_roles(iris, mode = "local") # Species -> treatment/keep
+  r <- set_role(propose_roles(iris, mode = "local"), "Species", "treatment")
   rv <- suppressMessages(roles_validate(r, iris, mode = "collaborate"))
   expect_equal(rv$action[rv$col == "Species"], "alias")
 })
@@ -43,6 +46,7 @@ test_that("validating a local table for collaborate re-resolves defaults", {
 test_that("mask(mode=) re-resolves a default-action table to that mode", {
   r <- propose_roles(iris, mode = "local")
   r <- set_role(r, "Sepal.Length", role = "outcome")
+  r <- set_role(r, "Species", role = "treatment")
   m <- suppressMessages(suppressWarnings(
     mask(iris, r, mode = "collaborate", seed = 1)
   ))
