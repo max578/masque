@@ -207,8 +207,11 @@ unmask <- function(x, rec, column = NULL) {
   }
 
   if (is.atomic(x) && is.null(dim(x))) {
-    # Numeric, logical and date input passes through unchanged.
-    if (!is.character(x) && !is.factor(x)) {
+    # Numeric, logical and date input passes through unchanged, except a
+    # numeric treatment the recipe permuted.
+    numeric_map <- is.numeric(x) && !is.null(column) &&
+      column %in% names(rec@level_maps)
+    if (!is.character(x) && !is.factor(x) && !numeric_map) {
       if (!is.null(column) && length(rec@roles$col) > 0L &&
         !(column %in% rec@roles$col)) {
         cli::cli_abort(c(
@@ -332,9 +335,31 @@ unmask <- function(x, rec, column = NULL) {
     } else {
       new_chr
     }
+  } else if (is.numeric(val)) {
+    # A numeric treatment: aliases are character, a permutation stays numeric.
+    key <- .level_key(val)
+    unmapped <- !is.na(key) & !(key %in% names(map))
+    if (any(unmapped)) {
+      .fail_unmapped(unique(key[unmapped]), col = col, direction = "forward")
+    }
+    new_chr <- unname(map[key])
+    if (!setequal(unname(map), names(map))) {
+      return(new_chr)
+    }
+    .numeric_from_key(new_chr, val)
   } else {
     val
   }
+}
+
+# Internal: numeric values from their exact keys, in the storage class of
+# `like`.
+.numeric_from_key <- function(key, like) {
+  num <- suppressWarnings(as.numeric(key))
+  if (is.integer(like) || identical(like, "integer")) {
+    return(as.integer(num))
+  }
+  num
 }
 
 # Internal: level order of a relabelled factor in the clone, which must not
@@ -379,6 +404,13 @@ unmask <- function(x, rec, column = NULL) {
     } else {
       new_chr
     }
+  } else if (is.numeric(val)) {
+    key <- .level_key(val)
+    unmapped <- !is.na(key) & !(key %in% names(inv))
+    if (any(unmapped)) {
+      .fail_unmapped(unique(key[unmapped]), col = col, direction = "inverse")
+    }
+    .numeric_from_key(unname(inv[key]), val)
   } else {
     val
   }
