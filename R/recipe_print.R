@@ -327,7 +327,7 @@ reveal_maps <- function(rec, table = NULL) {
     lines <- sprintf(
       "  %s  ->  %s", names(cmap), unname(unlist(cmap))
     )
-    cat(lines, sep = "\n")
+    cli::cli_verbatim(lines)
   }
 
   if (length(rec@level_maps) == 0L) {
@@ -341,12 +341,12 @@ reveal_maps <- function(rec, table = NULL) {
     cli::cli_h3(col)
     map <- rec@level_maps[[col]]
     lines <- sprintf("  %s  ->  %s", names(map), unname(map))
-    cat(lines, sep = "\n")
+    cli::cli_verbatim(lines)
   }
 
   if (length(rec@seed)) {
     cli::cli_h3("seed")
-    cat(sprintf("  %d\n", rec@seed))
+    cli::cli_verbatim(sprintf("  %d", rec@seed))
   }
   invisible(rec)
 }

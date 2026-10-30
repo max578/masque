@@ -74,6 +74,15 @@ test_that("reveal_maps prints a warning banner before maps", {
   expect_match(joined, "Revealing sensitive")
 })
 
+test_that("reveal_maps writes nothing to stdout, so it can be silenced", {
+  r <- propose_roles(iris)
+  r$role[r$col == "Sepal.Length"] <- "outcome"
+  r$role[r$col == "Species"] <- "covariate"
+  m <- mask(iris, r, mode = "collaborate", seed = 1)
+  out <- utils::capture.output(suppressMessages(reveal_maps(recipe(m))))
+  expect_identical(out, character())
+})
+
 test_that("reveal_maps on an empty-maps recipe says so", {
   r <- propose_roles(iris)
   r$role[r$col == "Sepal.Length"] <- "outcome"
