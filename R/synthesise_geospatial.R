@@ -122,7 +122,7 @@ synthesise_geospatial <- function(synth, original,
   }
 
   withr::local_preserve_seed()
-  if (!is.null(seed)) set.seed(seed)
+  if (!is.null(seed)) set.seed(as.integer(.check_seed(seed)))
 
   # 1. Per (anchor, site) replication counts in the original.
   has_xy <- !is.na(original[[lat_col]]) & !is.na(original[[lon_col]])

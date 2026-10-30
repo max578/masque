@@ -207,7 +207,7 @@ roles_validate <- function(roles, df = NULL, mode = NULL) {
     cli::cli_warn(c(
       "Every action is {.val keep}: nothing will be masked.",
       i = "The synthetic output will equal the original byte-for-byte."
-    ))
+    ), class = "masque_all_keep")
   }
 
   invisible(roles)

@@ -523,11 +523,11 @@ MIN_EDIT_NCHAR <- 4L   # below this, a one-character difference means nothing
   held <- a[!a$applied, , drop = FALSE]
   if (nrow(done)) {
     cli::cli_alert_info("Applied {nrow(done)} decision{?s}:")
-    cli::cli_ul(sprintf("%s: %s", done$col, done$assumption))
+    cli::cli_ul(.cli_literal(sprintf("%s: %s", done$col, done$assumption)))
   }
   if (nrow(held)) {
     cli::cli_alert_warning("Reported, NOT applied ({nrow(held)}):")
-    cli::cli_ul(sprintf("%s: %s", held$col, held$assumption))
+    cli::cli_ul(.cli_literal(sprintf("%s: %s", held$col, held$assumption)))
     if (identical(unname(x$modes["merge_labels"]), "report") ||
         identical(unname(x$modes["types"]), "report")) {
       cli::cli_text(
@@ -540,3 +540,6 @@ MIN_EDIT_NCHAR <- 4L   # below this, a one-character difference means nothing
   }
   invisible(NULL)
 }
+
+# Data text shown through cli: braces are literal, never glue expressions.
+.cli_literal <- function(x) gsub("([{}])", "\\1\\1", x)

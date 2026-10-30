@@ -190,7 +190,11 @@ mask_set <- function(input,
   # Link detection -> shared alias maps. `.build_shared_maps()` fills each
   # group's `$map` and indexes the maps by table for the mask() calls.
   link_groups <- .resolve_links(tables, roles, links, mode)
-  built <- .build_shared_maps(tables, roles, link_groups, mode)
+  built <- if (is.null(seed)) {
+    .build_shared_maps(tables, roles, link_groups, mode)
+  } else {
+    with_rng_state(seed, .build_shared_maps(tables, roles, link_groups, mode))
+  }
   link_groups <- built$groups
   shared_by_table <- built$shared_by_table
 
