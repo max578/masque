@@ -125,8 +125,11 @@ synthetic <- function(m) {
   }
   if (!S7::S7_inherits(m, masque_obj)) {
     cli::cli_abort(
-      "`m` must be a {.cls masque} or {.cls masque_set} object; got ",
-      "{.cls {class(m)[1]}}."
+      paste0(
+        "`m` must be a {.cls masque} or {.cls masque_set} object; got ",
+        "{.cls {class(m)[1]}}."
+      ),
+      class = c("masque_bad_masque_obj_refusal", "orchestra_refusal")
     )
   }
   data.table::copy(m@synthetic)
@@ -154,8 +157,11 @@ recipe <- function(m) {
   }
   if (!S7::S7_inherits(m, masque_obj)) {
     cli::cli_abort(
-      "`m` must be a {.cls masque} or {.cls masque_set} object; got ",
-      "{.cls {class(m)[1]}}."
+      paste0(
+        "`m` must be a {.cls masque} or {.cls masque_set} object; got ",
+        "{.cls {class(m)[1]}}."
+      ),
+      class = c("masque_bad_masque_obj_refusal", "orchestra_refusal")
     )
   }
   m@recipe

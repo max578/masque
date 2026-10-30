@@ -17,13 +17,32 @@ with_rng_state <- function(seed, expr) {
   if (is.null(seed)) {
     return(withr::with_preserve_seed(expr))
   }
-  if (!is.numeric(seed) || length(seed) != 1L || is.na(seed)) {
-    cli::cli_abort(
-      paste0(
-        "`seed` must be a single integer (or NULL); got ",
-        "{.cls {class(seed)[1]}} of length {length(seed)}."
-      )
-    )
-  }
+  .check_seed(seed)
   withr::with_seed(as.integer(seed), expr)
+}
+
+# A seed is a whole, finite number within the integer range; set.seed()
+# would truncate 1.5 to 1 and reject 2^31 with a bare error.
+.check_seed <- function(seed) {
+  ok <- is.numeric(seed) && length(seed) == 1L && !is.na(seed) &&
+    is.finite(seed) && seed == round(seed) &&
+    abs(seed) <= .Machine$integer.max
+  if (ok) {
+    return(invisible(seed))
+  }
+  got <- if (is.numeric(seed) && length(seed) == 1L) {
+    format(seed, digits = 15L)
+  } else {
+    sprintf("<%s> of length %d", class(seed)[1L], length(seed))
+  }
+  cli::cli_abort(
+    c(
+      paste0(
+        "`seed` must be a single integer (or NULL): a whole, finite number ",
+        "within the integer range."
+      ),
+      x = "Got {got}."
+    ),
+    class = c("masque_bad_seed_refusal", "orchestra_refusal")
+  )
 }

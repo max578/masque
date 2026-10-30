@@ -19,7 +19,8 @@
 #'
 #' @param rec A `masque_recipe`, or the `masque_recipe_set` bundle of a
 #'   [mask_set()] result, e.g. from `recipe(m)`.
-#' @param path File path. By convention, `.rds` extension.
+#' @param path File path ending in `.rds` (any case); other extensions are
+#'   refused.
 #' @param include_simulator Logical. Has no effect; the recipe is always
 #'   written without simulator state.
 #'
@@ -45,11 +46,25 @@ save_recipe <- function(rec, path, include_simulator = FALSE) {
       class = c("masque_bad_recipe_refusal", "orchestra_refusal")
     )
   }
-  if (!is.character(path) || length(path) != 1L || !nzchar(path)) {
-    cli::cli_abort("`path` must be a single non-empty string.")
+  if (!is.character(path) || length(path) != 1L || is.na(path) ||
+    !nzchar(path)) {
+    cli::cli_abort(
+      "`path` must be a single non-empty string.",
+      class = c("masque_bad_recipe_path_refusal", "orchestra_refusal")
+    )
   }
   if (!is.logical(include_simulator) || length(include_simulator) != 1L) {
     cli::cli_abort("`include_simulator` must be a single logical.")
+  }
+  # The file is RDS whatever its name says; a .csv name would mislead.
+  if (!grepl("\\.rds$", path, ignore.case = TRUE)) {
+    cli::cli_abort(
+      c(
+        "`path` must end in {.file .rds}; got {.file {path}}.",
+        i = "{.fn save_recipe} writes R serialisation (RDS)."
+      ),
+      class = c("masque_bad_recipe_path_refusal", "orchestra_refusal")
+    )
   }
   # include_simulator is currently a no-op (recipe carries no simulator state).
   saveRDS(rec, file = path, version = 3L)
