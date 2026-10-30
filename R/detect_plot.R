@@ -255,7 +255,7 @@ local(S7::method(plot, design_summary) <- function(
 .plot_replication_tile <- function(x, df, engine) {
   trt <- x@treatment_col[1L]
   block <- x@block_cols[1L]
-  if (is.null(trt) || is.na(trt) || length(block) == 0L) {
+  if (is.null(trt) || is.na(trt) || is.na(block)) {
     cli::cli_warn(
       "Replication tile needs treatment + block; skipping.",
       class = "masque_plot_skipped"

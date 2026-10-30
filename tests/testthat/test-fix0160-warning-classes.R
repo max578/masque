@@ -52,4 +52,10 @@ test_that("a design plot panel that cannot be drawn warns by class", {
     masque:::.plot_replication_tile(ds, df, "base"),
     class = "masque_plot_skipped"
   )
+  ds@treatment_col <- "trt"
+  ds@block_cols <- character()
+  expect_warning(
+    masque:::.plot_replication_tile(ds, df, "base"),
+    class = "masque_plot_skipped"
+  )
 })
