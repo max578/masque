@@ -26,6 +26,8 @@ multi-table round trip. `NEWS.md` lists them.
 * Local: macOS (Apple Silicon), R 4.6.1.
 * GitHub Actions: Ubuntu (R-devel, R-release, R-oldrel-1), Windows
   (R-release), macOS (R-release).
+* R-hub: Linux (R-devel), Ubuntu next, Windows (R-devel), macOS arm64
+  (R-devel).
 
 ## R CMD check results
 
