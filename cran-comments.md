@@ -28,6 +28,7 @@ multi-table round trip. `NEWS.md` lists them.
   (R-release), macOS (R-release).
 * R-hub: Linux (R-devel), Ubuntu next, Windows (R-devel), macOS arm64
   (R-devel).
+* win-builder: Windows, R-devel (2026-10-28 r90783 ucrt).
 
 ## R CMD check results
 
