@@ -77,3 +77,68 @@ local(S7::method(print, masque_set) <- function(x, ...) {
   )
   invisible(x)})
 
+
+# local(): see the plot method in detect_plot.R.
+local(S7::method(print, masque_recipe_set) <- function(x, ...) {
+  cli::cli_h1("masque_recipe_set")
+  cli::cli_bullets(c(
+    "*" = sprintf("Created: %s", format(x@created_at, "%Y-%m-%d %H:%M:%S %Z")),
+    "*" = sprintf("Mode: %s", x@mode),
+    "*" = sprintf("Tables: %d", length(x@recipes)),
+    "*" = sprintf("masque version: %s", x@masque_version)
+  ))
+
+  # Link names and tables only; the shared maps stay redacted.
+  if (length(x@links)) {
+    cli::cli_h2(sprintf("Cross-table links (%d)", length(x@links)))
+    for (lk in x@links) {
+      cli::cli_li(sprintf(
+        "{.val %s} shared across {.val %s}",
+        lk$name, paste(lk$tables, collapse = ", ")
+      ))
+    }
+  }
+
+  for (nm in names(x@recipes)) {
+    cli::cli_text("")
+    cli::cli_rule(left = "table: {nm}")
+    print(x@recipes[[nm]])
+  }
+
+  cli::cli_text("")
+  cli::cli_alert_danger(
+    "The recipe bundle is PRIVATE - never share it with the synthetic set."
+  )
+  cli::cli_text(
+    "Use {.code reveal_maps(rec, table = )} to inspect level maps explicitly."
+  )
+  invisible(x)})
+
+
+# local(): see the plot method in detect_plot.R.
+local(S7::method(format, masque_recipe_set) <- function(x, ...) {
+  sprintf(
+    "<masque_recipe_set: mode=%s, tables=%d, links=%d>",
+    x@mode, length(x@recipes), length(x@links)
+  )})
+
+
+# local(): see the plot method in detect_plot.R.
+local(S7::method(format, masque_set) <- function(x, ...) {
+  sprintf(
+    "<masque_set: mode=%s, tables=%d, links=%d>",
+    x@mode, length(x@synthetic), length(x@recipe@links)
+  )})
+
+
+# Redacted str() and knit_print(): see recipe_print.R.
+local({
+  str <- utils::str
+  S7::method(str, masque_recipe_set) <- .str_redacted
+  S7::method(str, masque_set) <- .str_redacted
+})
+
+local({
+  S7::method(knit_print, masque_recipe_set) <- .knit_print_redacted
+  S7::method(knit_print, masque_set) <- .knit_print_redacted
+})

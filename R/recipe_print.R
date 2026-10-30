@@ -146,12 +146,78 @@ local(S7::method(print, masque_obj) <- function(x, ...) {
   invisible(x)})
 
 
+# local(): see the plot method in detect_plot.R.
+local(S7::method(format, masque_obj) <- function(x, ...) {
+  sprintf(
+    "<masque: mode=%s, synthetic=%d x %d, audit=%s>",
+    x@mode, nrow(x@synthetic), ncol(x@synthetic),
+    if (is.null(x@audit)) "not run" else "stored"
+  )})
+
+
+# str() on a recipe-holding object shows the one-line format() and nothing
+# else: listing properties would print the maps, the seed, factor levels and
+# any property added later.
+.str_redacted <- function(object, ...) {
+  nest_lev <- list(...)$nest.lev %||% 0L
+  cat(" ", format(object), "\n", sep = "")
+  if (nest_lev == 0L) {
+    cat(
+      " Private: properties are not listed. Use print() for the redacted",
+      " summary and reveal_maps() for the level maps.\n",
+      sep = ""
+    )
+  }
+  invisible(NULL)
+}
+
+# The set classes register theirs in recipe_set.R, which collates later.
+local({
+  str <- utils::str
+  S7::method(str, masque_recipe) <- .str_redacted
+  S7::method(str, masque_obj) <- .str_redacted
+})
+
+
+# The redacted print as plain text lines, in the order they print.
+.redacted_lines <- function(x) {
+  lines <- utils::capture.output(
+    withCallingHandlers(
+      print(x),
+      message = function(m) {
+        cat(conditionMessage(m))
+        invokeRestart("muffleMessage")
+      }
+    )
+  )
+  cli::ansi_strip(lines)
+}
+
+# knitr is suggested only: the method is registered when knitr loads.
+.knit_print_redacted <- function(x, ...) {
+  knitr::asis_output(paste0(
+    "\n```\n", paste(.redacted_lines(x), collapse = "\n"), "\n```\n"
+  ))
+}
+
+# S7 finds an external generic by its name in the namespace, so it is bound
+# here; S7 registers the methods when knitr loads.
+knit_print <- S7::new_external_generic("knitr", "knit_print", "x")
+
+local({
+  S7::method(knit_print, masque_recipe) <- .knit_print_redacted
+  S7::method(knit_print, masque_obj) <- .knit_print_redacted
+})
+
+
 #' Reveal the level maps held inside a recipe
 #'
 #' Explicit, audited reveal: prints each `original -> synthetic` level map
 #' held by the recipe. **Use sparingly.** Recipe maps are at least as
 #' sensitive as the original data; printing them defeats the redaction
-#' built into [print()] and [summary()].
+#' built into the `print()`, `format()`, `str()` and `knitr::knit_print()`
+#' methods of recipes, recipe bundles, `masque` and `masque_set` objects.
+#' `saveRDS()` and `dput()` write the maps by design.
 #'
 #' @param rec A `masque_recipe` object (e.g., from `recipe(m)`).
 #' @return `rec`, invisibly.
