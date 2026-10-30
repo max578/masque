@@ -46,7 +46,9 @@
 #' state is preserved across the call.
 #'
 #' @param df A data frame, or the `masque_conformance` object returned by
-#'   [conform_table()], whose `data` element is then masked.
+#'   [conform_table()], whose `data` element is then masked. Its cleaning
+#'   record and its merges and type changes go on the recipe, so
+#'   [apply_recipe()] replays them; `clean` is not applied a second time.
 #' @param roles A roles table from [propose_roles()] (possibly edited).
 #'   Tables from masque <= 0.5.0 are upgraded with a deprecation
 #'   warning; see [roles_validate()].
