@@ -37,6 +37,7 @@
 #'   whole numbers stochastically rounded; `audit_mask()` auto-runs at
 #'   construction.
 #'
+#' @importFrom utils str
 #' @keywords internal
 "_PACKAGE"
 
