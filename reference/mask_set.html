@@ -19,7 +19,7 @@ synthetic set still resolves on the masked data."><meta property="og:image" cont
 
     <a class="navbar-brand me-2" href="../index.html">masque</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.15.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.16.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -71,7 +71,12 @@ synthetic set still resolves on the masked data.</p>
 <span>  alias_names <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  conditional <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  ladder <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"hierarchy"</span>, <span class="st">"levels"</span><span class="op">)</span>,</span>
-<span>  quiet <span class="op">=</span> <span class="cn">FALSE</span></span>
+<span>  grain <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  allow_kept_outcome <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  quiet <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  sheets <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  info <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -81,7 +86,9 @@ synthetic set still resolves on the masked data.</p>
 
 <dl><dt id="arg-input">input<a class="anchor" aria-label="anchor" href="#arg-input"></a></dt>
 <dd><p>A folder path, an <code>.xlsx</code> / <code>.xls</code> path, or a named list
-of data frames - anything <code><a href="read_set.html">read_set()</a></code> accepts.</p></dd>
+of data frames - anything <code><a href="read_set.html">read_set()</a></code> accepts. A list element may also
+be a <code><a href="conform_table.html">conform_table()</a></code> result: its cleaning record and conform
+decisions are used for that table and recorded on its recipe.</p></dd>
 
 
 <dt id="arg-roles">roles<a class="anchor" aria-label="anchor" href="#arg-roles"></a></dt>
@@ -132,8 +139,40 @@ the treatment-to-outcome relationship survives the clone. See
 or <code>"levels"</code>; passed through to each <code><a href="mask.html">mask()</a></code> call.</p></dd>
 
 
+<dt id="arg-grain">grain<a class="anchor" aria-label="anchor" href="#arg-grain"></a></dt>
+<dd><p>Single logical (default <code>TRUE</code>); passed through to each
+<code><a href="mask.html">mask()</a></code> call, which synthesises a unit-constant column once per unit.</p></dd>
+
+
+<dt id="arg-allow-kept-outcome">allow_kept_outcome<a class="anchor" aria-label="anchor" href="#arg-allow-kept-outcome"></a></dt>
+<dd><p>Single logical, passed to each <code><a href="mask.html">mask()</a></code> call:
+<code>TRUE</code> allows a kept outcome in a collaborate clone and records it.</p></dd>
+
+
 <dt id="arg-quiet">quiet<a class="anchor" aria-label="anchor" href="#arg-quiet"></a></dt>
-<dd><p>Logical; suppress the link / hygiene report.</p></dd>
+<dd><p>Logical; suppress the link / hygiene report, including the
+hint that a table looks like documentation.</p></dd>
+
+
+<dt id="arg-sheets">sheets<a class="anchor" aria-label="anchor" href="#arg-sheets"></a></dt>
+<dd><p>For an Excel workbook, the sheets to read (default: all);
+passed to <code><a href="read_set.html">read_set()</a></code>.</p></dd>
+
+
+<dt id="arg-info">info<a class="anchor" aria-label="anchor" href="#arg-info"></a></dt>
+<dd><p>Optional character vector of table names (sheet names, or
+file names without extension) to set aside as documentation, for
+example a data dictionary. They are set aside before masking: not
+masked, not in the synthetic set, not written by <code><a href="write_set.html">write_set()</a></code>, and
+their content is not kept. Their names are
+recorded on the recipe bundle. A table that looks like documentation
+and is not named here raises a hint (a message of class
+<code>masque_info_hint</code>); the hint decides nothing.</p></dd>
+
+
+<dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
+<dd><p>Must be empty: any argument here is refused with
+<code>masque_unused_arg_refusal</code>.</p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -151,33 +190,38 @@ compatible kind and overlapping values - the join keys of the set.
 <code>mask_set()</code> proposes links automatically and prints them; pass
 <code>links</code> to override. Linked columns are aliased in place with a shared
 map (built over the union of values across all tables), so identical
-original values map to identical aliases in every table. Set a linked
-column's action to <code>keep</code> in its roles table to pass it through
-unmasked instead.</p>
+original values map to identical aliases in every table. The aliases
+read <code>&lt;col&gt;_K001</code>, <code>&lt;col&gt;_K002</code>, ..., assigned at random and, when <code>seed</code>
+is set, the same for the same seed. Set a linked column's action to
+<code>keep</code> in its roles table to pass it through unmasked instead.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
-    <div class="dont-index"><p><code><a href="mask.html">mask()</a></code>, <code><a href="read_set.html">read_set()</a></code>, <code><a href="write_set.html">write_set()</a></code>.</p></div>
+    <div class="dont-index"><p><code><a href="mask.html">mask()</a></code>, <code><a href="read_set.html">read_set()</a></code>, <code><a href="write_set.html">write_set()</a></code>, <code><a href="audit_mask.html">audit_mask()</a></code>,
+<code><a href="data_card.html">data_card()</a></code>, <code><a href="reveal_maps.html">reveal_maps()</a></code>.</p></div>
     </div>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">tables</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span></span>
 <span class="r-in"><span>  plots <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span></span>
-<span class="r-in"><span>    site <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"A"</span>, <span class="st">"A"</span>, <span class="st">"B"</span>, <span class="st">"B"</span><span class="op">)</span>,</span></span>
-<span class="r-in"><span>    gen <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"x"</span>, <span class="st">"y"</span>, <span class="st">"x"</span>, <span class="st">"y"</span><span class="op">)</span>,</span></span>
-<span class="r-in"><span>    yield <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">3.1</span>, <span class="fl">2.9</span>, <span class="fl">4.0</span>, <span class="fl">3.7</span><span class="op">)</span></span></span>
+<span class="r-in"><span>    site <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"A"</span>, <span class="st">"B"</span>, <span class="st">"C"</span>, <span class="st">"D"</span>, <span class="st">"E"</span><span class="op">)</span>, each <span class="op">=</span> <span class="fl">2</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>    gen <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"x"</span>, <span class="st">"y"</span><span class="op">)</span>, <span class="fl">5</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>    yield <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">3.1</span>, <span class="fl">2.9</span>, <span class="fl">4.0</span>, <span class="fl">3.7</span>, <span class="fl">3.3</span>, <span class="fl">3.5</span>, <span class="fl">2.8</span>, <span class="fl">3.0</span>, <span class="fl">3.9</span>, <span class="fl">3.6</span><span class="op">)</span></span></span>
 <span class="r-in"><span>  <span class="op">)</span>,</span></span>
 <span class="r-in"><span>  sites <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span></span>
-<span class="r-in"><span>    site <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"A"</span>, <span class="st">"B"</span><span class="op">)</span>,</span></span>
-<span class="r-in"><span>    rainfall <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">420</span>, <span class="fl">560</span><span class="op">)</span></span></span>
+<span class="r-in"><span>    site <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"A"</span>, <span class="st">"B"</span>, <span class="st">"C"</span>, <span class="st">"D"</span>, <span class="st">"E"</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>    rainfall <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">420</span>, <span class="fl">560</span>, <span class="fl">390</span>, <span class="fl">610</span>, <span class="fl">480</span><span class="op">)</span></span></span>
 <span class="r-in"><span>  <span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="va">m</span> <span class="op">&lt;-</span> <span class="fu">mask_set</span><span class="op">(</span><span class="va">tables</span>, mode <span class="op">=</span> <span class="st">"collaborate"</span>, seed <span class="op">=</span> <span class="fl">1</span>, quiet <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">roles</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">tables</span>, <span class="va">propose_roles</span>, mode <span class="op">=</span> <span class="st">"collaborate"</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">roles</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">roles</span>, <span class="va">set_role</span>, <span class="st">"site"</span>, action <span class="op">=</span> <span class="st">"alias"</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">m</span> <span class="op">&lt;-</span> <span class="fu">mask_set</span><span class="op">(</span><span class="va">tables</span>, roles <span class="op">=</span> <span class="va">roles</span>, seed <span class="op">=</span> <span class="fl">1</span>, quiet <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="synthetic.html">synthetic</a></span><span class="op">(</span><span class="va">m</span><span class="op">)</span><span class="op">$</span><span class="va">plots</span><span class="op">$</span><span class="va">site</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "A" "A" "B" "B"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  [1] "site_K002" "site_K002" "site_K001" "site_K001" "site_K005" "site_K005"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  [7] "site_K004" "site_K004" "site_K003" "site_K003"</span>
 <span class="r-in"><span><span class="fu"><a href="synthetic.html">synthetic</a></span><span class="op">(</span><span class="va">m</span><span class="op">)</span><span class="op">$</span><span class="va">sites</span><span class="op">$</span><span class="va">site</span> <span class="co"># same aliases -&gt; the join still works</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "A" "B"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "site_K002" "site_K001" "site_K005" "site_K004" "site_K003"</span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
     </div>

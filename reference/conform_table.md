@@ -72,13 +72,23 @@ An object of class `masque_conformance`: a list with
 - `merges` - one row per near-duplicate pair considered (`col`, `from`,
   `to`, `n_from`, `n_to`, `applied`, `reason`);
 
+- `merge_map` - the merges as applied to the data (`col`, `from`, `to`),
+  one row per merged-away label, each `to` a label left in the column.
+  This is what
+  [`mask()`](https://max578.github.io/masque/reference/mask.md) records
+  and
+  [`apply_recipe()`](https://max578.github.io/masque/reference/apply_recipe.md)
+  replays;
+
 - `types` - one row per column whose storage was considered (`col`,
   `from`, `to`, `applied`, `reason`);
 
 - `assumptions` - every decision as a plain sentence (`col`,
   `assumption`, `applied`), which is the thing to read;
 
-- `modes` - the modes applied.
+- `modes` - the modes applied;
+
+- `max_levels` - the cardinality threshold used.
 
 ## Details
 
@@ -97,6 +107,25 @@ Two labels that differ by an edit are merged only when one spelling is
 clearly more common; a column is converted only when every value parses;
 numeric columns keep their storage. Anything not changed for these
 reasons is reported as a `not applied` row with the reason.
+
+Merges follow chains: if `"Nsw"` merges onto `"nsw"` and `"nsw"` onto
+`"NSW"`, both end on `"NSW"`. A label whose merges end on two different
+labels (`"colur"` beside `"color"` and `"colour"` that occur equally
+often) is not merged; it is reported, and a
+`masque_conform_ambiguous_merge` warning is raised under
+`merge_labels = "auto"`. Codes that differ only inside a run of digits
+(`"G01"` and `"G02"`) are never treated as near-duplicates. Which
+columns hold categories is decided the same way whatever `types` is, so
+`types = "off"` still merges labels and leaves storage as it is.
+
+Pass the result to
+[`mask()`](https://max578.github.io/masque/reference/mask.md) (or as a
+table of
+[`mask_set()`](https://max578.github.io/masque/reference/mask_set.md)):
+the recipe records the merges and type changes, and
+[`apply_recipe()`](https://max578.github.io/masque/reference/apply_recipe.md)
+replays them on the original so a pipeline built on the conformed clone
+sees the same labels and storage.
 
 ## See also
 
@@ -143,5 +172,5 @@ str(cf2$data)
 #>  $ state: Factor w/ 2 levels "NSW","VIC": 1 1 1 2 2
 #>  $ yield: num  3.1 2.9 5 4.2 3.8
 #>  $ sown : Date, format: "2024-05-01" "2024-05-03" ...
-#>  - attr(*, ".internal.selfref")=<pointer: 0x5637e5ff9a30> 
+#>  - attr(*, ".internal.selfref")=<pointer: 0x55ef156a8a30> 
 ```

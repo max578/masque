@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">masque</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.15.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.16.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -36,6 +36,56 @@
       <small>Source: <a href="https://github.com/max578/masque/blob/main/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.16.0" id="masque-0160">masque 0.16.0<a class="anchor" aria-label="anchor" href="#masque-0160"></a></h2>
+<div class="section level3">
+<h3 id="behaviour-changes-0-16-0">Behaviour changes<a class="anchor" aria-label="anchor" href="#behaviour-changes-0-16-0"></a></h3>
+<ul><li>
+<code><a href="../reference/mask.html">mask()</a></code> synthesises a column that is constant within a design unit (a trial-level rainfall, a site soil type) once per unit, so the clone keeps one value per trial. <code>grain = FALSE</code> restores the row-by-row clone. In collaborate mode, fewer than five units fall back to row-by-row with a <code>masque_grain_small_units</code> warning.</li>
+<li>Collaborate mode no longer clips jittered numbers to the observed range, which copied the real extremes into the clone.</li>
+<li>A numeric treatment (a dose, an N rate) can be aliased or permuted, and collaborate mode aliases it by default; <code><a href="../reference/unmask.html">unmask()</a></code> restores the values.</li>
+<li>In collaborate mode a kept outcome audits HIGH and blocks the package writers unless <code>allow_kept_outcome = TRUE</code>, which the recipe records. A collaborate clone of fewer than five rows is refused.</li>
+<li>A coordinate declared in <code>coords</code> must have the action <code>keep</code> in <code>roles</code>. Any other action, including the <code>drop</code> that <code><a href="../reference/propose_roles.html">propose_roles()</a></code> proposes, is refused (<code>masque_coords_action_refusal</code>) instead of being overridden.</li>
+<li>
+<code><a href="../reference/propose_roles.html">propose_roles()</a></code> proposes a treatment only when it is crossed with the design, <code>yield</code>-like names as outcomes, and <code>Site Name</code>-like names as design.</li>
+<li>New arguments of <code><a href="../reference/mask.html">mask()</a></code> and <code><a href="../reference/mask_set.html">mask_set()</a></code> come before <code>quiet</code>; pass <code>quiet</code> and <code>allow_unmasked_coords</code> by name.</li>
+<li>
+<code><a href="../reference/mask_set.html">mask_set()</a></code> link aliases follow <code>seed</code> from their own stream, so a seeded set from 0.15.0 gets different link aliases when made again.</li>
+<li>masque needs data.table 1.15.0 or later.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="new-features-0-16-0">New features<a class="anchor" aria-label="anchor" href="#new-features-0-16-0"></a></h3>
+<ul><li>
+<code><a href="../reference/data_card.html">data_card()</a></code> describes a clone or a set: size, design, and per-column counts marked exact or re-simulated. It never lists a level label. <code><a href="../reference/roles.html">roles()</a></code> returns a clone’s role table under the clone’s column names.</li>
+<li>
+<code><a href="../reference/mask.html">mask()</a></code> gains <code>events</code>: linked time-to-event outcomes keep their order, the exact count of each status pattern, and no time past the longest observed follow-up.</li>
+<li>
+<code><a href="../reference/mask_set.html">mask_set()</a></code> and <code><a href="../reference/masque.html">masque()</a></code> gain <code>sheets</code> and <code>info</code> (documentation sheets set aside, not masked). <code><a href="../reference/masque.html">masque()</a></code> takes <code>detect</code> and passes other arguments on to <code><a href="../reference/mask.html">mask()</a></code> or <code><a href="../reference/mask_set.html">mask_set()</a></code>, refusing any they do not take.</li>
+<li>
+<code><a href="../reference/audit_mask.html">audit_mask()</a></code> grades each column on its excess over chance and adds whole-row and rare-combination checks in <code>attr(audit, "joint")</code>. A per-unit column is HIGH when its unit values are the real ones, even moved between units. With 5 to 8 units and few distinct values a copy cannot be told from chance, and grades low.</li>
+<li>
+<code><a href="../reference/save_recipe.html">save_recipe()</a></code>, <code><a href="../reference/read_recipe.html">read_recipe()</a></code>, <code>reveal_maps(table = )</code> and <code><a href="../reference/audit_mask.html">audit_mask()</a></code> accept a <code><a href="../reference/mask_set.html">mask_set()</a></code> result. The recipe records <code><a href="../reference/conform_table.html">conform_table()</a></code> decisions, and <code><a href="../reference/apply_recipe.html">apply_recipe()</a></code> replays them.</li>
+<li>Every warning carries a <code>masque_</code> class.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="bug-fixes-0-16-0">Bug fixes<a class="anchor" aria-label="anchor" href="#bug-fixes-0-16-0"></a></h3>
+<ul><li>
+<code><a href="https://rdrr.io/r/base/print.html" class="external-link">print()</a></code>, <code><a href="https://rdrr.io/r/base/format.html" class="external-link">format()</a></code>, <code><a href="https://rdrr.io/r/utils/str.html" class="external-link">str()</a></code> and knitr output of recipes and clones no longer show the seed or the label maps.</li>
+<li>
+<code><a href="../reference/masque.html">masque()</a></code> used local mode with a collaborate plan and returned real labels; it now follows the plan’s mode.</li>
+<li>
+<code>conform_table(merge_labels = "auto")</code> no longer merges codes that differ in a run of digits (<code>G002</code>, <code>G011</code>), and prints labels as text instead of evaluating braces in them.</li>
+<li>
+<code><a href="../reference/detect_design.html">detect_design()</a></code> no longer names an environment column (a year) as the block of a multi-environment trial.</li>
+<li>Guided <code><a href="../reference/masque.html">masque()</a></code> no longer stops on a folder or workbook whose column names need repair, and <code><a href="../reference/apply_recipe.html">apply_recipe()</a></code> keeps a linked key marked <code>drop</code>.</li>
+<li>Whole-numbered columns stay whole in conditional and collaborate clones, and two-valued columns are no longer jittered.</li>
+<li>
+<code><a href="../reference/apply_recipe.html">apply_recipe()</a></code> maps an aliased numeric column instead of passing real values through.</li>
+<li>Duplicate input column names are refused. The near-duplicate report prints at most 20 pairs. <code><a href="../reference/save_recipe.html">save_recipe()</a></code> accepts only <code>.rds</code>; a seed must be one whole number.</li>
+<li>Recipes saved by 0.15.0 still print, apply, unmask and audit.</li>
+<li>Console output of the guided review is written as messages, and the vignettes restore the <code><a href="https://rdrr.io/r/base/options.html" class="external-link">options()</a></code> they set.</li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.15.0" id="masque-0150">masque 0.15.0<a class="anchor" aria-label="anchor" href="#masque-0150"></a></h2>
 <div class="section level3">

@@ -57,6 +57,10 @@ Produce a structurally faithful synthetic clone of one or many tables.
   : Extract the synthetic data from a masque object
 - [`recipe()`](https://max578.github.io/masque/reference/recipe.md) :
   Extract the recipe from a masque object
+- [`roles()`](https://max578.github.io/masque/reference/roles.md) : The
+  role table of a masked clone
+- [`data_card()`](https://max578.github.io/masque/reference/data_card.md)
+  : Write a data card for a masked clone
 
 ## Recipe round-trip
 

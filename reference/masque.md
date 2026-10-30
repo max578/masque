@@ -25,7 +25,11 @@ masque(
   ask = interactive(),
   overwrite = FALSE,
   quiet = FALSE,
-  allow_high = FALSE
+  allow_high = FALSE,
+  detect = TRUE,
+  sheets = NULL,
+  info = NULL,
+  ...
 )
 ```
 
@@ -50,7 +54,14 @@ masque(
 
 - mode:
 
-  Either `"local"` (default) or `"collaborate"`.
+  Either `"local"` or `"collaborate"`. `"local"` makes an owner-only
+  development copy (real labels may remain); `"collaborate"` makes a
+  copy meant to be shared, with labels aliased, numbers jittered, free
+  text dropped and the leakage audit run. When omitted and `roles` are
+  supplied, the mode the roles were proposed for is used, exactly as in
+  [`mask()`](https://max578.github.io/masque/reference/mask.md) and
+  [`mask_set()`](https://max578.github.io/masque/reference/mask_set.md);
+  with no `roles`, the proposal is made for `"local"`.
 
 - seed:
 
@@ -111,6 +122,34 @@ masque(
   `masque_high_override` warning and is recorded in the recipe's
   warnings, so the exception stays auditable.
 
+- detect:
+
+  Logical (default `TRUE`). Passed to
+  [`propose_roles()`](https://max578.github.io/masque/reference/propose_roles.md)
+  when roles are proposed: `FALSE` skips design detection and proposes
+  from column names and types alone.
+
+- sheets:
+
+  For an Excel workbook, the sheets to read (default: all). See
+  [`mask_set()`](https://max578.github.io/masque/reference/mask_set.md).
+
+- info:
+
+  For a set, names of documentation tables to set aside: not masked and
+  not written. See
+  [`mask_set()`](https://max578.github.io/masque/reference/mask_set.md).
+
+- ...:
+
+  Further arguments for the masking verb:
+  [`mask()`](https://max578.github.io/masque/reference/mask.md) for one
+  table (for example `coords`, `events`, `allow_unmasked_coords`,
+  `grain`),
+  [`mask_set()`](https://max578.github.io/masque/reference/mask_set.md)
+  for a set (for example `links`, `grain`). An argument the verb does
+  not take is refused (`masque_unused_arg_refusal`).
+
 ## Value
 
 A `masque` object (single-table input) or a `masque_set` object (set
@@ -166,8 +205,16 @@ can do with those you can do with the result here.
 [`mask_set()`](https://max578.github.io/masque/reference/mask_set.md),
 [`propose_roles()`](https://max578.github.io/masque/reference/propose_roles.md),
 [`set_role()`](https://max578.github.io/masque/reference/set_role.md),
-[`write_set()`](https://max578.github.io/masque/reference/write_set.md),
-[`save_recipe()`](https://max578.github.io/masque/reference/save_recipe.md).
+[`apply_recipe()`](https://max578.github.io/masque/reference/apply_recipe.md)
+and [`unmask()`](https://max578.github.io/masque/reference/unmask.md)
+for the round trip,
+[`save_recipe()`](https://max578.github.io/masque/reference/save_recipe.md)
+to keep the recipe,
+[`audit_mask()`](https://max578.github.io/masque/reference/audit_mask.md),
+[`data_card()`](https://max578.github.io/masque/reference/data_card.md)
+and [`roles()`](https://max578.github.io/masque/reference/roles.md) to
+describe the clone,
+[`write_set()`](https://max578.github.io/masque/reference/write_set.md).
 
 ## Examples
 
@@ -177,12 +224,12 @@ r <- propose_roles(iris)
 r <- set_role(r, "Sepal.Length", role = "outcome")
 m <- masque(iris, roles = r, seed = 1, ask = FALSE, quiet = TRUE)
 head(synthetic(m))
-#>    Sepal.Length Sepal.Width Petal.Length Petal.Width Species
-#>           <num>       <num>        <num>       <num>  <fctr>
-#> 1:          5.1         3.2          4.0         1.5  setosa
-#> 2:          6.0         3.0          3.7         0.4  setosa
-#> 3:          5.0         3.0          4.6         1.1  setosa
-#> 4:          7.2         2.6          5.8         1.7  setosa
-#> 5:          6.1         2.4          5.8         1.5  setosa
-#> 6:          5.0         2.7          4.5         1.4  setosa
+#>    Sepal.Length Sepal.Width Petal.Length Petal.Width    Species
+#>           <num>       <num>        <num>       <num>     <fctr>
+#> 1:          5.1         3.2          4.0         1.5 versicolor
+#> 2:          6.0         3.0          3.7         0.4  virginica
+#> 3:          5.0         3.0          4.6         1.1     setosa
+#> 4:          7.2         2.6          5.8         1.7 versicolor
+#> 5:          6.1         2.4          5.8         1.5  virginica
+#> 6:          5.0         2.7          4.5         1.4 versicolor
 ```

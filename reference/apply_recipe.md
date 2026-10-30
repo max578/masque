@@ -38,23 +38,31 @@ A data.table in the synthetic namespace, ready for the pipeline.
 
 Operations applied (in order):
 
-1.  **Verify integrity** by comparing the NA mask of `original` to the
+1.  **Re-apply cleaning and conform decisions**: the legalised names and
+    trimmed labels from
+    [`clean_table()`](https://max578.github.io/masque/reference/clean_table.md),
+    then the label merges and type changes from
+    [`conform_table()`](https://max578.github.io/masque/reference/conform_table.md)
+    when the clone was built on a conformance object.
+
+2.  **Verify integrity** by comparing the NA mask of `original` to the
     SHA-256 fingerprint stored on the recipe (controlled by
     `check_integrity`).
 
-2.  **Drop** every column whose resolved `action` was `"drop"` on the
+3.  **Drop** every column whose resolved `action` was `"drop"` on the
     roles table
     [`mask()`](https://max578.github.io/masque/reference/mask.md) masked
-    with, in either mode.
+    with, in either mode. A linked join key of a set is aliased in the
+    clone and is kept.
 
-3.  **Subset and reorder** to the columns the recipe knows about.
+4.  **Subset and reorder** to the columns the recipe knows about.
 
-4.  **Re-label factors / characters** for any column with a level map
+5.  **Re-label factors / characters** for any column with a level map
     held by the recipe (i.e., treatment and categorical covariates in
     `collaborate` mode; or treatment in `local` mode with opt-in
     permutation). Unknown non-NA values fail closed.
 
-5.  **Rename columns** per `recipe@column_name_map` when
+6.  **Rename columns** per `recipe@column_name_map` when
     [`mask()`](https://max578.github.io/masque/reference/mask.md) was
     called with `alias_names` (otherwise `NULL`, and names are
     unchanged).
@@ -76,7 +84,7 @@ r$role[r$col == "Sepal.Length"] <- "outcome"
 r$role[r$col == "Species"] <- "covariate"
 m <- mask(iris, r, mode = "collaborate", seed = 1)
 #> Re-resolved default actions for mode "collaborate" (explicit edits always win):
-#> • Species: keep -> alias
+#> • Species: scramble -> alias
 rec <- recipe(m)
 iris_in_synth_space <- apply_recipe(iris, rec)
 head(iris_in_synth_space)

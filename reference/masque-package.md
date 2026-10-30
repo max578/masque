@@ -27,6 +27,10 @@ still joins.
 [`apply_recipe()`](https://max578.github.io/masque/reference/apply_recipe.md)
 and [`unmask()`](https://max578.github.io/masque/reference/unmask.md)
 re-target a finished pipeline onto the original data.
+[`audit_mask()`](https://max578.github.io/masque/reference/audit_mask.md)
+grades what the clone discloses, and
+[`data_card()`](https://max578.github.io/masque/reference/data_card.md)
+describes the clone for a collaborator without listing any value.
 
 ## Scope and limits
 
@@ -45,7 +49,7 @@ for the full threat model and limitations.
 
 - `mode = "collaborate"`: opaque aliasing for treatment and
   categorical-covariate levels; within-resolution jitter on numerics;
-  integers stochastically rounded;
+  whole numbers stochastically rounded;
   [`audit_mask()`](https://max578.github.io/masque/reference/audit_mask.md)
   auto-runs at construction.
 

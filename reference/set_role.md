@@ -66,5 +66,5 @@ r[, c("col", "role", "action")]
 #> 2:  Sepal.Width covariate scramble
 #> 3: Petal.Length covariate scramble
 #> 4:  Petal.Width covariate scramble
-#> 5:      Species treatment     keep
+#> 5:      Species covariate     keep
 ```

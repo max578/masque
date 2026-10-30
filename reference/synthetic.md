@@ -35,12 +35,12 @@ r <- propose_roles(iris)
 r$role[r$col == "Sepal.Length"] <- "outcome"
 m <- mask(iris, r, seed = 1)
 head(synthetic(m))
-#>    Sepal.Length Sepal.Width Petal.Length Petal.Width Species
-#>           <num>       <num>        <num>       <num>  <fctr>
-#> 1:          5.1         3.2          4.0         1.5  setosa
-#> 2:          6.0         3.0          3.7         0.4  setosa
-#> 3:          5.0         3.0          4.6         1.1  setosa
-#> 4:          7.2         2.6          5.8         1.7  setosa
-#> 5:          6.1         2.4          5.8         1.5  setosa
-#> 6:          5.0         2.7          4.5         1.4  setosa
+#>    Sepal.Length Sepal.Width Petal.Length Petal.Width    Species
+#>           <num>       <num>        <num>       <num>     <fctr>
+#> 1:          5.1         3.2          4.0         1.5 versicolor
+#> 2:          6.0         3.0          3.7         0.4  virginica
+#> 3:          5.0         3.0          4.6         1.1     setosa
+#> 4:          7.2         2.6          5.8         1.7 versicolor
+#> 5:          6.1         2.4          5.8         1.5  virginica
+#> 6:          5.0         2.7          4.5         1.4 versicolor
 ```

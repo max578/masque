@@ -35,7 +35,7 @@ prints the level maps that a redacted
 
 ``` r
 
-m <- mask(df, roles, mode = "collaborate", seed = 1L)
+m <- mask(df, plan, mode = "collaborate", seed = 1L)
 rec <- recipe(m)
 class(rec)
 #> [1] "masque::masque_recipe" "S7_object"
@@ -53,7 +53,13 @@ A recipe holds:
   a conditional clone asked for, the stratum it got, the columns it
   dropped or carried as shifts, and the share of rows pooled.
 - `level_maps`: the per-column original-to-alias maps. The sensitive
-  part.
+  part. Aliases follow one scheme: `trt_001`, `trt_002`, … for a single
+  aliased treatment, factor or numeric (`<col>_trt_001` when several
+  treatments are aliased), `<col>_L001` for a categorical covariate,
+  `<col>_D001` for a design column, `<col>_I001` for an identifier,
+  `<col>_T001` for free text, and `<col>_K001` for a key shared across
+  the tables of a set. The numbers have at least three digits, more when
+  a column has over 999 levels.
 - `column_name_map`: the column-name aliases, when `alias_names` was
   used (otherwise `NULL`).
 - `storage_classes`, `factor_meta`: the original column classes, factor
@@ -62,12 +68,24 @@ A recipe holds:
   names, whitespace trimmed), so
   [`apply_recipe()`](https://max578.github.io/masque/reference/apply_recipe.md)
   re-applies the same tidying.
+- `conform`: the label merges and type changes
+  [`conform_table()`](https://max578.github.io/masque/reference/conform_table.md)
+  made, so
+  [`apply_recipe()`](https://max578.github.io/masque/reference/apply_recipe.md)
+  replays them on the original.
+- `grain`: each design unit within which columns were synthesised once
+  per unit, with the columns, the number of units and whether the clone
+  kept the grain or fell back to rows.
+- `events`: the linked time-to-event specs and how many final times were
+  capped.
 - `coords`: one entry per coordinate pair declared to
   [`mask()`](https://max578.github.io/masque/reference/mask.md)’s
   `coords` argument: the jitter method and radius, the site grouping it
   was masked under, and how many sites the grouping produced.
 - `allow_unmasked_coords`: `TRUE` only when the caller deliberately
   wrote a real coordinate through unmasked.
+- `allow_kept_outcome`: `TRUE` only when the caller allowed a kept
+  outcome in a collaborate clone.
 - `warnings`: the warnings raised while masking, including any HIGH
   audit finding.
 - `integrity_fp`: a SHA-256 of `is.na(original)`, an integrity
@@ -75,7 +93,8 @@ A recipe holds:
 
 A recipe written by an older version has no record for the slots added
 since, for example `coords` before 0.10.0 and `allow_unmasked_coords`
-before 0.11.0. The changelog lists when each slot was added.
+before 0.11.0. It still prints, applies and unmasks. The changelog lists
+when each slot was added.
 
 It does not hold the copula covariance, the raw observed values, or any
 file paths or usernames.
@@ -88,11 +107,10 @@ an audit of the recipe does not need the original data back:
 df_geo <- df
 df_geo$lat <- -34.9 + stats::runif(nrow(df_geo), -0.05, 0.05)
 df_geo$lon <- 138.6 + stats::runif(nrow(df_geo), -0.05, 0.05)
-roles_geo <- propose_roles(df_geo, mode = "collaborate")
-roles_geo <- set_role(roles_geo, "yield", role = "outcome")
-roles_geo <- set_role(roles_geo, c("lat", "lon"), action = "keep")
+plan_geo <- propose_roles(df_geo, mode = "collaborate")
+plan_geo <- set_role(plan_geo, c("lat", "lon"), action = "keep")
 
-m_geo <- mask(df_geo, roles_geo, mode = "collaborate", seed = 1L,
+m_geo <- mask(df_geo, plan_geo, mode = "collaborate", seed = 1L,
               coords = list(list(lat = "lat", lon = "lon")))
 n_sites_recorded <- recipe(m_geo)@coords[[1]]$n_sites
 recipe(m_geo)@coords[[1]][c("method", "min_km", "max_km", "n_sites")]
@@ -125,31 +143,35 @@ vocabularies themselves:
 ``` r
 
 rec
-#> 
-#> ── masque_recipe ───────────────────────────────────────────────────────────────────────────────────
-#> • Created: 2026-10-19 01:53:22 UTC
-#> • Mode: collaborate
-#> • Clone fidelity: marginal / structural (global copula)
-#> • Seed: present (redacted)
-#> • masque version: 0.15.0
-#> • Integrity fingerprint: 0cec319ba9e2...
-#> 
-#> ── Columns (7 total; 1 level map; 0 column-name maps) ──
-#> 
-#>   = design    keep      plot                          (integer)
-#>   = design    keep      rep                           (factor)
-#>   = design    keep      block                         (factor)
-#>   * treatment alias     gen                           (factor)
-#>   = outcome   scramble  yield                         (numeric)
-#>   = design    keep      row                           (integer)
-#>   = design    keep      col                           (integer)
-#> 
-#> ✖ PRIVATE - never share this recipe alongside the synthetic.
-#> Use `reveal_maps(rec)` to inspect level maps explicitly.
 ```
 
-Anyone holding the recipe can print the maps with an explicit call,
-which shows a warning first:
+
+    ── masque_recipe ───────────────────────────────────────────────────────────────────────────────────
+    • Created: 2026-10-30 23:38:53 UTC
+    • Mode: collaborate
+    • Clone fidelity: marginal / structural (global copula)
+    • Seed: present (redacted)
+    • masque version: 0.16.0
+    • Integrity fingerprint: 0cec319ba9e2...
+
+    ── Columns (7 total; 1 level map; 0 column-name maps) ──
+
+      = design    keep      plot                          (integer)
+      = design    keep      rep                           (factor)
+      = design    keep      block                         (factor)
+      * treatment alias     gen                           (factor)
+      = outcome   scramble  yield                         (numeric)
+      = design    keep      row                           (integer)
+      = design    keep      col                           (integer)
+
+    ✖ PRIVATE - never share this recipe alongside the synthetic.
+    Use `reveal_maps(rec)` to inspect level maps explicitly.
+
+The same holds for [`format()`](https://rdrr.io/r/base/format.html),
+[`str()`](https://rdrr.io/r/utils/str.html) and knitr output of a recipe
+and of a `masque` object, so the seed and the maps do not end up in a
+log or a rendered report by accident. Anyone holding the recipe can
+print the maps with an explicit call, which shows a warning first:
 
 ``` r
 
@@ -157,8 +179,33 @@ reveal_maps(rec)
 #> ! Revealing sensitive level maps. Proceed at your discretion.
 #> 
 #> ── gen
+#>   G01  ->  trt_021
+#>   G02  ->  trt_022
+#>   G03  ->  trt_008
+#>   G04  ->  trt_001
+#>   G05  ->  trt_019
+#>   G06  ->  trt_003
+#>   G07  ->  trt_011
+#>   G08  ->  trt_024
+#>   G09  ->  trt_013
+#>   G10  ->  trt_014
+#>   G11  ->  trt_006
+#>   G12  ->  trt_015
+#>   G13  ->  trt_012
+#>   G14  ->  trt_004
+#>   G15  ->  trt_009
+#>   G16  ->  trt_005
+#>   G17  ->  trt_010
+#>   G18  ->  trt_016
+#>   G19  ->  trt_017
+#>   G20  ->  trt_020
+#>   G21  ->  trt_002
+#>   G22  ->  trt_023
+#>   G23  ->  trt_007
+#>   G24  ->  trt_018
 #> 
 #> ── seed
+#>   1
 ```
 
 ### The round-trip
@@ -192,8 +239,11 @@ labels_recovered
 #> [1] TRUE
 ```
 
-Columns whose action is `keep`, numeric columns and numeric predictions
-pass through both functions unchanged.
+Columns whose action is `keep`, re-simulated numeric columns and numeric
+predictions pass through both functions unchanged. A numeric treatment
+that was aliased is mapped both ways, and
+[`unmask()`](https://max578.github.io/masque/reference/unmask.md)
+returns its exact original values.
 [`apply_recipe()`](https://max578.github.io/masque/reference/apply_recipe.md)
 returns an aliased factor with the clone’s levels in the clone’s order,
 so a model fitted on the translated original has the same reference
@@ -229,7 +279,7 @@ old one.
 
 [`save_recipe()`](https://max578.github.io/masque/reference/save_recipe.md)
 writes a single small `.rds`, to be stored next to the original at the
-same security class.
+same security class. The path must end in `.rds`.
 [`read_recipe()`](https://max578.github.io/masque/reference/read_recipe.md)
 validates the file and notes a version mismatch without raising an
 error.
@@ -251,20 +301,27 @@ result carries a recipe *bundle*: one recipe per table plus the shared
 cross-table link maps. The same
 [`apply_recipe()`](https://max578.github.io/masque/reference/apply_recipe.md)
 and [`unmask()`](https://max578.github.io/masque/reference/unmask.md)
-verbs dispatch on it, operating table by table over a named list:
+verbs dispatch on it, operating table by table over a named list. `year`
+is made a factor before masking so that collaborate mode can alias it
+(see *Getting started with masque*):
 
 ``` r
 
 set_dir <- system.file("extdata", "met_set", package = "masque")
-ms <- mask_set(set_dir, mode = "collaborate", seed = 1L, quiet = TRUE)
-#> Warning: Numeric environment column year remains "keep" in collaborate mode.
-#> ℹ This preserves environment structure but may disclose year or other numeric labels; review before
-#>   release.
 originals <- read_set(set_dir)
+originals$agronomy[, year := factor(year)]
+ms <- mask_set(originals, mode = "collaborate", seed = 1L, quiet = TRUE)
 fwd_set <- apply_recipe(originals, recipe(ms))
 names(fwd_set)
 #> [1] "agronomy" "quality"
 ```
+
+[`save_recipe()`](https://max578.github.io/masque/reference/save_recipe.md)
+and
+[`read_recipe()`](https://max578.github.io/masque/reference/read_recipe.md)
+keep a bundle as one file, and
+`reveal_maps(recipe(ms), table = "quality")` reveals the maps of the
+named tables only.
 
 Because the shared keys were aliased consistently at masking time, the
 re-targeted tables join on the same keys the synthetic tables do.
@@ -348,7 +405,7 @@ versions follow.
 ``` r
 
 sessionInfo()
-#> R version 4.6.1 (2026-06-24)
+#> R version 4.6.2 (2026-10-29)
 #> Platform: x86_64-pc-linux-gnu
 #> Running under: Ubuntu 24.04.5 LTS
 #> 
@@ -368,18 +425,18 @@ sessionInfo()
 #> [1] stats     graphics  grDevices utils     datasets  methods   base     
 #> 
 #> other attached packages:
-#> [1] masque_0.15.0
+#> [1] masque_0.16.0
 #> 
 #> loaded via a namespace (and not attached):
 #>  [1] vctrs_0.7.3         cli_3.6.6           knitr_1.52          rlang_1.3.0        
 #>  [5] xfun_0.62           otel_0.2.0          textshaping_1.0.5   S7_0.2.2           
 #>  [9] data.table_1.18.6.1 jsonlite_2.0.0      labeling_0.4.3      glue_1.8.1         
 #> [13] htmltools_0.5.9     ragg_1.5.2          sass_0.4.10         scales_1.4.0       
-#> [17] rmarkdown_2.32      grid_4.6.1          evaluate_1.0.5      jquerylib_0.1.4    
-#> [21] fastmap_1.2.0       yaml_2.3.12         lifecycle_1.0.5     compiler_4.6.1     
-#> [25] RColorBrewer_1.1-3  fs_2.1.0            maps_3.4.3          systemfonts_1.3.2  
+#> [17] rmarkdown_2.32      grid_4.6.2          evaluate_1.0.5      jquerylib_0.1.4    
+#> [21] fastmap_1.2.0       yaml_2.3.12         lifecycle_1.0.5     compiler_4.6.2     
+#> [25] RColorBrewer_1.1-3  fs_2.1.0            maps_3.4.4          systemfonts_1.3.2  
 #> [29] farver_2.1.2        digest_0.6.39       viridisLite_0.4.3   R6_2.6.1           
-#> [33] pillar_1.11.1       bslib_0.12.0        withr_3.0.3         tools_4.6.1        
+#> [33] pillar_1.11.1       bslib_0.12.0        withr_3.0.3         tools_4.6.2        
 #> [37] gtable_0.3.6        pkgdown_2.2.1       ggplot2_4.0.3       cachem_1.1.0       
 #> [41] desc_1.4.3
 ```

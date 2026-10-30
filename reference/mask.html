@@ -15,7 +15,7 @@ masque_recipe."><meta property="og:image" content="https://max578.github.io/masq
 
     <a class="navbar-brand me-2" href="../index.html">masque</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.15.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.16.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -65,9 +65,13 @@ a synthetic clone according to each column's <code>action</code>. Returns a
 <span>  conditional <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  ladder <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"hierarchy"</span>, <span class="st">"levels"</span><span class="op">)</span>,</span>
 <span>  coords <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  events <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  grain <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  allow_unmasked_coords <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  allow_kept_outcome <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  quiet <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  .shared_maps <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span>,</span>
+<span>  .cleaning <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
@@ -78,7 +82,9 @@ a synthetic clone according to each column's <code>action</code>. Returns a
 
 <dl><dt id="arg-df">df<a class="anchor" aria-label="anchor" href="#arg-df"></a></dt>
 <dd><p>A data frame, or the <code>masque_conformance</code> object returned by
-<code><a href="conform_table.html">conform_table()</a></code>, whose <code>data</code> element is then masked.</p></dd>
+<code><a href="conform_table.html">conform_table()</a></code>, whose <code>data</code> element is then masked. Its cleaning
+record and its merges and type changes go on the recipe, so
+<code><a href="apply_recipe.html">apply_recipe()</a></code> replays them; <code>clean</code> is not applied a second time.</p></dd>
 
 
 <dt id="arg-roles">roles<a class="anchor" aria-label="anchor" href="#arg-roles"></a></dt>
@@ -91,7 +97,13 @@ warning; see <code><a href="roles_validate.html">roles_validate()</a></code>.</p
 <dd><p>Either <code>"local"</code> or <code>"collaborate"</code>. When omitted, inherit
 <code>attr(roles, "mode")</code>, falling back to <code>"local"</code> for a roles table with
 no mode provenance. An explicit collaborate-to-local downgrade raises a
-classed <code>masque_mode_downgrade</code> warning.</p></dd>
+classed <code>masque_mode_downgrade</code> warning. A table of fewer than five rows
+in which any column would be re-simulated (a scrambled covariate,
+outcome, date or text column, or an <code>events</code> spec) is refused in
+collaborate mode with <code>masque_too_few_rows_refusal</code>, because such a
+clone is the original values resampled; local mode warns with
+<code>masque_too_few_rows</code>. Kept, aliased and dropped columns are not
+re-simulated, so a short lookup table of those masks in either mode.</p></dd>
 
 
 <dt id="arg-seed">seed<a class="anchor" aria-label="anchor" href="#arg-seed"></a></dt>
@@ -177,14 +189,73 @@ trace in the clone.</p></dd>
 latitude/longitude pairs and each is coarsened in place by an on-land
 jitter (see <code><a href="jitter_coordinates.html">jitter_coordinates()</a></code>) instead of being copula-scrambled into
 implausible locations. A pair is a named vector <code>c(lat = "lat_col", lon = "lon_col")</code> or a named list that also carries jitter parameters
-(<code>by</code>, <code>method</code>, <code>min_km</code>, <code>max_km</code>, <code>sd_km</code>, <code>on_land</code>); pass several
-pairs as a list. Defaults to a donut of 5-20 km on land. One displacement
+(<code>by</code>, <code>method</code>, <code>min_km</code>, <code>max_km</code>, <code>sd_km</code>, <code>on_land</code>); a single pair
+may be passed bare, and several pairs as a list of pairs. Defaults to a
+donut of 5-20 km on land. A declared column must have the action <code>keep</code>
+in <code>roles</code>; any other action, including the <code>drop</code> that
+<code><a href="propose_roles.html">propose_roles()</a></code> proposes for a coordinate-named column, is refused
+with a <code>masque_coords_action_refusal</code> error. One displacement
 is drawn per <strong>site</strong> and broadcast to that site's rows: <code>by</code> names the
 columns of <code>df</code> that identify a site, and is omitted when rows sharing an
 identical input coordinate already identify one. A declared pair always
 survives masking, coarsened; the recipe records the parameters and the site
 grouping it was coarsened under, and <code><a href="apply_recipe.html">apply_recipe()</a></code> retargets to the real
-coordinates.</p></dd>
+coordinates. Several published jitters of the same point average toward
+it: keep the seed, which the recipe records, and do not publish more than
+one jittered release of the same sites.</p></dd>
+
+
+<dt id="arg-events">events<a class="anchor" aria-label="anchor" href="#arg-events"></a></dt>
+<dd><p>Optional linked time-to-event outcomes. One spec per group of
+linked events, <code>list(time = c(...), status = c(...))</code>, with the time and
+status columns listed in the order the events occur; pass several specs
+as a list. Every column must have role <code>outcome</code> and action <code>scramble</code>,
+times must be numeric and in order in <code>df</code>, status columns must hold
+whole-numbered codes, and none may be missing. The times are turned into
+gaps between successive events, the rows' status patterns are permuted
+(within treatment when <code>conditional = TRUE</code>), and the gaps are
+re-simulated within each status pattern by the empirical copula, then
+summed back into times. Times therefore stay ordered, a gap that every
+row of a pattern holds at zero stays zero, and the count of each status
+pattern is exact. A summed final time is capped at the longest final
+time observed in the rows its gaps were drawn from (the pattern, within
+treatment when conditional), so no clone row runs past the observed
+follow-up. Only the final time and the times tied to it move; a row
+whose earlier time already passes the cap is scaled down as a whole,
+which keeps its order and its zero gaps. The recipe records how many
+rows were capped. A pattern with fewer than five rows draws each of its
+free gaps from every pattern in which that gap is free, with a
+<code>masque_events_pooled</code> warning; when no other pattern has the gap free,
+<code>mask()</code> stops. No hazard model is fitted and no covariate-to-event
+relation is kept.</p></dd>
+
+
+<dt id="arg-grain">grain<a class="anchor" aria-label="anchor" href="#arg-grain"></a></dt>
+<dd><p>Single logical (default <code>TRUE</code>). Synthesise each column at
+its <strong>grain</strong>: a scrambled covariate, outcome or date column, or an
+aliased categorical covariate, that holds at most one distinct
+non-missing value within every unit of a retained design column, or of a
+pair of them (<code>site:year</code>), is re-simulated once per unit and each unit's
+new value is written to that unit's rows. The grain is the coarsest such
+unit with
+at least two units and at least two rows per unit on average; a unit with
+no value stays missing. Numeric columns of one grain are drawn jointly
+through the copula on the unit-level table (with collaborate-mode
+jitter against the unit-level values), and categorical and date columns
+are permuted across units, then aliased where their action is <code>alias</code>.
+The clone therefore keeps one value per unit, the frequencies of a
+categorical across units, and the correlation among columns of the same
+grain. It does <strong>not</strong> keep the correlation between a grained column
+and row-level columns, and grained columns are not conditioned on
+treatment when <code>conditional = TRUE</code>. In local mode the unit values are
+drawn from the original unit values. In collaborate mode a grain with
+fewer than five units is synthesised row by row instead, with a
+<code>masque_grain_small_units</code> warning, because resampling that few real
+values would disclose them. Each grain is recorded on the recipe
+(<code>grain</code>) with a line in its warnings. <code>FALSE</code> synthesises every column
+row by row, as masque 0.15 did; detected grains are still recorded.
+Coordinates declared to <code>coords</code>, <code>events</code> columns and linked columns
+are never grained.</p></dd>
 
 
 <dt id="arg-allow-unmasked-coords">allow_unmasked_coords<a class="anchor" aria-label="anchor" href="#arg-allow-unmasked-coords"></a></dt>
@@ -196,6 +267,15 @@ shape of its values would be. State otherwise by declaring the pair to
 <code>coords</code> (coarsened), giving the column a masking action (<code>drop</code> or
 <code>scramble</code>), or – having decided the coordinate is not sensitive –
 setting this to <code>TRUE</code>, which is recorded on the recipe.</p></dd>
+
+
+<dt id="arg-allow-kept-outcome">allow_kept_outcome<a class="anchor" aria-label="anchor" href="#arg-allow-kept-outcome"></a></dt>
+<dd><p>Single logical. In collaborate mode an outcome
+with the action <code>keep</code> carries its real values beside the re-simulated
+columns, so <code><a href="audit_mask.html">audit_mask()</a></code> grades it HIGH and the collaborate write gate
+stops it. Having decided the real outcome may be shared, set this to
+<code>TRUE</code>: the column is then graded medium and the choice is recorded on
+the recipe. Local mode is unaffected.</p></dd>
 
 
 <dt id="arg-quiet">quiet<a class="anchor" aria-label="anchor" href="#arg-quiet"></a></dt>
@@ -210,6 +290,12 @@ raised.</p></dd>
 <dd><p>Internal. A named list of pre-computed
 <code>original -&gt; alias</code> level maps for cross-table linked columns, set
 by <code><a href="mask_set.html">mask_set()</a></code>. Not for direct use.</p></dd>
+
+
+<dt id="arg--cleaning">.cleaning<a class="anchor" aria-label="anchor" href="#arg--cleaning"></a></dt>
+<dd><p>Internal. The cleaning record of a table <code><a href="mask_set.html">mask_set()</a></code>
+has already cleaned; <code>mask()</code> then skips its own cleaning and stores
+this record on the recipe. Not for direct use.</p></dd>
 
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
@@ -259,10 +345,12 @@ the assignment structure never moves.</p></dd>
 <dt><code>alias</code></dt>
 <dd><p>As <code>scramble</code> where applicable, plus opaque label
 substitution: treatments become <code>trt_NNN</code> (<code>&lt;col&gt;_trt_NNN</code> when
-two or more treatment factors are aliased), categorical
+two or more treatments are aliased. A numeric treatment becomes
+text, and <code><a href="unmask.html">unmask()</a></code> restores its exact values), categorical
 covariates <code>&lt;col&gt;_LNNN</code>, design labels <code>&lt;col&gt;_DNNN</code> (in place -
 structure intact), ids <code>&lt;col&gt;_INNN</code> (in place - row linkage
-intact), text values <code>&lt;col&gt;_TNNN</code>.</p></dd>
+intact), text values <code>&lt;col&gt;_TNNN</code>. A key <code><a href="mask_set.html">mask_set()</a></code> shares across
+tables becomes <code>&lt;col&gt;_KNNN</code>. <code>NNN</code> has at least three digits.</p></dd>
 
 <dt><code>drop</code></dt>
 <dd><p>Column excluded from the synthetic, both modes.</p></dd>
@@ -274,7 +362,8 @@ state is preserved across the call.</p>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
     <div class="dont-index"><p><code><a href="propose_roles.html">propose_roles()</a></code>, <code><a href="set_role.html">set_role()</a></code>, <code><a href="roles_validate.html">roles_validate()</a></code>,
-<code><a href="synthetic.html">synthetic()</a></code>, <code><a href="recipe.html">recipe()</a></code>, <code><a href="reveal_maps.html">reveal_maps()</a></code>.</p></div>
+<code><a href="synthetic.html">synthetic()</a></code>, <code><a href="recipe.html">recipe()</a></code>, <code><a href="roles.html">roles()</a></code>, <code><a href="reveal_maps.html">reveal_maps()</a></code>, <code><a href="audit_mask.html">audit_mask()</a></code>,
+<code><a href="data_card.html">data_card()</a></code>.</p></div>
     </div>
 
     <div class="section level2">
@@ -283,14 +372,14 @@ state is preserved across the call.</p>
 <span class="r-in"><span><span class="va">r</span> <span class="op">&lt;-</span> <span class="fu"><a href="set_role.html">set_role</a></span><span class="op">(</span><span class="va">r</span>, <span class="st">"Sepal.Length"</span>, role <span class="op">=</span> <span class="st">"outcome"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">m</span> <span class="op">&lt;-</span> <span class="fu">mask</span><span class="op">(</span><span class="va">iris</span>, <span class="va">r</span>, seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu"><a href="synthetic.html">synthetic</a></span><span class="op">(</span><span class="va">m</span><span class="op">)</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    Sepal.Length Sepal.Width Petal.Length Petal.Width Species</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>           &lt;num&gt;       &lt;num&gt;        &lt;num&gt;       &lt;num&gt;  &lt;fctr&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1:          5.1         3.2          4.0         1.5  setosa</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2:          6.0         3.0          3.7         0.4  setosa</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3:          5.0         3.0          4.6         1.1  setosa</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 4:          7.2         2.6          5.8         1.7  setosa</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 5:          6.1         2.4          5.8         1.5  setosa</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 6:          5.0         2.7          4.5         1.4  setosa</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    Sepal.Length Sepal.Width Petal.Length Petal.Width    Species</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>           &lt;num&gt;       &lt;num&gt;        &lt;num&gt;       &lt;num&gt;     &lt;fctr&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1:          5.1         3.2          4.0         1.5 versicolor</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2:          6.0         3.0          3.7         0.4  virginica</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3:          5.0         3.0          4.6         1.1     setosa</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4:          7.2         2.6          5.8         1.7 versicolor</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5:          6.1         2.4          5.8         1.5  virginica</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 6:          5.0         2.7          4.5         1.4 versicolor</span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
     </div>

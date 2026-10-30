@@ -41,11 +41,11 @@ m <- mask(iris, r, seed = 1)
 recipe(m)
 #> 
 #> ── masque_recipe ───────────────────────────────────────────────────────────────
-#> • Created: 2026-10-19 01:52:47 UTC
+#> • Created: 2026-10-30 23:38:12 UTC
 #> • Mode: local
 #> • Clone fidelity: marginal / structural (global copula)
 #> • Seed: present (redacted)
-#> • masque version: 0.15.0
+#> • masque version: 0.16.0
 #> • Integrity fingerprint: 62a4affb7e41...
 #> 
 #> ── Columns (5 total; 0 level maps; 0 column-name maps) ──
@@ -54,7 +54,7 @@ recipe(m)
 #>   = covariate scramble  Sepal.Width                   (numeric)
 #>   = covariate scramble  Petal.Length                  (numeric)
 #>   = covariate scramble  Petal.Width                   (numeric)
-#>   = treatment keep      Species                       (factor)
+#>   = covariate scramble  Species                       (factor)
 #> ── Warnings ──
 #> 
 #> ! local mode: synthetic data is for owner development only, not external sharing.

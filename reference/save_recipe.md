@@ -17,11 +17,13 @@ save_recipe(rec, path, include_simulator = FALSE)
 
 - rec:
 
-  A `masque_recipe` object, e.g. from `recipe(m)`.
+  A `masque_recipe`, or the `masque_recipe_set` bundle of a
+  [`mask_set()`](https://max578.github.io/masque/reference/mask_set.md)
+  result, e.g. from `recipe(m)`.
 
 - path:
 
-  File path. By convention, `.rds` extension.
+  File path ending in `.rds` (any case); other extensions are refused.
 
 - include_simulator:
 
@@ -56,7 +58,7 @@ r <- propose_roles(iris)
 r$role[r$col == "Sepal.Length"] <- "outcome"
 m <- mask(iris, r, mode = "collaborate", seed = 1)
 #> Re-resolved default actions for mode "collaborate" (explicit edits always win):
-#> • Species: keep -> alias
+#> • Species: scramble -> alias
 tmp <- tempfile(fileext = ".rds")
 save_recipe(recipe(m), tmp)
 rec2 <- read_recipe(tmp)

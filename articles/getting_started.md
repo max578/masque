@@ -62,7 +62,8 @@ The `mode` argument sets the defaults for both axes at once:
   intact.
 - `collaborate` is for handing the synthetic to someone else. It aliases
   treatment and categorical labels, jitters numerics, drops identifiers
-  and free text, and runs the leakage audit.
+  and free text (a character column in which more than half the values
+  are distinct), and runs the leakage audit.
 
 A per-column `action` always overrides the mode’s default.
 
@@ -142,9 +143,9 @@ full control:
 
 ``` r
 
-roles <- propose_roles(df, mode = "collaborate")
+plan <- propose_roles(df, mode = "collaborate")
 knitr::kable(
-  roles[, c("col", "role", "action", "kind")],
+  plan[, c("col", "role", "action", "kind")],
   caption = paste0(
     "The proposed masking plan for the alpha-design trial ",
     "(collaborate mode)."
@@ -158,7 +159,7 @@ knitr::kable(
 | rep   | design    | keep     | factor  |
 | block | design    | keep     | factor  |
 | gen   | treatment | alias    | factor  |
-| yield | covariate | scramble | numeric |
+| yield | outcome   | scramble | numeric |
 | row   | design    | keep     | integer |
 | col   | design    | keep     | integer |
 
@@ -167,23 +168,26 @@ The proposed masking plan for the alpha-design trial (collaborate mode).
 
 [`propose_roles()`](https://max578.github.io/masque/reference/propose_roles.md)
 fills in a sensible action for each column given the mode, so the table
-reviewed here is the plan that will run. `yield` was proposed as a
-`covariate`. Naming it the trial’s `outcome` does not change how it is
-masked. It records intent, and the *conditional* clone (see
-*Confidentiality and the threat model*) reads it to find the response:
+reviewed here is the plan that will run. `yield` was proposed as the
+trial’s `outcome` from its name. The role records intent, and the
+*conditional* clone (see *Confidentiality and the threat model*) reads
+it to find the response. Any role can be changed with
+[`set_role()`](https://max578.github.io/masque/reference/set_role.md).
+Here the plot number is re-roled as an identifier, which collaborate
+mode drops:
 
 ``` r
 
-roles <- set_role(roles, "yield", role = "outcome")
+plan_id <- set_role(plan, "plot", role = "id")
 knitr::kable(
-  roles[, c("col", "role", "action")],
-  caption = "The plan after naming `yield` as the trial outcome."
+  plan_id[, c("col", "role", "action")],
+  caption = "The plan after re-roling `plot` as an identifier."
 )
 ```
 
 | col   | role      | action   |
 |:------|:----------|:---------|
-| plot  | design    | keep     |
+| plot  | id        | drop     |
 | rep   | design    | keep     |
 | block | design    | keep     |
 | gen   | treatment | alias    |
@@ -191,7 +195,7 @@ knitr::kable(
 | row   | design    | keep     |
 | col   | design    | keep     |
 
-The plan after naming `yield` as the trial outcome. {.table}
+The plan after re-roling `plot` as an identifier. {.table}
 
 Re-assigning a role re-resolves the default action; passing an explicit
 `action` pins the column instead. There is no requirement to name an
@@ -208,7 +212,7 @@ vectorised over columns:
 
 ``` r
 
-r2 <- set_role(roles, c("row", "col"), action = "drop")
+r2 <- set_role(plan, c("row", "col"), action = "drop")
 ```
 
 Direct edits work too. A direct `role` edit leaves `action` untouched,
@@ -263,11 +267,11 @@ knitr::kable(
 | role | action | kinds | notes |
 |:---|:---|:---|:---|
 | design | keep | all |  |
-| design | alias | factor, character, logical | design label aliasing requires a factor / character / logical column; numeric design columns can only be kept or dropped |
+| design | alias | factor, character, logical | design label aliasing requires a factor / character / logical column; numeric design columns can only be kept or dropped. To hide the labels, convert the column to a factor in the data, re-run propose_roles() and set action “alias”, or drop it |
 | design | drop | all |  |
 | treatment | keep | all |  |
-| treatment | scramble | factor, character, logical | treatment scramble / alias requires a factor / character / logical column; a numeric treatment (e.g. a dose) can only be kept or dropped |
-| treatment | alias | factor, character, logical | treatment scramble / alias requires a factor / character / logical column; a numeric treatment (e.g. a dose) can only be kept or dropped |
+| treatment | scramble | numeric, integer, factor, character, logical | treatment scramble / alias requires a factor / character / logical or numeric column |
+| treatment | alias | numeric, integer, factor, character, logical | treatment scramble / alias requires a factor / character / logical or numeric column |
 | treatment | drop | all |  |
 | outcome | keep | all |  |
 | outcome | drop | all |  |
@@ -300,16 +304,16 @@ the correct fix:
 
 ``` r
 
-roles[col == "comments", pii_suspected := TRUE]
+plan[col == "comments", pii_suspected := TRUE]
 ```
 
 Passing the edited table back to
 [`mask()`](https://max578.github.io/masque/reference/mask.md) (or to
-`masque(df, roles = roles)`) runs the plan:
+`masque(df, roles = plan)`) runs the plan:
 
 ``` r
 
-m <- mask(df, roles, mode = "collaborate", seed = 1L)
+m <- mask(df, plan, mode = "collaborate", seed = 1L)
 synth <- synthetic(m)
 byte_identical_plot <- identical(synth$plot, df$plot)
 gen_levels_changed <- !setequal(levels(synth$gen), levels(df$gen))
@@ -329,8 +333,8 @@ layout, and
 
 ``` r
 
-bad_roles <- set_role(roles, "plot", role = "design", action = "scramble")
-mask(df, bad_roles, mode = "collaborate", seed = 1L)
+bad_plan <- set_role(plan, "plot", role = "design", action = "scramble")
+mask(df, bad_plan, mode = "collaborate", seed = 1L)
 #> Error in `roles_validate()`:
 #> ! Incompatible role, action and kind combination:
 #> ✖ plot (design + scramble): design columns are structure, not content - they cannot be scrambled;
@@ -361,6 +365,8 @@ ms <- masque(set_dir, mode = "collaborate", seed = 1L, ask = FALSE)
 #> Warning: Numeric environment column year remains "keep" in collaborate mode.
 #> ℹ This preserves environment structure but may disclose year or other numeric labels; review before
 #>   release.
+#> ℹ To hide the values, convert the column to a factor in the data and re-run `propose_roles()`,
+#>   which proposes "alias" for a categorical environment; or set its action to "drop".
 #> ℹ Using the proposed masking plan for agronomy (pass `roles` or set `ask = TRUE` to review).
 #> ℹ Using the proposed masking plan for quality (pass `roles` or set `ask = TRUE` to review).
 #> 
@@ -368,28 +374,144 @@ ms <- masque(set_dir, mode = "collaborate", seed = 1L, ask = FALSE)
 #> 
 #> • "env" shared across "agronomy, quality" - aliased consistently
 #> • "gen" shared across "agronomy, quality" - aliased consistently
-#> ✔ Masked 2 tables in "collaborate" mode - audit: 0 HIGH, 0 medium, 12 low.
+#> ✔ Masked 2 tables (12 columns) in "collaborate" mode - audit: 0 HIGH, 0 medium, 12 low.
 #> ℹ Recipe is private - keep it. Review `audit_mask(m)` before any release decision; masque informs that decision, it does not make it.
 ms
-#> 
-#> ── masque_set ──────────────────────────────────────────────────────────────────────────────────────
-#> • Mode: collaborate
-#> • Tables: 2
-#> • agronomy: 464 rows x 7 columns
-#> • quality: 464 rows x 5 columns
-#> 
-#> ── Cross-table links (2) ──
-#> 
-#> • "env" shared across "agronomy, quality"
-#> • "gen" shared across "agronomy, quality"
-#> Use `synthetic(m)` for the tables; `recipe(m)` for the bundle.
-#> 
-#> ✖ The recipe bundle is PRIVATE - never share it with the synthetic set.
 ```
 
+
+    ── masque_set ──────────────────────────────────────────────────────────────────────────────────────
+    • Mode: collaborate
+    • Tables: 2
+    • agronomy: 464 rows x 7 columns
+    • quality: 464 rows x 5 columns
+
+    ── Cross-table links (2) ──
+
+    • "env" shared across "agronomy, quality"
+    • "gen" shared across "agronomy, quality"
+    Use `synthetic(m)` for the tables; `recipe(m)` for the bundle.
+
+    ✖ The recipe bundle is PRIVATE - never share it with the synthetic set.
+
 The genotype column `gen` appears in both tables and is masked to the
-same codes in each, so the field and laboratory tables still join. See
-*Confidentiality and the threat model* for the set-level controls.
+same codes in each, so the field and laboratory tables still join.
+
+The warning is about `year`. It is an environment column, but it is
+numeric, so collaborate mode keeps its real values. To alias it, read
+the tables, convert `year` to a factor, and mask the list:
+
+``` r
+
+tabs <- read_set(set_dir)
+tabs$agronomy[, year := factor(year)]
+ms <- masque(tabs, mode = "collaborate", seed = 1L, ask = FALSE, quiet = TRUE)
+knitr::kable(
+  head(synthetic(ms)$agronomy[, c("env", "loc", "year", "gen")], 3L),
+  caption = "The first rows of the clone, with `year` now aliased."
+)
+```
+
+| env      | loc      | year      | gen      |
+|:---------|:---------|:----------|:---------|
+| env_K004 | loc_D002 | year_D001 | gen_K056 |
+| env_K004 | loc_D002 | year_D001 | gen_K048 |
+| env_K004 | loc_D002 | year_D001 | gen_K017 |
+
+The first rows of the clone, with `year` now aliased. {.table}
+
+For a workbook, `sheets =` picks which sheets to read, and `info =`
+names documentation sheets, such as a data dictionary, to set aside:
+they are not masked and not written. See *Confidentiality and the threat
+model* for the set-level controls.
+
+### Describing the clone: the data card
+
+A collaborator planning an analysis needs to know the shape of the data
+before any code is written: how many rows, which columns are the design,
+which is the outcome, how much is missing.
+[`data_card()`](https://max578.github.io/masque/reference/data_card.md)
+writes those facts down without a single value of any column. It reads
+only the clone and its role table, which
+[`roles()`](https://max578.github.io/masque/reference/roles.md) returns
+in the clone’s own column names:
+
+``` r
+
+knitr::kable(
+  roles(m),
+  caption = "The role table of the clone, as the data card reads it."
+)
+```
+
+| col   | role      | action   | kind    |
+|:------|:----------|:---------|:--------|
+| plot  | design    | keep     | integer |
+| rep   | design    | keep     | factor  |
+| block | design    | keep     | factor  |
+| gen   | treatment | alias    | factor  |
+| yield | outcome   | scramble | numeric |
+| row   | design    | keep     | integer |
+| col   | design    | keep     | integer |
+
+The role table of the clone, as the data card reads it. {.table}
+
+The role table says which columns are design columns, but not which of
+them give a plot’s position or identify the plot. The custodian names
+those when writing the card:
+
+``` r
+
+card_file <- tempfile(fileext = ".yaml")
+card <- data_card(
+  m,
+  file = card_file,
+  name = "alpha_trial",
+  spatial = c("row", "col"),
+  unit = "plot"
+)
+writeLines(head(readLines(card_file), 30))
+#> card_version: "0.1"
+#> produced_by:
+#>   package: "masque"
+#>   version: "0.16.0"
+#>   mode: "collaborate"
+#> table:
+#>   name: "alpha_trial"
+#>   source: "clone"
+#>   n_rows: 72
+#>   n_cols: 7
+#>   provenance:
+#>     n_rows: "structure"
+#>     n_cols: "structure"
+#> design:
+#>   treatment_cols:
+#>     - "gen"
+#>   block_cols:
+#>     - "rep"
+#>     - "block"
+#>   spatial_cols:
+#>     - "row"
+#>     - "col"
+#>   unit_col: "plot"
+#>   provenance:
+#>     treatment_cols: "structure"
+#>     block_cols: "structure"
+#>     spatial_cols: "analyst"
+#>     unit_col: "analyst"
+#> columns:
+#>   - name: "plot"
+```
+
+Every count carries a provenance class. `structure` marks a count that
+is exact in the clone and so equal on the real table, such as the number
+of missing values or the number of genotypes. `clone_estimate` marks one
+that was re-simulated, such as the number of distinct yields. `analyst`
+marks what was named in the call. Level labels never appear: the card
+says there are 24 genotypes and does not list them. When column names
+are aliased, the card uses the aliases. For a set, `data_card(ms)`
+returns one card per table, and `data_card(ms, file = dir)` writes one
+file per table.
 
 ### Multi-environment structure
 
@@ -504,12 +626,13 @@ original trial in scientific inference.
 
 ## Results
 
-On this trial the audit graded 0 columns HIGH and 0 medium. A HIGH
-finding would stop the package writing the synthetic to disk. A design
-column left at `keep` comes back unchanged and an aliased treatment
-comes back as `trt_001` to `trt_024`; a plan that asks for something the
-package cannot do is refused before it runs. Related tables are masked
-together and still join.
+On this trial the audit, counting its column and table-level checks
+together, gave 0 HIGH and 0 medium findings. A HIGH finding would stop
+the package writing the synthetic to disk. A design column left at
+`keep` comes back unchanged and an aliased treatment comes back as
+`trt_001` to `trt_024`; a plan that asks for something the package
+cannot do is refused before it runs. Related tables are masked together
+and still join.
 
 The agronomist can therefore hand over a clone that keeps the plot
 layout and the links between tables, with the genotype labels aliased,
@@ -554,7 +677,7 @@ follow.
 ``` r
 
 sessionInfo()
-#> R version 4.6.1 (2026-06-24)
+#> R version 4.6.2 (2026-10-29)
 #> Platform: x86_64-pc-linux-gnu
 #> Running under: Ubuntu 24.04.5 LTS
 #> 
@@ -574,17 +697,17 @@ sessionInfo()
 #> [1] stats     graphics  grDevices utils     datasets  methods   base     
 #> 
 #> other attached packages:
-#> [1] masque_0.15.0
+#> [1] masque_0.16.0
 #> 
 #> loaded via a namespace (and not attached):
 #>  [1] vctrs_0.7.3         cli_3.6.6           knitr_1.52          rlang_1.3.0        
 #>  [5] xfun_0.62           otel_0.2.0          textshaping_1.0.5   S7_0.2.2           
 #>  [9] data.table_1.18.6.1 jsonlite_2.0.0      labeling_0.4.3      glue_1.8.1         
 #> [13] htmltools_0.5.9     ragg_1.5.2          sass_0.4.10         scales_1.4.0       
-#> [17] rmarkdown_2.32      grid_4.6.1          evaluate_1.0.5      jquerylib_0.1.4    
-#> [21] fastmap_1.2.0       yaml_2.3.12         lifecycle_1.0.5     compiler_4.6.1     
+#> [17] rmarkdown_2.32      grid_4.6.2          evaluate_1.0.5      jquerylib_0.1.4    
+#> [21] fastmap_1.2.0       yaml_2.3.12         lifecycle_1.0.5     compiler_4.6.2     
 #> [25] fs_2.1.0            RColorBrewer_1.1-3  systemfonts_1.3.2   farver_2.1.2       
 #> [29] digest_0.6.39       R6_2.6.1            pillar_1.11.1       bslib_0.12.0       
-#> [33] withr_3.0.3         tools_4.6.1         gtable_0.3.6        pkgdown_2.2.1      
+#> [33] withr_3.0.3         tools_4.6.2         gtable_0.3.6        pkgdown_2.2.1      
 #> [37] ggplot2_4.0.3       cachem_1.1.0        desc_1.4.3
 ```

@@ -23,7 +23,7 @@ clone onto the original data."><meta property="og:image" content="https://max578
 
     <a class="navbar-brand me-2" href="../index.html">masque</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.15.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.16.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -77,7 +77,9 @@ writes the result. A single table flows through <code><a href="mask.html">mask()
 workbook, or named list flows through <code><a href="mask_set.html">mask_set()</a></code>, which aliases
 shared keys identically across tables so the synthetic set still
 joins. <code><a href="apply_recipe.html">apply_recipe()</a></code> and <code><a href="unmask.html">unmask()</a></code> re-target a finished pipeline
-onto the original data.</p>
+onto the original data. <code><a href="audit_mask.html">audit_mask()</a></code> grades what the clone discloses,
+and <code><a href="data_card.html">data_card()</a></code> describes the clone for a collaborator without
+listing any value.</p>
     </div>
     <div class="section level2">
     <h2 id="scope-and-limits">Scope and limits<a class="anchor" aria-label="anchor" href="#scope-and-limits"></a></h2>
@@ -97,7 +99,8 @@ the full threat model and limitations.</p>
 level vocabularies; may emit observed values; not for external sharing.</p></li>
 <li><p><code>mode = "collaborate"</code>: opaque aliasing for treatment and
 categorical-covariate levels; within-resolution jitter on numerics;
-integers stochastically rounded; <code><a href="audit_mask.html">audit_mask()</a></code> auto-runs at construction.</p></li>
+whole numbers stochastically rounded; <code><a href="audit_mask.html">audit_mask()</a></code> auto-runs at
+construction.</p></li>
 </ul></div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>

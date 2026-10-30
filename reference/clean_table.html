@@ -19,7 +19,7 @@ labels that look alike is a judgement call; conform_table() makes it.'><meta pro
 
     <a class="navbar-brand me-2" href="../index.html">masque</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.15.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.16.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -99,7 +99,10 @@ column whose name changed (empty if none);</p></li>
 values were trimmed, each a named character <code>original -&gt; clean</code>;</p></li>
 <li><p><code>near_duplicates</code> - a data.table of report-only label pairs
 (<code>col</code>, <code>a</code>, <code>b</code>, <code>kind</code>) that look like typos but were left
-untouched;</p></li>
+untouched. Labels that differ only inside a run of digits
+(<code>"G01"</code> and <code>"G02"</code>, <code>"Plot12"</code> and <code>"Plot13"</code>) are different
+codes and are not listed. The printed report shows the first 20
+pairs and the count, and a recipe keeps the same;</p></li>
 <li><p><code>mode</code> - the <code>clean</code> mode applied.</p></li>
 </ul></div>
     <div class="section level2">
@@ -107,6 +110,10 @@ untouched;</p></li>
     <p>The corrections are returned alongside the cleaned data, so <code><a href="mask.html">mask()</a></code>
 records them in the recipe and <code><a href="apply_recipe.html">apply_recipe()</a></code> re-applies the same
 cleaning to the original.</p>
+<p>Two input columns with the same name are refused with a
+<code>masque_duplicate_names_refusal</code> error: the recipe records renamed
+columns by their original name, so the two could not be told apart on
+the round trip. Rename them first.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>

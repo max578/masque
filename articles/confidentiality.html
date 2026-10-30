@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">masque</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.15.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.16.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -160,7 +160,7 @@ work:</p>
 </tr></thead>
 <tbody>
 <tr class="odd">
-<td>Treatment labels</td>
+<td>Treatment labels, numeric doses included</td>
 <td>kept</td>
 <td>aliased (<code>trt_001</code>)</td>
 </tr>
@@ -180,7 +180,8 @@ work:</p>
 <td>dropped</td>
 </tr>
 <tr class="odd">
-<td>Free text (<code>text</code>)</td>
+<td>Free text (<code>text</code>: a character column in which more than
+half the values are distinct)</td>
 <td>kept</td>
 <td>dropped</td>
 </tr>
@@ -188,20 +189,27 @@ work:</p>
 <td>Numeric synthesis</td>
 <td>Gaussian copula with empirical-quantile marginals (may emit observed
 values)</td>
-<td>the same, plus within-resolution jitter, with integers
-stochastically rounded</td>
+<td>the same, plus within-resolution jitter, with whole numbers
+stochastically rounded. A value can fall up to half a measurement step
+outside the observed range</td>
 </tr>
 <tr class="odd">
+<td>Columns constant within a design unit</td>
+<td>one value per unit, drawn from the real unit values</td>
+<td>one value per unit, jittered, or row by row when there are fewer
+than five units</td>
+</tr>
+<tr class="even">
 <td>NA mask</td>
 <td>preserved cell-by-cell</td>
 <td>preserved cell-by-cell</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code><a href="../reference/audit_mask.html">audit_mask()</a></code></td>
 <td>on demand</td>
 <td>automatic at <code><a href="../reference/mask.html">mask()</a></code> time</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>print(recipe)</code></td>
 <td>redacted</td>
 <td>redacted, with explicit <code><a href="../reference/reveal_maps.html">reveal_maps()</a></code> to inspect</td>
@@ -225,9 +233,9 @@ fingerprint. To keep the structure but hide the site or block
 <span>  rep <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_len</a></span><span class="op">(</span><span class="fl">3L</span><span class="op">)</span>, <span class="fl">6L</span><span class="op">)</span>,</span>
 <span>  yield <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">18L</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
-<span><span class="va">roles</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/propose_roles.html">propose_roles</a></span><span class="op">(</span><span class="va">df</span>, detect <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
-<span><span class="va">roles</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/set_role.html">set_role</a></span><span class="op">(</span><span class="va">roles</span>, <span class="st">"site"</span>, role <span class="op">=</span> <span class="st">"design"</span>, action <span class="op">=</span> <span class="st">"alias"</span><span class="op">)</span></span>
-<span><span class="va">s</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synthetic.html">synthetic</a></span><span class="op">(</span><span class="fu"><a href="../reference/mask.html">mask</a></span><span class="op">(</span><span class="va">df</span>, <span class="va">roles</span>, mode <span class="op">=</span> <span class="st">"collaborate"</span>, seed <span class="op">=</span> <span class="fl">1L</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">plan</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/propose_roles.html">propose_roles</a></span><span class="op">(</span><span class="va">df</span>, detect <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span><span class="va">plan</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/set_role.html">set_role</a></span><span class="op">(</span><span class="va">plan</span>, <span class="st">"site"</span>, role <span class="op">=</span> <span class="st">"design"</span>, action <span class="op">=</span> <span class="st">"alias"</span><span class="op">)</span></span>
+<span><span class="va">s</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synthetic.html">synthetic</a></span><span class="op">(</span><span class="fu"><a href="../reference/mask.html">mask</a></span><span class="op">(</span><span class="va">df</span>, <span class="va">plan</span>, mode <span class="op">=</span> <span class="st">"collaborate"</span>, seed <span class="op">=</span> <span class="fl">1L</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">site_names_gone</span> <span class="op">&lt;-</span> <span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/any.html" class="external-link">any</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="va">s</span><span class="op">$</span><span class="va">site</span><span class="op">)</span> <span class="op"><a href="https://rdrr.io/r/base/match.html" class="external-link">%in%</a></span> <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="va">df</span><span class="op">$</span><span class="va">site</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">site_names_gone</span></span>
 <span><span class="co">#&gt; [1] TRUE</span></span>
@@ -300,6 +308,71 @@ relied on against a determined attacker, and none of it is a
 differential-privacy guarantee.</p>
 </div>
 <div class="section level3">
+<h3 id="numeric-treatments">Numeric treatments<a class="anchor" aria-label="anchor" href="#numeric-treatments"></a>
+</h3>
+<p>A dose or a nitrogen rate is a numeric treatment. Its values are
+often the most recognisable part of a trial, so collaborate mode aliases
+them by default, as it does treatment labels. The clone carries
+<code>trt_001</code>, <code>trt_002</code>, … as text, and the recipe
+turns them back into the exact numbers:</p>
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">rates</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
+<span>  block <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_len</a></span><span class="op">(</span><span class="fl">4L</span><span class="op">)</span>, each <span class="op">=</span> <span class="fl">5L</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  nitro <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">0.2</span>, <span class="fl">0.4</span>, <span class="fl">0.6</span>, <span class="fl">0.8</span><span class="op">)</span>, <span class="fl">4L</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span><span class="va">rates</span><span class="op">$</span><span class="va">yield</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fl">80</span> <span class="op">+</span> <span class="fl">40</span> <span class="op">*</span> <span class="va">rates</span><span class="op">$</span><span class="va">nitro</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">20L</span>, sd <span class="op">=</span> <span class="fl">5</span><span class="op">)</span>, <span class="fl">1</span><span class="op">)</span></span>
+<span><span class="va">plan_rates</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/propose_roles.html">propose_roles</a></span><span class="op">(</span><span class="va">rates</span>, mode <span class="op">=</span> <span class="st">"collaborate"</span><span class="op">)</span></span>
+<span><span class="va">m_rates</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/mask.html">mask</a></span><span class="op">(</span><span class="va">rates</span>, <span class="va">plan_rates</span>, mode <span class="op">=</span> <span class="st">"collaborate"</span>, seed <span class="op">=</span> <span class="fl">1L</span><span class="op">)</span></span>
+<span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu"><a href="../reference/synthetic.html">synthetic</a></span><span class="op">(</span><span class="va">m_rates</span><span class="op">)</span>, <span class="fl">5L</span><span class="op">)</span>,</span>
+<span>  digits <span class="op">=</span> <span class="fl">1</span>,</span>
+<span>  caption <span class="op">=</span> <span class="st">"The first block of the clone: each N rate is an opaque label."</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<table class="table">
+<caption>The first block of the clone: each N rate is an opaque
+label.</caption>
+<thead><tr class="header">
+<th align="left">block</th>
+<th align="left">nitro</th>
+<th align="right">yield</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left">1</td>
+<td align="left">trt_002</td>
+<td align="right">90.1</td>
+</tr>
+<tr class="even">
+<td align="left">1</td>
+<td align="left">trt_005</td>
+<td align="right">91.1</td>
+</tr>
+<tr class="odd">
+<td align="left">1</td>
+<td align="left">trt_003</td>
+<td align="right">102.0</td>
+</tr>
+<tr class="even">
+<td align="left">1</td>
+<td align="left">trt_004</td>
+<td align="right">112.4</td>
+</tr>
+<tr class="odd">
+<td align="left">1</td>
+<td align="left">trt_001</td>
+<td align="right">84.1</td>
+</tr>
+</tbody>
+</table>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical</a></span><span class="op">(</span><span class="fu"><a href="../reference/unmask.html">unmask</a></span><span class="op">(</span><span class="fu"><a href="../reference/synthetic.html">synthetic</a></span><span class="op">(</span><span class="va">m_rates</span><span class="op">)</span>, <span class="fu"><a href="../reference/recipe.html">recipe</a></span><span class="op">(</span><span class="va">m_rates</span><span class="op">)</span><span class="op">)</span><span class="op">$</span><span class="va">nitro</span>, <span class="va">rates</span><span class="op">$</span><span class="va">nitro</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
+<p>Every block still holds each rate once, so the design is intact. With
+<code>action = "scramble"</code> the rates stay numbers and are permuted
+among themselves instead. A numeric treatment left at <code>keep</code>
+in collaborate mode audits HIGH.</p>
+</div>
+<div class="section level3">
 <h3 id="the-conditional-clone-preserving-the-treatment-effect">The conditional clone: preserving the treatment effect<a class="anchor" aria-label="anchor" href="#the-conditional-clone-preserving-the-treatment-effect"></a>
 </h3>
 <p>The default numeric synthesis re-simulates every scrambled numeric
@@ -319,7 +392,7 @@ the location of the treatment that row carries. The treatment effect a
 causal model estimates is kept, within sampling tolerance.</p>
 <p>The contrast is easiest to see on a two-arm trial with a known
 effect:</p>
-<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">42</span><span class="op">)</span></span>
 <span><span class="va">n</span> <span class="op">&lt;-</span> <span class="fl">600L</span></span>
 <span><span class="va">arm</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"ctrl"</span>, <span class="st">"treat"</span><span class="op">)</span>, each <span class="op">=</span> <span class="va">n</span> <span class="op">/</span> <span class="fl">2L</span><span class="op">)</span><span class="op">)</span></span>
@@ -327,18 +400,18 @@ effect:</p>
 <span><span class="va">yield</span> <span class="op">&lt;-</span> <span class="fl">10</span> <span class="op">+</span> <span class="fl">5</span> <span class="op">*</span> <span class="op">(</span><span class="va">arm</span> <span class="op">==</span> <span class="st">"treat"</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">n</span>, sd <span class="op">=</span> <span class="fl">2</span><span class="op">)</span></span>
 <span><span class="va">trial</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>genotype <span class="op">=</span> <span class="va">arm</span>, yield <span class="op">=</span> <span class="va">yield</span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">roles</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/propose_roles.html">propose_roles</a></span><span class="op">(</span><span class="va">trial</span>, detect <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
-<span><span class="va">roles</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/set_role.html">set_role</a></span><span class="op">(</span><span class="va">roles</span>, <span class="st">"genotype"</span>, role <span class="op">=</span> <span class="st">"treatment"</span>, action <span class="op">=</span> <span class="st">"scramble"</span><span class="op">)</span></span>
-<span><span class="va">roles</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/set_role.html">set_role</a></span><span class="op">(</span><span class="va">roles</span>, <span class="st">"yield"</span>, role <span class="op">=</span> <span class="st">"outcome"</span><span class="op">)</span></span>
+<span><span class="va">plan</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/propose_roles.html">propose_roles</a></span><span class="op">(</span><span class="va">trial</span>, detect <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span><span class="va">plan</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/set_role.html">set_role</a></span><span class="op">(</span><span class="va">plan</span>, <span class="st">"genotype"</span>, role <span class="op">=</span> <span class="st">"treatment"</span>, action <span class="op">=</span> <span class="st">"scramble"</span><span class="op">)</span></span>
+<span><span class="va">plan</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/set_role.html">set_role</a></span><span class="op">(</span><span class="va">plan</span>, <span class="st">"yield"</span>, role <span class="op">=</span> <span class="st">"outcome"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">true_effect</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/lm.html" class="external-link">lm</a></span><span class="op">(</span><span class="va">yield</span> <span class="op">~</span> <span class="va">genotype</span>, <span class="va">trial</span><span class="op">)</span><span class="op">)</span><span class="op">[[</span><span class="st">"genotypetreat"</span><span class="op">]</span><span class="op">]</span></span>
 <span><span class="va">true_effect</span></span>
 <span><span class="co">#&gt; [1] 4.988538</span></span></code></pre></div>
 <p>Cloning both ways from the same seed, then re-estimating the effect
 on each clone:</p>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">marg</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/mask.html">mask</a></span><span class="op">(</span><span class="va">trial</span>, <span class="va">roles</span>, mode <span class="op">=</span> <span class="st">"local"</span>, seed <span class="op">=</span> <span class="fl">1L</span>, conditional <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
-<span><span class="va">cond</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/mask.html">mask</a></span><span class="op">(</span><span class="va">trial</span>, <span class="va">roles</span>, mode <span class="op">=</span> <span class="st">"local"</span>, seed <span class="op">=</span> <span class="fl">1L</span>, conditional <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">marg</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/mask.html">mask</a></span><span class="op">(</span><span class="va">trial</span>, <span class="va">plan</span>, mode <span class="op">=</span> <span class="st">"local"</span>, seed <span class="op">=</span> <span class="fl">1L</span>, conditional <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span><span class="va">cond</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/mask.html">mask</a></span><span class="op">(</span><span class="va">trial</span>, <span class="va">plan</span>, mode <span class="op">=</span> <span class="st">"local"</span>, seed <span class="op">=</span> <span class="fl">1L</span>, conditional <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">effect_of</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">m</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/lm.html" class="external-link">lm</a></span><span class="op">(</span><span class="va">yield</span> <span class="op">~</span> <span class="va">genotype</span>, <span class="fu"><a href="../reference/synthetic.html">synthetic</a></span><span class="op">(</span><span class="va">m</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">[[</span><span class="st">"genotypetreat"</span><span class="op">]</span><span class="op">]</span></span>
@@ -382,7 +455,7 @@ true effect fitted on the original trial.</caption>
 <p>The marginal clone collapses the effect toward zero. The conditional
 clone recovers it. Both clones still match the pooled marginal of the
 outcome:</p>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
 <span>    source <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"original"</span>, <span class="st">"marginal clone"</span>, <span class="st">"conditional clone"</span><span class="op">)</span>,</span>
@@ -431,7 +504,7 @@ conditional clone preserves the arm-to-arm difference.</caption>
 <div class="section level3">
 <h3 id="figure-the-effect-on-each-clone">Figure: the effect on each clone<a class="anchor" aria-label="anchor" href="#figure-the-effect-on-each-clone"></a>
 </h3>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">effect_df</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
 <span>  clone <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span></span>
 <span>    <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"marginal (default)"</span>, <span class="st">"conditional"</span><span class="op">)</span>,</span>
@@ -460,7 +533,7 @@ conditional clone recovers it.
 </div>
 <p>The conditioning columns (the treatment plus any retained design
 columns) are recorded on the recipe, so the choice is auditable:</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/recipe.html">recipe</a></span><span class="op">(</span><span class="va">cond</span><span class="op">)</span><span class="op">@</span><span class="va">conditional</span></span>
 <span><span class="co">#&gt; [1] TRUE</span></span>
 <span><span class="fu"><a href="../reference/recipe.html">recipe</a></span><span class="op">(</span><span class="va">cond</span><span class="op">)</span><span class="op">@</span><span class="va">conditioning_cols</span></span>
@@ -497,9 +570,9 @@ nothing of it.</p>
 given up and the pooled share, and both facts are written onto the
 recipe. A pipeline can catch the class if it should stop when its clone
 is less conditional than it asked for:</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">withCallingHandlers</a></span><span class="op">(</span></span>
-<span>  <span class="fu"><a href="../reference/mask.html">mask</a></span><span class="op">(</span><span class="va">trial</span>, <span class="va">roles</span>, seed <span class="op">=</span> <span class="fl">1L</span>, conditional <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>,</span>
+<span>  <span class="fu"><a href="../reference/mask.html">mask</a></span><span class="op">(</span><span class="va">trial</span>, <span class="va">plan</span>, seed <span class="op">=</span> <span class="fl">1L</span>, conditional <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>,</span>
 <span>  masque_conditional_degraded <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">w</span><span class="op">)</span> <span class="kw"><a href="https://rdrr.io/r/base/stop.html" class="external-link">stop</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/conditions.html" class="external-link">conditionMessage</a></span><span class="op">(</span><span class="va">w</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 <p>Conditional cloning composes with both modes and with
@@ -521,7 +594,7 @@ but not a dependence that a correlation cannot express. A non-monotone
 relationship, such as a U-shaped dependence of an outcome on a
 covariate, reads as near-zero rank correlation and is reproduced as
 near-independence.</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">7</span><span class="op">)</span></span>
 <span><span class="va">n</span> <span class="op">&lt;-</span> <span class="fl">2000L</span></span>
 <span><span class="va">x_lin</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="va">n</span><span class="op">)</span></span>
@@ -581,6 +654,162 @@ real data. Validate such a step by running it on the original through
 the recipe.</p>
 </div>
 <div class="section level3">
+<h3 id="columns-constant-within-a-trial-the-grain">Columns constant within a trial: the grain<a class="anchor" aria-label="anchor" href="#columns-constant-within-a-trial-the-grain"></a>
+</h3>
+<p>Some columns describe a whole unit rather than a row: the rainfall of
+a trial, the soil type of a site, a sowing date. Re-simulated row by
+row, such a column would vary inside the trial, which no real trial
+does. <code><a href="../reference/mask.html">mask()</a></code> finds the design unit within which a column
+holds a single value and synthesises the column once per unit, writing
+each unit’s new value to all its rows. This is the column’s
+<em>grain</em>:</p>
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">3</span><span class="op">)</span></span>
+<span><span class="va">trials</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
+<span>  trial <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"T%d"</span>, <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_len</a></span><span class="op">(</span><span class="fl">8L</span><span class="op">)</span><span class="op">)</span>, each <span class="op">=</span> <span class="fl">12L</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  rep <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_len</a></span><span class="op">(</span><span class="fl">3L</span><span class="op">)</span>, each <span class="op">=</span> <span class="fl">4L</span><span class="op">)</span>, <span class="fl">8L</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  gen <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"G%d"</span>, <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_len</a></span><span class="op">(</span><span class="fl">4L</span><span class="op">)</span><span class="op">)</span>, <span class="fl">24L</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span><span class="va">trial_rain</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html" class="external-link">runif</a></span><span class="op">(</span><span class="fl">8L</span>, <span class="fl">250</span>, <span class="fl">550</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">trials</span><span class="op">$</span><span class="va">rainfall</span> <span class="op">&lt;-</span> <span class="va">trial_rain</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/integer.html" class="external-link">as.integer</a></span><span class="op">(</span><span class="va">trials</span><span class="op">$</span><span class="va">trial</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="va">trials</span><span class="op">$</span><span class="va">yield</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fl">2</span> <span class="op">+</span> <span class="va">trials</span><span class="op">$</span><span class="va">rainfall</span> <span class="op">/</span> <span class="fl">200</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">96L</span>, sd <span class="op">=</span> <span class="fl">0.4</span><span class="op">)</span>, <span class="fl">2</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">plan_trials</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/propose_roles.html">propose_roles</a></span><span class="op">(</span><span class="va">trials</span>, mode <span class="op">=</span> <span class="st">"collaborate"</span><span class="op">)</span></span>
+<span><span class="va">by_unit</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/mask.html">mask</a></span><span class="op">(</span><span class="va">trials</span>, <span class="va">plan_trials</span>, mode <span class="op">=</span> <span class="st">"collaborate"</span>, seed <span class="op">=</span> <span class="fl">1L</span><span class="op">)</span></span>
+<span><span class="va">by_row</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/mask.html">mask</a></span><span class="op">(</span><span class="va">trials</span>, <span class="va">plan_trials</span>, mode <span class="op">=</span> <span class="st">"collaborate"</span>, seed <span class="op">=</span> <span class="fl">1L</span>,</span>
+<span>               grain <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span><span class="va">values_per_trial</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">m</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">s</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synthetic.html">synthetic</a></span><span class="op">(</span><span class="va">m</span><span class="op">)</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/vector.html" class="external-link">as.vector</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tapply.html" class="external-link">tapply</a></span><span class="op">(</span><span class="va">s</span><span class="op">$</span><span class="va">rainfall</span>, <span class="va">s</span><span class="op">$</span><span class="va">trial</span>, <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique</a></span><span class="op">(</span><span class="va">x</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
+<span>    clone <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"grain = TRUE (default)"</span>, <span class="st">"grain = FALSE"</span><span class="op">)</span>,</span>
+<span>    distinct_rainfall_per_trial <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span></span>
+<span>      <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="fu">values_per_trial</span><span class="op">(</span><span class="va">by_unit</span><span class="op">)</span>, collapse <span class="op">=</span> <span class="st">" "</span><span class="op">)</span>,</span>
+<span>      <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="fu">values_per_trial</span><span class="op">(</span><span class="va">by_row</span><span class="op">)</span>, collapse <span class="op">=</span> <span class="st">" "</span><span class="op">)</span></span>
+<span>    <span class="op">)</span></span>
+<span>  <span class="op">)</span>,</span>
+<span>  caption <span class="op">=</span> <span class="st">"Distinct rainfall values in each of the eight trials of the clone."</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<table class="table">
+<caption>Distinct rainfall values in each of the eight trials of the
+clone.</caption>
+<thead><tr class="header">
+<th align="left">clone</th>
+<th align="left">distinct_rainfall_per_trial</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left">grain = TRUE (default)</td>
+<td align="left">1 1 1 1 1 1 1 1</td>
+</tr>
+<tr class="even">
+<td align="left">grain = FALSE</td>
+<td align="left">7 6 7 5 10 9 8 7</td>
+</tr>
+</tbody>
+</table>
+<p><code><a href="../reference/propose_roles.html">propose_roles()</a></code> notes such a column (“Constant within
+trial; synthesised per trial”), and the recipe records each grain. The
+clone keeps one value per unit, the frequencies of a categorical column
+across units, and the correlation among columns of the same grain. It
+does not keep the correlation between a grained column and the row-level
+columns, so the link between rainfall and yield above is lost, and
+grained columns are not conditioned on treatment when
+<code>conditional = TRUE</code>.</p>
+<p>In local mode the unit values are drawn from the real unit values. In
+collaborate mode they are jittered, and a grain with fewer than five
+units is synthesised row by row instead, with a
+<code>masque_grain_small_units</code> warning, because resampling so few
+real values would disclose them. The audit then notes that the clone
+does not keep that grain. <code>grain = FALSE</code> gives the
+row-by-row clone of masque 0.15.0.</p>
+</div>
+<div class="section level3">
+<h3 id="time-to-event-outcomes">Time-to-event outcomes<a class="anchor" aria-label="anchor" href="#time-to-event-outcomes"></a>
+</h3>
+<p>A clinical table often holds several event times on one row, such as
+time to recurrence and time to death, each with a status. Re-simulated
+as independent columns, the times would fall out of order. Declaring
+them to <code>events</code> keeps them linked. The times are listed in
+the order the events occur:</p>
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">5</span><span class="op">)</span></span>
+<span><span class="va">n_pat</span> <span class="op">&lt;-</span> <span class="fl">300L</span></span>
+<span><span class="va">arm</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"A"</span>, <span class="st">"B"</span><span class="op">)</span>, length.out <span class="op">=</span> <span class="va">n_pat</span><span class="op">)</span></span>
+<span><span class="va">t_rec</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Exponential.html" class="external-link">rexp</a></span><span class="op">(</span><span class="va">n_pat</span>, <span class="fu"><a href="https://rdrr.io/r/base/ifelse.html" class="external-link">ifelse</a></span><span class="op">(</span><span class="va">arm</span> <span class="op">==</span> <span class="st">"A"</span>, <span class="fl">1</span> <span class="op">/</span> <span class="fl">900</span>, <span class="fl">1</span> <span class="op">/</span> <span class="fl">1400</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">t_death</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Exponential.html" class="external-link">rexp</a></span><span class="op">(</span><span class="va">n_pat</span>, <span class="fl">1</span> <span class="op">/</span> <span class="fl">2500</span><span class="op">)</span></span>
+<span><span class="va">censor</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html" class="external-link">runif</a></span><span class="op">(</span><span class="va">n_pat</span>, <span class="fl">30</span>, <span class="fl">3000</span><span class="op">)</span></span>
+<span><span class="va">status_death</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/integer.html" class="external-link">as.integer</a></span><span class="op">(</span><span class="va">t_death</span> <span class="op">&lt;=</span> <span class="va">censor</span><span class="op">)</span></span>
+<span><span class="va">time_death</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">pmin</a></span><span class="op">(</span><span class="va">t_death</span>, <span class="va">censor</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">status_rec</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/integer.html" class="external-link">as.integer</a></span><span class="op">(</span><span class="va">t_rec</span> <span class="op">&lt;</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">pmin</a></span><span class="op">(</span><span class="va">t_death</span>, <span class="va">censor</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">time_rec</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/ifelse.html" class="external-link">ifelse</a></span><span class="op">(</span><span class="va">status_rec</span> <span class="op">==</span> <span class="fl">1L</span>, <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">pmin</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="va">t_rec</span><span class="op">)</span>, <span class="va">time_death</span><span class="op">)</span>,</span>
+<span>                   <span class="va">time_death</span><span class="op">)</span></span>
+<span><span class="va">patients</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span><span class="va">arm</span>, <span class="va">time_rec</span>, <span class="va">status_rec</span>, <span class="va">time_death</span>, <span class="va">status_death</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">plan_pat</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/propose_roles.html">propose_roles</a></span><span class="op">(</span><span class="va">patients</span>, mode <span class="op">=</span> <span class="st">"collaborate"</span>, detect <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span><span class="va">plan_pat</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/set_role.html">set_role</a></span><span class="op">(</span><span class="va">plan_pat</span>, <span class="st">"arm"</span>, role <span class="op">=</span> <span class="st">"treatment"</span><span class="op">)</span></span>
+<span><span class="kw">for</span> <span class="op">(</span><span class="va">cn</span> <span class="kw">in</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"time_rec"</span>, <span class="st">"status_rec"</span>, <span class="st">"time_death"</span>, <span class="st">"status_death"</span><span class="op">)</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="va">plan_pat</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/set_role.html">set_role</a></span><span class="op">(</span><span class="va">plan_pat</span>, <span class="va">cn</span>, role <span class="op">=</span> <span class="st">"outcome"</span>, action <span class="op">=</span> <span class="st">"scramble"</span><span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span><span class="va">m_pat</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/mask.html">mask</a></span><span class="op">(</span></span>
+<span>  <span class="va">patients</span>, <span class="va">plan_pat</span>, mode <span class="op">=</span> <span class="st">"collaborate"</span>, seed <span class="op">=</span> <span class="fl">1L</span>,</span>
+<span>  events <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>time <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"time_rec"</span>, <span class="st">"time_death"</span><span class="op">)</span>,</span>
+<span>                status <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"status_rec"</span>, <span class="st">"status_death"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span><span class="va">s_pat</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synthetic.html">synthetic</a></span><span class="op">(</span><span class="va">m_pat</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/all.html" class="external-link">all</a></span><span class="op">(</span><span class="va">s_pat</span><span class="op">$</span><span class="va">time_rec</span> <span class="op">&lt;=</span> <span class="va">s_pat</span><span class="op">$</span><span class="va">time_death</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] TRUE</span></span>
+<span><span class="va">pattern</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">d</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste</a></span><span class="op">(</span><span class="va">d</span><span class="op">$</span><span class="va">status_rec</span>, <span class="va">d</span><span class="op">$</span><span class="va">status_death</span>, sep <span class="op">=</span> <span class="st">"/"</span><span class="op">)</span></span>
+<span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
+<span>    pattern <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="fu">pattern</span><span class="op">(</span><span class="va">patients</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>    original <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/vector.html" class="external-link">as.vector</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="fu">pattern</span><span class="op">(</span><span class="va">patients</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>    clone <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/vector.html" class="external-link">as.vector</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/table.html" class="external-link">table</a></span><span class="op">(</span><span class="fu">pattern</span><span class="op">(</span><span class="va">s_pat</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span>  <span class="op">)</span>,</span>
+<span>  caption <span class="op">=</span> <span class="st">"Rows in each recurrence/death status pattern."</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<table class="table">
+<caption>Rows in each recurrence/death status pattern.</caption>
+<thead><tr class="header">
+<th align="left">pattern</th>
+<th align="right">original</th>
+<th align="right">clone</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td align="left">0/0</td>
+<td align="right">77</td>
+<td align="right">77</td>
+</tr>
+<tr class="even">
+<td align="left">0/1</td>
+<td align="right">82</td>
+<td align="right">82</td>
+</tr>
+<tr class="odd">
+<td align="left">1/0</td>
+<td align="right">93</td>
+<td align="right">93</td>
+</tr>
+<tr class="even">
+<td align="left">1/1</td>
+<td align="right">48</td>
+<td align="right">48</td>
+</tr>
+</tbody>
+</table>
+<p>Within each status pattern the gaps between events are re-simulated
+and summed back into times, so the times stay in order, a patient
+without a recurrence keeps both times equal, and the count of each
+pattern is exact. No final time runs past the longest follow-up observed
+in its pattern. The status patterns move across rows, within each arm
+when <code>conditional = TRUE</code>, so no real patient keeps their own
+outcome. No hazard model is fitted, and the clone keeps no relation
+between a covariate and the events.</p>
+</div>
+<div class="section level3">
 <h3 id="the-leakage-audit-and-a-refused-write">The leakage audit, and a refused write<a class="anchor" aria-label="anchor" href="#the-leakage-audit-and-a-refused-write"></a>
 </h3>
 <p><code><a href="../reference/audit_mask.html">audit_mask()</a></code> inspects the synthetic against the original
@@ -588,7 +817,7 @@ and grades the leakage of each column. In collaborate mode it runs
 automatically and warns at <code><a href="../reference/mask.html">mask()</a></code> time. The fixture below
 is built to trip it: a PII-suspected column the user retains against the
 default, and a categorical covariate with a frequency-one level.</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">df</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
 <span>  rep <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_len</a></span><span class="op">(</span><span class="fl">3L</span><span class="op">)</span>, each <span class="op">=</span> <span class="fl">20L</span><span class="op">)</span>,</span>
 <span>  variety <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="st">"V"</span>, <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_len</a></span><span class="op">(</span><span class="fl">6L</span><span class="op">)</span><span class="op">)</span>, <span class="fl">10L</span><span class="op">)</span><span class="op">)</span>,</span>
@@ -601,9 +830,9 @@ default, and a categorical covariate with a frequency-one level.</p>
 <span>  stringsAsFactors <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">roles</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/propose_roles.html">propose_roles</a></span><span class="op">(</span><span class="va">df</span>, mode <span class="op">=</span> <span class="st">"collaborate"</span><span class="op">)</span></span>
+<span><span class="va">plan</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/propose_roles.html">propose_roles</a></span><span class="op">(</span><span class="va">df</span>, mode <span class="op">=</span> <span class="st">"collaborate"</span><span class="op">)</span></span>
 <span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span></span>
-<span>  <span class="va">roles</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"col"</span>, <span class="st">"role"</span>, <span class="st">"action"</span>, <span class="st">"pii_suspected"</span><span class="op">)</span><span class="op">]</span>,</span>
+<span>  <span class="va">plan</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"col"</span>, <span class="st">"role"</span>, <span class="st">"action"</span>, <span class="st">"pii_suspected"</span><span class="op">)</span><span class="op">]</span>,</span>
 <span>  caption <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span></span>
 <span>    <span class="st">"The proposed plan: `contact_email` is auto-flagged "</span>,</span>
 <span>    <span class="st">"`pii_suspected` and dropped."</span></span>
@@ -645,7 +874,7 @@ default, and a categorical covariate with a frequency-one level.</p>
 </tr>
 <tr class="odd">
 <td align="left">yield</td>
-<td align="left">covariate</td>
+<td align="left">outcome</td>
 <td align="left">scramble</td>
 <td align="left">FALSE</td>
 </tr>
@@ -653,11 +882,11 @@ default, and a categorical covariate with a frequency-one level.</p>
 </table>
 <p>Suppose the custodian overrides the flag, keeps
 <code>contact_email</code>, and makes the rare column a covariate:</p>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">roles</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/set_role.html">set_role</a></span><span class="op">(</span><span class="va">roles</span>, <span class="st">"yield"</span>, role <span class="op">=</span> <span class="st">"outcome"</span><span class="op">)</span></span>
-<span><span class="va">roles</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/set_role.html">set_role</a></span><span class="op">(</span><span class="va">roles</span>, <span class="st">"contact_email"</span>, role <span class="op">=</span> <span class="st">"covariate"</span>, action <span class="op">=</span> <span class="st">"keep"</span><span class="op">)</span></span>
-<span><span class="va">roles</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/set_role.html">set_role</a></span><span class="op">(</span><span class="va">roles</span>, <span class="st">"rare_treatment"</span>, role <span class="op">=</span> <span class="st">"covariate"</span><span class="op">)</span></span>
-<span><span class="va">m</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/mask.html">mask</a></span><span class="op">(</span><span class="va">df</span>, <span class="va">roles</span>, mode <span class="op">=</span> <span class="st">"collaborate"</span>, seed <span class="op">=</span> <span class="fl">1L</span><span class="op">)</span></span>
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">plan</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/set_role.html">set_role</a></span><span class="op">(</span><span class="va">plan</span>, <span class="st">"yield"</span>, role <span class="op">=</span> <span class="st">"outcome"</span><span class="op">)</span></span>
+<span><span class="va">plan</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/set_role.html">set_role</a></span><span class="op">(</span><span class="va">plan</span>, <span class="st">"contact_email"</span>, role <span class="op">=</span> <span class="st">"covariate"</span>, action <span class="op">=</span> <span class="st">"keep"</span><span class="op">)</span></span>
+<span><span class="va">plan</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/set_role.html">set_role</a></span><span class="op">(</span><span class="va">plan</span>, <span class="st">"rare_treatment"</span>, role <span class="op">=</span> <span class="st">"covariate"</span><span class="op">)</span></span>
+<span><span class="va">m</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/mask.html">mask</a></span><span class="op">(</span><span class="va">df</span>, <span class="va">plan</span>, mode <span class="op">=</span> <span class="st">"collaborate"</span>, seed <span class="op">=</span> <span class="fl">1L</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Warning: audit_mask() flagged HIGH leakage on columns: contact_email, rare_treatment</span></span>
 <span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span></span>
 <span>  <span class="fu"><a href="../reference/audit_mask.html">audit_mask</a></span><span class="op">(</span><span class="va">m</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"col"</span>, <span class="st">"leakage_class"</span>, <span class="st">"notes"</span><span class="op">)</span><span class="op">]</span>,</span>
@@ -673,21 +902,26 @@ default, and a categorical covariate with a frequency-one level.</p>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; ── <span style="font-weight: bold;">HIGH (2)</span> ──</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; <span style="color: #BB0000;">✖</span>   covariate contact_email                     PII-pattern column name; kept as-is - visible to collaborators</span></span>
+<span><span class="co">#&gt; <span style="color: #BB0000;">✖</span>   covariate contact_email                     PII-pattern column name; kept as-is - visible to collaborators; same-row 100.0% vs chance 50.0%</span></span>
 <span><span class="co">#&gt; <span style="color: #BB0000;">✖</span>   covariate rare_treatment                    levels aliased; rare level (freq = 1)</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; ── <span style="font-weight: bold;">LOW (3)</span> ──</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span>   design    rep                               exact-match 100.0%</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span>   treatment variety                           levels aliased</span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span>   outcome   yield                             ok</span></span></code></pre></div>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span>   outcome   yield                             ok</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; ── <span style="font-weight: bold;">Table-level checks</span> ──</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span>   LOW       same-row joint match 0.0% vs chance 0.1% (sd 1.7)</span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span>   LOW       whole-row match 0.0% vs chance 0.5% (sd 1.7)</span></span></code></pre></div>
 <table class="table">
 <caption>The mask-time audit: <code>contact_email</code> and
 <code>rare_treatment</code> both flag HIGH.</caption>
 <colgroup>
-<col width="16%">
-<col width="15%">
-<col width="68%">
+<col width="12%">
+<col width="11%">
+<col width="76%">
 </colgroup>
 <thead><tr class="header">
 <th align="left">col</th>
@@ -709,7 +943,7 @@ default, and a categorical covariate with a frequency-one level.</p>
 <td align="left">contact_email</td>
 <td align="left">high</td>
 <td align="left">PII-pattern column name; kept as-is - visible to
-collaborators</td>
+collaborators; same-row 100.0% vs chance 50.0%</td>
 </tr>
 <tr class="even">
 <td align="left">rare_treatment</td>
@@ -730,13 +964,13 @@ flagged. <code><a href="../reference/mask.html">mask()</a></code> raised a class
 in <code>recipe@warnings</code>; the guided <code><a href="../reference/masque.html">masque()</a></code> flow
 never silences it. While a HIGH finding stands, the package will not
 write the synthetic to disk:</p>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">out_dir</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span><span class="op">)</span></span>
-<span><span class="fu"><a href="../reference/masque.html">masque</a></span><span class="op">(</span><span class="va">df</span>, roles <span class="op">=</span> <span class="va">roles</span>, out <span class="op">=</span> <span class="va">out_dir</span>, mode <span class="op">=</span> <span class="st">"collaborate"</span>, seed <span class="op">=</span> <span class="fl">1L</span>,</span>
+<span><span class="fu"><a href="../reference/masque.html">masque</a></span><span class="op">(</span><span class="va">df</span>, roles <span class="op">=</span> <span class="va">plan</span>, out <span class="op">=</span> <span class="va">out_dir</span>, mode <span class="op">=</span> <span class="st">"collaborate"</span>, seed <span class="op">=</span> <span class="fl">1L</span>,</span>
 <span>       quiet <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Warning: audit_mask() flagged HIGH leakage on columns: contact_email, rare_treatment</span></span>
 <span><span class="co">#&gt; <span style="color: #BBBB00; font-weight: bold;">Error</span><span style="font-weight: bold;"> in `.gate_release()`:</span></span></span>
-<span><span class="co">#&gt; <span style="color: #BBBB00;">!</span> Write blocked: the audit flagged HIGH leakage on 2 columns.</span></span>
+<span><span class="co">#&gt; <span style="color: #BBBB00;">!</span> Write blocked: the audit flagged HIGH leakage on 2 findings.</span></span>
 <span><span class="co">#&gt; <span style="color: #BB0000;">✖</span> Flagged: contact_email, rare_treatment.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> Re-role, alias, or drop each flagged column, then mask again.</span></span>
 <span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> Or pass `allow_high = TRUE` to write anyway after your own review - the override is recorded.</span></span>
@@ -750,6 +984,93 @@ pass <code>allow_high = TRUE</code>; the override is itself raised as a
 classed <code>masque_high_override</code> warning and recorded in the
 recipe’s warnings, so the exception stays auditable rather than
 silent.</p>
+<p>The audit also checks the table as a whole. Each column is graded on
+how far its row-by-row match with the original exceeds what chance
+gives, and <code>attr(audit, "joint")</code> holds table-level checks:
+rows whose every re-simulated column equals the original, and rare
+combinations of retained values. A HIGH table-level finding blocks the
+writers as a column finding does.</p>
+<p>An outcome left at <code>keep</code> in collaborate mode hands over
+the real responses, so it audits HIGH:</p>
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">trial_kept</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
+<span>  block <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_len</a></span><span class="op">(</span><span class="fl">4L</span><span class="op">)</span>, each <span class="op">=</span> <span class="fl">6L</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  variety <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sprintf.html" class="external-link">sprintf</a></span><span class="op">(</span><span class="st">"V%d"</span>, <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_len</a></span><span class="op">(</span><span class="fl">6L</span><span class="op">)</span><span class="op">)</span>, <span class="fl">4L</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  height <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">24L</span>, <span class="fl">90</span>, <span class="fl">8</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  yield <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">24L</span>, <span class="fl">5</span>, <span class="fl">1</span><span class="op">)</span>, <span class="fl">2</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span><span class="va">plan_kept</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/propose_roles.html">propose_roles</a></span><span class="op">(</span><span class="va">trial_kept</span>, mode <span class="op">=</span> <span class="st">"collaborate"</span><span class="op">)</span></span>
+<span><span class="va">plan_kept</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/set_role.html">set_role</a></span><span class="op">(</span><span class="va">plan_kept</span>, <span class="st">"yield"</span>, role <span class="op">=</span> <span class="st">"outcome"</span>, action <span class="op">=</span> <span class="st">"keep"</span><span class="op">)</span></span>
+<span><span class="va">m_kept</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/mask.html">mask</a></span><span class="op">(</span><span class="va">trial_kept</span>, <span class="va">plan_kept</span>, mode <span class="op">=</span> <span class="st">"collaborate"</span>, seed <span class="op">=</span> <span class="fl">1L</span><span class="op">)</span></span>
+<span><span class="co">#&gt; Warning: audit_mask() flagged HIGH leakage on column: yield</span></span>
+<span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span></span>
+<span>  <span class="fu"><a href="../reference/audit_mask.html">audit_mask</a></span><span class="op">(</span><span class="va">m_kept</span>, print <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span><span class="op">[</span><span class="va">col</span> <span class="op">==</span> <span class="st">"yield"</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"col"</span>, <span class="st">"leakage_class"</span><span class="op">)</span><span class="op">]</span>,</span>
+<span>  caption <span class="op">=</span> <span class="st">"A kept outcome in a collaborate clone."</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<table class="table">
+<caption>A kept outcome in a collaborate clone.</caption>
+<thead><tr class="header">
+<th align="left">col</th>
+<th align="left">leakage_class</th>
+</tr></thead>
+<tbody><tr class="odd">
+<td align="left">yield</td>
+<td align="left">high</td>
+</tr></tbody>
+</table>
+<p>If the custodian has decided the real outcome may be shared, passing
+<code>allow_kept_outcome = TRUE</code> grades the column medium and
+records the choice on the recipe:</p>
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">m_allowed</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/mask.html">mask</a></span><span class="op">(</span><span class="va">trial_kept</span>, <span class="va">plan_kept</span>, mode <span class="op">=</span> <span class="st">"collaborate"</span>, seed <span class="op">=</span> <span class="fl">1L</span>,</span>
+<span>                  allow_kept_outcome <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span></span>
+<span>  <span class="fu"><a href="../reference/audit_mask.html">audit_mask</a></span><span class="op">(</span><span class="va">m_allowed</span>, print <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span><span class="op">[</span></span>
+<span>    <span class="va">col</span> <span class="op">==</span> <span class="st">"yield"</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"col"</span>, <span class="st">"leakage_class"</span><span class="op">)</span></span>
+<span>  <span class="op">]</span>,</span>
+<span>  caption <span class="op">=</span> <span class="st">"The same outcome, allowed by the custodian."</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<table class="table">
+<caption>The same outcome, allowed by the custodian.</caption>
+<thead><tr class="header">
+<th align="left">col</th>
+<th align="left">leakage_class</th>
+</tr></thead>
+<tbody><tr class="odd">
+<td align="left">yield</td>
+<td align="left">medium</td>
+</tr></tbody>
+</table>
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/recipe.html">recipe</a></span><span class="op">(</span><span class="va">m_allowed</span><span class="op">)</span><span class="op">@</span><span class="va">allow_kept_outcome</span></span>
+<span><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
+<p>The table-level checks still apply. When the kept outcome is the only
+column that would otherwise be re-simulated, the clone matches the
+original row for row, the whole-row check stays HIGH, and the writers
+stay blocked.</p>
+</div>
+<div class="section level3">
+<h3 id="small-tables">Small tables<a class="anchor" aria-label="anchor" href="#small-tables"></a>
+</h3>
+<p>Re-simulating a column of a few rows returns the original values in a
+new order. Collaborate mode therefore refuses a table of fewer than five
+rows when any column would be re-simulated:</p>
+<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">tiny</span> <span class="op">&lt;-</span> <span class="va">trial_kept</span><span class="op">[</span><span class="fl">1</span><span class="op">:</span><span class="fl">4</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"block"</span>, <span class="st">"yield"</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="fu"><a href="../reference/mask.html">mask</a></span><span class="op">(</span><span class="va">tiny</span>, <span class="fu"><a href="../reference/propose_roles.html">propose_roles</a></span><span class="op">(</span><span class="va">tiny</span>, mode <span class="op">=</span> <span class="st">"collaborate"</span><span class="op">)</span>, mode <span class="op">=</span> <span class="st">"collaborate"</span>,</span>
+<span>     seed <span class="op">=</span> <span class="fl">1L</span><span class="op">)</span></span>
+<span><span class="co">#&gt; <span style="color: #BBBB00; font-weight: bold;">Error</span><span style="font-weight: bold;"> in `.check_row_floor()`:</span></span></span>
+<span><span class="co">#&gt; <span style="color: #BBBB00;">!</span> `df` has 4 rows, fewer than 5, and <span style="color: #00BB00;">yield</span> would be re-simulated.</span></span>
+<span><span class="co">#&gt; <span style="color: #BB0000;">✖</span> A re-simulated column this short is the original values resampled, so a collaborate clone would</span></span>
+<span><span class="co">#&gt;   disclose them.</span></span>
+<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> Keep, alias or drop that column, or mask a table of at least 5 rows.</span></span></code></pre></div>
+<p>Local mode warns instead. Kept, aliased and dropped columns are not
+re-simulated, so a short lookup table of site codes masks in either
+mode. Five rows is a floor, not a guarantee. A column of a few dozen
+rows still carries values close to the real ones, and jitter within a
+measurement step does little to hide them. The same applies to small
+strata of a conditional clone, which is why its cells hold at least five
+rows.</p>
 <p>Beyond that gate the release decision stays with the custodian.
 Whether a synthetic table is appropriate for a given collaborator,
 environment, or jurisdiction depends on context the package cannot see.
@@ -763,19 +1084,29 @@ key <em>identically across all of them</em> so the synthetic tables
 still join. A linked key is the join surface, aliased consistently
 rather than permuted (permuting a key would break the join regardless of
 masking).</p>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">set_dir</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, <span class="st">"met_set"</span>, package <span class="op">=</span> <span class="st">"masque"</span><span class="op">)</span></span>
-<span><span class="va">ms</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/mask_set.html">mask_set</a></span><span class="op">(</span><span class="va">set_dir</span>, mode <span class="op">=</span> <span class="st">"collaborate"</span>, seed <span class="op">=</span> <span class="fl">1L</span>, quiet <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Warning: Numeric environment column <span style="color: #00BB00;">year</span> remains <span style="color: #0000BB;">"keep"</span> in collaborate mode.</span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> This preserves environment structure but may disclose year or other numeric labels; review before</span></span>
-<span><span class="co">#&gt;   release.</span></span>
+<span><span class="va">tabs</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/read_set.html">read_set</a></span><span class="op">(</span><span class="va">set_dir</span><span class="op">)</span></span>
+<span><span class="va">tabs</span><span class="op">$</span><span class="va">agronomy</span><span class="op">[</span>, <span class="va">year</span> <span class="op">:=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="va">year</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="va">ms</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/mask_set.html">mask_set</a></span><span class="op">(</span><span class="va">tabs</span>, mode <span class="op">=</span> <span class="st">"collaborate"</span>, seed <span class="op">=</span> <span class="fl">1L</span>, quiet <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span><span class="va">ag</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synthetic.html">synthetic</a></span><span class="op">(</span><span class="va">ms</span><span class="op">)</span><span class="op">$</span><span class="va">agronomy</span></span>
 <span><span class="va">qa</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synthetic.html">synthetic</a></span><span class="op">(</span><span class="va">ms</span><span class="op">)</span><span class="op">$</span><span class="va">quality</span></span>
 <span><span class="va">join_survives</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/sets.html" class="external-link">setequal</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique</a></span><span class="op">(</span><span class="va">ag</span><span class="op">$</span><span class="va">gen</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique</a></span><span class="op">(</span><span class="va">qa</span><span class="op">$</span><span class="va">gen</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">join_survives</span></span>
-<span><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
+<span><span class="co">#&gt; [1] TRUE</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unique.html" class="external-link">unique</a></span><span class="op">(</span><span class="va">ag</span><span class="op">$</span><span class="va">gen</span><span class="op">)</span>, <span class="fl">3L</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] "gen_K056" "gen_K048" "gen_K017"</span></span></code></pre></div>
+<p><code>year</code> is converted to a factor first. As a number it
+would be kept with its real values, with a warning, because a numeric
+environment column cannot be aliased. A linked key gets aliases of the
+form <code>&lt;col&gt;_K001</code>, such as <code>gen_K001</code>, from
+one map shared by every table.</p>
 <p>The recipe bundle is private exactly as a single recipe is;
-<code><a href="../reference/write_set.html">write_set()</a></code> never writes it.</p>
+<code><a href="../reference/write_set.html">write_set()</a></code> never writes it. <code><a href="../reference/save_recipe.html">save_recipe()</a></code> and
+<code><a href="../reference/read_recipe.html">read_recipe()</a></code> keep it as one <code>.rds</code> file,
+<code>audit_mask(ms)</code> returns one audit per table, and
+<code>reveal_maps(recipe(ms), table = "agronomy")</code> reveals the
+maps of one table.</p>
 </div>
 <div class="section level3">
 <h3 id="geographic-coordinates">Geographic coordinates<a class="anchor" aria-label="anchor" href="#geographic-coordinates"></a>
@@ -814,7 +1145,7 @@ coastal site is never pushed offshore. The longitude step is corrected
 by <code>cos(latitude)</code> so the ground distance matches the
 requested kilometres at any latitude, and the NA pattern and the
 latitude/longitude pairing are preserved.</p>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">sites</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
 <span>  site <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"A"</span>, <span class="st">"B"</span>, <span class="st">"C"</span><span class="op">)</span>,</span>
 <span>  lat  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="op">-</span><span class="fl">34.9</span>, <span class="op">-</span><span class="fl">35.2</span>, <span class="op">-</span><span class="fl">33.6</span><span class="op">)</span>,</span>
@@ -863,7 +1194,7 @@ default a site is a set of rows sharing an identical input coordinate,
 which needs no user action and cannot alter genuinely point-level data.
 Where a site’s recorded coordinates differ slightly between rows, naming
 the site columns consolidates the group to its centroid.</p>
-<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">plots</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
 <span>  trial <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"T1"</span>, <span class="st">"T2"</span><span class="op">)</span>, each <span class="op">=</span> <span class="fl">4L</span><span class="op">)</span>,</span>
 <span>  lat   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="op">-</span><span class="fl">34.9</span>, <span class="op">-</span><span class="fl">35.2</span><span class="op">)</span>, each <span class="op">=</span> <span class="fl">4L</span><span class="op">)</span>,</span>
@@ -890,8 +1221,9 @@ caller believes is masked.</p>
 <p>Declaring the pair to <code><a href="../reference/mask.html">mask()</a></code> applies the same coarsening
 as part of masking, so the coordinates never pass through the
 copula:</p>
-<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">m</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/mask.html">mask</a></span><span class="op">(</span><span class="va">df</span>, <span class="va">roles</span>, mode <span class="op">=</span> <span class="st">"collaborate"</span>,</span>
+<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">plan</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/set_role.html">set_role</a></span><span class="op">(</span><span class="va">plan</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"GPS_S"</span>, <span class="st">"GPS_E"</span><span class="op">)</span>, action <span class="op">=</span> <span class="st">"keep"</span><span class="op">)</span></span>
+<span><span class="va">m</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/mask.html">mask</a></span><span class="op">(</span><span class="va">df</span>, <span class="va">plan</span>, mode <span class="op">=</span> <span class="st">"collaborate"</span>,</span>
 <span>          coords <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>lat <span class="op">=</span> <span class="st">"GPS_S"</span>, lon <span class="op">=</span> <span class="st">"GPS_E"</span>, by <span class="op">=</span> <span class="st">"TRIAL"</span><span class="op">)</span><span class="op">)</span>,</span>
 <span>          seed <span class="op">=</span> <span class="fl">1L</span><span class="op">)</span></span></code></pre></div>
 <p>The recipe records the grouping each declared pair was masked under,
@@ -928,9 +1260,13 @@ treatment effect (0.25 against a true 4.99), and a pipeline that checks
 only marginal fidelity would not notice. The conditional clone keeps it
 (5.14). Neither keeps a non-monotone relationship between two numeric
 columns.</p>
+<p>A column constant within a trial stays constant within it, and linked
+event times stay in order with exact pattern counts.</p>
 <p>The audit caught both planted problems and the write was refused:
-<code>dir.exists(out_dir)</code> is FALSE. Linked tables share one alias
-map for their key, so they still join.</p>
+<code>dir.exists(out_dir)</code> is FALSE. A kept outcome audits HIGH
+unless the custodian allows it, and a collaborate table of fewer than
+five rows is refused. Linked tables share one alias map for their key,
+so they still join.</p>
 <p>A synthetic clone therefore protects the labels and the raw values
 behind them. It does not hide the design footprint or the level
 frequencies, and without <code>conditional = TRUE</code> it does not
@@ -972,13 +1308,15 @@ pipeline built on the synthetic re-targets to the original.</p>
 conditional-clone fixture reseeds explicitly with
 <code>set.seed(42)</code> and the copula-shape fixture with
 <code>set.seed(7)</code>, so both sections are self-contained regardless
-of chunk execution order. Every
+of chunk execution order. The grain fixture reseeds with
+<code>set.seed(3)</code> and the events fixture with
+<code>set.seed(5)</code>. Every
 <code><a href="../reference/mask.html">mask()</a></code>/<code><a href="../reference/mask_set.html">mask_set()</a></code>/<code><a href="../reference/jitter_coordinates.html">jitter_coordinates()</a></code>
 call also passes <code>seed = 1L</code> explicitly. Package versions
 follow.</p>
-<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/sessionInfo.html" class="external-link">sessionInfo</a></span><span class="op">(</span><span class="op">)</span></span>
-<span><span class="co">#&gt; R version 4.6.1 (2026-06-24)</span></span>
+<span><span class="co">#&gt; R version 4.6.2 (2026-10-29)</span></span>
 <span><span class="co">#&gt; Platform: x86_64-pc-linux-gnu</span></span>
 <span><span class="co">#&gt; Running under: Ubuntu 24.04.5 LTS</span></span>
 <span><span class="co">#&gt; </span></span>
@@ -998,18 +1336,18 @@ follow.</p>
 <span><span class="co">#&gt; [1] stats     graphics  grDevices utils     datasets  methods   base     </span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; other attached packages:</span></span>
-<span><span class="co">#&gt; [1] masque_0.15.0</span></span>
+<span><span class="co">#&gt; [1] masque_0.16.0</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; loaded via a namespace (and not attached):</span></span>
 <span><span class="co">#&gt;  [1] vctrs_0.7.3         cli_3.6.6           knitr_1.52          rlang_1.3.0        </span></span>
 <span><span class="co">#&gt;  [5] xfun_0.62           otel_0.2.0          textshaping_1.0.5   S7_0.2.2           </span></span>
 <span><span class="co">#&gt;  [9] data.table_1.18.6.1 jsonlite_2.0.0      labeling_0.4.3      glue_1.8.1         </span></span>
 <span><span class="co">#&gt; [13] htmltools_0.5.9     ragg_1.5.2          sass_0.4.10         scales_1.4.0       </span></span>
-<span><span class="co">#&gt; [17] rmarkdown_2.32      grid_4.6.1          evaluate_1.0.5      jquerylib_0.1.4    </span></span>
-<span><span class="co">#&gt; [21] fastmap_1.2.0       yaml_2.3.12         lifecycle_1.0.5     compiler_4.6.1     </span></span>
-<span><span class="co">#&gt; [25] fs_2.1.0            RColorBrewer_1.1-3  maps_3.4.3          systemfonts_1.3.2  </span></span>
+<span><span class="co">#&gt; [17] rmarkdown_2.32      grid_4.6.2          evaluate_1.0.5      jquerylib_0.1.4    </span></span>
+<span><span class="co">#&gt; [21] fastmap_1.2.0       yaml_2.3.12         lifecycle_1.0.5     compiler_4.6.2     </span></span>
+<span><span class="co">#&gt; [25] fs_2.1.0            RColorBrewer_1.1-3  maps_3.4.4          systemfonts_1.3.2  </span></span>
 <span><span class="co">#&gt; [29] farver_2.1.2        digest_0.6.39       viridisLite_0.4.3   R6_2.6.1           </span></span>
-<span><span class="co">#&gt; [33] pillar_1.11.1       bslib_0.12.0        withr_3.0.3         tools_4.6.1        </span></span>
+<span><span class="co">#&gt; [33] pillar_1.11.1       bslib_0.12.0        withr_3.0.3         tools_4.6.2        </span></span>
 <span><span class="co">#&gt; [37] gtable_0.3.6        pkgdown_2.2.1       ggplot2_4.0.3       cachem_1.1.0       </span></span>
 <span><span class="co">#&gt; [41] desc_1.4.3</span></span></code></pre></div>
 </div>

@@ -10,6 +10,7 @@ release (`0.x` to `0.(x+1)`) is meant to add new exports without
 breaking existing signatures. The track record so far:
 
 - `0.2.0`: first public surface (11 exports).
+
 - `0.3.0`: added
   [`detect_design()`](https://max578.github.io/masque/reference/detect_design.md),
   [`plot_design_summary()`](https://max578.github.io/masque/reference/plot_design_summary.md),
@@ -17,11 +18,14 @@ breaking existing signatures. The track record so far:
   [`propose_roles()`](https://max578.github.io/masque/reference/propose_roles.md)
   gained `detect = TRUE` as a new default with `detect = FALSE`
   recovering v0.2.x behaviour byte-for-byte. **No breaking changes.**
+
 - `0.4.0`: added
   [`synthesise_geospatial()`](https://max578.github.io/masque/reference/synthesise_geospatial.md).
   **No breaking changes.**
+
 - `0.5.0`: joint-treatment masking; the `keep` role; first-class
   date/time covariates. **No breaking changes.**
+
 - `0.6.0`: the **two-axis roles model**: the roles table gains an
   `action` column and the role vocabulary changes (`keep` / `ignore`
   become the `keep` / `drop` *actions*; new roles `date` / `id` / `text`
@@ -39,11 +43,14 @@ breaking existing signatures. The track record so far:
   automatically with a one-time deprecation warning, so existing scripts
   keep working; the warning signposts re-running
   [`propose_roles()`](https://max578.github.io/masque/reference/propose_roles.md).
+
 - `0.7.0`: added opt-in conditional numeric synthesis. **No signature
   breaks.**
+
 - `0.8.0`: strengthened warning propagation and the package-managed
   write gate. Added `allow_high` at the end of affected signatures.
   **Behavioural safety change, listed in `NEWS.md`.**
+
 - `0.9.1`: supersedes the untagged 0.9.0 release candidate. Added the
   append-only `env` argument to
   [`detect_design()`](https://max578.github.io/masque/reference/detect_design.md)
@@ -58,10 +65,12 @@ breaking existing signatures. The track record so far:
   now inherit the mode provenance recorded on role plans when `mode` is
   omitted, with an explicit warning for a downgrade. **Behaviour changes
   are listed first in `NEWS.md`.**
+
 - `0.9.2`: added
   [`jitter_coordinates()`](https://max578.github.io/masque/reference/jitter_coordinates.md)
   and the [`mask()`](https://max578.github.io/masque/reference/mask.md)
   `coords` argument. **No breaking changes.**
+
 - `0.10.0`: the geomask now draws one displacement per **site** rather
   than per row, and a site that cannot be placed on land fails closed to
   `NA` instead of retaining its true coordinate.
@@ -71,6 +80,7 @@ breaking existing signatures. The track record so far:
   per-row behaviour, and genuinely point-level input reproduces its
   0.9.2 output exactly under the same seed. **This is a behaviour change
   and a confidentiality fix, listed first in `NEWS.md`.**
+
 - `0.11.0`: a coordinate column kept unmasked now stops
   [`mask()`](https://max578.github.io/masque/reference/mask.md) unless
   the caller states otherwise, via `coords`, a masking action, or the
@@ -79,6 +89,7 @@ breaking existing signatures. The track record so far:
   [`audit_mask()`](https://max578.github.io/masque/reference/audit_mask.md)
   no longer classes a geomask-coarsened coordinate as HIGH. **Behaviour
   change, listed first in `NEWS.md`.**
+
 - `0.12.0`: added
   [`conform_table()`](https://max578.github.io/masque/reference/conform_table.md).
   The collaborate-mode alias map is drawn from a seeded random
@@ -86,6 +97,7 @@ breaking existing signatures. The track record so far:
   of an aliased factor. `conditional = TRUE` coarsens its strata until
   they are large enough, instead of pooling the whole clone silently.
   **Behaviour change and a confidentiality fix, listed in `NEWS.md`.**
+
 - `0.13.0`:
   [`mask()`](https://max578.github.io/masque/reference/mask.md),
   [`mask_set()`](https://max578.github.io/masque/reference/mask_set.md)
@@ -94,6 +106,7 @@ breaking existing signatures. The track record so far:
   conditional clone along the design hierarchy; `ladder = "levels"`
   reproduces 0.11.1 to 0.12.0. **Breaking change, listed first in
   `NEWS.md`.**
+
 - `0.14.0`: a scrambled factor keeps the original level order, and an
   aliased join key lists its aliases in sorted order, so
   [`levels()`](https://rdrr.io/r/base/levels.html) of a clone no longer
@@ -101,10 +114,40 @@ breaking existing signatures. The track record so far:
   [`apply_recipe()`](https://max578.github.io/masque/reference/apply_recipe.md)
   returns the clone’s level order. **Confidentiality fix, listed first
   in `NEWS.md`; re-make any clone shared from 0.13.0 or earlier.**
+
 - `0.15.0`: every returned table is a `data.table` instead of a tibble,
   and tibble leaves the dependencies. Signatures and values are
   unchanged. **Breaking change for code that relies on tibble behaviour,
   listed first in `NEWS.md`.**
+
+- `0.16.0`: new exports
+  [`data_card()`](https://max578.github.io/masque/reference/data_card.md)
+  and [`roles()`](https://max578.github.io/masque/reference/roles.md).
+  New arguments, each with a default:
+
+  - [`mask()`](https://max578.github.io/masque/reference/mask.md):
+    `events`, `grain`, `allow_kept_outcome`
+  - [`mask_set()`](https://max578.github.io/masque/reference/mask_set.md):
+    `grain`, `allow_kept_outcome`, `sheets`, `info`, `...`
+  - [`masque()`](https://max578.github.io/masque/reference/masque.md):
+    `detect`, `sheets`, `info`, `...`
+  - [`reveal_maps()`](https://max578.github.io/masque/reference/reveal_maps.md):
+    `table`
+
+  In [`mask()`](https://max578.github.io/masque/reference/mask.md) the
+  new arguments sit before `allow_unmasked_coords` and `quiet`, and in
+  [`mask_set()`](https://max578.github.io/masque/reference/mask_set.md)
+  before `quiet`, so a call that passes those by position must name
+  them.
+
+  Default clones change for tables with a column constant within a
+  design unit (`grain = FALSE` restores 0.15.0), for collaborate jitter
+  (no longer clipped to the observed range), for numeric treatments
+  (aliased in collaborate mode) and for
+  [`mask_set()`](https://max578.github.io/masque/reference/mask_set.md)
+  link aliases made with a seed. A kept outcome audits HIGH in
+  collaborate mode. Recipes saved by 0.15.0 still load and apply.
+  **Behaviour changes, listed first in `NEWS.md`.**
 
 Additive by intent is not frozen: before 1.0 a release may break an
 existing signature when a design flaw surfaces, but every such change

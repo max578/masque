@@ -17,7 +17,7 @@ holding six labels is a factor.'><meta property="og:image" content="https://max5
 
     <a class="navbar-brand me-2" href="../index.html">masque</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.15.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.16.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -114,11 +114,16 @@ treated as categorical. Default <code>20</code>.</p></dd>
 <li><p><code>cleaning</code> - the <code>masque_cleaning</code> record from <code><a href="clean_table.html">clean_table()</a></code>;</p></li>
 <li><p><code>merges</code> - one row per near-duplicate pair considered
 (<code>col</code>, <code>from</code>, <code>to</code>, <code>n_from</code>, <code>n_to</code>, <code>applied</code>, <code>reason</code>);</p></li>
+<li><p><code>merge_map</code> - the merges as applied to the data (<code>col</code>, <code>from</code>,
+<code>to</code>), one row per merged-away label, each <code>to</code> a label left in
+the column. This is what <code><a href="mask.html">mask()</a></code> records and <code><a href="apply_recipe.html">apply_recipe()</a></code>
+replays;</p></li>
 <li><p><code>types</code> - one row per column whose storage was considered
 (<code>col</code>, <code>from</code>, <code>to</code>, <code>applied</code>, <code>reason</code>);</p></li>
 <li><p><code>assumptions</code> - every decision as a plain sentence
 (<code>col</code>, <code>assumption</code>, <code>applied</code>), which is the thing to read;</p></li>
-<li><p><code>modes</code> - the modes applied.</p></li>
+<li><p><code>modes</code> - the modes applied;</p></li>
+<li><p><code>max_levels</code> - the cardinality threshold used.</p></li>
 </ul></div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
@@ -135,6 +140,19 @@ one-character edit between labels shorter than four characters is ignored
 clearly more common; a column is converted only when every value parses;
 numeric columns keep their storage. Anything not changed for these reasons
 is reported as a <code>not applied</code> row with the reason.</p>
+<p>Merges follow chains: if <code>"Nsw"</code> merges onto <code>"nsw"</code> and <code>"nsw"</code> onto
+<code>"NSW"</code>, both end on <code>"NSW"</code>. A label whose merges end on two different
+labels (<code>"colur"</code> beside <code>"color"</code> and <code>"colour"</code> that occur equally
+often) is not merged; it is reported, and a <code>masque_conform_ambiguous_merge</code>
+warning is raised under <code>merge_labels = "auto"</code>. Codes that differ only
+inside a run of digits (<code>"G01"</code> and <code>"G02"</code>) are never treated as
+near-duplicates. Which columns hold categories is decided the same way
+whatever <code>types</code> is, so <code>types = "off"</code> still merges labels and leaves
+storage as it is.</p>
+<p>Pass the result to <code><a href="mask.html">mask()</a></code> (or as a table of <code><a href="mask_set.html">mask_set()</a></code>): the recipe
+records the merges and type changes, and <code><a href="apply_recipe.html">apply_recipe()</a></code> replays them on
+the original so a pipeline built on the conformed clone sees the same
+labels and storage.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
@@ -177,7 +195,7 @@ column is, <code><a href="mask.html">mask()</a></code> for the round-trip.</p></
 <span class="r-out co"><span class="r-pr">#&gt;</span>  $ state: Factor w/ 2 levels "NSW","VIC": 1 1 1 2 2</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  $ yield: num  3.1 2.9 5 4.2 3.8</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  $ sown : Date, format: "2024-05-01" "2024-05-03" ...</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  - attr(*, ".internal.selfref")=&lt;pointer: 0x5637e5ff9a30&gt; </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  - attr(*, ".internal.selfref")=&lt;pointer: 0x55ef156a8a30&gt; </span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
     </div>

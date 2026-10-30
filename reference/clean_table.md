@@ -53,7 +53,11 @@ An object of class `masque_cleaning`: a list with
   trimmed, each a named character `original -> clean`;
 
 - `near_duplicates` - a data.table of report-only label pairs (`col`,
-  `a`, `b`, `kind`) that look like typos but were left untouched;
+  `a`, `b`, `kind`) that look like typos but were left untouched. Labels
+  that differ only inside a run of digits (`"G01"` and `"G02"`,
+  `"Plot12"` and `"Plot13"`) are different codes and are not listed. The
+  printed report shows the first 20 pairs and the count, and a recipe
+  keeps the same;
 
 - `mode` - the `clean` mode applied.
 
@@ -64,6 +68,11 @@ The corrections are returned alongside the cleaned data, so
 them in the recipe and
 [`apply_recipe()`](https://max578.github.io/masque/reference/apply_recipe.md)
 re-applies the same cleaning to the original.
+
+Two input columns with the same name are refused with a
+`masque_duplicate_names_refusal` error: the recipe records renamed
+columns by their original name, so the two could not be told apart on
+the round trip. Rename them first.
 
 ## See also
 

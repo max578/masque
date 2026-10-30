@@ -65,6 +65,8 @@ tables <- list(
   sites = data.frame(site = c("A", "B"), rain = c(420, 560))
 )
 m <- mask_set(tables, seed = 1, quiet = TRUE)
+#> Warning: df has 2 rows, fewer than 5, so re-simulating yield resamples the original values; the clone is for owner development only.
+#> Warning: df has 2 rows, fewer than 5, so re-simulating rain resamples the original values; the clone is for owner development only.
 dir <- file.path(tempdir(), "masked_set")
 write_set(m, dir)
 list.files(dir)

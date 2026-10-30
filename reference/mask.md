@@ -21,9 +21,13 @@ mask(
   conditional = FALSE,
   ladder = c("hierarchy", "levels"),
   coords = NULL,
+  events = NULL,
+  grain = TRUE,
   allow_unmasked_coords = FALSE,
+  allow_kept_outcome = FALSE,
   quiet = FALSE,
   .shared_maps = list(),
+  .cleaning = NULL,
   ...
 )
 ```
@@ -34,7 +38,10 @@ mask(
 
   A data frame, or the `masque_conformance` object returned by
   [`conform_table()`](https://max578.github.io/masque/reference/conform_table.md),
-  whose `data` element is then masked.
+  whose `data` element is then masked. Its cleaning record and its
+  merges and type changes go on the recipe, so
+  [`apply_recipe()`](https://max578.github.io/masque/reference/apply_recipe.md)
+  replays them; `clean` is not applied a second time.
 
 - roles:
 
@@ -49,7 +56,14 @@ mask(
   Either `"local"` or `"collaborate"`. When omitted, inherit
   `attr(roles, "mode")`, falling back to `"local"` for a roles table
   with no mode provenance. An explicit collaborate-to-local downgrade
-  raises a classed `masque_mode_downgrade` warning.
+  raises a classed `masque_mode_downgrade` warning. A table of fewer
+  than five rows in which any column would be re-simulated (a scrambled
+  covariate, outcome, date or text column, or an `events` spec) is
+  refused in collaborate mode with `masque_too_few_rows_refusal`,
+  because such a clone is the original values resampled; local mode
+  warns with `masque_too_few_rows`. Kept, aliased and dropped columns
+  are not re-simulated, so a short lookup table of those masks in either
+  mode.
 
 - seed:
 
@@ -141,15 +155,75 @@ mask(
   instead of being copula-scrambled into implausible locations. A pair
   is a named vector `c(lat = "lat_col", lon = "lon_col")` or a named
   list that also carries jitter parameters (`by`, `method`, `min_km`,
-  `max_km`, `sd_km`, `on_land`); pass several pairs as a list. Defaults
-  to a donut of 5-20 km on land. One displacement is drawn per **site**
-  and broadcast to that site's rows: `by` names the columns of `df` that
-  identify a site, and is omitted when rows sharing an identical input
-  coordinate already identify one. A declared pair always survives
-  masking, coarsened; the recipe records the parameters and the site
-  grouping it was coarsened under, and
+  `max_km`, `sd_km`, `on_land`); a single pair may be passed bare, and
+  several pairs as a list of pairs. Defaults to a donut of 5-20 km on
+  land. A declared column must have the action `keep` in `roles`; any
+  other action, including the `drop` that
+  [`propose_roles()`](https://max578.github.io/masque/reference/propose_roles.md)
+  proposes for a coordinate-named column, is refused with a
+  `masque_coords_action_refusal` error. One displacement is drawn per
+  **site** and broadcast to that site's rows: `by` names the columns of
+  `df` that identify a site, and is omitted when rows sharing an
+  identical input coordinate already identify one. A declared pair
+  always survives masking, coarsened; the recipe records the parameters
+  and the site grouping it was coarsened under, and
   [`apply_recipe()`](https://max578.github.io/masque/reference/apply_recipe.md)
-  retargets to the real coordinates.
+  retargets to the real coordinates. Several published jitters of the
+  same point average toward it: keep the seed, which the recipe records,
+  and do not publish more than one jittered release of the same sites.
+
+- events:
+
+  Optional linked time-to-event outcomes. One spec per group of linked
+  events, `list(time = c(...), status = c(...))`, with the time and
+  status columns listed in the order the events occur; pass several
+  specs as a list. Every column must have role `outcome` and action
+  `scramble`, times must be numeric and in order in `df`, status columns
+  must hold whole-numbered codes, and none may be missing. The times are
+  turned into gaps between successive events, the rows' status patterns
+  are permuted (within treatment when `conditional = TRUE`), and the
+  gaps are re-simulated within each status pattern by the empirical
+  copula, then summed back into times. Times therefore stay ordered, a
+  gap that every row of a pattern holds at zero stays zero, and the
+  count of each status pattern is exact. A summed final time is capped
+  at the longest final time observed in the rows its gaps were drawn
+  from (the pattern, within treatment when conditional), so no clone row
+  runs past the observed follow-up. Only the final time and the times
+  tied to it move; a row whose earlier time already passes the cap is
+  scaled down as a whole, which keeps its order and its zero gaps. The
+  recipe records how many rows were capped. A pattern with fewer than
+  five rows draws each of its free gaps from every pattern in which that
+  gap is free, with a `masque_events_pooled` warning; when no other
+  pattern has the gap free, `mask()` stops. No hazard model is fitted
+  and no covariate-to-event relation is kept.
+
+- grain:
+
+  Single logical (default `TRUE`). Synthesise each column at its
+  **grain**: a scrambled covariate, outcome or date column, or an
+  aliased categorical covariate, that holds at most one distinct
+  non-missing value within every unit of a retained design column, or of
+  a pair of them (`site:year`), is re-simulated once per unit and each
+  unit's new value is written to that unit's rows. The grain is the
+  coarsest such unit with at least two units and at least two rows per
+  unit on average; a unit with no value stays missing. Numeric columns
+  of one grain are drawn jointly through the copula on the unit-level
+  table (with collaborate-mode jitter against the unit-level values),
+  and categorical and date columns are permuted across units, then
+  aliased where their action is `alias`. The clone therefore keeps one
+  value per unit, the frequencies of a categorical across units, and the
+  correlation among columns of the same grain. It does **not** keep the
+  correlation between a grained column and row-level columns, and
+  grained columns are not conditioned on treatment when
+  `conditional = TRUE`. In local mode the unit values are drawn from the
+  original unit values. In collaborate mode a grain with fewer than five
+  units is synthesised row by row instead, with a
+  `masque_grain_small_units` warning, because resampling that few real
+  values would disclose them. Each grain is recorded on the recipe
+  (`grain`) with a line in its warnings. `FALSE` synthesises every
+  column row by row, as masque 0.15 did; detected grains are still
+  recorded. Coordinates declared to `coords`, `events` columns and
+  linked columns are never grained.
 
 - allow_unmasked_coords:
 
@@ -161,6 +235,16 @@ mask(
   (coarsened), giving the column a masking action (`drop` or
   `scramble`), or – having decided the coordinate is not sensitive –
   setting this to `TRUE`, which is recorded on the recipe.
+
+- allow_kept_outcome:
+
+  Single logical. In collaborate mode an outcome with the action `keep`
+  carries its real values beside the re-simulated columns, so
+  [`audit_mask()`](https://max578.github.io/masque/reference/audit_mask.md)
+  grades it HIGH and the collaborate write gate stops it. Having decided
+  the real outcome may be shared, set this to `TRUE`: the column is then
+  graded medium and the choice is recorded on the recipe. Local mode is
+  unaffected.
 
 - quiet:
 
@@ -176,6 +260,13 @@ mask(
   for cross-table linked columns, set by
   [`mask_set()`](https://max578.github.io/masque/reference/mask_set.md).
   Not for direct use.
+
+- .cleaning:
+
+  Internal. The cleaning record of a table
+  [`mask_set()`](https://max578.github.io/masque/reference/mask_set.md)
+  has already cleaned; `mask()` then skips its own cleaning and stores
+  this record on the recipe. Not for direct use.
 
 - ...:
 
@@ -231,10 +322,15 @@ informs that decision, it does not make it.
 
   As `scramble` where applicable, plus opaque label substitution:
   treatments become `trt_NNN` (`<col>_trt_NNN` when two or more
-  treatment factors are aliased), categorical covariates `<col>_LNNN`,
+  treatments are aliased. A numeric treatment becomes text, and
+  [`unmask()`](https://max578.github.io/masque/reference/unmask.md)
+  restores its exact values), categorical covariates `<col>_LNNN`,
   design labels `<col>_DNNN` (in place - structure intact), ids
   `<col>_INNN` (in place - row linkage intact), text values
-  `<col>_TNNN`.
+  `<col>_TNNN`. A key
+  [`mask_set()`](https://max578.github.io/masque/reference/mask_set.md)
+  shares across tables becomes `<col>_KNNN`. `NNN` has at least three
+  digits.
 
 - `drop`:
 
@@ -250,7 +346,10 @@ state is preserved across the call.
 [`roles_validate()`](https://max578.github.io/masque/reference/roles_validate.md),
 [`synthetic()`](https://max578.github.io/masque/reference/synthetic.md),
 [`recipe()`](https://max578.github.io/masque/reference/recipe.md),
-[`reveal_maps()`](https://max578.github.io/masque/reference/reveal_maps.md).
+[`roles()`](https://max578.github.io/masque/reference/roles.md),
+[`reveal_maps()`](https://max578.github.io/masque/reference/reveal_maps.md),
+[`audit_mask()`](https://max578.github.io/masque/reference/audit_mask.md),
+[`data_card()`](https://max578.github.io/masque/reference/data_card.md).
 
 ## Examples
 
@@ -259,12 +358,12 @@ r <- propose_roles(iris)
 r <- set_role(r, "Sepal.Length", role = "outcome")
 m <- mask(iris, r, seed = 1)
 head(synthetic(m))
-#>    Sepal.Length Sepal.Width Petal.Length Petal.Width Species
-#>           <num>       <num>        <num>       <num>  <fctr>
-#> 1:          5.1         3.2          4.0         1.5  setosa
-#> 2:          6.0         3.0          3.7         0.4  setosa
-#> 3:          5.0         3.0          4.6         1.1  setosa
-#> 4:          7.2         2.6          5.8         1.7  setosa
-#> 5:          6.1         2.4          5.8         1.5  setosa
-#> 6:          5.0         2.7          4.5         1.4  setosa
+#>    Sepal.Length Sepal.Width Petal.Length Petal.Width    Species
+#>           <num>       <num>        <num>       <num>     <fctr>
+#> 1:          5.1         3.2          4.0         1.5 versicolor
+#> 2:          6.0         3.0          3.7         0.4  virginica
+#> 3:          5.0         3.0          4.6         1.1     setosa
+#> 4:          7.2         2.6          5.8         1.7 versicolor
+#> 5:          6.1         2.4          5.8         1.5  virginica
+#> 6:          5.0         2.7          4.5         1.4 versicolor
 ```

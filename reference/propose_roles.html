@@ -13,7 +13,7 @@ it - directly or via set_role() - before passing it to mask()."><meta property="
 
     <a class="navbar-brand me-2" href="../index.html">masque</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.15.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.16.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -166,16 +166,21 @@ action <code>scramble</code> (row permutation).</p></li>
 <li><p>ID-pattern names (<code>\\bid\\b</code>, <code>_id$</code>, <code>^id_</code>) -&gt; role <code>id</code>; kept
 in local mode, dropped in collaborate mode.</p></li>
 <li><p>Design-pattern names (<code>rep</code>, <code>block</code>, <code>row</code>, <code>col(umn)?</code>,
-<code>range</code>, <code>plot(no)?</code>, <code>site</code>, <code>env(ironment)?</code>, <code>trial</code>, <code>year</code>,
-<code>season</code>, <code>colrep</code>, <code>tos</code>) -&gt; role <code>design</code>, action <code>keep</code>.</p></li>
+<code>range</code>, <code>plot(no)?</code>, <code>site</code>, <code>site_name</code>, <code>trial_site</code>,
+<code>env(ironment)?</code>, <code>trial</code>, <code>year</code>, <code>season</code>, <code>colrep</code>, <code>tos</code>; the
+two-word names also spaced or dotted, as in <code>Site Name</code> and
+<code>Site.Name</code>) -&gt; role <code>design</code>, action <code>keep</code>.</p></li>
 <li><p>Treatment-pattern names (<code>treatment</code>, <code>variety</code>, <code>cultivar</code>,
 <code>genotype</code>, <code>^trt</code>, <code>^dose</code>) -&gt; role <code>treatment</code>; kept in local
 mode, aliased in collaborate mode.</p></li>
+<li><p>Numeric columns with an outcome-pattern name (<code>yield</code>, <code>yield_t_ha</code>,
+<code>Yield..t.ha.</code>, <code>grain_yield</code>, <code>response</code>, <code>outcome</code>) -&gt; role
+<code>outcome</code>, action <code>scramble</code>.</p></li>
 <li><p>Character columns with &gt; 50% unique values on non-NA -&gt; role
 <code>text</code>; kept in local mode, dropped in collaborate mode.</p></li>
 <li><p>Unsupported classes -&gt; role <code>other</code>, action <code>keep</code>, with a note.</p></li>
 <li><p>Everything else -&gt; role <code>covariate</code>, action <code>scramble</code>. Re-role
-response variables as <code>outcome</code>.</p></li>
+other response variables as <code>outcome</code>.</p></li>
 </ol><p>No outcome is required: with no column roled <code>outcome</code>, the copula
 simply re-simulates all scrambled numeric columns jointly.</p>
 <p>Since masque 0.3.0, <code>propose_roles()</code> also calls <code><a href="detect_design.html">detect_design()</a></code> by
@@ -184,6 +189,13 @@ default (<code>detect = TRUE</code>) and applies the detected design's
 the default action for any promoted column. The design summary is
 stashed as <code>attr(roles, "design")</code>. Pass <code>detect = FALSE</code> for the
 name-only heuristic.</p>
+<p>For a column without a treatment-pattern name, a treatment hint from the
+design rules is applied only when the column is crossed with a design
+column: a design-pattern name, a column roled <code>design</code>, or a detected
+environment. A column with one value per level of a design
+column is a unit-level covariate and is never promoted. Hints that fail
+are listed in <code>attr(roles, "design")@recommended_roles</code> with
+<code>auto_apply = FALSE</code> and the reason.</p>
     </div>
     <div class="section level2">
     <h2 id="multi-environment-trials">Multi-environment trials<a class="anchor" aria-label="anchor" href="#multi-environment-trials"></a></h2>
@@ -219,14 +231,14 @@ validation applied at <code><a href="mask.html">mask()</a></code> time.</p></div
 <span class="r-out co"><span class="r-pr">#&gt;</span> 2:  Sepal.Width covariate scramble numeric      [2, 4.4]         FALSE</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 3: Petal.Length covariate scramble numeric      [1, 6.9]         FALSE</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 4:  Petal.Width covariate scramble numeric    [0.1, 2.5]         FALSE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 5:      Species treatment     keep  factor    n=3 levels         FALSE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                                                                                                                                                                                       notes</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                                                                                                                                                                                      &lt;char&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1:                                                                                    Default -&gt; covariate; re-role to outcome if response variable, or set action keep to leave untouched.</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2:                                                                                    Default -&gt; covariate; re-role to outcome if response variable, or set action keep to leave untouched.</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3:                                                                                    Default -&gt; covariate; re-role to outcome if response variable, or set action keep to leave untouched.</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 4:                                                                                    Default -&gt; covariate; re-role to outcome if response variable, or set action keep to leave untouched.</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 5: detect_design: covariate -&gt; treatment; Legacy pooled-design recommendation. (was: Default -&gt; covariate; re-role to outcome if response variable, or set action keep to leave untouched.)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5:      Species covariate scramble  factor    n=3 levels         FALSE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                                                                                                    notes</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                                                                                                   &lt;char&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1: Default -&gt; covariate; re-role to outcome if response variable, or set action keep to leave untouched.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2: Default -&gt; covariate; re-role to outcome if response variable, or set action keep to leave untouched.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3: Default -&gt; covariate; re-role to outcome if response variable, or set action keep to leave untouched.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4: Default -&gt; covariate; re-role to outcome if response variable, or set action keep to leave untouched.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5: Default -&gt; covariate; re-role to outcome if response variable, or set action keep to leave untouched.</span>
 <span class="r-in"><span><span class="fu">propose_roles</span><span class="op">(</span><span class="va">iris</span>, mode <span class="op">=</span> <span class="st">"collaborate"</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>             col      role   action    kind freq_or_range pii_suspected</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>          &lt;char&gt;    &lt;char&gt;   &lt;char&gt;  &lt;char&gt;        &lt;char&gt;        &lt;lgcl&gt;</span>
@@ -234,14 +246,14 @@ validation applied at <code><a href="mask.html">mask()</a></code> time.</p></div
 <span class="r-out co"><span class="r-pr">#&gt;</span> 2:  Sepal.Width covariate scramble numeric      [2, 4.4]         FALSE</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 3: Petal.Length covariate scramble numeric      [1, 6.9]         FALSE</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 4:  Petal.Width covariate scramble numeric    [0.1, 2.5]         FALSE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 5:      Species treatment    alias  factor    n=3 levels         FALSE</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                                                                                                                                                                                       notes</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                                                                                                                                                                                      &lt;char&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1:                                                                                    Default -&gt; covariate; re-role to outcome if response variable, or set action keep to leave untouched.</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2:                                                                                    Default -&gt; covariate; re-role to outcome if response variable, or set action keep to leave untouched.</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3:                                                                                    Default -&gt; covariate; re-role to outcome if response variable, or set action keep to leave untouched.</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 4:                                                                                    Default -&gt; covariate; re-role to outcome if response variable, or set action keep to leave untouched.</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 5: detect_design: covariate -&gt; treatment; Legacy pooled-design recommendation. (was: Default -&gt; covariate; re-role to outcome if response variable, or set action keep to leave untouched.)</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5:      Species covariate    alias  factor    n=3 levels         FALSE</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                                                                                                    notes</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                                                                                                   &lt;char&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1: Default -&gt; covariate; re-role to outcome if response variable, or set action keep to leave untouched.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2: Default -&gt; covariate; re-role to outcome if response variable, or set action keep to leave untouched.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3: Default -&gt; covariate; re-role to outcome if response variable, or set action keep to leave untouched.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4: Default -&gt; covariate; re-role to outcome if response variable, or set action keep to leave untouched.</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 5: Default -&gt; covariate; re-role to outcome if response variable, or set action keep to leave untouched.</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="va">met</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/expand.grid.html" class="external-link">expand.grid</a></span><span class="op">(</span></span></span>
 <span class="r-in"><span>  env <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"E1"</span>, <span class="st">"E2"</span><span class="op">)</span><span class="op">)</span>,</span></span>

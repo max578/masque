@@ -13,7 +13,7 @@ cannot be recovered from the recorded columns."><meta property="og:image" conten
 
     <a class="navbar-brand me-2" href="../index.html">masque</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.15.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.16.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -119,7 +119,7 @@ only when treatments are replicated across sites. Weak or competing
 evidence gives an explicit uncertain result, never a guessed single
 trial. Supply <code>env</code> to define the environment basis, or use <code>env = FALSE</code>
 to run the pre-0.9 whole-table path exactly.</p>
-<p>After the scope step, the pooled legacy detector runs six independent
+<p>Before the scope step, the pooled legacy detector runs six independent
 design rules. Each returns a score in \([0, 1]\). The highest-scoring
 class above <code>threshold</code> is one of <code>"CRD"</code>, <code>"RCBD"</code>,
 <code>"IBD/alpha-lattice"</code>, <code>"row-column"</code>, <code>"split-plot"</code>, <code>"factorial"</code>,
@@ -128,6 +128,13 @@ per-environment classes, treatment connectivity, and near-disjoint
 experiment groups are diagnostics only. Dense connectivity calculations
 that exceed the package safety bound are reported as <code>not_computed</code>.
 None of these diagnostics proves the original randomisation protocol.</p>
+<p>When scope resolves, <code>block_cols</code> is the block basis the environments
+agree on, or empty when they disagree; an environment column is never a
+block. <code>evidence$block_revision</code> records the change.</p>
+<p>For a column without a treatment-pattern name, a treatment hint from the
+rules is auto-applied only when the column is crossed with a design
+column. A column with one value per level of a design column, or with an
+outcome-pattern name, is a covariate and never a candidate.</p>
 <p>The detector never edits <code>df</code>. Its job is to recommend a role
 assignment, surface the evidence, and (optionally) draw a sanity
 check via <code><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot()</a></code>.</p>

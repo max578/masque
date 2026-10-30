@@ -133,20 +133,26 @@ the default).
     local mode, dropped in collaborate mode.
 
 4.  Design-pattern names (`rep`, `block`, `row`, `col(umn)?`, `range`,
-    `plot(no)?`, `site`, `env(ironment)?`, `trial`, `year`, `season`,
-    `colrep`, `tos`) -\> role `design`, action `keep`.
+    `plot(no)?`, `site`, `site_name`, `trial_site`, `env(ironment)?`,
+    `trial`, `year`, `season`, `colrep`, `tos`; the two-word names also
+    spaced or dotted, as in `Site Name` and `Site.Name`) -\> role
+    `design`, action `keep`.
 
 5.  Treatment-pattern names (`treatment`, `variety`, `cultivar`,
     `genotype`, `^trt`, `^dose`) -\> role `treatment`; kept in local
     mode, aliased in collaborate mode.
 
-6.  Character columns with \> 50% unique values on non-NA -\> role
+6.  Numeric columns with an outcome-pattern name (`yield`, `yield_t_ha`,
+    `Yield..t.ha.`, `grain_yield`, `response`, `outcome`) -\> role
+    `outcome`, action `scramble`.
+
+7.  Character columns with \> 50% unique values on non-NA -\> role
     `text`; kept in local mode, dropped in collaborate mode.
 
-7.  Unsupported classes -\> role `other`, action `keep`, with a note.
+8.  Unsupported classes -\> role `other`, action `keep`, with a note.
 
-8.  Everything else -\> role `covariate`, action `scramble`. Re-role
-    response variables as `outcome`.
+9.  Everything else -\> role `covariate`, action `scramble`. Re-role
+    other response variables as `outcome`.
 
 No outcome is required: with no column roled `outcome`, the copula
 simply re-simulates all scrambled numeric columns jointly.
@@ -158,6 +164,14 @@ by default (`detect = TRUE`) and applies the detected design's
 default action for any promoted column. The design summary is stashed as
 `attr(roles, "design")`. Pass `detect = FALSE` for the name-only
 heuristic.
+
+For a column without a treatment-pattern name, a treatment hint from the
+design rules is applied only when the column is crossed with a design
+column: a design-pattern name, a column roled `design`, or a detected
+environment. A column with one value per level of a design column is a
+unit-level covariate and is never promoted. Hints that fail are listed
+in `attr(roles, "design")@recommended_roles` with `auto_apply = FALSE`
+and the reason.
 
 ## Multi-environment trials
 
@@ -196,14 +210,14 @@ propose_roles(iris)
 #> 2:  Sepal.Width covariate scramble numeric      [2, 4.4]         FALSE
 #> 3: Petal.Length covariate scramble numeric      [1, 6.9]         FALSE
 #> 4:  Petal.Width covariate scramble numeric    [0.1, 2.5]         FALSE
-#> 5:      Species treatment     keep  factor    n=3 levels         FALSE
-#>                                                                                                                                                                                       notes
-#>                                                                                                                                                                                      <char>
-#> 1:                                                                                    Default -> covariate; re-role to outcome if response variable, or set action keep to leave untouched.
-#> 2:                                                                                    Default -> covariate; re-role to outcome if response variable, or set action keep to leave untouched.
-#> 3:                                                                                    Default -> covariate; re-role to outcome if response variable, or set action keep to leave untouched.
-#> 4:                                                                                    Default -> covariate; re-role to outcome if response variable, or set action keep to leave untouched.
-#> 5: detect_design: covariate -> treatment; Legacy pooled-design recommendation. (was: Default -> covariate; re-role to outcome if response variable, or set action keep to leave untouched.)
+#> 5:      Species covariate scramble  factor    n=3 levels         FALSE
+#>                                                                                                    notes
+#>                                                                                                   <char>
+#> 1: Default -> covariate; re-role to outcome if response variable, or set action keep to leave untouched.
+#> 2: Default -> covariate; re-role to outcome if response variable, or set action keep to leave untouched.
+#> 3: Default -> covariate; re-role to outcome if response variable, or set action keep to leave untouched.
+#> 4: Default -> covariate; re-role to outcome if response variable, or set action keep to leave untouched.
+#> 5: Default -> covariate; re-role to outcome if response variable, or set action keep to leave untouched.
 propose_roles(iris, mode = "collaborate")
 #>             col      role   action    kind freq_or_range pii_suspected
 #>          <char>    <char>   <char>  <char>        <char>        <lgcl>
@@ -211,14 +225,14 @@ propose_roles(iris, mode = "collaborate")
 #> 2:  Sepal.Width covariate scramble numeric      [2, 4.4]         FALSE
 #> 3: Petal.Length covariate scramble numeric      [1, 6.9]         FALSE
 #> 4:  Petal.Width covariate scramble numeric    [0.1, 2.5]         FALSE
-#> 5:      Species treatment    alias  factor    n=3 levels         FALSE
-#>                                                                                                                                                                                       notes
-#>                                                                                                                                                                                      <char>
-#> 1:                                                                                    Default -> covariate; re-role to outcome if response variable, or set action keep to leave untouched.
-#> 2:                                                                                    Default -> covariate; re-role to outcome if response variable, or set action keep to leave untouched.
-#> 3:                                                                                    Default -> covariate; re-role to outcome if response variable, or set action keep to leave untouched.
-#> 4:                                                                                    Default -> covariate; re-role to outcome if response variable, or set action keep to leave untouched.
-#> 5: detect_design: covariate -> treatment; Legacy pooled-design recommendation. (was: Default -> covariate; re-role to outcome if response variable, or set action keep to leave untouched.)
+#> 5:      Species covariate    alias  factor    n=3 levels         FALSE
+#>                                                                                                    notes
+#>                                                                                                   <char>
+#> 1: Default -> covariate; re-role to outcome if response variable, or set action keep to leave untouched.
+#> 2: Default -> covariate; re-role to outcome if response variable, or set action keep to leave untouched.
+#> 3: Default -> covariate; re-role to outcome if response variable, or set action keep to leave untouched.
+#> 4: Default -> covariate; re-role to outcome if response variable, or set action keep to leave untouched.
+#> 5: Default -> covariate; re-role to outcome if response variable, or set action keep to leave untouched.
 
 met <- expand.grid(
   env = factor(c("E1", "E2")),

@@ -13,7 +13,7 @@ synthetic) against the original data without modifying pipeline code."><meta pro
 
     <a class="navbar-brand me-2" href="../index.html">masque</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.15.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.16.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -81,11 +81,16 @@ recipe was built.</p></dd>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
-    <p>Operations applied (in order):</p><ol><li><p><strong>Verify integrity</strong> by comparing the NA mask of <code>original</code> to the
+    <p>Operations applied (in order):</p><ol><li><p><strong>Re-apply cleaning and conform decisions</strong>: the legalised names and
+trimmed labels from <code><a href="clean_table.html">clean_table()</a></code>, then the label merges and type
+changes from <code><a href="conform_table.html">conform_table()</a></code> when the clone was built on a
+conformance object.</p></li>
+<li><p><strong>Verify integrity</strong> by comparing the NA mask of <code>original</code> to the
 SHA-256 fingerprint stored on the recipe (controlled by
 <code>check_integrity</code>).</p></li>
 <li><p><strong>Drop</strong> every column whose resolved <code>action</code> was <code>"drop"</code> on the
-roles table <code><a href="mask.html">mask()</a></code> masked with, in either mode.</p></li>
+roles table <code><a href="mask.html">mask()</a></code> masked with, in either mode. A linked join key
+of a set is aliased in the clone and is kept.</p></li>
 <li><p><strong>Subset and reorder</strong> to the columns the recipe knows about.</p></li>
 <li><p><strong>Re-label factors / characters</strong> for any column with a level map
 held by the recipe (i.e., treatment and categorical covariates in
@@ -110,7 +115,7 @@ remain NA in the output (no synthesis is performed here).</p>
 <span class="r-in"><span><span class="va">r</span><span class="op">$</span><span class="va">role</span><span class="op">[</span><span class="va">r</span><span class="op">$</span><span class="va">col</span> <span class="op">==</span> <span class="st">"Species"</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="st">"covariate"</span></span></span>
 <span class="r-in"><span><span class="va">m</span> <span class="op">&lt;-</span> <span class="fu"><a href="mask.html">mask</a></span><span class="op">(</span><span class="va">iris</span>, <span class="va">r</span>, mode <span class="op">=</span> <span class="st">"collaborate"</span>, seed <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span></span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> Re-resolved default actions for mode <span style="color: #0000BB;">"collaborate"</span> (explicit edits always win):</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">•</span> Species: keep -&gt; alias</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">•</span> Species: scramble -&gt; alias</span>
 <span class="r-in"><span><span class="va">rec</span> <span class="op">&lt;-</span> <span class="fu"><a href="recipe.html">recipe</a></span><span class="op">(</span><span class="va">m</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">iris_in_synth_space</span> <span class="op">&lt;-</span> <span class="fu">apply_recipe</span><span class="op">(</span><span class="va">iris</span>, <span class="va">rec</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">iris_in_synth_space</span><span class="op">)</span></span></span>

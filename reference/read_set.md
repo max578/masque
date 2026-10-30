@@ -21,7 +21,8 @@ read_set(input, sheets = NULL, pattern = NULL)
 - sheets:
 
   For an Excel workbook, an optional character vector of sheet names to
-  read (default: all sheets).
+  read (default: all sheets). Any other input with `sheets` set is
+  refused (`masque_bad_sheets_refusal`).
 
 - pattern:
 

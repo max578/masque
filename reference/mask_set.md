@@ -22,7 +22,12 @@ mask_set(
   alias_names = FALSE,
   conditional = FALSE,
   ladder = c("hierarchy", "levels"),
-  quiet = FALSE
+  grain = TRUE,
+  allow_kept_outcome = FALSE,
+  quiet = FALSE,
+  sheets = NULL,
+  info = NULL,
+  ...
 )
 ```
 
@@ -33,7 +38,10 @@ mask_set(
   A folder path, an `.xlsx` / `.xls` path, or a named list of data
   frames - anything
   [`read_set()`](https://max578.github.io/masque/reference/read_set.md)
-  accepts.
+  accepts. A list element may also be a
+  [`conform_table()`](https://max578.github.io/masque/reference/conform_table.md)
+  result: its cleaning record and conform decisions are used for that
+  table and recorded on its recipe.
 
 - roles:
 
@@ -88,9 +96,44 @@ mask_set(
   `"levels"`; passed through to each
   [`mask()`](https://max578.github.io/masque/reference/mask.md) call.
 
+- grain:
+
+  Single logical (default `TRUE`); passed through to each
+  [`mask()`](https://max578.github.io/masque/reference/mask.md) call,
+  which synthesises a unit-constant column once per unit.
+
+- allow_kept_outcome:
+
+  Single logical, passed to each
+  [`mask()`](https://max578.github.io/masque/reference/mask.md) call:
+  `TRUE` allows a kept outcome in a collaborate clone and records it.
+
 - quiet:
 
-  Logical; suppress the link / hygiene report.
+  Logical; suppress the link / hygiene report, including the hint that a
+  table looks like documentation.
+
+- sheets:
+
+  For an Excel workbook, the sheets to read (default: all); passed to
+  [`read_set()`](https://max578.github.io/masque/reference/read_set.md).
+
+- info:
+
+  Optional character vector of table names (sheet names, or file names
+  without extension) to set aside as documentation, for example a data
+  dictionary. They are set aside before masking: not masked, not in the
+  synthetic set, not written by
+  [`write_set()`](https://max578.github.io/masque/reference/write_set.md),
+  and their content is not kept. Their names are recorded on the recipe
+  bundle. A table that looks like documentation and is not named here
+  raises a hint (a message of class `masque_info_hint`); the hint
+  decides nothing.
+
+- ...:
+
+  Must be empty: any argument here is refused with
+  `masque_unused_arg_refusal`.
 
 ## Value
 
@@ -107,33 +150,40 @@ compatible kind and overlapping values - the join keys of the set.
 `mask_set()` proposes links automatically and prints them; pass `links`
 to override. Linked columns are aliased in place with a shared map
 (built over the union of values across all tables), so identical
-original values map to identical aliases in every table. Set a linked
-column's action to `keep` in its roles table to pass it through unmasked
-instead.
+original values map to identical aliases in every table. The aliases
+read `<col>_K001`, `<col>_K002`, ..., assigned at random and, when
+`seed` is set, the same for the same seed. Set a linked column's action
+to `keep` in its roles table to pass it through unmasked instead.
 
 ## See also
 
 [`mask()`](https://max578.github.io/masque/reference/mask.md),
 [`read_set()`](https://max578.github.io/masque/reference/read_set.md),
-[`write_set()`](https://max578.github.io/masque/reference/write_set.md).
+[`write_set()`](https://max578.github.io/masque/reference/write_set.md),
+[`audit_mask()`](https://max578.github.io/masque/reference/audit_mask.md),
+[`data_card()`](https://max578.github.io/masque/reference/data_card.md),
+[`reveal_maps()`](https://max578.github.io/masque/reference/reveal_maps.md).
 
 ## Examples
 
 ``` r
 tables <- list(
   plots = data.frame(
-    site = c("A", "A", "B", "B"),
-    gen = c("x", "y", "x", "y"),
-    yield = c(3.1, 2.9, 4.0, 3.7)
+    site = rep(c("A", "B", "C", "D", "E"), each = 2),
+    gen = rep(c("x", "y"), 5),
+    yield = c(3.1, 2.9, 4.0, 3.7, 3.3, 3.5, 2.8, 3.0, 3.9, 3.6)
   ),
   sites = data.frame(
-    site = c("A", "B"),
-    rainfall = c(420, 560)
+    site = c("A", "B", "C", "D", "E"),
+    rainfall = c(420, 560, 390, 610, 480)
   )
 )
-m <- mask_set(tables, mode = "collaborate", seed = 1, quiet = TRUE)
+roles <- lapply(tables, propose_roles, mode = "collaborate")
+roles <- lapply(roles, set_role, "site", action = "alias")
+m <- mask_set(tables, roles = roles, seed = 1, quiet = TRUE)
 synthetic(m)$plots$site
-#> [1] "A" "A" "B" "B"
+#>  [1] "site_K002" "site_K002" "site_K001" "site_K001" "site_K005" "site_K005"
+#>  [7] "site_K004" "site_K004" "site_K003" "site_K003"
 synthetic(m)$sites$site # same aliases -> the join still works
-#> [1] "A" "B"
+#> [1] "site_K002" "site_K001" "site_K005" "site_K004" "site_K003"
 ```

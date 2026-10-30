@@ -15,7 +15,7 @@ so what it shows is exactly what a roles table is allowed to say."><meta propert
 
     <a class="navbar-brand me-2" href="../index.html">masque</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.15.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.16.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -92,135 +92,135 @@ column in the data and re-propose.</p>
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="fu">role_options</span><span class="op">(</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>          role   action                               kinds</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>        &lt;char&gt;   &lt;char&gt;                              &lt;char&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  1:    design     keep                                 all</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  2:    design scramble                                none</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  3:    design    alias          factor, character, logical</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  4:    design     drop                                 all</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  5: treatment     keep                                 all</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  6: treatment scramble          factor, character, logical</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  7: treatment    alias          factor, character, logical</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  8: treatment     drop                                 all</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  9:   outcome     keep                                 all</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 10:   outcome scramble                    numeric, integer</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 11:   outcome    alias                                none</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 12:   outcome     drop                                 all</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 13: covariate     keep                                 all</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 14: covariate scramble                    all except other</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 15: covariate    alias          factor, character, logical</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 16: covariate     drop                                 all</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 17:      date     keep                                 all</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 18:      date scramble                      date, datetime</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 19:      date    alias                                none</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 20:      date     drop                                 all</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 21:        id     keep                                 all</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 22:        id scramble                                none</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 23:        id    alias numeric, integer, factor, character</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 24:        id     drop                                 all</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 25:      text     keep                                 all</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 26:      text scramble                    all except other</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 27:      text    alias                   factor, character</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 28:      text     drop                                 all</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 29:     other     keep                                 all</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 30:     other scramble                                none</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 31:     other    alias                                none</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 32:     other     drop                                 all</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>          role   action                               kinds</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>        &lt;char&gt;   &lt;char&gt;                              &lt;char&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                                                                                                                                        notes</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                                                                                                                                       &lt;char&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  1:                                                                                                                                         </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  2:         design columns are structure, not content - they cannot be scrambled; use keep, alias (labels hidden, structure intact), or drop</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  3:                 design label aliasing requires a factor / character / logical column; numeric design columns can only be kept or dropped</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  4:                                                                                                                                         </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  5:                                                                                                                                         </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  6: treatment scramble / alias requires a factor / character / logical column; a numeric treatment (e.g. a dose) can only be kept or dropped</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  7: treatment scramble / alias requires a factor / character / logical column; a numeric treatment (e.g. a dose) can only be kept or dropped</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  8:                                                                                                                                         </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  9:                                                                                                                                         </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 10:                                only numeric / integer outcomes can be scrambled; re-role a categorical outcome as treatment or covariate</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 11:                                                                                outcomes carry no label vocabulary to alias; use scramble</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 12:                                                                                                                                         </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 13:                                                                                                                                         </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 14:                                 columns of an unsupported class can only be kept or dropped; masque does not know how to synthesise them</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 15:                                       covariate aliasing requires a factor / character / logical column; numeric covariates use scramble</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 16:                                                                                                                                         </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 17:                                                                                                                                         </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 18:                role "date" with scramble requires a Date / POSIX column; parse the column to a date class first, or use role "covariate"</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 19:                                      date/time columns carry no label vocabulary to alias; use scramble (row permutation), keep, or drop</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 20:                                                                                                                                         </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 21:                                                                                                                                         </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 22:                                    ids cannot be scrambled - permuting identifiers silently breaks row linkage; use alias, keep, or drop</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 23:                                                                              id aliasing requires a character, factor, or integer column</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 24:                                                                                                                                         </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 25:                                                                                                                                         </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 26:                                 columns of an unsupported class can only be kept or dropped; masque does not know how to synthesise them</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 27:                                                                                      text aliasing requires a character or factor column</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 28:                                                                                                                                         </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 29:                                                                                                                                         </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 30:                                  columns of unsupported classes can only be kept or dropped; masque does not know how to synthesise them</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 31:                                  columns of unsupported classes can only be kept or dropped; masque does not know how to synthesise them</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 32:                                                                                                                                         </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                                                                                                                                        notes</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                                                                                                                                       &lt;char&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>          role   action                                        kinds</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>        &lt;char&gt;   &lt;char&gt;                                       &lt;char&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  1:    design     keep                                          all</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  2:    design scramble                                         none</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  3:    design    alias                   factor, character, logical</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  4:    design     drop                                          all</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  5: treatment     keep                                          all</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  6: treatment scramble numeric, integer, factor, character, logical</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  7: treatment    alias numeric, integer, factor, character, logical</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  8: treatment     drop                                          all</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  9:   outcome     keep                                          all</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 10:   outcome scramble                             numeric, integer</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 11:   outcome    alias                                         none</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 12:   outcome     drop                                          all</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 13: covariate     keep                                          all</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 14: covariate scramble                             all except other</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 15: covariate    alias                   factor, character, logical</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 16: covariate     drop                                          all</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 17:      date     keep                                          all</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 18:      date scramble                               date, datetime</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 19:      date    alias                                         none</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 20:      date     drop                                          all</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 21:        id     keep                                          all</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 22:        id scramble                                         none</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 23:        id    alias          numeric, integer, factor, character</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 24:        id     drop                                          all</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 25:      text     keep                                          all</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 26:      text scramble                             all except other</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 27:      text    alias                            factor, character</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 28:      text     drop                                          all</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 29:     other     keep                                          all</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 30:     other scramble                                         none</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 31:     other    alias                                         none</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 32:     other     drop                                          all</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>          role   action                                        kinds</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>        &lt;char&gt;   &lt;char&gt;                                       &lt;char&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                                                                                                                                                                                                                                                   notes</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                                                                                                                                                                                                                                                  &lt;char&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  1:                                                                                                                                                                                                                                                    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  2:                                                                                                                    design columns are structure, not content - they cannot be scrambled; use keep, alias (labels hidden, structure intact), or drop</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  3: design label aliasing requires a factor / character / logical column; numeric design columns can only be kept or dropped. To hide the labels, convert the column to a factor in the data, re-run propose_roles() and set action "alias", or drop it</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  4:                                                                                                                                                                                                                                                    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  5:                                                                                                                                                                                                                                                    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  6:                                                                                                                                                                treatment scramble / alias requires a factor / character / logical or numeric column</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  7:                                                                                                                                                                treatment scramble / alias requires a factor / character / logical or numeric column</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  8:                                                                                                                                                                                                                                                    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  9:                                                                                                                                                                                                                                                    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 10:                                                                                                                                           only numeric / integer outcomes can be scrambled; re-role a categorical outcome as treatment or covariate</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 11:                                                                                                                                                                                           outcomes carry no label vocabulary to alias; use scramble</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 12:                                                                                                                                                                                                                                                    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 13:                                                                                                                                                                                                                                                    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 14:                                                                                                                                            columns of an unsupported class can only be kept or dropped; masque does not know how to synthesise them</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 15:                                                                                                                                                  covariate aliasing requires a factor / character / logical column; numeric covariates use scramble</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 16:                                                                                                                                                                                                                                                    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 17:                                                                                                                                                                                                                                                    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 18:                                                                                                                           role "date" with scramble requires a Date / POSIX column; parse the column to a date class first, or use role "covariate"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 19:                                                                                                                                                 date/time columns carry no label vocabulary to alias; use scramble (row permutation), keep, or drop</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 20:                                                                                                                                                                                                                                                    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 21:                                                                                                                                                                                                                                                    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 22:                                                                                                                                               ids cannot be scrambled - permuting identifiers silently breaks row linkage; use alias, keep, or drop</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 23:                                                                                                                                                                                         id aliasing requires a character, factor, or integer column</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 24:                                                                                                                                                                                                                                                    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 25:                                                                                                                                                                                                                                                    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 26:                                                                                                                                            columns of an unsupported class can only be kept or dropped; masque does not know how to synthesise them</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 27:                                                                                                                                                                                                 text aliasing requires a character or factor column</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 28:                                                                                                                                                                                                                                                    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 29:                                                                                                                                                                                                                                                    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 30:                                                                                                                                             columns of unsupported classes can only be kept or dropped; masque does not know how to synthesise them</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 31:                                                                                                                                             columns of unsupported classes can only be kept or dropped; masque does not know how to synthesise them</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 32:                                                                                                                                                                                                                                                    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                                                                                                                                                                                                                                                   notes</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                                                                                                                                                                                                                                                  &lt;char&gt;</span>
 <span class="r-in"><span><span class="fu">role_options</span><span class="op">(</span>kind <span class="op">=</span> <span class="st">"factor"</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>          role   action                               kinds</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>        &lt;char&gt;   &lt;char&gt;                              &lt;char&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  1:    design     keep                                 all</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  2:    design    alias          factor, character, logical</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  3:    design     drop                                 all</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  4: treatment     keep                                 all</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  5: treatment scramble          factor, character, logical</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  6: treatment    alias          factor, character, logical</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  7: treatment     drop                                 all</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  8:   outcome     keep                                 all</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  9:   outcome     drop                                 all</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 10: covariate     keep                                 all</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 11: covariate scramble                    all except other</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 12: covariate    alias          factor, character, logical</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 13: covariate     drop                                 all</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 14:      date     keep                                 all</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 15:      date     drop                                 all</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 16:        id     keep                                 all</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 17:        id    alias numeric, integer, factor, character</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 18:        id     drop                                 all</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 19:      text     keep                                 all</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 20:      text scramble                    all except other</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 21:      text    alias                   factor, character</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 22:      text     drop                                 all</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 23:     other     keep                                 all</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 24:     other     drop                                 all</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>          role   action                               kinds</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>        &lt;char&gt;   &lt;char&gt;                              &lt;char&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                                                                                                                                        notes</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                                                                                                                                       &lt;char&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  1:                                                                                                                                         </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  2:                 design label aliasing requires a factor / character / logical column; numeric design columns can only be kept or dropped</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  3:                                                                                                                                         </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  4:                                                                                                                                         </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  5: treatment scramble / alias requires a factor / character / logical column; a numeric treatment (e.g. a dose) can only be kept or dropped</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  6: treatment scramble / alias requires a factor / character / logical column; a numeric treatment (e.g. a dose) can only be kept or dropped</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  7:                                                                                                                                         </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  8:                                                                                                                                         </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  9:                                                                                                                                         </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 10:                                                                                                                                         </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 11:                                 columns of an unsupported class can only be kept or dropped; masque does not know how to synthesise them</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 12:                                       covariate aliasing requires a factor / character / logical column; numeric covariates use scramble</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 13:                                                                                                                                         </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 14:                                                                                                                                         </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 15:                                                                                                                                         </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 16:                                                                                                                                         </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 17:                                                                              id aliasing requires a character, factor, or integer column</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 18:                                                                                                                                         </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 19:                                                                                                                                         </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 20:                                 columns of an unsupported class can only be kept or dropped; masque does not know how to synthesise them</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 21:                                                                                      text aliasing requires a character or factor column</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 22:                                                                                                                                         </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 23:                                                                                                                                         </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 24:                                                                                                                                         </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                                                                                                                                        notes</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                                                                                                                                       &lt;char&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>          role   action                                        kinds</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>        &lt;char&gt;   &lt;char&gt;                                       &lt;char&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  1:    design     keep                                          all</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  2:    design    alias                   factor, character, logical</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  3:    design     drop                                          all</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  4: treatment     keep                                          all</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  5: treatment scramble numeric, integer, factor, character, logical</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  6: treatment    alias numeric, integer, factor, character, logical</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  7: treatment     drop                                          all</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  8:   outcome     keep                                          all</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  9:   outcome     drop                                          all</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 10: covariate     keep                                          all</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 11: covariate scramble                             all except other</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 12: covariate    alias                   factor, character, logical</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 13: covariate     drop                                          all</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 14:      date     keep                                          all</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 15:      date     drop                                          all</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 16:        id     keep                                          all</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 17:        id    alias          numeric, integer, factor, character</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 18:        id     drop                                          all</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 19:      text     keep                                          all</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 20:      text scramble                             all except other</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 21:      text    alias                            factor, character</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 22:      text     drop                                          all</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 23:     other     keep                                          all</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 24:     other     drop                                          all</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>          role   action                                        kinds</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>        &lt;char&gt;   &lt;char&gt;                                       &lt;char&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                                                                                                                                                                                                                                                   notes</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                                                                                                                                                                                                                                                  &lt;char&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  1:                                                                                                                                                                                                                                                    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  2: design label aliasing requires a factor / character / logical column; numeric design columns can only be kept or dropped. To hide the labels, convert the column to a factor in the data, re-run propose_roles() and set action "alias", or drop it</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  3:                                                                                                                                                                                                                                                    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  4:                                                                                                                                                                                                                                                    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  5:                                                                                                                                                                treatment scramble / alias requires a factor / character / logical or numeric column</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  6:                                                                                                                                                                treatment scramble / alias requires a factor / character / logical or numeric column</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  7:                                                                                                                                                                                                                                                    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  8:                                                                                                                                                                                                                                                    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  9:                                                                                                                                                                                                                                                    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 10:                                                                                                                                                                                                                                                    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 11:                                                                                                                                            columns of an unsupported class can only be kept or dropped; masque does not know how to synthesise them</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 12:                                                                                                                                                  covariate aliasing requires a factor / character / logical column; numeric covariates use scramble</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 13:                                                                                                                                                                                                                                                    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 14:                                                                                                                                                                                                                                                    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 15:                                                                                                                                                                                                                                                    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 16:                                                                                                                                                                                                                                                    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 17:                                                                                                                                                                                         id aliasing requires a character, factor, or integer column</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 18:                                                                                                                                                                                                                                                    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 19:                                                                                                                                                                                                                                                    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 20:                                                                                                                                            columns of an unsupported class can only be kept or dropped; masque does not know how to synthesise them</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 21:                                                                                                                                                                                                 text aliasing requires a character or factor column</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 22:                                                                                                                                                                                                                                                    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 23:                                                                                                                                                                                                                                                    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 24:                                                                                                                                                                                                                                                    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                                                                                                                                                                                                                                                   notes</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                                                                                                                                                                                                                                                  &lt;char&gt;</span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/subset.html" class="external-link">subset</a></span><span class="op">(</span><span class="fu">role_options</span><span class="op">(</span><span class="op">)</span>, <span class="va">role</span> <span class="op">==</span> <span class="st">"design"</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>      role   action                      kinds</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    &lt;char&gt;   &lt;char&gt;                     &lt;char&gt;</span>
@@ -228,12 +228,12 @@ column in the data and re-propose.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 2: design scramble                       none</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 3: design    alias factor, character, logical</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> 4: design     drop                        all</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                                                                                                                               notes</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>                                                                                                                              &lt;char&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 1:                                                                                                                                 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 2: design columns are structure, not content - they cannot be scrambled; use keep, alias (labels hidden, structure intact), or drop</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 3:         design label aliasing requires a factor / character / logical column; numeric design columns can only be kept or dropped</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> 4:                                                                                                                                 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                                                                                                                                                                                                                                                  notes</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>                                                                                                                                                                                                                                                 &lt;char&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1:                                                                                                                                                                                                                                                    </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2:                                                                                                                    design columns are structure, not content - they cannot be scrambled; use keep, alias (labels hidden, structure intact), or drop</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3: design label aliasing requires a factor / character / logical column; numeric design columns can only be kept or dropped. To hide the labels, convert the column to a factor in the data, re-run propose_roles() and set action "alias", or drop it</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 4:                                                                                                                                                                                                                                                    </span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
     </div>

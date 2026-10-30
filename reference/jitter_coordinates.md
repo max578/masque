@@ -83,7 +83,11 @@ jitter_coordinates(
 - seed:
 
   Optional integer seed for reproducibility. The caller's RNG state is
-  preserved.
+  preserved. Several published jitters of the same point average toward
+  it: keep the seed (a
+  [`mask()`](https://max578.github.io/masque/reference/mask.md) recipe
+  records it) and do not publish more than one jittered release of the
+  same sites.
 
 - .group:
 

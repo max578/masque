@@ -23,7 +23,7 @@
 
     <a class="navbar-brand me-2" href="index.html">masque</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.15.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.16.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -106,7 +106,11 @@
 <span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/lm.html" class="external-link">lm</a></span><span class="op">(</span><span class="va">yield</span> <span class="op">~</span> <span class="va">gen</span> <span class="op">+</span> <span class="va">rep</span>, data <span class="op">=</span> <span class="va">synth</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># ... and the custodian re-targets it to the original data.</span></span>
-<span><span class="va">preds</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">fit</span>, newdata <span class="op">=</span> <span class="fu"><a href="reference/apply_recipe.html">apply_recipe</a></span><span class="op">(</span><span class="va">df</span>, <span class="va">rec</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<span><span class="va">preds</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">fit</span>, newdata <span class="op">=</span> <span class="fu"><a href="reference/apply_recipe.html">apply_recipe</a></span><span class="op">(</span><span class="va">df</span>, <span class="va">rec</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># A description of the clone the analyst can plan with: sizes, roles and</span></span>
+<span><span class="co"># counts, never a value.</span></span>
+<span><span class="va">card</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/data_card.html">data_card</a></span><span class="op">(</span><span class="va">m</span>, name <span class="op">=</span> <span class="st">"alpha_trial"</span><span class="op">)</span></span></code></pre></div>
 <p>A folder of files or a multi-sheet workbook works the same way. Pass the path to <code><a href="reference/masque.html">masque()</a></code> and it masks every table at once, aliasing shared keys consistently so the synthetic tables still join.</p>
 <p>If the table needs tidying first, <code><a href="reference/clean_table.html">clean_table()</a></code> makes column names valid and trims whitespace, and <code><a href="reference/conform_table.html">conform_table()</a></code> merges near-duplicate labels and sets column types, reporting each change.</p>
 <div class="section level3">
@@ -123,7 +127,8 @@
 <p><strong>What <code>masque</code> does</strong></p>
 <ul>
 <li>Preserves enough structure for pipelines to run unchanged.</li>
-<li>Provides two explicit modes: <code>local</code> for owner-only realistic surrogates, and <code>collaborate</code> for controlled sharing with opaque aliasing, numeric jitter, and an automatic leakage audit.</li>
+<li>Provides two explicit modes: <code>local</code> for owner-only realistic surrogates, and <code>collaborate</code> for controlled sharing with opaque aliasing (numeric doses included), numeric jitter, and an automatic leakage audit. Collaborate mode drops identifiers and free text (character columns in which most values are distinct), and refuses to re-simulate a table of fewer than five rows.</li>
+<li>Synthesises a column that is constant within a trial or site once per unit, so the clone keeps one value per trial, and keeps linked event times in order (<code>events =</code>).</li>
 <li>Keeps treatment, block and environment means on request (<code>conditional = TRUE</code>). Treatment means on the clone then track those of the real data, and block and environment effects stay detectable. <a href="https://max578.github.io/masque/articles/design_preservation.html">What a conditional clone keeps of the design</a> tests this on eight field designs.</li>
 <li>Records every translation (column names, factor levels) in a private <code>recipe</code>. The recipe holds the real labels, the original column names and the seed, so together with the synthetic it undoes every alias. Keep it with the original data and never send it with the synthetic.</li>
 <li>Audits its own output (<code><a href="reference/audit_mask.html">audit_mask()</a></code>), raises HIGH findings as classed warnings the guided flow never silences, and refuses package-managed writes while a HIGH finding stands (an explicit <code>allow_high = TRUE</code> override is available, warned and recorded in the recipe).</li>
@@ -232,7 +237,7 @@
 <li><a href="https://lifecycle.r-lib.org/articles/stages.html#experimental" class="external-link"><img src="https://img.shields.io/badge/lifecycle-experimental-orange.svg" alt="Lifecycle: experimental"></a></li>
 <li><a href="https://github.com/max578/masque/actions/workflows/R-CMD-check.yaml" class="external-link"><img src="https://github.com/max578/masque/actions/workflows/R-CMD-check.yaml/badge.svg" alt="R-CMD-check"></a></li>
 <li><a href="https://app.codecov.io/gh/max578/masque" class="external-link"><img src="https://codecov.io/gh/max578/masque/graph/badge.svg" alt="Codecov test coverage"></a></li>
-<li><a href="https://max578.r-universe.dev/masque" class="external-link"><img src="https://max578.r-universe.dev/badges/masque" alt="r-universe"></a></li>
+<li><a href="https://max578.r-universe.dev/masque" class="external-link"><img src="https://max578.r-universe.dev/masque/badges/version" alt="r-universe"></a></li>
 <li><a href="https://max578.github.io/masque/"><img src="https://github.com/max578/masque/actions/workflows/pkgdown.yaml/badge.svg" alt="pkgdown"></a></li>
 </ul>
 </div>

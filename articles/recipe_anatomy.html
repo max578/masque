@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">masque</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.15.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.16.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -100,7 +100,7 @@ withholds.</p>
 <h3 id="what-a-recipe-holds">What a recipe holds<a class="anchor" aria-label="anchor" href="#what-a-recipe-holds"></a>
 </h3>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">m</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/mask.html">mask</a></span><span class="op">(</span><span class="va">df</span>, <span class="va">roles</span>, mode <span class="op">=</span> <span class="st">"collaborate"</span>, seed <span class="op">=</span> <span class="fl">1L</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">m</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/mask.html">mask</a></span><span class="op">(</span><span class="va">df</span>, <span class="va">plan</span>, mode <span class="op">=</span> <span class="st">"collaborate"</span>, seed <span class="op">=</span> <span class="fl">1L</span><span class="op">)</span></span>
 <span><span class="va">rec</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/recipe.html">recipe</a></span><span class="op">(</span><span class="va">m</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/class.html" class="external-link">class</a></span><span class="op">(</span><span class="va">rec</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "masque::masque_recipe" "S7_object"</span></span></code></pre></div>
@@ -124,7 +124,16 @@ stratum it got, the columns it dropped or carried as shifts, and the
 share of rows pooled.</li>
 <li>
 <code>level_maps</code>: the per-column original-to-alias maps. The
-sensitive part.</li>
+sensitive part. Aliases follow one scheme: <code>trt_001</code>,
+<code>trt_002</code>, … for a single aliased treatment, factor or
+numeric (<code>&lt;col&gt;_trt_001</code> when several treatments are
+aliased), <code>&lt;col&gt;_L001</code> for a categorical covariate,
+<code>&lt;col&gt;_D001</code> for a design column,
+<code>&lt;col&gt;_I001</code> for an identifier,
+<code>&lt;col&gt;_T001</code> for free text, and
+<code>&lt;col&gt;_K001</code> for a key shared across the tables of a
+set. The numbers have at least three digits, more when a column has over
+999 levels.</li>
 <li>
 <code>column_name_map</code>: the column-name aliases, when
 <code>alias_names</code> was used (otherwise <code>NULL</code>).</li>
@@ -137,6 +146,17 @@ reconstruction.</li>
 made valid R names, whitespace trimmed), so <code><a href="../reference/apply_recipe.html">apply_recipe()</a></code>
 re-applies the same tidying.</li>
 <li>
+<code>conform</code>: the label merges and type changes
+<code><a href="../reference/conform_table.html">conform_table()</a></code> made, so <code><a href="../reference/apply_recipe.html">apply_recipe()</a></code>
+replays them on the original.</li>
+<li>
+<code>grain</code>: each design unit within which columns were
+synthesised once per unit, with the columns, the number of units and
+whether the clone kept the grain or fell back to rows.</li>
+<li>
+<code>events</code>: the linked time-to-event specs and how many
+final times were capped.</li>
+<li>
 <code>coords</code>: one entry per coordinate pair declared to
 <code><a href="../reference/mask.html">mask()</a></code>’s <code>coords</code> argument: the jitter method
 and radius, the site grouping it was masked under, and how many sites
@@ -144,6 +164,9 @@ the grouping produced.</li>
 <li>
 <code>allow_unmasked_coords</code>: <code>TRUE</code> only when the
 caller deliberately wrote a real coordinate through unmasked.</li>
+<li>
+<code>allow_kept_outcome</code>: <code>TRUE</code> only when the
+caller allowed a kept outcome in a collaborate clone.</li>
 <li>
 <code>warnings</code>: the warnings raised while masking, including
 any HIGH audit finding.</li>
@@ -154,8 +177,8 @@ guarantee.</li>
 </ul>
 <p>A recipe written by an older version has no record for the slots
 added since, for example <code>coords</code> before 0.10.0 and
-<code>allow_unmasked_coords</code> before 0.11.0. The changelog lists
-when each slot was added.</p>
+<code>allow_unmasked_coords</code> before 0.11.0. It still prints,
+applies and unmasks. The changelog lists when each slot was added.</p>
 <p>It does not hold the copula covariance, the raw observed values, or
 any file paths or usernames.</p>
 <p>A recipe built with <code>coords</code> records how its coordinates
@@ -165,11 +188,10 @@ back:</p>
 <code class="sourceCode R"><span><span class="va">df_geo</span> <span class="op">&lt;-</span> <span class="va">df</span></span>
 <span><span class="va">df_geo</span><span class="op">$</span><span class="va">lat</span> <span class="op">&lt;-</span> <span class="op">-</span><span class="fl">34.9</span> <span class="op">+</span> <span class="fu">stats</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html" class="external-link">runif</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">df_geo</span><span class="op">)</span>, <span class="op">-</span><span class="fl">0.05</span>, <span class="fl">0.05</span><span class="op">)</span></span>
 <span><span class="va">df_geo</span><span class="op">$</span><span class="va">lon</span> <span class="op">&lt;-</span> <span class="fl">138.6</span> <span class="op">+</span> <span class="fu">stats</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html" class="external-link">runif</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">df_geo</span><span class="op">)</span>, <span class="op">-</span><span class="fl">0.05</span>, <span class="fl">0.05</span><span class="op">)</span></span>
-<span><span class="va">roles_geo</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/propose_roles.html">propose_roles</a></span><span class="op">(</span><span class="va">df_geo</span>, mode <span class="op">=</span> <span class="st">"collaborate"</span><span class="op">)</span></span>
-<span><span class="va">roles_geo</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/set_role.html">set_role</a></span><span class="op">(</span><span class="va">roles_geo</span>, <span class="st">"yield"</span>, role <span class="op">=</span> <span class="st">"outcome"</span><span class="op">)</span></span>
-<span><span class="va">roles_geo</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/set_role.html">set_role</a></span><span class="op">(</span><span class="va">roles_geo</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"lat"</span>, <span class="st">"lon"</span><span class="op">)</span>, action <span class="op">=</span> <span class="st">"keep"</span><span class="op">)</span></span>
+<span><span class="va">plan_geo</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/propose_roles.html">propose_roles</a></span><span class="op">(</span><span class="va">df_geo</span>, mode <span class="op">=</span> <span class="st">"collaborate"</span><span class="op">)</span></span>
+<span><span class="va">plan_geo</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/set_role.html">set_role</a></span><span class="op">(</span><span class="va">plan_geo</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"lat"</span>, <span class="st">"lon"</span><span class="op">)</span>, action <span class="op">=</span> <span class="st">"keep"</span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">m_geo</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/mask.html">mask</a></span><span class="op">(</span><span class="va">df_geo</span>, <span class="va">roles_geo</span>, mode <span class="op">=</span> <span class="st">"collaborate"</span>, seed <span class="op">=</span> <span class="fl">1L</span>,</span>
+<span><span class="va">m_geo</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/mask.html">mask</a></span><span class="op">(</span><span class="va">df_geo</span>, <span class="va">plan_geo</span>, mode <span class="op">=</span> <span class="st">"collaborate"</span>, seed <span class="op">=</span> <span class="fl">1L</span>,</span>
 <span>              coords <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>lat <span class="op">=</span> <span class="st">"lat"</span>, lon <span class="op">=</span> <span class="st">"lon"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">n_sites_recorded</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/recipe.html">recipe</a></span><span class="op">(</span><span class="va">m_geo</span><span class="op">)</span><span class="op">@</span><span class="va">coords</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">n_sites</span></span>
 <span><span class="fu"><a href="../reference/recipe.html">recipe</a></span><span class="op">(</span><span class="va">m_geo</span><span class="op">)</span><span class="op">@</span><span class="va">coords</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"method"</span>, <span class="st">"min_km"</span>, <span class="st">"max_km"</span>, <span class="st">"n_sites"</span><span class="op">)</span><span class="op">]</span></span>
@@ -198,44 +220,72 @@ coordinate would share one displacement (see
 which columns hold a level map (<code>*</code> mapped, <code>=</code>
 not), but never the vocabularies themselves:</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">rec</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">──</span> <span style="font-weight: bold;">masque_recipe</span> <span style="color: #00BBBB;">───────────────────────────────────────────────────────────────────────────────────</span></span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Created: 2026-10-19 01:53:22 UTC</span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Mode: collaborate</span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Clone fidelity: marginal / structural (global copula)</span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Seed: present (redacted)</span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> masque version: 0.15.0</span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">•</span> Integrity fingerprint: 0cec319ba9e2...</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; ── <span style="font-weight: bold;">Columns (7 total; 1 level map; 0 column-name maps)</span> ──</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt;   = design    keep      plot                          (integer)</span></span>
-<span><span class="co">#&gt;   = design    keep      rep                           (factor)</span></span>
-<span><span class="co">#&gt;   = design    keep      block                         (factor)</span></span>
-<span><span class="co">#&gt;   * treatment alias     gen                           (factor)</span></span>
-<span><span class="co">#&gt;   = outcome   scramble  yield                         (numeric)</span></span>
-<span><span class="co">#&gt;   = design    keep      row                           (integer)</span></span>
-<span><span class="co">#&gt;   = design    keep      col                           (integer)</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; <span style="color: #BB0000;">✖</span> PRIVATE - never share this recipe alongside the synthetic.</span></span>
-<span><span class="co">#&gt; Use `reveal_maps(rec)` to inspect level maps explicitly.</span></span></code></pre></div>
-<p>Anyone holding the recipe can print the maps with an explicit call,
-which shows a warning first:</p>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">rec</span></span></code></pre></div>
+<pre><code>
+── masque_recipe ───────────────────────────────────────────────────────────────────────────────────
+• Created: 2026-10-30 23:38:53 UTC
+• Mode: collaborate
+• Clone fidelity: marginal / structural (global copula)
+• Seed: present (redacted)
+• masque version: 0.16.0
+• Integrity fingerprint: 0cec319ba9e2...
+
+── Columns (7 total; 1 level map; 0 column-name maps) ──
+
+  = design    keep      plot                          (integer)
+  = design    keep      rep                           (factor)
+  = design    keep      block                         (factor)
+  * treatment alias     gen                           (factor)
+  = outcome   scramble  yield                         (numeric)
+  = design    keep      row                           (integer)
+  = design    keep      col                           (integer)
+
+✖ PRIVATE - never share this recipe alongside the synthetic.
+Use `reveal_maps(rec)` to inspect level maps explicitly.</code></pre>
+<p>The same holds for <code><a href="https://rdrr.io/r/base/format.html" class="external-link">format()</a></code>, <code><a href="https://rdrr.io/r/utils/str.html" class="external-link">str()</a></code> and
+knitr output of a recipe and of a <code>masque</code> object, so the
+seed and the maps do not end up in a log or a rendered report by
+accident. Anyone holding the recipe can print the maps with an explicit
+call, which shows a warning first:</p>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/reveal_maps.html">reveal_maps</a></span><span class="op">(</span><span class="va">rec</span><span class="op">)</span></span>
 <span><span class="co">#&gt; <span style="color: #BBBB00;">!</span> Revealing sensitive level maps. Proceed at your discretion.</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; ── gen</span></span>
+<span><span class="co">#&gt;   G01  -&gt;  trt_021</span></span>
+<span><span class="co">#&gt;   G02  -&gt;  trt_022</span></span>
+<span><span class="co">#&gt;   G03  -&gt;  trt_008</span></span>
+<span><span class="co">#&gt;   G04  -&gt;  trt_001</span></span>
+<span><span class="co">#&gt;   G05  -&gt;  trt_019</span></span>
+<span><span class="co">#&gt;   G06  -&gt;  trt_003</span></span>
+<span><span class="co">#&gt;   G07  -&gt;  trt_011</span></span>
+<span><span class="co">#&gt;   G08  -&gt;  trt_024</span></span>
+<span><span class="co">#&gt;   G09  -&gt;  trt_013</span></span>
+<span><span class="co">#&gt;   G10  -&gt;  trt_014</span></span>
+<span><span class="co">#&gt;   G11  -&gt;  trt_006</span></span>
+<span><span class="co">#&gt;   G12  -&gt;  trt_015</span></span>
+<span><span class="co">#&gt;   G13  -&gt;  trt_012</span></span>
+<span><span class="co">#&gt;   G14  -&gt;  trt_004</span></span>
+<span><span class="co">#&gt;   G15  -&gt;  trt_009</span></span>
+<span><span class="co">#&gt;   G16  -&gt;  trt_005</span></span>
+<span><span class="co">#&gt;   G17  -&gt;  trt_010</span></span>
+<span><span class="co">#&gt;   G18  -&gt;  trt_016</span></span>
+<span><span class="co">#&gt;   G19  -&gt;  trt_017</span></span>
+<span><span class="co">#&gt;   G20  -&gt;  trt_020</span></span>
+<span><span class="co">#&gt;   G21  -&gt;  trt_002</span></span>
+<span><span class="co">#&gt;   G22  -&gt;  trt_023</span></span>
+<span><span class="co">#&gt;   G23  -&gt;  trt_007</span></span>
+<span><span class="co">#&gt;   G24  -&gt;  trt_018</span></span>
 <span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; ── seed</span></span></code></pre></div>
+<span><span class="co">#&gt; ── seed</span></span>
+<span><span class="co">#&gt;   1</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="the-round-trip">The round-trip<a class="anchor" aria-label="anchor" href="#the-round-trip"></a>
 </h3>
 <p>The usual pattern is to fit on the synthetic, recode the original
 with <code><a href="../reference/apply_recipe.html">apply_recipe()</a></code>, and predict on it:</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># Analyst trains on the synthetic clone.</span></span>
 <span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/lm.html" class="external-link">lm</a></span><span class="op">(</span><span class="va">yield</span> <span class="op">~</span> <span class="va">gen</span>, data <span class="op">=</span> <span class="fu"><a href="../reference/synthetic.html">synthetic</a></span><span class="op">(</span><span class="va">m</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
@@ -246,14 +296,16 @@ with <code><a href="../reference/apply_recipe.html">apply_recipe()</a></code>, a
 <span><span class="va">preds_match_nrow</span></span>
 <span><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
 <p><code><a href="../reference/unmask.html">unmask()</a></code> recovers the original labels:</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">fwd</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/apply_recipe.html">apply_recipe</a></span><span class="op">(</span><span class="va">df</span>, <span class="va">rec</span><span class="op">)</span></span>
 <span><span class="va">back</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/unmask.html">unmask</a></span><span class="op">(</span><span class="va">fwd</span>, <span class="va">rec</span><span class="op">)</span></span>
 <span><span class="va">labels_recovered</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="va">back</span><span class="op">$</span><span class="va">gen</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="va">df</span><span class="op">$</span><span class="va">gen</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">labels_recovered</span></span>
 <span><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
-<p>Columns whose action is <code>keep</code>, numeric columns and
-numeric predictions pass through both functions unchanged.
+<p>Columns whose action is <code>keep</code>, re-simulated numeric
+columns and numeric predictions pass through both functions unchanged. A
+numeric treatment that was aliased is mapped both ways, and
+<code><a href="../reference/unmask.html">unmask()</a></code> returns its exact original values.
 <code><a href="../reference/apply_recipe.html">apply_recipe()</a></code> returns an aliased factor with the clone’s
 levels in the clone’s order, so a model fitted on the translated
 original has the same reference level as on the clone.</p>
@@ -263,7 +315,7 @@ original has the same reference level as on the clone.</p>
 </h3>
 <p>If the data drifts, for example a new treatment level the recipe has
 never seen, <code><a href="../reference/apply_recipe.html">apply_recipe()</a></code> stops with an error:</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">drifted</span> <span class="op">&lt;-</span> <span class="va">df</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/levels.html" class="external-link">levels</a></span><span class="op">(</span><span class="va">drifted</span><span class="op">$</span><span class="va">gen</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/levels.html" class="external-link">levels</a></span><span class="op">(</span><span class="va">df</span><span class="op">$</span><span class="va">gen</span><span class="op">)</span>, <span class="st">"BRAND_NEW"</span><span class="op">)</span></span>
 <span><span class="va">drifted</span><span class="op">$</span><span class="va">gen</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="st">"BRAND_NEW"</span></span>
@@ -283,10 +335,10 @@ needs the new synthetic in place of the old one.</p>
 <h3 id="saving-the-recipe">Saving the recipe<a class="anchor" aria-label="anchor" href="#saving-the-recipe"></a>
 </h3>
 <p><code><a href="../reference/save_recipe.html">save_recipe()</a></code> writes a single small <code>.rds</code>,
-to be stored next to the original at the same security class.
-<code><a href="../reference/read_recipe.html">read_recipe()</a></code> validates the file and notes a version
-mismatch without raising an error.</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+to be stored next to the original at the same security class. The path
+must end in <code>.rds</code>. <code><a href="../reference/read_recipe.html">read_recipe()</a></code> validates the
+file and notes a version mismatch without raising an error.</p>
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">tmp</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempfile</a></span><span class="op">(</span>fileext <span class="op">=</span> <span class="st">".rds"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/save_recipe.html">save_recipe</a></span><span class="op">(</span><span class="va">rec</span>, <span class="va">tmp</span><span class="op">)</span></span>
 <span><span class="va">rec2</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/read_recipe.html">read_recipe</a></span><span class="op">(</span><span class="va">tmp</span><span class="op">)</span></span>
@@ -300,17 +352,21 @@ mismatch without raising an error.</p>
 <p>A <code><a href="../reference/mask_set.html">mask_set()</a></code> result carries a recipe <em>bundle</em>:
 one recipe per table plus the shared cross-table link maps. The same
 <code><a href="../reference/apply_recipe.html">apply_recipe()</a></code> and <code><a href="../reference/unmask.html">unmask()</a></code> verbs dispatch on
-it, operating table by table over a named list:</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+it, operating table by table over a named list. <code>year</code> is
+made a factor before masking so that collaborate mode can alias it (see
+<em>Getting started with masque</em>):</p>
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">set_dir</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/system.file.html" class="external-link">system.file</a></span><span class="op">(</span><span class="st">"extdata"</span>, <span class="st">"met_set"</span>, package <span class="op">=</span> <span class="st">"masque"</span><span class="op">)</span></span>
-<span><span class="va">ms</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/mask_set.html">mask_set</a></span><span class="op">(</span><span class="va">set_dir</span>, mode <span class="op">=</span> <span class="st">"collaborate"</span>, seed <span class="op">=</span> <span class="fl">1L</span>, quiet <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Warning: Numeric environment column <span style="color: #00BB00;">year</span> remains <span style="color: #0000BB;">"keep"</span> in collaborate mode.</span></span>
-<span><span class="co">#&gt; <span style="color: #00BBBB;">ℹ</span> This preserves environment structure but may disclose year or other numeric labels; review before</span></span>
-<span><span class="co">#&gt;   release.</span></span>
 <span><span class="va">originals</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/read_set.html">read_set</a></span><span class="op">(</span><span class="va">set_dir</span><span class="op">)</span></span>
+<span><span class="va">originals</span><span class="op">$</span><span class="va">agronomy</span><span class="op">[</span>, <span class="va">year</span> <span class="op">:=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="va">year</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="va">ms</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/mask_set.html">mask_set</a></span><span class="op">(</span><span class="va">originals</span>, mode <span class="op">=</span> <span class="st">"collaborate"</span>, seed <span class="op">=</span> <span class="fl">1L</span>, quiet <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span><span class="va">fwd_set</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/apply_recipe.html">apply_recipe</a></span><span class="op">(</span><span class="va">originals</span>, <span class="fu"><a href="../reference/recipe.html">recipe</a></span><span class="op">(</span><span class="va">ms</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">fwd_set</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "agronomy" "quality"</span></span></code></pre></div>
+<p><code><a href="../reference/save_recipe.html">save_recipe()</a></code> and <code><a href="../reference/read_recipe.html">read_recipe()</a></code> keep a
+bundle as one file, and
+<code>reveal_maps(recipe(ms), table = "quality")</code> reveals the maps
+of the named tables only.</p>
 <p>Because the shared keys were aliased consistently at masking time,
 the re-targeted tables join on the same keys the synthetic tables
 do.</p>
@@ -321,7 +377,7 @@ do.</p>
 <p>The checks above are about labels. The figure shows the numeric
 column the analyst works with: the original yield against the synthetic
 yield.</p>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">synth_tbl</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/synthetic.html">synthetic</a></span><span class="op">(</span><span class="va">m</span><span class="op">)</span></span>
 <span><span class="va">overlay_df</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>value <span class="op">=</span> <span class="va">df</span><span class="op">$</span><span class="va">yield</span>, table <span class="op">=</span> <span class="st">"original"</span><span class="op">)</span>,</span>
@@ -389,9 +445,9 @@ touch.</p>
 <code><a href="../reference/mask.html">mask()</a></code> or <code><a href="../reference/mask_set.html">mask_set()</a></code> call passes
 <code>seed = 1L</code>, so each is reproducible on its own. Package
 versions follow.</p>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/sessionInfo.html" class="external-link">sessionInfo</a></span><span class="op">(</span><span class="op">)</span></span>
-<span><span class="co">#&gt; R version 4.6.1 (2026-06-24)</span></span>
+<span><span class="co">#&gt; R version 4.6.2 (2026-10-29)</span></span>
 <span><span class="co">#&gt; Platform: x86_64-pc-linux-gnu</span></span>
 <span><span class="co">#&gt; Running under: Ubuntu 24.04.5 LTS</span></span>
 <span><span class="co">#&gt; </span></span>
@@ -411,18 +467,18 @@ versions follow.</p>
 <span><span class="co">#&gt; [1] stats     graphics  grDevices utils     datasets  methods   base     </span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; other attached packages:</span></span>
-<span><span class="co">#&gt; [1] masque_0.15.0</span></span>
+<span><span class="co">#&gt; [1] masque_0.16.0</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; loaded via a namespace (and not attached):</span></span>
 <span><span class="co">#&gt;  [1] vctrs_0.7.3         cli_3.6.6           knitr_1.52          rlang_1.3.0        </span></span>
 <span><span class="co">#&gt;  [5] xfun_0.62           otel_0.2.0          textshaping_1.0.5   S7_0.2.2           </span></span>
 <span><span class="co">#&gt;  [9] data.table_1.18.6.1 jsonlite_2.0.0      labeling_0.4.3      glue_1.8.1         </span></span>
 <span><span class="co">#&gt; [13] htmltools_0.5.9     ragg_1.5.2          sass_0.4.10         scales_1.4.0       </span></span>
-<span><span class="co">#&gt; [17] rmarkdown_2.32      grid_4.6.1          evaluate_1.0.5      jquerylib_0.1.4    </span></span>
-<span><span class="co">#&gt; [21] fastmap_1.2.0       yaml_2.3.12         lifecycle_1.0.5     compiler_4.6.1     </span></span>
-<span><span class="co">#&gt; [25] RColorBrewer_1.1-3  fs_2.1.0            maps_3.4.3          systemfonts_1.3.2  </span></span>
+<span><span class="co">#&gt; [17] rmarkdown_2.32      grid_4.6.2          evaluate_1.0.5      jquerylib_0.1.4    </span></span>
+<span><span class="co">#&gt; [21] fastmap_1.2.0       yaml_2.3.12         lifecycle_1.0.5     compiler_4.6.2     </span></span>
+<span><span class="co">#&gt; [25] RColorBrewer_1.1-3  fs_2.1.0            maps_3.4.4          systemfonts_1.3.2  </span></span>
 <span><span class="co">#&gt; [29] farver_2.1.2        digest_0.6.39       viridisLite_0.4.3   R6_2.6.1           </span></span>
-<span><span class="co">#&gt; [33] pillar_1.11.1       bslib_0.12.0        withr_3.0.3         tools_4.6.1        </span></span>
+<span><span class="co">#&gt; [33] pillar_1.11.1       bslib_0.12.0        withr_3.0.3         tools_4.6.2        </span></span>
 <span><span class="co">#&gt; [37] gtable_0.3.6        pkgdown_2.2.1       ggplot2_4.0.3       cachem_1.1.0       </span></span>
 <span><span class="co">#&gt; [41] desc_1.4.3</span></span></code></pre></div>
 </div>

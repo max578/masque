@@ -46,12 +46,13 @@ without per-column work:
 
 | Knob | `mode = "local"` | `mode = "collaborate"` |
 |----|----|----|
-| Treatment labels | kept | aliased (`trt_001`) |
+| Treatment labels, numeric doses included | kept | aliased (`trt_001`) |
 | Categorical covariate labels | kept | aliased (`<col>_L001`) |
 | Date / time columns | row-permuted with class preserved | row-permuted with class preserved |
 | Identifiers (`id`) | kept | dropped |
-| Free text (`text`) | kept | dropped |
-| Numeric synthesis | Gaussian copula with empirical-quantile marginals (may emit observed values) | the same, plus within-resolution jitter, with integers stochastically rounded |
+| Free text (`text`: a character column in which more than half the values are distinct) | kept | dropped |
+| Numeric synthesis | Gaussian copula with empirical-quantile marginals (may emit observed values) | the same, plus within-resolution jitter, with whole numbers stochastically rounded. A value can fall up to half a measurement step outside the observed range |
+| Columns constant within a design unit | one value per unit, drawn from the real unit values | one value per unit, jittered, or row by row when there are fewer than five units |
 | NA mask | preserved cell-by-cell | preserved cell-by-cell |
 | [`audit_mask()`](https://max578.github.io/masque/reference/audit_mask.md) | on demand | automatic at [`mask()`](https://max578.github.io/masque/reference/mask.md) time |
 | `print(recipe)` | redacted | redacted, with explicit [`reveal_maps()`](https://max578.github.io/masque/reference/reveal_maps.md) to inspect |
@@ -72,9 +73,9 @@ df <- data.frame(
   rep = rep(seq_len(3L), 6L),
   yield = rnorm(18L)
 )
-roles <- propose_roles(df, detect = FALSE)
-roles <- set_role(roles, "site", role = "design", action = "alias")
-s <- synthetic(mask(df, roles, mode = "collaborate", seed = 1L))
+plan <- propose_roles(df, detect = FALSE)
+plan <- set_role(plan, "site", role = "design", action = "alias")
+s <- synthetic(mask(df, plan, mode = "collaborate", seed = 1L))
 site_names_gone <- !any(as.character(s$site) %in% as.character(df$site))
 site_names_gone
 #> [1] TRUE
@@ -137,6 +138,51 @@ An alias therefore raises the cost of re-identification. It cannot be
 relied on against a determined attacker, and none of it is a
 differential-privacy guarantee.
 
+### Numeric treatments
+
+A dose or a nitrogen rate is a numeric treatment. Its values are often
+the most recognisable part of a trial, so collaborate mode aliases them
+by default, as it does treatment labels. The clone carries `trt_001`,
+`trt_002`, … as text, and the recipe turns them back into the exact
+numbers:
+
+``` r
+
+rates <- data.frame(
+  block = factor(rep(seq_len(4L), each = 5L)),
+  nitro = rep(c(0, 0.2, 0.4, 0.6, 0.8), 4L)
+)
+rates$yield <- round(80 + 40 * rates$nitro + rnorm(20L, sd = 5), 1)
+plan_rates <- propose_roles(rates, mode = "collaborate")
+m_rates <- mask(rates, plan_rates, mode = "collaborate", seed = 1L)
+knitr::kable(
+  head(synthetic(m_rates), 5L),
+  digits = 1,
+  caption = "The first block of the clone: each N rate is an opaque label."
+)
+```
+
+| block | nitro   | yield |
+|:------|:--------|------:|
+| 1     | trt_002 |  90.1 |
+| 1     | trt_005 |  91.1 |
+| 1     | trt_003 | 102.0 |
+| 1     | trt_004 | 112.4 |
+| 1     | trt_001 |  84.1 |
+
+The first block of the clone: each N rate is an opaque label. {.table}
+
+``` r
+
+identical(unmask(synthetic(m_rates), recipe(m_rates))$nitro, rates$nitro)
+#> [1] TRUE
+```
+
+Every block still holds each rate once, so the design is intact. With
+`action = "scramble"` the rates stay numbers and are permuted among
+themselves instead. A numeric treatment left at `keep` in collaborate
+mode audits HIGH.
+
 ### The conditional clone: preserving the treatment effect
 
 The default numeric synthesis re-simulates every scrambled numeric
@@ -168,9 +214,9 @@ arm <- factor(rep(c("ctrl", "treat"), each = n / 2L))
 yield <- 10 + 5 * (arm == "treat") + rnorm(n, sd = 2)
 trial <- data.frame(genotype = arm, yield = yield)
 
-roles <- propose_roles(trial, detect = FALSE)
-roles <- set_role(roles, "genotype", role = "treatment", action = "scramble")
-roles <- set_role(roles, "yield", role = "outcome")
+plan <- propose_roles(trial, detect = FALSE)
+plan <- set_role(plan, "genotype", role = "treatment", action = "scramble")
+plan <- set_role(plan, "yield", role = "outcome")
 
 true_effect <- coef(lm(yield ~ genotype, trial))[["genotypetreat"]]
 true_effect
@@ -182,8 +228,8 @@ each clone:
 
 ``` r
 
-marg <- mask(trial, roles, mode = "local", seed = 1L, conditional = FALSE)
-cond <- mask(trial, roles, mode = "local", seed = 1L, conditional = TRUE)
+marg <- mask(trial, plan, mode = "local", seed = 1L, conditional = FALSE)
+cond <- mask(trial, plan, mode = "local", seed = 1L, conditional = TRUE)
 
 effect_of <- function(m) {
   coef(lm(yield ~ genotype, synthetic(m)))[["genotypetreat"]]
@@ -332,7 +378,7 @@ than it asked for:
 ``` r
 
 withCallingHandlers(
-  mask(trial, roles, seed = 1L, conditional = TRUE),
+  mask(trial, plan, seed = 1L, conditional = TRUE),
   masque_conditional_degraded = function(w) stop(conditionMessage(w))
 )
 ```
@@ -404,6 +450,138 @@ relationship in the original. A good fit there is not evidence that the
 step behaves correctly on the real data. Validate such a step by running
 it on the original through the recipe.
 
+### Columns constant within a trial: the grain
+
+Some columns describe a whole unit rather than a row: the rainfall of a
+trial, the soil type of a site, a sowing date. Re-simulated row by row,
+such a column would vary inside the trial, which no real trial does.
+[`mask()`](https://max578.github.io/masque/reference/mask.md) finds the
+design unit within which a column holds a single value and synthesises
+the column once per unit, writing each unit’s new value to all its rows.
+This is the column’s *grain*:
+
+``` r
+
+set.seed(3)
+trials <- data.frame(
+  trial = factor(rep(sprintf("T%d", seq_len(8L)), each = 12L)),
+  rep = factor(rep(rep(seq_len(3L), each = 4L), 8L)),
+  gen = factor(rep(sprintf("G%d", seq_len(4L)), 24L))
+)
+trial_rain <- round(runif(8L, 250, 550))
+trials$rainfall <- trial_rain[as.integer(trials$trial)]
+trials$yield <- round(2 + trials$rainfall / 200 + rnorm(96L, sd = 0.4), 2)
+
+plan_trials <- propose_roles(trials, mode = "collaborate")
+by_unit <- mask(trials, plan_trials, mode = "collaborate", seed = 1L)
+by_row <- mask(trials, plan_trials, mode = "collaborate", seed = 1L,
+               grain = FALSE)
+values_per_trial <- function(m) {
+  s <- synthetic(m)
+  as.vector(tapply(s$rainfall, s$trial, function(x) length(unique(x))))
+}
+knitr::kable(
+  data.frame(
+    clone = c("grain = TRUE (default)", "grain = FALSE"),
+    distinct_rainfall_per_trial = c(
+      paste(values_per_trial(by_unit), collapse = " "),
+      paste(values_per_trial(by_row), collapse = " ")
+    )
+  ),
+  caption = "Distinct rainfall values in each of the eight trials of the clone."
+)
+```
+
+| clone                  | distinct_rainfall_per_trial |
+|:-----------------------|:----------------------------|
+| grain = TRUE (default) | 1 1 1 1 1 1 1 1             |
+| grain = FALSE          | 7 6 7 5 10 9 8 7            |
+
+Distinct rainfall values in each of the eight trials of the clone.
+{.table}
+
+[`propose_roles()`](https://max578.github.io/masque/reference/propose_roles.md)
+notes such a column (“Constant within trial; synthesised per trial”),
+and the recipe records each grain. The clone keeps one value per unit,
+the frequencies of a categorical column across units, and the
+correlation among columns of the same grain. It does not keep the
+correlation between a grained column and the row-level columns, so the
+link between rainfall and yield above is lost, and grained columns are
+not conditioned on treatment when `conditional = TRUE`.
+
+In local mode the unit values are drawn from the real unit values. In
+collaborate mode they are jittered, and a grain with fewer than five
+units is synthesised row by row instead, with a
+`masque_grain_small_units` warning, because resampling so few real
+values would disclose them. The audit then notes that the clone does not
+keep that grain. `grain = FALSE` gives the row-by-row clone of masque
+0.15.0.
+
+### Time-to-event outcomes
+
+A clinical table often holds several event times on one row, such as
+time to recurrence and time to death, each with a status. Re-simulated
+as independent columns, the times would fall out of order. Declaring
+them to `events` keeps them linked. The times are listed in the order
+the events occur:
+
+``` r
+
+set.seed(5)
+n_pat <- 300L
+arm <- rep(c("A", "B"), length.out = n_pat)
+t_rec <- rexp(n_pat, ifelse(arm == "A", 1 / 900, 1 / 1400))
+t_death <- rexp(n_pat, 1 / 2500)
+censor <- runif(n_pat, 30, 3000)
+status_death <- as.integer(t_death <= censor)
+time_death <- round(pmin(t_death, censor))
+status_rec <- as.integer(t_rec < pmin(t_death, censor))
+time_rec <- ifelse(status_rec == 1L, pmin(round(t_rec), time_death),
+                   time_death)
+patients <- data.frame(arm, time_rec, status_rec, time_death, status_death)
+
+plan_pat <- propose_roles(patients, mode = "collaborate", detect = FALSE)
+plan_pat <- set_role(plan_pat, "arm", role = "treatment")
+for (cn in c("time_rec", "status_rec", "time_death", "status_death")) {
+  plan_pat <- set_role(plan_pat, cn, role = "outcome", action = "scramble")
+}
+m_pat <- mask(
+  patients, plan_pat, mode = "collaborate", seed = 1L,
+  events = list(time = c("time_rec", "time_death"),
+                status = c("status_rec", "status_death"))
+)
+s_pat <- synthetic(m_pat)
+all(s_pat$time_rec <= s_pat$time_death)
+#> [1] TRUE
+pattern <- function(d) paste(d$status_rec, d$status_death, sep = "/")
+knitr::kable(
+  data.frame(
+    pattern = names(table(pattern(patients))),
+    original = as.vector(table(pattern(patients))),
+    clone = as.vector(table(pattern(s_pat)))
+  ),
+  caption = "Rows in each recurrence/death status pattern."
+)
+```
+
+| pattern | original | clone |
+|:--------|---------:|------:|
+| 0/0     |       77 |    77 |
+| 0/1     |       82 |    82 |
+| 1/0     |       93 |    93 |
+| 1/1     |       48 |    48 |
+
+Rows in each recurrence/death status pattern. {.table}
+
+Within each status pattern the gaps between events are re-simulated and
+summed back into times, so the times stay in order, a patient without a
+recurrence keeps both times equal, and the count of each pattern is
+exact. No final time runs past the longest follow-up observed in its
+pattern. The status patterns move across rows, within each arm when
+`conditional = TRUE`, so no real patient keeps their own outcome. No
+hazard model is fitted, and the clone keeps no relation between a
+covariate and the events.
+
 ### The leakage audit, and a refused write
 
 [`audit_mask()`](https://max578.github.io/masque/reference/audit_mask.md)
@@ -428,9 +606,9 @@ df <- data.frame(
   stringsAsFactors = FALSE
 )
 
-roles <- propose_roles(df, mode = "collaborate")
+plan <- propose_roles(df, mode = "collaborate")
 knitr::kable(
-  roles[, c("col", "role", "action", "pii_suspected")],
+  plan[, c("col", "role", "action", "pii_suspected")],
   caption = paste0(
     "The proposed plan: `contact_email` is auto-flagged ",
     "`pii_suspected` and dropped."
@@ -444,7 +622,7 @@ knitr::kable(
 | variety        | treatment | alias    | FALSE         |
 | contact_email  | text      | drop     | TRUE          |
 | rare_treatment | treatment | alias    | FALSE         |
-| yield          | covariate | scramble | FALSE         |
+| yield          | outcome   | scramble | FALSE         |
 
 The proposed plan: `contact_email` is auto-flagged `pii_suspected` and
 dropped. {.table}
@@ -454,10 +632,10 @@ makes the rare column a covariate:
 
 ``` r
 
-roles <- set_role(roles, "yield", role = "outcome")
-roles <- set_role(roles, "contact_email", role = "covariate", action = "keep")
-roles <- set_role(roles, "rare_treatment", role = "covariate")
-m <- mask(df, roles, mode = "collaborate", seed = 1L)
+plan <- set_role(plan, "yield", role = "outcome")
+plan <- set_role(plan, "contact_email", role = "covariate", action = "keep")
+plan <- set_role(plan, "rare_treatment", role = "covariate")
+m <- mask(df, plan, mode = "collaborate", seed = 1L)
 #> Warning: audit_mask() flagged HIGH leakage on columns: contact_email, rare_treatment
 knitr::kable(
   audit_mask(m)[, c("col", "leakage_class", "notes")],
@@ -473,7 +651,7 @@ knitr::kable(
 #> 
 #> ── HIGH (2) ──
 #> 
-#> ✖   covariate contact_email                     PII-pattern column name; kept as-is - visible to collaborators
+#> ✖   covariate contact_email                     PII-pattern column name; kept as-is - visible to collaborators; same-row 100.0% vs chance 50.0%
 #> ✖   covariate rare_treatment                    levels aliased; rare level (freq = 1)
 #> 
 #> ── LOW (3) ──
@@ -481,13 +659,18 @@ knitr::kable(
 #> ℹ   design    rep                               exact-match 100.0%
 #> ℹ   treatment variety                           levels aliased
 #> ℹ   outcome   yield                             ok
+#> 
+#> ── Table-level checks ──
+#> 
+#> ℹ   LOW       same-row joint match 0.0% vs chance 0.1% (sd 1.7)
+#> ℹ   LOW       whole-row match 0.0% vs chance 0.5% (sd 1.7)
 ```
 
 | col | leakage_class | notes |
 |:---|:---|:---|
 | rep | low | exact-match 100.0% |
 | variety | low | levels aliased |
-| contact_email | high | PII-pattern column name; kept as-is - visible to collaborators |
+| contact_email | high | PII-pattern column name; kept as-is - visible to collaborators; same-row 100.0% vs chance 50.0% |
 | rare_treatment | high | levels aliased; rare level (freq = 1) |
 | yield | low | ok |
 
@@ -506,11 +689,11 @@ write the synthetic to disk:
 ``` r
 
 out_dir <- tempfile()
-masque(df, roles = roles, out = out_dir, mode = "collaborate", seed = 1L,
+masque(df, roles = plan, out = out_dir, mode = "collaborate", seed = 1L,
        quiet = TRUE)
 #> Warning: audit_mask() flagged HIGH leakage on columns: contact_email, rare_treatment
 #> Error in `.gate_release()`:
-#> ! Write blocked: the audit flagged HIGH leakage on 2 columns.
+#> ! Write blocked: the audit flagged HIGH leakage on 2 findings.
 #> ✖ Flagged: contact_email, rare_treatment.
 #> ℹ Re-role, alias, or drop each flagged column, then mask again.
 #> ℹ Or pass `allow_high = TRUE` to write anyway after your own review - the override is recorded.
@@ -525,6 +708,99 @@ custodian who has reviewed the findings and still wants to proceed can
 pass `allow_high = TRUE`; the override is itself raised as a classed
 `masque_high_override` warning and recorded in the recipe’s warnings, so
 the exception stays auditable rather than silent.
+
+The audit also checks the table as a whole. Each column is graded on how
+far its row-by-row match with the original exceeds what chance gives,
+and `attr(audit, "joint")` holds table-level checks: rows whose every
+re-simulated column equals the original, and rare combinations of
+retained values. A HIGH table-level finding blocks the writers as a
+column finding does.
+
+An outcome left at `keep` in collaborate mode hands over the real
+responses, so it audits HIGH:
+
+``` r
+
+trial_kept <- data.frame(
+  block = factor(rep(seq_len(4L), each = 6L)),
+  variety = factor(rep(sprintf("V%d", seq_len(6L)), 4L)),
+  height = round(rnorm(24L, 90, 8)),
+  yield = round(rnorm(24L, 5, 1), 2)
+)
+plan_kept <- propose_roles(trial_kept, mode = "collaborate")
+plan_kept <- set_role(plan_kept, "yield", role = "outcome", action = "keep")
+m_kept <- mask(trial_kept, plan_kept, mode = "collaborate", seed = 1L)
+#> Warning: audit_mask() flagged HIGH leakage on column: yield
+knitr::kable(
+  audit_mask(m_kept, print = FALSE)[col == "yield", c("col", "leakage_class")],
+  caption = "A kept outcome in a collaborate clone."
+)
+```
+
+| col   | leakage_class |
+|:------|:--------------|
+| yield | high          |
+
+A kept outcome in a collaborate clone. {.table}
+
+If the custodian has decided the real outcome may be shared, passing
+`allow_kept_outcome = TRUE` grades the column medium and records the
+choice on the recipe:
+
+``` r
+
+m_allowed <- mask(trial_kept, plan_kept, mode = "collaborate", seed = 1L,
+                  allow_kept_outcome = TRUE)
+knitr::kable(
+  audit_mask(m_allowed, print = FALSE)[
+    col == "yield", c("col", "leakage_class")
+  ],
+  caption = "The same outcome, allowed by the custodian."
+)
+```
+
+| col   | leakage_class |
+|:------|:--------------|
+| yield | medium        |
+
+The same outcome, allowed by the custodian. {.table}
+
+``` r
+
+recipe(m_allowed)@allow_kept_outcome
+#> [1] TRUE
+```
+
+The table-level checks still apply. When the kept outcome is the only
+column that would otherwise be re-simulated, the clone matches the
+original row for row, the whole-row check stays HIGH, and the writers
+stay blocked.
+
+### Small tables
+
+Re-simulating a column of a few rows returns the original values in a
+new order. Collaborate mode therefore refuses a table of fewer than five
+rows when any column would be re-simulated:
+
+``` r
+
+tiny <- trial_kept[1:4, c("block", "yield")]
+mask(tiny, propose_roles(tiny, mode = "collaborate"), mode = "collaborate",
+     seed = 1L)
+#> Error in `.check_row_floor()`:
+#> ! `df` has 4 rows, fewer than 5, and yield would be re-simulated.
+#> ✖ A re-simulated column this short is the original values resampled, so a collaborate clone would
+#>   disclose them.
+#> ℹ Keep, alias or drop that column, or mask a table of at least 5 rows.
+```
+
+Local mode warns instead. Kept, aliased and dropped columns are not
+re-simulated, so a short lookup table of site codes masks in either
+mode. Five rows is a floor, not a guarantee. A column of a few dozen
+rows still carries values close to the real ones, and jitter within a
+measurement step does little to hide them. The same applies to small
+strata of a conditional clone, which is why its cells hold at least five
+rows.
 
 Beyond that gate the release decision stays with the custodian. Whether
 a synthetic table is appropriate for a given collaborator, environment,
@@ -543,20 +819,32 @@ regardless of masking).
 ``` r
 
 set_dir <- system.file("extdata", "met_set", package = "masque")
-ms <- mask_set(set_dir, mode = "collaborate", seed = 1L, quiet = TRUE)
-#> Warning: Numeric environment column year remains "keep" in collaborate mode.
-#> ℹ This preserves environment structure but may disclose year or other numeric labels; review before
-#>   release.
+tabs <- read_set(set_dir)
+tabs$agronomy[, year := factor(year)]
+ms <- mask_set(tabs, mode = "collaborate", seed = 1L, quiet = TRUE)
 ag <- synthetic(ms)$agronomy
 qa <- synthetic(ms)$quality
 join_survives <- setequal(unique(ag$gen), unique(qa$gen))
 join_survives
 #> [1] TRUE
+head(unique(ag$gen), 3L)
+#> [1] "gen_K056" "gen_K048" "gen_K017"
 ```
+
+`year` is converted to a factor first. As a number it would be kept with
+its real values, with a warning, because a numeric environment column
+cannot be aliased. A linked key gets aliases of the form `<col>_K001`,
+such as `gen_K001`, from one map shared by every table.
 
 The recipe bundle is private exactly as a single recipe is;
 [`write_set()`](https://max578.github.io/masque/reference/write_set.md)
 never writes it.
+[`save_recipe()`](https://max578.github.io/masque/reference/save_recipe.md)
+and
+[`read_recipe()`](https://max578.github.io/masque/reference/read_recipe.md)
+keep it as one `.rds` file, `audit_mask(ms)` returns one audit per
+table, and `reveal_maps(recipe(ms), table = "agronomy")` reveals the
+maps of one table.
 
 ### Geographic coordinates
 
@@ -667,7 +955,8 @@ through the copula:
 
 ``` r
 
-m <- mask(df, roles, mode = "collaborate",
+plan <- set_role(plan, c("GPS_S", "GPS_E"), action = "keep")
+m <- mask(df, plan, mode = "collaborate",
           coords = list(list(lat = "GPS_S", lon = "GPS_E", by = "TRIAL")),
           seed = 1L)
 ```
@@ -706,9 +995,14 @@ only marginal fidelity would not notice. The conditional clone keeps it
 (5.14). Neither keeps a non-monotone relationship between two numeric
 columns.
 
+A column constant within a trial stays constant within it, and linked
+event times stay in order with exact pattern counts.
+
 The audit caught both planted problems and the write was refused:
-`dir.exists(out_dir)` is FALSE. Linked tables share one alias map for
-their key, so they still join.
+`dir.exists(out_dir)` is FALSE. A kept outcome audits HIGH unless the
+custodian allows it, and a collaborate table of fewer than five rows is
+refused. Linked tables share one alias map for their key, so they still
+join.
 
 A synthetic clone therefore protects the labels and the raw values
 behind them. It does not hide the design footprint or the level
@@ -748,14 +1042,15 @@ how a pipeline built on the synthetic re-targets to the original.
 `set.seed(1)` is set once for the whole document; the conditional-clone
 fixture reseeds explicitly with `set.seed(42)` and the copula-shape
 fixture with `set.seed(7)`, so both sections are self-contained
-regardless of chunk execution order. Every
+regardless of chunk execution order. The grain fixture reseeds with
+`set.seed(3)` and the events fixture with `set.seed(5)`. Every
 [`mask()`](https://max578.github.io/masque/reference/mask.md)/[`mask_set()`](https://max578.github.io/masque/reference/mask_set.md)/[`jitter_coordinates()`](https://max578.github.io/masque/reference/jitter_coordinates.md)
 call also passes `seed = 1L` explicitly. Package versions follow.
 
 ``` r
 
 sessionInfo()
-#> R version 4.6.1 (2026-06-24)
+#> R version 4.6.2 (2026-10-29)
 #> Platform: x86_64-pc-linux-gnu
 #> Running under: Ubuntu 24.04.5 LTS
 #> 
@@ -775,18 +1070,18 @@ sessionInfo()
 #> [1] stats     graphics  grDevices utils     datasets  methods   base     
 #> 
 #> other attached packages:
-#> [1] masque_0.15.0
+#> [1] masque_0.16.0
 #> 
 #> loaded via a namespace (and not attached):
 #>  [1] vctrs_0.7.3         cli_3.6.6           knitr_1.52          rlang_1.3.0        
 #>  [5] xfun_0.62           otel_0.2.0          textshaping_1.0.5   S7_0.2.2           
 #>  [9] data.table_1.18.6.1 jsonlite_2.0.0      labeling_0.4.3      glue_1.8.1         
 #> [13] htmltools_0.5.9     ragg_1.5.2          sass_0.4.10         scales_1.4.0       
-#> [17] rmarkdown_2.32      grid_4.6.1          evaluate_1.0.5      jquerylib_0.1.4    
-#> [21] fastmap_1.2.0       yaml_2.3.12         lifecycle_1.0.5     compiler_4.6.1     
-#> [25] fs_2.1.0            RColorBrewer_1.1-3  maps_3.4.3          systemfonts_1.3.2  
+#> [17] rmarkdown_2.32      grid_4.6.2          evaluate_1.0.5      jquerylib_0.1.4    
+#> [21] fastmap_1.2.0       yaml_2.3.12         lifecycle_1.0.5     compiler_4.6.2     
+#> [25] fs_2.1.0            RColorBrewer_1.1-3  maps_3.4.4          systemfonts_1.3.2  
 #> [29] farver_2.1.2        digest_0.6.39       viridisLite_0.4.3   R6_2.6.1           
-#> [33] pillar_1.11.1       bslib_0.12.0        withr_3.0.3         tools_4.6.1        
+#> [33] pillar_1.11.1       bslib_0.12.0        withr_3.0.3         tools_4.6.2        
 #> [37] gtable_0.3.6        pkgdown_2.2.1       ggplot2_4.0.3       cachem_1.1.0       
 #> [41] desc_1.4.3
 ```
