@@ -112,8 +112,7 @@ is_aliasable_level_vector <- function(x) {
   is.factor(x) || is.character(x) || is.logical(x)
 }
 
-# Exact character form of numeric values, the key a level map holds them by:
-# the first form that reads back to the same double, hexadecimal as the last.
+# Exact character key of numeric values: the first form that reads back.
 .level_key <- function(x) {
   if (!is.numeric(x)) {
     return(as.character(x))

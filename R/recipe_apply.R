@@ -207,8 +207,7 @@ unmask <- function(x, rec, column = NULL) {
   }
 
   if (is.atomic(x) && is.null(dim(x))) {
-    # Numeric, logical and date input passes through unchanged, except a
-    # numeric treatment the recipe permuted.
+    # Numeric, logical and date input passes through, bar a mapped column.
     numeric_map <- is.numeric(x) && !is.null(column) &&
       column %in% names(rec@level_maps)
     if (!is.character(x) && !is.factor(x) && !numeric_map) {
@@ -352,8 +351,7 @@ unmask <- function(x, rec, column = NULL) {
   }
 }
 
-# Internal: numeric values from their exact keys, in the storage class of
-# `like`.
+# Internal: numeric values from their exact keys, in the class of `like`.
 .numeric_from_key <- function(key, like) {
   num <- suppressWarnings(as.numeric(key))
   if (is.integer(like) || identical(like, "integer")) {

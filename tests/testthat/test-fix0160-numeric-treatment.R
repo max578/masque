@@ -1,9 +1,6 @@
-# A numeric treatment (a dose, an N rate) can be aliased or permuted, and in
-# collaborate mode it is aliased by default, so a dose trial's default clone is
-# not blocked by the audit.
+# A numeric treatment can be aliased or permuted; collaborate aliases it.
 
-# Split plot modelled on agridat::yates.oats: 6 blocks, 3 varieties on whole
-# plots, nitrogen 0 / 0.2 / 0.4 / 0.6 on sub-plots, two missing doses.
+# Split plot after agridat::yates.oats, nitrogen 0-0.6, two missing doses.
 .fx_dose <- function() {
   withr::with_seed(11L, {
     g <- expand.grid(
