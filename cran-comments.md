@@ -24,8 +24,8 @@ multi-table round trip. `NEWS.md` lists them.
 ## Test environments
 
 * Local: macOS (Apple Silicon), R 4.6.1.
-* [TO COMPLETE AFTER CI: GitHub Actions, R-hub and win-builder runs for
-  0.16.0, with the R versions and platforms.]
+* GitHub Actions: Ubuntu (R-devel, R-release, R-oldrel-1), Windows
+  (R-release), macOS (R-release).
 
 ## R CMD check results
 
