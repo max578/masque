@@ -675,10 +675,14 @@ mask <- function(df,
         conditional_report$groups,
         min_stratum = .MIN_STRATUM
       )
+      # Whole-valued columns are rounded in their own storage class; the range
+      # is left alone, since clipping stacks cells on the real extremes.
       for (col in names(x_num_new)) {
         v <- x_num_new[[col]] + shift[, col]
         x_num_new[[col]] <- if (is.integer(x_num[[col]])) {
           as.integer(round(v))
+        } else if (.is_whole_valued(x_num[[col]])) {
+          round(v)
         } else {
           v
         }
