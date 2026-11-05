@@ -1,3 +1,15 @@
+# masque (development version)
+
+## New features
+
+* Known-truth controls. `control_spec()` declares what a control removes and
+  plants; `controls()` derives a null, `n` negative and `n` positive control
+  datasets from any table with a role table, by restricted permutation at
+  the declared unit within declared design strata and a per-level shift in
+  target-SD units; `control_table()` regenerates any of them from its seed.
+  The same spec runs on the clone and, with a private seed, on the
+  original. Vignette "Known-truth controls".
+
 # masque 0.16.0
 
 ## Behaviour changes

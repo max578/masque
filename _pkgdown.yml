@@ -55,6 +55,13 @@ reference:
   contents:
   - audit_mask
 
+- title: Known-truth controls
+  desc: Null, negative and positive control datasets derived from a table by a declared spec.
+  contents:
+  - control_spec
+  - controls
+  - control_table
+
 - title: Geospatial post-processing
   desc: Coarsen or re-anchor synthetic coordinates while keeping them on land and plausible.
   contents:
@@ -73,6 +80,7 @@ articles:
   - recipe_anatomy
   - confidentiality
   - design_preservation
+  - controls
 
 navbar:
   structure:
