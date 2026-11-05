@@ -110,6 +110,7 @@ test_that("a recipe without the value fingerprint still applies", {
 })
 
 test_that("the fingerprint stays with the owner", {
+  skip_if_not_installed("yaml")
   f <- integrity_fixture()
   r <- set_role(roles(f$m), "gen", role = "treatment", action = "alias")
   m <- mask(f$d, masque_plan(r, controls = control_spec(on = "gen", strata = "rep", n = 2L, seed = 5L)),

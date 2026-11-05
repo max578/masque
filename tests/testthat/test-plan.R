@@ -388,6 +388,7 @@ test_that("handover runs the release gate", {
 })
 
 test_that("the override note uses the clone's column names", {
+  skip_if_not_installed("yaml")
   d <- .fx_plan_table()
   r <- propose_roles(d, mode = "collaborate", detect = FALSE)
   r <- set_role(r, c("site", "rep", "block"), role = "design", action = "keep")

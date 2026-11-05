@@ -35,8 +35,8 @@ test_that("a recipe draw is the whole digest and holds no integer seed", {
   own <- controls(f$d, clone_plan(m), recipe = recipe(m))
   expect_true(all(is.na(own@seeds)))
   expect_true(all(is.na(own@manifest$seed)))
-  shown <- c(utils::capture.output(print(own)), utils::capture.output(utils::str(own)))
-  expect_false(any(grepl(substr(own@key, 1L, 12L), shown, fixed = TRUE)))
+  expect_false(any(grepl(substr(own@key, 1L, 12L), utils::capture.output(print(own)), fixed = TRUE)))
+  expect_length(utils::capture.output(utils::str(own)), 1L)
   # A key differing in its last digit gives other permutations.
   other <- own
   last <- substr(own@key, 64L, 64L)
