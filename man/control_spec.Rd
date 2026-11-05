@@ -33,14 +33,20 @@ target's standard deviation in the table at hand: a named numeric
 vector (\code{c(G01 = 0.5, G02 = -0.5)}; a level not named shifts by zero),
 or \code{list(sd = s)} to draw one shift per level from a normal
 distribution with standard deviation \code{s}, under the spec's seed, when
-the spec first meets a table. Required with \code{target}.}
+the spec first meets a table. Required with \code{target}. On a whole-valued
+target the shift is rounded, which can change the ratios between levels;
+\code{shift_realised} in \verb{@truth} holds the effect that is in the table, and a
+warning (class \code{masque_control_shape_rounded}) marks a changed shape.}
 
 \item{strata}{Design columns within which \code{on} is permuted, or \code{NULL}
 for no stratification. Every unit of \code{on} must lie within one stratum.
 Prefer complete replicates to incomplete blocks; see \code{\link[=controls]{controls()}}.}
 
 \item{unit}{Design columns within which \code{on} is constant. \code{on} is then
-permuted across those units. \code{NULL} (the default) permutes rows.}
+permuted across those units. \code{NULL} (the default) permutes rows, and in a
+plan picks the finest design column on which \code{on} is constant, if it has
+enough units for a 5 percent level. In the plan's default a coarse column
+is not preferred, since it can be a confounder of \code{on}.}
 
 \item{grain}{A named list giving, for other analysed columns constant
 within a design unit, the unit columns: \code{list(rain = "trial")}. Such a

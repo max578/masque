@@ -43,7 +43,11 @@ most \code{max_km}.}
 displacement that lands in the sea, using \code{\link[maps:map.where]{maps::map.where()}} (requires the
 \code{maps} package). A function \verb{function(lon, lat)} returning a logical vector
 supplies your own test (for example an \code{sf}-based high-resolution
-coastline). \code{FALSE} applies no constraint.}
+coastline). \code{FALSE} applies no constraint. The test conditions the annulus:
+near a coast the accepted directions are the ones on land, so the mean
+displacement points inland and the median distance can move by kilometres,
+while no point falls inside \code{min_km}. A site that cannot reach land is
+missing.}
 
 \item{max_tries}{Maximum re-draws per site before giving up. Default \code{100}.
 A site that cannot be placed on land is set to \code{NA} on both axes, with a
@@ -135,6 +139,11 @@ Rebuilds kept \tab Median recovery error \cr
 }
 
 Seven kept rebuilds fall below the 5 km floor the donut was asked for.
+
+A known region also cuts the annulus. Someone who knows a site lies in a
+square a few times \code{max_km} wide or smaller can discard the part of the
+annulus around the released point that falls outside it, with no second
+release needed.
 
 The remedy is to \strong{reuse the seed}. The same \code{seed} gives a site the same
 displacement in every rebuild, even when rows are shuffled, added or removed,

@@ -125,7 +125,12 @@ stratum keep the stratum columns' main effects the same way, which is
 how a three-replicate variety trial keeps its genotype means. A level
 with a single row is pooled with the other singletons before the fit,
 so no row's own outcome is carried. The terms carried are recorded on
-the recipe as \code{conditioning_shifted}. \code{"levels"}
+the recipe as \code{conditioning_shifted}. The interaction of a dropped column
+with a kept treatment is not carried, so a multi-environment clone can keep
+its genotype and environment means and lose the genotype-by-environment
+pattern. Shrinkage of a shift uses the mean level size, so on unbalanced
+columns the small levels are shrunk less than their own size would give.
+\code{"levels"}
 is the ladder of masque 0.11.1 to 0.12.0: columns are dropped in
 decreasing order of distinct values and a dropped column leaves no
 trace in the clone.}

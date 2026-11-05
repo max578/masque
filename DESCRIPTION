@@ -42,6 +42,7 @@ Suggests:
     ggplot2,
     knitr,
     maps,
+    openssl,
     readxl,
     rmarkdown,
     spelling,

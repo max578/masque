@@ -176,7 +176,7 @@ test_that("the owner's controls take a private seed and the real table", {
   expect_true(any(grepl("private", own@notes)))
   # Source plan and clone plan give the same owner's object.
   own2 <- controls(d, rec@plan, recipe = rec)
-  expect_identical(own2@seeds, own@seeds)
+  expect_identical(control_table(own2, "negative", 1L), control_table(own, "negative", 1L))
   expect_identical(own2@spec@effect, own@spec@effect)
 })
 
@@ -382,7 +382,26 @@ test_that("handover runs the release gate", {
   expect_error(handover(m, out), class = "masque_blocked_write")
   expect_false(dir.exists(out))
   expect_warning(handover(m, out, allow_high = TRUE), class = "masque_high_override")
-  expect_true(any(grepl("HIGH", readLines(file.path(out, "README.txt")))))
+  note <- readLines(file.path(out, "README.txt"))
+  expect_true(any(grepl("HIGH", note) & grepl(.audit_high_cols(m)[1L], note, fixed = TRUE)))
+  expect_error(handover(m, tempfile()), "named in README.txt")
+})
+
+test_that("the override note uses the clone's column names", {
+  d <- .fx_plan_table()
+  r <- propose_roles(d, mode = "collaborate", detect = FALSE)
+  r <- set_role(r, c("site", "rep", "block"), role = "design", action = "keep")
+  r <- set_role(r, "gen", role = "treatment", action = "keep")
+  r <- set_role(r, "yield", role = "outcome", action = "scramble")
+  m <- suppressWarnings(mask(d, r, mode = "collaborate", seed = 1L, quiet = TRUE, alias_names = TRUE))
+  expect_true("gen" %in% .audit_high_cols(m))
+  out <- file.path(withr::local_tempdir(), "pack")
+  suppressWarnings(handover(m, out, allow_high = TRUE))
+  note <- readLines(file.path(out, "README.txt"))
+  line <- note[grepl("HIGH", note)]
+  expect_length(line, 1L)
+  expect_false(grepl("\\bgen\\b", line))
+  expect_true(grepl(recipe(m)@column_name_map[["gen"]], line, fixed = TRUE))
 })
 
 # Faults found in review before the 0.17.0 tag --------------------------------
@@ -612,9 +631,8 @@ test_that("no value the analyst holds rebuilds the owner's seeds", {
     m <- mask(d, masque_plan(.fx_plan_roles(d), controls = .fx_spec()),
               seed = s, quiet = TRUE)
     own <- controls(d, clone_plan(m), recipe = recipe(m))
-    guess <- (as.numeric(s) + 77 + .CONTROL_SALT) %% .Machine$integer.max
-    expect_false(identical(own@seeds, as.integer(.sub_seeds(.sub_seeds(guess, 1L), 5L))))
-    expect_false(any(own@seeds %in% as.integer(.sub_seeds(77L, 5L))))
+    expect_true(all(is.na(own@seeds)))
+    expect_match(own@key, "^[0-9a-f]{64}$")
   }
   # One seed, two recipes: the owner's key differs, the clone does not.
   a <- mask(d, masque_plan(.fx_plan_roles(d), controls = .fx_spec()), seed = 1L, quiet = TRUE)
@@ -624,7 +642,7 @@ test_that("no value the analyst holds rebuilds the owner's seeds", {
   # The same recipe regenerates the owner's controls.
   o1 <- controls(d, clone_plan(a), recipe = recipe(a))
   o2 <- controls(d, clone_plan(a), recipe = recipe(a))
-  expect_identical(o1@seeds, o2@seeds)
+  expect_identical(control_table(o1, "negative", 1L), control_table(o2, "negative", 1L))
   # The key shows in no display route.
   key <- recipe(a)@owner_key
   shown <- c(utils::capture.output(print(recipe(a))), utils::capture.output(utils::str(recipe(a))))

@@ -158,11 +158,13 @@ all.equal(as.numeric(recovered), planted)
 
 The owner runs the pipeline the analyst handed back on the original table,
 and on controls derived from the original with the same spec. One thing
-changes: the permutations are drawn from a private seed, given as `seed`,
-which overrides the spec's seed. The planted vector still comes from the
-spec's seed, so the truth is the same on both sides. A public seed would
-let anyone who knows the design, which the clone shares, rebuild every
-permutation and read the original outcome out of per-replicate results.
+changes: the permutations are drawn privately. Here that is an integer given
+as `seed`, which overrides the spec's seed; the plan route below uses a 256-bit
+key instead. The planted vector still comes from the spec's seed, so the truth
+is the same on both sides. A public seed would let anyone who knows the design,
+which the clone shares, rebuild every permutation and read the original outcome
+out of per-replicate results. An integer has at most 31 bits, so it hides the
+permutations only while nothing per-replicate is released.
 
 ```{r controls-original}
 ctl_owner <- controls(trial, r, spec, seed = 40371L)
@@ -244,8 +246,8 @@ ctl_analyst@spec@strata
 
 The owner passes the same plan with the recipe and the real table. Cleaning is
 replayed, a table that does not match the recipe is refused, a spec changed since
-`mask()` is refused, and the seed is derived from the recipe, so the analyst
-cannot rebuild these permutations.
+`mask()` is refused, and the permutations come from the digest of a key on the
+recipe, with no integer seed to search, so the analyst cannot rebuild them.
 
 ```{r plan-owner}
 ctl_owner_plan <- controls(trial, analyst_plan, recipe = recipe(m_plan))
@@ -278,6 +280,12 @@ identical(ctl_owner_plan@seeds, ctl_analyst@seeds)
   standard deviation within the strata on each side.
 * Nothing is clipped. A negative shift can take a non-negative outcome
   below zero; `control_table()` warns when it does.
+* A negative control sets the size of a test that uses within-stratum
+  contrasts, so fit the strata. On this design, with replicate strata, `yield ~
+  rep + gen` rejects near 5 percent and `yield ~ gen` rejects almost never,
+  because the replicate variance stays in its residual. A shared rate on both
+  sides is agreement between them, and zero on both says nothing about
+  calibration.
 * The null collapses the design means of row-level outcomes, so a mixed
   model sees a different variance structure. Calibrate false positives on
   the negative control, not on the null.

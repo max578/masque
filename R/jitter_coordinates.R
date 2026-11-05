@@ -68,6 +68,11 @@
 #'
 #' Seven kept rebuilds fall below the 5 km floor the donut was asked for.
 #'
+#' A known region also cuts the annulus. Someone who knows a site lies in a
+#' square a few times `max_km` wide or smaller can discard the part of the
+#' annulus around the released point that falls outside it, with no second
+#' release needed.
+#'
 #' The remedy is to **reuse the seed**. The same `seed` gives a site the same
 #' displacement in every rebuild, even when rows are shuffled, added or removed,
 #' so any number of rebuilds yields one point and nothing to average. Three
@@ -117,7 +122,11 @@
 #'   displacement that lands in the sea, using [maps::map.where()] (requires the
 #'   `maps` package). A function `function(lon, lat)` returning a logical vector
 #'   supplies your own test (for example an `sf`-based high-resolution
-#'   coastline). `FALSE` applies no constraint.
+#'   coastline). `FALSE` applies no constraint. The test conditions the annulus:
+#'   near a coast the accepted directions are the ones on land, so the mean
+#'   displacement points inland and the median distance can move by kilometres,
+#'   while no point falls inside `min_km`. A site that cannot reach land is
+#'   missing.
 #' @param max_tries Maximum re-draws per site before giving up. Default `100`.
 #'   A site that cannot be placed on land is set to `NA` on both axes, with a
 #'   warning: masque never emits the true coordinate as though it were masked.

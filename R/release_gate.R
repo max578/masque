@@ -92,7 +92,8 @@
 
 # Gate a package-managed write: abort ("masque_blocked_write") on unresolved
 # HIGH findings, or warn ("masque_high_override") under `allow_high = TRUE`.
-.gate_release <- function(m, allow_high = FALSE) {
+.gate_release <- function(m, allow_high = FALSE,
+                          record = "the override is recorded on the recipe") {
   high <- if (identical(m@mode, "collaborate")) {
     .audit_high_cols(m)
   } else {
@@ -113,7 +114,7 @@
         i = "Re-role, alias, or drop each flagged column, then mask again.",
         i = paste0(
           "Or pass `allow_high = TRUE` to write anyway after your own ",
-          "review - the override is recorded."
+          "review - {record}."
         )
       ),
       class = "masque_blocked_write"

@@ -323,11 +323,14 @@ local(S7::method(print, .plan_class) <- function(x, ...) {
   stats::setNames(unname(draw[clone]), levels)
 }
 
-# Coarsest design column, then pair of columns, within which `on` is constant.
-# A row alone is constant by construction, so a quarter of the rows must share
-# a unit for the constancy to mean anything.
+# Finest design column, then pair of columns, within which `on` is constant. A
+# coarse column of this kind can be a confounder. A row alone is constant by
+# construction, so a quarter of the rows must share a unit for the constancy to
+# mean anything. A column whose units cannot reach a 5 percent level is passed
+# over, and the unit falls to the row with a warning when nothing else remains.
 .default_control_unit <- function(df, on, design) {
   n <- nrow(df)
+  too_few <- character()
   sets <- c(as.list(design), if (length(design) >= 2L) {
     utils::combn(design, 2L, simplify = FALSE)
   })
@@ -337,11 +340,27 @@ local(S7::method(print, .plan_class) <- function(x, ...) {
       id <- as.integer(.unit_id(df, s))
       sizes <- tabulate(id)
       shared <- sum(sizes[sizes >= 2L])
-      if (shared >= n / 4 && .constant_within(id, df[[on]])) max(id) else NA_integer_
+      if (shared < n / 4 || !.constant_within(id, df[[on]])) {
+        return(NA_integer_)
+      }
+      if (!.level_attainable(id, df[[on]], rep(1L, n))) {
+        too_few <<- c(too_few, paste(s, collapse = " + "))
+        return(NA_integer_)
+      }
+      max(id)
     }, integer(1L))
     if (any(!is.na(n_units))) {
-      return(pick[[which.min(n_units)]])
+      return(pick[[which.max(n_units)]])
     }
+  }
+  if (length(too_few)) {
+    warning(warningCondition(
+      sprintf(
+        "`%s` is constant within %s, which has too few units for a 5 percent randomisation level. The default unit is the row; name a `unit` to choose otherwise.",
+        on, paste(too_few, collapse = ", ")
+      ),
+      class = "masque_control_unit_small"
+    ))
   }
   character()
 }
@@ -500,12 +519,27 @@ clone_plan <- function(m) {
 # Offset that roots a drawn effect away from the spec's seed.
 .CONTROL_SALT <- 15485863L
 
-# Not from the R stream: a seeded mask() must not determine it.
+# 256 bits from the operating system, or NULL where neither source exists.
+.system_entropy <- function() {
+  if (file.exists("/dev/urandom")) {
+    con <- file("/dev/urandom", "rb", raw = TRUE)
+    on.exit(close(con))
+    return(readBin(con, "raw", 32L))
+  }
+  if (requireNamespace("openssl", quietly = TRUE)) {
+    return(openssl::rand_bytes(32L))
+  }
+  NULL
+}
+
+# Not from the R stream: a seeded mask() must not determine it. Time, process
+# id and a temporary name can be enumerated, so they do not serve as a key.
 .new_owner_key <- function() {
-  digest::digest(
-    list(Sys.time(), Sys.getpid(), tempfile()),
-    algo = "sha256"
-  )
+  bytes <- .system_entropy()
+  if (is.null(bytes)) {
+    return(character())
+  }
+  paste(as.character(bytes), collapse = "")
 }
 
 # Arguments of controls() from a plan, on either side of the boundary.
@@ -527,6 +561,7 @@ clone_plan <- function(m) {
       spec = picked$spec,
       events = if (is.null(events) && length(plan@events)) plan@events else events,
       seed = seed,
+      key = character(),
       notes = character()
     ))
   }
@@ -539,6 +574,7 @@ clone_plan <- function(m) {
     picked$spec
   }
   .check_spec_as_declared(source_spec, picked$name, recipe)
+  draw <- .control_source_draw(.prop_or(recipe, "owner_key", character()), source_spec@seed, seed)
   list(
     df = .controls_replay_source(df, recipe),
     roles = as.data.frame(recipe@roles),
@@ -548,7 +584,8 @@ clone_plan <- function(m) {
     } else {
       events
     },
-    seed = .control_source_seed(.prop_or(recipe, "owner_key", character()), source_spec@seed, seed),
+    seed = draw$seed,
+    key = draw$key,
     notes = "Source side: the seed is private. Release aggregates only."
   )
 }
@@ -642,7 +679,9 @@ clone_plan <- function(m) {
   df
 }
 
-.control_source_seed <- function(owner_key, spec_seed, seed) {
+# The owner's draw: an explicit integer seed, or the whole digest of the
+# recipe's key. An integer can be searched against a released statistic.
+.control_source_draw <- function(owner_key, spec_seed, seed) {
   if (!is.null(seed)) {
     .check_seed(seed)
     if (as.integer(seed) == spec_seed) {
@@ -651,16 +690,18 @@ clone_plan <- function(m) {
         "seed"
       )
     }
-    return(as.integer(seed))
+    return(list(seed = as.integer(seed), key = character()))
   }
   if (!length(owner_key)) {
     .control_refuse(
-      "This recipe was masked without a plan, so it holds no key to derive a private seed from. Pass a private `seed`.",
+      "This recipe holds no key: it was masked without a plan, or where no system random source was available. Pass a private `seed`.",
       "seed"
     )
   }
-  h <- digest::digest(paste(owner_key, spec_seed), algo = "sha256", serialize = FALSE)
-  strtoi(substr(h, 1L, 7L), 16L)
+  list(
+    seed = NULL,
+    key = digest::digest(paste(owner_key, spec_seed), algo = "sha256", serialize = FALSE)
+  )
 }
 
 # YAML ------------------------------------------------------------------------
@@ -890,7 +931,7 @@ handover <- function(m, dir, name = NULL, overwrite = FALSE, allow_high = FALSE,
       class = c("masque_handover_local_refusal", "orchestra_refusal")
     )
   }
-  high <- .gate_release(m, allow_high)
+  high <- .gate_release(m, allow_high, "the findings are named in README.txt")
   if (dir.exists(dir) && length(list.files(dir, all.files = TRUE, no.. = TRUE)) &&
     !isTRUE(overwrite)) {
     cli::cli_abort(
@@ -907,11 +948,16 @@ handover <- function(m, dir, name = NULL, overwrite = FALSE, allow_high = FALSE,
   data.table::fwrite(m@synthetic, paths[1L])
   save_plan(clone_plan(m), paths[2L])
   data_card(m, file = paths[3L], name = name)
-  writeLines(.handover_note(m, length(high)), paths[4L])
+  writeLines(.handover_note(m, high), paths[4L])
   invisible(paths)
 }
 
-.handover_note <- function(m, n_high) {
+# Finding names in the clone's vocabulary: the note goes to the analyst.
+.handover_high_names <- function(m, high) {
+  .plan_col_translator(m@recipe, "clone")(high)
+}
+
+.handover_note <- function(m, high) {
   plan <- clone_plan(m)
   r <- plan@roles
   kept <- r$col[r$role == "outcome" & r$action == "keep"]
@@ -939,10 +985,10 @@ handover <- function(m, dir, name = NULL, overwrite = FALSE, allow_high = FALSE,
         "known-truth controls."
       )
     },
-    if (n_high > 0L) {
+    if (length(high)) {
       sprintf(
-        "The owner released this clone after reviewing HIGH leakage findings: %d.",
-        n_high
+        "The owner released this clone after reviewing HIGH leakage findings on: %s.",
+        paste(.handover_high_names(m, high), collapse = ", ")
       )
     }
   )

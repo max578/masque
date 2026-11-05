@@ -18,6 +18,8 @@ masque_controls <- S7::new_class(
     roles = S7::class_data.frame,
     spec = masque_control_spec,
     seeds = S7::class_integer,
+    # The owner's digest key; when set, `seeds` is NA and no integer is used.
+    key = S7::new_property(class = S7::class_character, default = character()),
     analysed = S7::class_character,
     events = S7::class_list,
     strata_id = S7::class_integer,
@@ -67,13 +69,21 @@ masque_controls <- S7::new_class(
 #'
 #' @section Two sides, two seeds:
 #' An analyst who holds only the clone runs this on the clone. The owner
-#' runs it on the original, offline, with a private `seed` that overrides
-#' the spec's seed for the permutations (the planted vector still comes
-#' from the spec's seed). A public seed would let anyone who knows the
-#' design, which the clone shares, rebuild every permutation and read the
-#' original outcome out of per-replicate statistics. Control tables built
-#' from an original never leave the owner; what leaves is an aggregate
-#' verdict about the pipeline, through the owner's usual output checking.
+#' runs it on the original, offline, on a private draw (the planted vector
+#' still comes from the spec's seed). A public seed would let anyone who knows
+#' the design, which the clone shares, rebuild every permutation and read the
+#' original outcome out of per-replicate statistics.
+#'
+#' With a plan and its `recipe`, the permutations come from SHA-256 of a
+#' 256-bit key the recipe holds, so there is no seed to search. A private
+#' integer `seed` is the weaker route: it has at most 31 bits, and anyone given
+#' a per-replicate statistic can try each value, because the true seed fits the
+#' statistic exactly and a wrong one does not.
+#'
+#' Control tables built from an original never leave the owner. What leaves is
+#' the false-positive rate, the power and one permutation p-value, through the
+#' owner's usual output checking. A vector of per-replicate means or contrasts
+#' is not an aggregate, under either route.
 #'
 #' @section Limits:
 #' A kept column is structure and is never permuted, so leakage through
@@ -83,6 +93,16 @@ masque_controls <- S7::new_class(
 #' zero; [control_table()] warns when it does. The null collapses the
 #' design means of row-grained outcomes, so false-positive calibration
 #' comes from the negative control, not the null.
+#'
+#' A negative control is a test of the stated size for a comparison that uses
+#' only contrasts within the strata, so the analysis needs the strata in its
+#' model. Permuting within replicates and fitting no replicate term puts the
+#' replicate variance in the residual and rejects far less often than the
+#' nominal level. A shared rate on the clone and the original shows that the two
+#' agree, and a rate of zero on both says nothing about calibration. A warning
+#' (class `masque_control_unit_small`) marks units and strata with too few
+#' arrangements for a 5 percent level, and another (class
+#' `masque_control_strata_weak`) marks strata that hold one level of `on`.
 #'
 #' @param df The table to derive controls from: a data frame or data.table.
 #' @param roles Its role table, as returned by [roles()] for a clone or by
@@ -94,13 +114,14 @@ masque_controls <- S7::new_class(
 #' @param events Linked time/status pairs among the outcome columns, in the
 #'   form [mask()] takes. The null permutes each pair as one block. `NULL`
 #'   when there are none.
-#' @param seed A private seed for the permutations that overrides the
+#' @param seed A private integer seed for the permutations that overrides the
 #'   spec's seed, for the owner's side; `NULL` uses the spec's seed, or with a
-#'   `recipe` a private seed derived from the recipe's. A value equal to the
-#'   spec's seed is refused there.
+#'   `recipe` the recipe's key. A value equal to the spec's seed is refused
+#'   there. See "Two sides, two seeds" for what an integer can and cannot hide.
 #' @param recipe With a plan in `roles`, the recipe of the clone. `df` is then
 #'   the real table: its cleaning and conformance are replayed as in
-#'   [apply_recipe()], a table with a different schema or NA mask is refused,
+#'   [apply_recipe()], a table with a different schema, NA mask or values is
+#'   refused,
 #'   and a spec that differs from the one fixed at [mask()] is refused.
 #'
 #' @returns A `masque_controls` object: the resolved spec (`@spec`), the
@@ -130,6 +151,7 @@ controls <- function(df, roles, spec = NULL, events = NULL, seed = NULL,
                      recipe = NULL) {
   withr::local_preserve_seed()
   plan_notes <- character()
+  key <- character()
   if (S7::S7_inherits(roles, .plan_class)) {
     from_plan <- .controls_from_plan(df, roles, spec, events, seed, recipe)
     df <- from_plan$df
@@ -137,6 +159,7 @@ controls <- function(df, roles, spec = NULL, events = NULL, seed = NULL,
     spec <- from_plan$spec
     events <- from_plan$events
     seed <- from_plan$seed
+    key <- from_plan$key
     plan_notes <- from_plan$notes
   } else if (!is.null(recipe)) {
     .control_refuse("`recipe` goes with a plan in `roles`: {.code controls(real, plan, recipe = rec)}.", "recipe")
@@ -155,12 +178,17 @@ controls <- function(df, roles, spec = NULL, events = NULL, seed = NULL,
   .check_control_target_events(res$spec, events)
 
   # Seeds: one for the null, one per replicate -----------------------------
-  run_seed <- if (is.null(seed)) spec@seed else as.integer(seed)
-  seeds <- as.integer(.sub_seeds(run_seed, res$spec@n + 1L))
+  seeds <- if (length(key)) {
+    rep(NA_integer_, res$spec@n + 1L)
+  } else {
+    as.integer(.sub_seeds(
+      if (is.null(seed)) spec@seed else as.integer(seed), res$spec@n + 1L
+    ))
+  }
 
   manifest <- .control_manifest(res, seeds)
   # A manifest is what the owner reads before a release: no private seed in it.
-  if (!is.null(seed)) {
+  if (!is.null(seed) || length(key)) {
     manifest$seed <- NA_integer_
   }
   masque_controls(
@@ -168,6 +196,7 @@ controls <- function(df, roles, spec = NULL, events = NULL, seed = NULL,
     roles = .as_owned_dt(roles),
     spec = res$spec,
     seeds = seeds,
+    key = key,
     analysed = res$analysed,
     events = events,
     strata_id = res$strata_id,
@@ -223,10 +252,14 @@ control_table <- function(ctl, kind = c("null", "negative", "positive"), i = 1L)
   }
 
   out <- data.table::copy(ctl@table)
-  if (identical(kind, "null")) {
-    with_rng_state(ctl@seeds[1L], .permute_analysed(out, ctl))
+  stream <- if (identical(kind, "null")) 0L else i
+  permute <- if (identical(kind, "null")) .permute_analysed else .permute_on
+  if (length(ctl@key)) {
+    permute(out, ctl, .keyed_draw(ctl@key, stream))
   } else {
-    with_rng_state(ctl@seeds[1L + i], .permute_on(out, ctl))
+    with_rng_state(ctl@seeds[1L + stream], permute(out, ctl, sample.int))
+  }
+  if (!identical(kind, "null")) {
     if (identical(kind, "positive")) {
       .plant_effect(out, ctl)
     }
@@ -309,13 +342,22 @@ control_table <- function(ctl, kind = c("null", "negative", "positive"), i = 1L)
       "degenerate"
     )
   }
-  if (constant_share > 0.5) {
+  if (constant_share > 0.1) {
     warning(warningCondition(
       sprintf(
-        "`on` (%s) is constant within %.0f%% of the strata; the negative control permutes little.",
+        "`on` (%s) is constant within %.0f%% of the strata; the negative control does not permute those strata, and a model that ignores them can reject on every replicate.",
         on, 100 * constant_share
       ),
       class = "masque_control_strata_weak"
+    ))
+  }
+  if (!.level_attainable(unit_id, df[[on]], strata_id)) {
+    warning(warningCondition(
+      sprintf(
+        "`on` (%s) has too few distinct arrangements across its units and strata for a 5 percent randomisation level, so a rejection rate on the negative controls cannot read as a test size.",
+        on
+      ),
+      class = "masque_control_unit_small"
     ))
   }
 
@@ -541,6 +583,17 @@ control_table <- function(ctl, kind = c("null", "negative", "positive"), i = 1L)
     shift_raw <- unname(effect) * sd_y
     shift_realised <- if (whole) round(shift_raw) else shift_raw
     vanished <- whole & effect != 0 & shift_realised == 0
+    if (whole && !any(vanished) && any(shift_raw != 0) && max(abs(
+      shift_realised / sum(abs(shift_realised)) - shift_raw / sum(abs(shift_raw))
+    )) > 0.1) {
+      warning(warningCondition(
+        sprintf(
+          "On the whole-valued target %s, rounding changes the shape of the declared effect. `shift_realised` in `@truth` holds the effect that is in the table.",
+          tg
+        ),
+        class = "masque_control_shape_rounded"
+      ))
+    }
     if (any(vanished)) {
       .control_refuse(
         c(
@@ -591,10 +644,53 @@ control_table <- function(ctl, kind = c("null", "negative", "positive"), i = 1L)
 
 # Permutation ---------------------------------------------------------------
 
+# Can a permutation of `on` across units within strata reach a 5 percent level?
+# True when it has at least 20 arrangements; swapping the labels of equal-sized
+# levels with no strata gives the same partition, so those count once.
+.level_attainable <- function(unit_id, on_val, strata_id) {
+  keep <- !is.na(on_val) & !duplicated(unit_id)
+  val <- as.character(on_val[keep])
+  log_n <- sum(vapply(split(val, strata_id[keep]), function(v) {
+    lfactorial(length(v)) - sum(lfactorial(table(v)))
+  }, numeric(1L)))
+  if (length(unique(strata_id[keep])) == 1L) {
+    log_n <- log_n - sum(lfactorial(table(table(val))))
+  }
+  log_n >= log(20) - 1e-8
+}
+
+# One permutation of 1:n by Fisher-Yates, its uniforms taken from SHA-256 of
+# the label and a counter, so the key is the whole digest and not an R seed.
+.keyed_perm <- function(label, n) {
+  perm <- seq_len(n)
+  if (n < 2L) {
+    return(perm)
+  }
+  hash <- digest::getVDigest("sha256")
+  h <- hash(paste(label, seq_len(n - 1L), sep = "\r"), serialize = FALSE)
+  u <- (strtoi(substr(h, 1L, 6L), 16L) * 16^7 + strtoi(substr(h, 7L, 13L), 16L) + 0.5) / 16^13
+  for (i in n:2L) {
+    j <- 1L + as.integer(floor(u[i - 1L] * i))
+    held <- perm[i]
+    perm[i] <- perm[j]
+    perm[j] <- held
+  }
+  perm
+}
+
+# A drawing function for one dataset: successive calls take successive labels.
+.keyed_draw <- function(key, stream) {
+  calls <- 0L
+  function(n) {
+    calls <<- calls + 1L
+    .keyed_perm(paste(key, stream, calls, sep = "\r"), n)
+  }
+}
+
 # Permute the non-missing values of `x` across units within strata; an
 # all-missing unit stays missing. With `unit_id = seq_along(x)` it is a row
 # permutation.
-.permute_within <- function(x, unit_id, strata_id) {
+.permute_within <- function(x, unit_id, strata_id, draw = sample.int) {
   obs <- which(!is.na(x))
   if (length(obs) < 2L) {
     return(x)
@@ -605,7 +701,7 @@ control_table <- function(ctl, kind = c("null", "negative", "positive"), i = 1L)
   groups <- split(seq_along(u_obs), strata_id[first])
   perm <- integer(length(u_obs))
   for (g in groups) {
-    perm[g] <- g[sample.int(length(g))]
+    perm[g] <- g[draw(length(g))]
   }
   new_val <- u_val[perm]
   out <- x
@@ -615,7 +711,7 @@ control_table <- function(ctl, kind = c("null", "negative", "positive"), i = 1L)
 
 # The null: every analysed column on its own draw, at its grain, no strata;
 # a linked-event pair moves as one row block.
-.permute_analysed <- function(out, ctl) {
+.permute_analysed <- function(out, ctl, draw) {
   n <- nrow(out)
   rows <- seq_len(n)
   none <- rep(1L, n)
@@ -625,10 +721,10 @@ control_table <- function(ctl, kind = c("null", "negative", "positive"), i = 1L)
     if (is.null(uid)) {
       uid <- rows
     }
-    data.table::set(out, j = cl, value = .permute_within(out[[cl]], uid, none))
+    data.table::set(out, j = cl, value = .permute_within(out[[cl]], uid, none, draw))
   }
   for (e in ctl@events) {
-    perm <- .permute_within(rows, rows, none)
+    perm <- .permute_within(rows, rows, none, draw)
     for (cl in c(e$time, e$status)) {
       data.table::set(out, j = cl, value = out[[cl]][perm])
     }
@@ -637,12 +733,12 @@ control_table <- function(ctl, kind = c("null", "negative", "positive"), i = 1L)
 }
 
 # The negative: `on` alone, within strata, at its unit.
-.permute_on <- function(out, ctl) {
+.permute_on <- function(out, ctl, draw) {
   on <- ctl@spec@on
   data.table::set(
     out,
     j = on,
-    value = .permute_within(out[[on]], ctl@unit_id, ctl@strata_id)
+    value = .permute_within(out[[on]], ctl@unit_id, ctl@strata_id, draw)
   )
   invisible(out)
 }

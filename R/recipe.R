@@ -101,6 +101,8 @@ masque_recipe <- S7::new_class(
     warnings = S7::new_property(
       class = S7::class_character, default = character()
     ),
+    # A fingerprint of the values, beside the NA mask's. Absent before 0.17.0.
+    content_fp = S7::new_property(class = S7::class_list, default = list()),
     integrity_fp = S7::class_character
   )
 )

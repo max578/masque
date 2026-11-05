@@ -21,14 +21,15 @@ its specs, or \code{NULL} when it holds exactly one.}
 form \code{\link[=mask]{mask()}} takes. The null permutes each pair as one block. \code{NULL}
 when there are none.}
 
-\item{seed}{A private seed for the permutations that overrides the
+\item{seed}{A private integer seed for the permutations that overrides the
 spec's seed, for the owner's side; \code{NULL} uses the spec's seed, or with a
-\code{recipe} a private seed derived from the recipe's. A value equal to the
-spec's seed is refused there.}
+\code{recipe} the recipe's key. A value equal to the spec's seed is refused
+there. See "Two sides, two seeds" for what an integer can and cannot hide.}
 
 \item{recipe}{With a plan in \code{roles}, the recipe of the clone. \code{df} is then
 the real table: its cleaning and conformance are replayed as in
-\code{\link[=apply_recipe]{apply_recipe()}}, a table with a different schema or NA mask is refused,
+\code{\link[=apply_recipe]{apply_recipe()}}, a table with a different schema, NA mask or values is
+refused,
 and a spec that differs from the one fixed at \code{\link[=mask]{mask()}} is refused.}
 }
 \value{
@@ -77,13 +78,21 @@ and the truth table are on the returned object and in its print.
 \section{Two sides, two seeds}{
 
 An analyst who holds only the clone runs this on the clone. The owner
-runs it on the original, offline, with a private \code{seed} that overrides
-the spec's seed for the permutations (the planted vector still comes
-from the spec's seed). A public seed would let anyone who knows the
-design, which the clone shares, rebuild every permutation and read the
-original outcome out of per-replicate statistics. Control tables built
-from an original never leave the owner; what leaves is an aggregate
-verdict about the pipeline, through the owner's usual output checking.
+runs it on the original, offline, on a private draw (the planted vector
+still comes from the spec's seed). A public seed would let anyone who knows
+the design, which the clone shares, rebuild every permutation and read the
+original outcome out of per-replicate statistics.
+
+With a plan and its \code{recipe}, the permutations come from SHA-256 of a
+256-bit key the recipe holds, so there is no seed to search. A private
+integer \code{seed} is the weaker route: it has at most 31 bits, and anyone given
+a per-replicate statistic can try each value, because the true seed fits the
+statistic exactly and a wrong one does not.
+
+Control tables built from an original never leave the owner. What leaves is
+the false-positive rate, the power and one permutation p-value, through the
+owner's usual output checking. A vector of per-replicate means or contrasts
+is not an aggregate, under either route.
 }
 
 \section{Limits}{
@@ -95,6 +104,16 @@ Nothing is clipped, so a shift can take a non-negative outcome below
 zero; \code{\link[=control_table]{control_table()}} warns when it does. The null collapses the
 design means of row-grained outcomes, so false-positive calibration
 comes from the negative control, not the null.
+
+A negative control is a test of the stated size for a comparison that uses
+only contrasts within the strata, so the analysis needs the strata in its
+model. Permuting within replicates and fitting no replicate term puts the
+replicate variance in the residual and rejects far less often than the
+nominal level. A shared rate on the clone and the original shows that the two
+agree, and a rate of zero on both says nothing about calibration. A warning
+(class \code{masque_control_unit_small}) marks units and strata with too few
+arrangements for a 5 percent level, and another (class
+\code{masque_control_strata_weak}) marks strata that hold one level of \code{on}.
 }
 
 \examples{

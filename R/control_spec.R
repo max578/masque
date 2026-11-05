@@ -62,12 +62,18 @@ masque_control_spec <- S7::new_class(
 #'   vector (`c(G01 = 0.5, G02 = -0.5)`; a level not named shifts by zero),
 #'   or `list(sd = s)` to draw one shift per level from a normal
 #'   distribution with standard deviation `s`, under the spec's seed, when
-#'   the spec first meets a table. Required with `target`.
+#'   the spec first meets a table. Required with `target`. On a whole-valued
+#'   target the shift is rounded, which can change the ratios between levels;
+#'   `shift_realised` in `@truth` holds the effect that is in the table, and a
+#'   warning (class `masque_control_shape_rounded`) marks a changed shape.
 #' @param strata Design columns within which `on` is permuted, or `NULL`
 #'   for no stratification. Every unit of `on` must lie within one stratum.
 #'   Prefer complete replicates to incomplete blocks; see [controls()].
 #' @param unit Design columns within which `on` is constant. `on` is then
-#'   permuted across those units. `NULL` (the default) permutes rows.
+#'   permuted across those units. `NULL` (the default) permutes rows, and in a
+#'   plan picks the finest design column on which `on` is constant, if it has
+#'   enough units for a 5 percent level. In the plan's default a coarse column
+#'   is not preferred, since it can be a confounder of `on`.
 #' @param grain A named list giving, for other analysed columns constant
 #'   within a design unit, the unit columns: `list(rain = "trial")`. Such a
 #'   column is permuted across its units in the null control, so it stays
@@ -161,7 +167,7 @@ control_spec <- function(
 
 # `NULL` or a character vector of design column names.
 .check_control_cols <- function(x, arg) {
-  if (is.null(x)) {
+  if (!length(x)) {
     return(character())
   }
   .check_control_names(x, arg, single = FALSE)

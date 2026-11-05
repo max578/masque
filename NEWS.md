@@ -23,7 +23,26 @@
   correlated 0.99 with the original at its rows, and the audit said low. Conditional
   clones with such a column change. Levels of three or four rows still carry a
   shift, since real alpha blocks are that small, and the audit grades them.
-* A private `seed` in `controls()` no longer appears in the manifest.
+* A private `seed` in `controls()` no longer appears in the manifest. With a
+  plan and its recipe, the owner's permutations now come from SHA-256 of a
+  256-bit key from the system's random source, because a derived integer seed
+  could be searched against a per-replicate statistic. A private integer `seed`
+  keeps its 31 bits. Release the false-positive rate, the power and one
+  permutation p-value, and nothing computed from a single replicate.
+* `apply_recipe()` and `controls()` with a recipe now refuse a table whose values
+  differ from those the recipe was built on, not only its NA mask. Numbers match
+  within what a file at 15 digits changes.
+* In a plan, the default control unit is the finest design column on which `on`
+  is constant, not the coarsest, which can be a confounder. A column with too few
+  units for a 5 percent level is passed over with a warning.
+* A warning now marks a unit and strata with too few arrangements for a 5 percent
+  level (`masque_control_unit_small`), strata holding one level of `on` above 10
+  percent rather than 50 (`masque_control_strata_weak`), and a whole-valued
+  target whose rounding changes the declared shape
+  (`masque_control_shape_rounded`).
+* `handover(allow_high = TRUE)` names the overridden findings in `README.txt`.
+  The refusal text now says what each writer records: only `masque()` writes to
+  the recipe.
 * The averaged-row figure in `?jitter_coordinates` is corrected to 0.64 km for
   360 rows.
 * masque needs digest 0.6.21 or later.

@@ -140,7 +140,12 @@
 #'   how a three-replicate variety trial keeps its genotype means. A level
 #'   with a single row is pooled with the other singletons before the fit,
 #'   so no row's own outcome is carried. The terms carried are recorded on
-#'   the recipe as `conditioning_shifted`. `"levels"`
+#'   the recipe as `conditioning_shifted`. The interaction of a dropped column
+#'   with a kept treatment is not carried, so a multi-environment clone can keep
+#'   its genotype and environment means and lose the genotype-by-environment
+#'   pattern. Shrinkage of a shift uses the mean level size, so on unbalanced
+#'   columns the small levels are shrunk less than their own size would give.
+#'   `"levels"`
 #'   is the ladder of masque 0.11.1 to 0.12.0: columns are dropped in
 #'   decreasing order of distinct values and a dropped column leaves no
 #'   trace in the clone.
@@ -675,10 +680,17 @@ mask <- function(df,
     allow_unmasked_coords = isTRUE(allow_unmasked_coords),
     allow_kept_outcome = allow_kept_outcome,
     warnings          = warnings_acc,
+    content_fp        = .content_fingerprint(df),
     integrity_fp      = digest::digest(is.na(df), algo = "sha256")
   )
   if (!is.null(plan)) {
     rec@owner_key <- .new_owner_key()
+    if (!length(rec@owner_key)) {
+      warning(warningCondition(
+        "No system random source was found, so this recipe holds no key for the owner's controls. Install openssl, or pass a private `seed` to controls().",
+        class = "masque_owner_key_unavailable"
+      ))
+    }
     rec@plan <- .plan_resolve(plan, df, roles, rec, list(
       coords = coords, events = events, conditional = conditional_declared,
       ladder = ladder, grain = grain, alias_names = alias_names
@@ -759,7 +771,7 @@ mask <- function(df,
     shifted <- report$shifted
     if (length(shifted)) {
       parts <- c(parts, sprintf(
-        "The main effect of %s is carried into the clone as an additive shift.",
+        "The main effect of %s is carried into the clone as an additive shift; its interaction with a kept treatment is not.",
         paste(shifted, collapse = ", ")
       ))
     }

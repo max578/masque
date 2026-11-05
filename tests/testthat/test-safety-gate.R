@@ -226,3 +226,15 @@ test_that("a joint HIGH finding blocks write_set() and names the check", {
   )
   expect_false(dir.exists(dir))
 })
+
+test_that("write_set's refusal says the override is not on the recipe", {
+  set.seed(6)
+  a <- data.frame(id = 1:20, y = stats::rnorm(20L))
+  r <- suppressWarnings(propose_roles(a, detect = FALSE))
+  r <- set_role(r, "y", role = "outcome", action = "keep")
+  r <- set_role(r, "id", role = "id", action = "keep")
+  m <- suppressWarnings(mask_set(list(t1 = a), list(t1 = r), mode = "collaborate", seed = 1L,
+                                 allow_kept_outcome = TRUE, quiet = TRUE))
+  skip_if_not(length(.audit_high_cols(m)) > 0L)
+  expect_error(write_set(m, file.path(tempdir(), "no-write")), "keep your own record")
+})

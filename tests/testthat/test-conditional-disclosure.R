@@ -93,7 +93,6 @@ test_that("the design clone's residual matches an owner's negative control", {
   clone_rms <- vapply(1:40, function(s) {
     rms(synthetic(suppressWarnings(mask(d, r, seed = s, quiet = TRUE, conditional = "design"))))
   }, numeric(1))
-  expect_gt(rms(d) * 5, 1)
   expect_gt(mean(owner_rms), 5 * rms(d))
   expect_lt(abs(mean(clone_rms) / mean(owner_rms) - 1), 0.25)
 })

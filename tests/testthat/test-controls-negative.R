@@ -69,7 +69,8 @@ test_that("on constant in most strata warns", {
   r <- set_role(r, "y", role = "outcome", action = "scramble")
   spec <- control_spec(on = "trt", strata = "site", seed = 1L)
   expect_warning(
-    ctl <- controls(df, r, spec), class = "masque_control_strata_weak"
+    expect_warning(ctl <- controls(df, r, spec), class = "masque_control_strata_weak"),
+    class = "masque_control_unit_small"
   )
   expect_identical(ctl@manifest$strata_constant_share[1L], 0.75)
 })

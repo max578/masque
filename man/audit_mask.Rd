@@ -112,6 +112,12 @@ A column constant within a design unit that was synthesised row by row
 (\code{grain = FALSE}, or a collaborate grain with fewer than five units) carries
 a note saying the clone does not keep that grain.
 
+The grade of a re-simulated number compares rows. A shift on a design level
+of three or four rows, with within-level noise as large as the signal, can
+grade low while the correlation of the level means stays above 0.85. A low
+class means the rows are not copies. It does not mean the level means are
+hidden.
+
 As a reference point, a collaborate-mode clone of \code{agridat::besag.met}
 (yield as the outcome, design columns kept) scores \code{low} on every
 column, and none of its yields equals the original value.
