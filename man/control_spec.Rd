@@ -36,7 +36,8 @@ distribution with standard deviation \code{s}, under the spec's seed, when
 the spec first meets a table. Required with \code{target}.}
 
 \item{strata}{Design columns within which \code{on} is permuted, or \code{NULL}
-for no stratification. Every unit of \code{on} must lie within one stratum.}
+for no stratification. Every unit of \code{on} must lie within one stratum.
+Prefer complete replicates to incomplete blocks; see \code{\link[=controls]{controls()}}.}
 
 \item{unit}{Design columns within which \code{on} is constant. \code{on} is then
 permuted across those units. \code{NULL} (the default) permutes rows.}
@@ -71,7 +72,7 @@ The positive control needs \code{target} and \code{effect} together.
 \examples{
 spec <- control_spec(
   on = "gen", target = "yield", effect = c(G01 = 0.5, G02 = -0.5),
-  strata = c("rep", "block"), n = 19L, seed = 2026L
+  strata = "rep", n = 19L, seed = 2026L
 )
 spec
 

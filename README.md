@@ -112,7 +112,7 @@ who returns a verdict about the pipeline rather than a dataset.
 
 ```r
 spec <- control_spec(on = "gen", target = "yield", effect = list(sd = 0.5),
-                     strata = c("rep", "block"), n = 19L, seed = 2026L)
+                     strata = "rep", n = 19L, seed = 2026L)
 ctl <- controls(synthetic(m), roles(m), spec)
 control_table(ctl, "positive", 1L)
 ```

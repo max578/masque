@@ -32,7 +32,7 @@ r <- set_role(r, c("rep", "block"), role = "design", action = "keep")
 r <- set_role(r, "gen", role = "treatment", action = "keep")
 r <- set_role(r, "yield", role = "outcome", action = "scramble")
 r <- set_role(r, c("plot", "row", "col"), role = "id", action = "keep")
-spec <- control_spec(on = "gen", strata = c("rep", "block"), n = 3L, seed = 1L)
+spec <- control_spec(on = "gen", strata = "rep", n = 3L, seed = 1L)
 ctl <- controls(trial, r, spec)
 neg <- control_table(ctl, "negative", 2L)
 table(neg$block, neg$gen)[1:2, 1:6]

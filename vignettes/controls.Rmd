@@ -36,8 +36,8 @@ which the answer is known in advance.
   associated with anything. A pipeline that still finds signal on it has a
   leak or a bug.
 * The **negative** control permutes one declared column, by default the
-  treatment, within the design strata. Its effect is exactly absent and
-  everything else is as it was. A pipeline that finds it has a false
+  treatment, within the design strata. Its allocation is random within them
+  and everything else is as it was. A pipeline that finds it has a false
   positive, and over many replicates the rate of those is the pipeline's
   false-positive rate on this very structure.
 * The **positive** control adds a declared effect to the negative. The
@@ -79,7 +79,7 @@ spec <- control_spec(
   on = "gen",
   target = "yield",
   effect = list(sd = 0.5),
-  strata = c("rep", "block"),
+  strata = "rep",
   n = 19L,
   seed = 2026L
 )
@@ -108,9 +108,9 @@ p-value of the genotype term.
 
 ```{r pipeline}
 genotype_p <- function(d) {
-  fit <- stats::aov(yield ~ rep + rep:block + gen, data = d)
-  tab <- summary(fit)[[1]]
-  tab[trimws(rownames(tab)) == "gen", "Pr(>F)"]
+  blocks <- interaction(d$rep, d$block, drop = TRUE)
+  fit <- stats::lm(yield ~ blocks + gen, data = d)
+  stats::anova(fit)["gen", "Pr(>F)"]
 }
 ```
 
@@ -193,11 +193,11 @@ data.frame(
 )
 ```
 
-The power differs between the two sides. The default clone re-simulates
-yield without the block structure, so the pipeline's residual variance is
-larger there and the same planted size is harder to see. A clone conditioned
-on the design would bring the two readings closer, and the gap between them
-says what fidelity this pipeline needs from a clone.
+The two sides read close to each other here, within what 19 replicates can
+resolve. They need not. The default clone re-simulates yield without the
+block structure, so its residual variance differs from the original's, and
+any gap between the readings says what fidelity this pipeline needs from a
+clone.
 
 The control tables built from the original hold the real values and never
 leave. Per-replicate results do not leave either: each replicate is one
@@ -209,6 +209,14 @@ the query budget, declared with everything else.
 
 * A kept column is structure and is never permuted. Leakage through kept
   columns, ids or row order passes the null.
+* The strata should let every level of the column reach every stratum, as
+  complete replicates do. Permuting within incomplete blocks leaves each
+  block with its own set of genotypes, so part of the real genotype signal
+  survives on the negatives, and the false-positive rate reads high or low
+  depending on the layout.
+* A sequential test depends on the order of its terms. A treatment entered
+  before the blocks carries their variance, and its false-positive rate on
+  this design is well above nominal. The negatives show this, as they should.
 * The negative control removes the effect of one column under exchangeable
   allocation within the strata. It cannot detect confounding, and on
   observational data it is a permutation test with no randomisation

@@ -43,9 +43,10 @@ columns, the NA mask and every column's multiset of values are kept.
 No association among analysed columns, or with the treatment, remains.
 Use it as a smoke test and to expose leakage through analysed columns.
 \item \code{negative}: the declared column \code{on} alone is permuted within the
-declared design strata, at its unit, so its effect on everything is
-exactly absent while the design structure and all other associations
-are kept. With \code{n} replicates it gives a permutation null for a whole
+declared design strata, at its unit, while the design structure and all
+other associations are kept. Choose strata that every level of \code{on} can
+reach, such as complete replicates: within incomplete blocks each block
+keeps its set of levels, so part of the real effect of \code{on} survives. With \code{n} replicates it gives a permutation null for a whole
 pipeline: a false-positive rate, a permutation p-value.
 \item \code{positive}: the same permutation as the negative replicate, plus the
 declared shift per level of \code{on} on each target, in units of the
@@ -94,7 +95,7 @@ r <- set_role(r, "yield", role = "outcome", action = "scramble")
 r <- set_role(r, c("plot", "row", "col"), role = "id", action = "keep")
 spec <- control_spec(
   on = "gen", target = "yield", effect = list(sd = 0.5),
-  strata = c("rep", "block"), n = 5L, seed = 2026L
+  strata = "rep", n = 5L, seed = 2026L
 )
 ctl <- controls(trial, r, spec)
 ctl

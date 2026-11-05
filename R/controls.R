@@ -47,9 +47,10 @@ masque_controls <- S7::new_class(
 #'   No association among analysed columns, or with the treatment, remains.
 #'   Use it as a smoke test and to expose leakage through analysed columns.
 #' * `negative`: the declared column `on` alone is permuted within the
-#'   declared design strata, at its unit, so its effect on everything is
-#'   exactly absent while the design structure and all other associations
-#'   are kept. With `n` replicates it gives a permutation null for a whole
+#'   declared design strata, at its unit, while the design structure and all
+#'   other associations are kept. Choose strata that every level of `on` can
+#'   reach, such as complete replicates: within incomplete blocks each block
+#'   keeps its set of levels, so part of the real effect of `on` survives. With `n` replicates it gives a permutation null for a whole
 #'   pipeline: a false-positive rate, a permutation p-value.
 #' * `positive`: the same permutation as the negative replicate, plus the
 #'   declared shift per level of `on` on each target, in units of the
@@ -106,7 +107,7 @@ masque_controls <- S7::new_class(
 #' r <- set_role(r, c("plot", "row", "col"), role = "id", action = "keep")
 #' spec <- control_spec(
 #'   on = "gen", target = "yield", effect = list(sd = 0.5),
-#'   strata = c("rep", "block"), n = 5L, seed = 2026L
+#'   strata = "rep", n = 5L, seed = 2026L
 #' )
 #' ctl <- controls(trial, r, spec)
 #' ctl
@@ -174,7 +175,7 @@ controls <- function(df, roles, spec, events = NULL, seed = NULL) {
 #' r <- set_role(r, "gen", role = "treatment", action = "keep")
 #' r <- set_role(r, "yield", role = "outcome", action = "scramble")
 #' r <- set_role(r, c("plot", "row", "col"), role = "id", action = "keep")
-#' spec <- control_spec(on = "gen", strata = c("rep", "block"), n = 3L, seed = 1L)
+#' spec <- control_spec(on = "gen", strata = "rep", n = 3L, seed = 1L)
 #' ctl <- controls(trial, r, spec)
 #' neg <- control_table(ctl, "negative", 2L)
 #' table(neg$block, neg$gen)[1:2, 1:6]

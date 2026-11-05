@@ -65,6 +65,7 @@ masque_control_spec <- S7::new_class(
 #'   the spec first meets a table. Required with `target`.
 #' @param strata Design columns within which `on` is permuted, or `NULL`
 #'   for no stratification. Every unit of `on` must lie within one stratum.
+#'   Prefer complete replicates to incomplete blocks; see [controls()].
 #' @param unit Design columns within which `on` is constant. `on` is then
 #'   permuted across those units. `NULL` (the default) permutes rows.
 #' @param grain A named list giving, for other analysed columns constant
@@ -79,7 +80,7 @@ masque_control_spec <- S7::new_class(
 #' @examples
 #' spec <- control_spec(
 #'   on = "gen", target = "yield", effect = c(G01 = 0.5, G02 = -0.5),
-#'   strata = c("rep", "block"), n = 19L, seed = 2026L
+#'   strata = "rep", n = 19L, seed = 2026L
 #' )
 #' spec
 #'
