@@ -27,8 +27,8 @@
 #' source table has one true coordinate per place. `by` chooses how a site is
 #' identified:
 #'
-#' - `by = NULL` (default) treats rows that share an identical input coordinate
-#'   pair as one site. This needs no user action and cannot alter genuinely
+#' - `by = NULL` (default) treats rows that share an input coordinate pair, to
+#'   nine decimal places, as one site. This needs no user action and cannot alter genuinely
 #'   point-level data, where every input pair is already distinct.
 #' - `by = c("trial")` (one or more column names) treats rows sharing those
 #'   values as one site, for the case where a site's recorded coordinates differ
@@ -46,7 +46,7 @@
 #' Displacing each row of a repeated coordinate separately leaks the site.
 #' Donut displacement is isotropic, so the mean of many independent draws
 #' around one true site converges on that site: averaging the 360 rows of
-#' a single trial recovers the true position to a median 0.58 km, against the
+#' a single trial recovers the true position to a median 0.64 km, against the
 #' 5 km floor the donut was asked for. One draw per site removes the estimator
 #' and leaves the full displacement in place.
 #'
@@ -76,7 +76,9 @@
 #' columns. A clone built before version 0.17.0 used a different draw, so a
 #' rebuild under 0.17.0 is a new release of those sites even with the same seed.
 #' Treat each of these as a fresh seed: retire the versions it replaces. The seed
-#' reveals every displacement, so it stays as confidential as the recipe.
+#' reveals every displacement, so it stays as confidential as the recipe. Use a
+#' large random integer: where a clone shows site labels, or holds two pairs at
+#' one place, a small seed can be found by search.
 #'
 #' Choose the unit carefully. It is the finest grouping that denotes **one
 #' physical place at one time**. For a multi-year trial series that is location
@@ -231,10 +233,11 @@ jitter_coordinates <- function(df, lat_col, lon_col,
 
   lat_v <- lat[valid]
   lon_v <- lon[valid]
-  # Rows are one site only when their coordinates are identical as doubles.
-  # %.17g round-trips a double; adding zero merges -0 with 0.
+  # Rows are one site when their coordinates agree to nine decimal places, about
+  # 0.1 mm, so writing the table to a file and back does not start a new draw.
+  # Adding zero merges -0 with 0.
   pair_key <- paste(
-    sprintf("%.17g", lat_v + 0), sprintf("%.17g", lon_v + 0),
+    sprintf("%.9f", lat_v + 0), sprintf("%.9f", lon_v + 0),
     sep = "\r"
   )
 

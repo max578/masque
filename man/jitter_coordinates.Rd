@@ -92,8 +92,8 @@ therefore comes back with one masked coordinate per place, exactly as the
 source table has one true coordinate per place. \code{by} chooses how a site is
 identified:
 \itemize{
-\item \code{by = NULL} (default) treats rows that share an identical input coordinate
-pair as one site. This needs no user action and cannot alter genuinely
+\item \code{by = NULL} (default) treats rows that share an input coordinate pair, to
+nine decimal places, as one site. This needs no user action and cannot alter genuinely
 point-level data, where every input pair is already distinct.
 \item \code{by = c("trial")} (one or more column names) treats rows sharing those
 values as one site, for the case where a site's recorded coordinates differ
@@ -112,7 +112,7 @@ in the table play no part.
 Displacing each row of a repeated coordinate separately leaks the site.
 Donut displacement is isotropic, so the mean of many independent draws
 around one true site converges on that site: averaging the 360 rows of
-a single trial recovers the true position to a median 0.58 km, against the
+a single trial recovers the true position to a median 0.64 km, against the
 5 km floor the donut was asked for. One draw per site removes the estimator
 and leaves the full displacement in place.
 }
@@ -144,7 +144,9 @@ things start a new draw for a site: a different seed, a changed site value
 columns. A clone built before version 0.17.0 used a different draw, so a
 rebuild under 0.17.0 is a new release of those sites even with the same seed.
 Treat each of these as a fresh seed: retire the versions it replaces. The seed
-reveals every displacement, so it stays as confidential as the recipe.
+reveals every displacement, so it stays as confidential as the recipe. Use a
+large random integer: where a clone shows site labels, or holds two pairs at
+one place, a small seed can be found by search.
 
 Choose the unit carefully. It is the finest grouping that denotes \strong{one
 physical place at one time}. For a multi-year trial series that is location

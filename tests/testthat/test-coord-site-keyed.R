@@ -164,3 +164,16 @@ test_that("draws do not depend on the caller's RNG kind or state", {
   expect_identical(a, b)
   expect_identical(before, .Random.seed)
 })
+
+test_that("a CSV round trip of computed coordinates keeps the draw", {
+  n <- 50L
+  set.seed(31L)
+  df <- data.frame(lat = stats::runif(n, -38, -33), lon = stats::runif(n, 139, 149))
+  a <- jitter_coordinates(df, "lat", "lon", on_land = FALSE, seed = 4L)
+  f <- withr::local_tempfile(fileext = ".csv")
+  utils::write.csv(df, f, row.names = FALSE)
+  back <- utils::read.csv(f)
+  b <- jitter_coordinates(back, "lat", "lon", on_land = FALSE, seed = 4L)
+  expect_lt(max(abs((a$lat - df$lat) - (b$lat - back$lat))), 2e-5)
+  expect_lt(max(abs((a$lon - df$lon) - (b$lon - back$lon))), 2e-5)
+})

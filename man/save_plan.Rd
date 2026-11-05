@@ -18,7 +18,7 @@ read_plan(path)
 \code{save_plan()} returns \code{path} invisibly; \code{read_plan()} a \code{masque_plan}.
 }
 \description{
-A plan on disk is plain, reviewable and diffable. \code{save_plan()} needs the
+A plan on disk can be read and compared as text. \code{save_plan()} needs the
 \code{yaml} package. A custom \code{on_land} function cannot be written, and is refused.
 A source-vocabulary plan names real columns and labels, so it stays with the
 owner. The analyst's file comes from \code{\link[=clone_plan]{clone_plan()}} or \code{\link[=handover]{handover()}}.

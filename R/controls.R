@@ -159,6 +159,10 @@ controls <- function(df, roles, spec = NULL, events = NULL, seed = NULL,
   seeds <- as.integer(.sub_seeds(run_seed, res$spec@n + 1L))
 
   manifest <- .control_manifest(res, seeds)
+  # A manifest is what the owner reads before a release: no private seed in it.
+  if (!is.null(seed)) {
+    manifest$seed <- NA_integer_
+  }
   masque_controls(
     table = df,
     roles = .as_owned_dt(roles),
@@ -395,7 +399,9 @@ control_table <- function(ctl, kind = c("null", "negative", "positive"), i = 1L)
       "on"
     )
   }
-  categorical <- kind %in% .categorical_kinds()
+  # An aliased numeric is a set of labels, on both sides.
+  action <- roles$action[match(on, roles$col)]
+  categorical <- kind %in% .categorical_kinds() || action %in% c("alias", "permute")
   whole <- kind %in% .numeric_kinds() && .is_whole_valued(df[[on]])
   if (!categorical && !whole) {
     .control_refuse(

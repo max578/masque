@@ -85,6 +85,14 @@ masque_plan <- function(
   if (!is.logical(grain) || length(grain) != 1L || is.na(grain)) {
     .plan_refuse("`grain` must be a single `TRUE` or `FALSE`.", "grain")
   }
+  names_ok <- if (is.character(alias_names)) {
+    !anyNA(alias_names)
+  } else {
+    is.logical(alias_names) && length(alias_names) == 1L && !is.na(alias_names)
+  }
+  if (!names_ok) {
+    .plan_refuse("`alias_names` must be `TRUE`, `FALSE` or column names.", "alias_names")
+  }
   .plan_class(
     roles = roles,
     coords = .plan_wrap(coords, c("lat", "lon")),
@@ -117,6 +125,13 @@ masque_plan <- function(
   }
   if (is.list(x) && any(keys %in% names(x))) {
     x <- list(x)
+  }
+  if (!is.list(x)) {
+    what <- keys[1L]
+    .plan_refuse(
+      "A spec needs named entries, as in {.code list({keys[1L]} = , {keys[2L]} = )}.",
+      if (identical(what, "lat")) "coords" else "events"
+    )
   }
   x
 }
@@ -169,7 +184,7 @@ local(S7::method(print, .plan_class) <- function(x, ...) {
     cli::cli_bullets(c(
       " " = sprintf("on %s, unit %s", .spec_on_line(s), .spec_cols_line(s@unit, "row")),
       " " = sprintf("strata %s", .spec_cols_line(s@strata, "none")),
-      " " = sprintf("target %s; %s replicate(s)", .spec_target_line(s), s@n)
+      " " = sprintf("target %s; replicates: %s", .spec_target_line(s), s@n)
     ))
   }
   invisible(x)
@@ -201,6 +216,18 @@ local(S7::method(print, .plan_class) <- function(x, ...) {
     names(df), roles$col[roles$role == "design" & roles$action != "drop"]
   )
   on <- .resolve_control_on(spec@on, df, roles, spec@target)
+  .check_spec_retained(c(on, spec@target), roles)
+  .check_spec_on_labels(on, df, roles, rec)
+  if (!is.null(rec@seed) && rec@seed == spec@seed) {
+    .control_refuse(
+      c(
+        "The spec's seed equals the seed of {.fn mask}.",
+        x = "The analyst reads the spec's seed in the plan, and the mask seed reveals every displacement and map.",
+        i = "Use two different seeds."
+      ),
+      "seed"
+    )
+  }
   unit <- if (length(spec@unit)) spec@unit else .default_control_unit(df, on, design)
   strata <- if (length(spec@strata)) {
     spec@strata
@@ -220,15 +247,61 @@ local(S7::method(print, .plan_class) <- function(x, ...) {
     }
   }
   draft <- masque_control_spec(
-    on = on, target = spec@target, effect = spec@effect, strata = strata,
-    unit = unit, grain = grain, n = spec@n, seed = spec@seed
+    on = on, target = spec@target,
+    effect = .plan_draw_effect(spec, on, df, rec),
+    strata = strata, unit = unit, grain = grain, n = spec@n, seed = spec@seed
   )
   .resolve_control_spec(draft, df, roles)$spec
 }
 
+# A column gone from the clone cannot be named in a plan the analyst reads.
+.check_spec_retained <- function(cols, roles) {
+  dropped <- intersect(cols, roles$col[roles$action == "drop"])
+  if (length(dropped)) {
+    .control_refuse(
+      "A control spec names {.field {dropped}}, with action {.val drop}: it is not in the clone.",
+      "dropped"
+    )
+  }
+  invisible(TRUE)
+}
+
+# The levels of a numeric `on` are its real values, unless a map relabels them.
+.check_spec_on_labels <- function(on, df, roles, rec) {
+  action <- roles$action[match(on, roles$col)]
+  if (is.numeric(df[[on]]) && !identical(action, "keep") &&
+    !length(rec@level_maps[[on]])) {
+    .control_refuse(
+      c(
+        "`on` ({.field {on}}) is re-simulated numeric: its levels in a plan would be real values.",
+        i = "Give it the action {.val alias} or {.val keep}."
+      ),
+      "on"
+    )
+  }
+  invisible(TRUE)
+}
+
+# A drawn effect is drawn over the sorted clone labels. Drawn over source
+# levels, the vector's order and the public seed would give away the map.
+.plan_draw_effect <- function(spec, on, df, rec) {
+  effect <- spec@effect
+  if (!is.list(effect)) {
+    return(effect)
+  }
+  levels <- .control_levels(df[[on]])
+  map <- rec@level_maps[[on]]
+  if (!length(map)) {
+    return(.resolve_control_effect(effect, levels, spec@seed))
+  }
+  clone <- as.character(.apply_level_map_forward(levels, map, col = on))
+  draw <- .resolve_control_effect(effect, sort(clone, method = "radix"), spec@seed)
+  stats::setNames(unname(draw[clone]), levels)
+}
+
 # Coarsest design column, then pair of columns, within which `on` is constant.
-# A partition of mostly single rows says nothing: `on` is constant there by
-# construction, so it must average two rows a unit.
+# A row alone is constant by construction, so a quarter of the rows must share
+# a unit for the constancy to mean anything.
 .default_control_unit <- function(df, on, design) {
   n <- nrow(df)
   sets <- c(as.list(design), if (length(design) >= 2L) {
@@ -238,9 +311,10 @@ local(S7::method(print, .plan_class) <- function(x, ...) {
     pick <- Filter(function(s) length(s) == size, sets)
     n_units <- vapply(pick, function(s) {
       id <- as.integer(.unit_id(df, s))
-      if (.constant_within(id, df[[on]])) max(id) else NA_integer_
+      sizes <- tabulate(id)
+      shared <- sum(sizes[sizes >= 2L])
+      if (shared >= n / 4 && .constant_within(id, df[[on]])) max(id) else NA_integer_
     }, integer(1L))
-    n_units[n_units > n / 2] <- NA_integer_
     if (any(!is.na(n_units))) {
       return(pick[[which.min(n_units)]])
     }
@@ -307,6 +381,10 @@ local(S7::method(print, .plan_class) <- function(x, ...) {
     }
     names(effect) <- as.character(relabel(names(effect), map, col = on_source))
   }
+  # Clone-label order on the way out, so the vector's order carries no map.
+  if (is.numeric(effect)) {
+    effect <- effect[order(names(effect), method = "radix")]
+  }
   grain <- lapply(spec@grain, rename)
   names(grain) <- rename(names(grain))
   masque_control_spec(
@@ -363,19 +441,34 @@ clone_plan <- function(m) {
     }
     grain <- source_plan@grain
     specs <- lapply(source_plan@controls, .plan_spec_translate, rec = rec, to = "clone")
+    .check_clone_vocabulary(specs, names(m@synthetic))
   }
   .plan_class(
     roles = public,
     coords = list(),
     events = .card_event_specs(rec),
     conditional = conditional,
-    ladder = rec@ladder,
+    ladder = .prop_or(rec, "ladder", "levels"),
     grain = grain,
     alias_names = FALSE,
     controls = specs,
     vocabulary = "clone",
     mode = rec@mode
   )
+}
+
+# A spec bound for the analyst names clone columns only.
+.check_clone_vocabulary <- function(specs, clone_cols) {
+  named <- unlist(lapply(specs, function(s) {
+    c(s@on, s@target, s@strata, s@unit, names(s@grain), unlist(s@grain))
+  }))
+  if (!all(named %in% clone_cols)) {
+    .plan_refuse(
+      "A control spec names a column outside the clone, so no clone plan is written.",
+      "vocabulary"
+    )
+  }
+  invisible(TRUE)
 }
 
 # controls() from a plan ------------------------------------------------------
@@ -397,7 +490,7 @@ clone_plan <- function(m) {
       )
     }
     return(list(
-      df = df,
+      df = .blank_labels_to_na(df),
       roles = plan@roles,
       spec = picked$spec,
       events = if (is.null(events) && length(plan@events)) plan@events else events,
@@ -426,6 +519,19 @@ clone_plan <- function(m) {
     seed = .control_source_seed(recipe@seed, source_spec@seed, seed),
     notes = "Source side: the seed is private. Release aggregates only."
   )
+}
+
+# A clone read back from CSV holds "" where it held NA. No label of a clone is
+# an empty string, because the cleaning step reads one as missing.
+.blank_labels_to_na <- function(df) {
+  .check_control_table(df)
+  df <- .as_owned_dt(df)
+  for (cl in names(df)) {
+    if (is.character(df[[cl]]) && any(df[[cl]] == "", na.rm = TRUE)) {
+      data.table::set(df, which(df[[cl]] == ""), cl, NA_character_)
+    }
+  }
+  df
 }
 
 .plan_pick_spec <- function(plan, spec) {
@@ -457,6 +563,12 @@ clone_plan <- function(m) {
     return(invisible(TRUE))
   }
   on_file <- declared@controls[[name]]
+  if (!is.null(on_file) && is.numeric(on_file@effect)) {
+    on_file@effect <- on_file@effect[order(names(on_file@effect), method = "radix")]
+  }
+  if (is.numeric(spec@effect)) {
+    spec@effect <- spec@effect[order(names(spec@effect), method = "radix")]
+  }
   same <- !is.null(on_file) && all(vapply(
     c("on", "target", "effect", "strata", "unit", "grain", "n", "seed"),
     function(p) isTRUE(all.equal(S7::prop(spec, p), S7::prop(on_file, p))),
@@ -479,7 +591,7 @@ clone_plan <- function(m) {
 .controls_replay_source <- function(df, recipe) {
   .check_control_table(df)
   df <- .apply_cleaning_forward(df, recipe@cleaning)
-  df <- .apply_conform_forward(df, .prop_or(recipe, "conform", NULL))
+  df <- .as_owned_dt(.apply_conform_forward(df, .prop_or(recipe, "conform", NULL)))
   retained <- setdiff(recipe@roles$col, .recipe_dropped_cols(recipe))
   gone <- setdiff(retained, names(df))
   if (length(gone)) {
@@ -518,7 +630,7 @@ clone_plan <- function(m) {
 
 #' Save and read a masking plan as YAML
 #'
-#' A plan on disk is plain, reviewable and diffable. `save_plan()` needs the
+#' A plan on disk can be read and compared as text. `save_plan()` needs the
 #' `yaml` package. A custom `on_land` function cannot be written, and is refused.
 #' A source-vocabulary plan names real columns and labels, so it stays with the
 #' owner. The analyst's file comes from [clone_plan()] or [handover()].
@@ -577,7 +689,7 @@ read_plan <- function(path) {
 
 .check_yaml_available <- function() {
   if (!requireNamespace("yaml", quietly = TRUE)) {
-    .plan_refuse("Writing and reading a plan needs the {.pkg yaml} package.", "yaml")
+    .plan_refuse("Writing and reading a plan needs {.pkg yaml}.", "yaml")
   }
 }
 
@@ -688,7 +800,11 @@ read_plan <- function(path) {
 #' the plan in clone vocabulary (`plan.yaml`), the data card (`card.yaml`) and a
 #' plain note (`README.txt`). The recipe is never written. The release gate runs
 #' first, as for [write_set()]: an unresolved HIGH finding blocks the write
-#' unless `allow_high = TRUE`.
+#' unless `allow_high = TRUE`. A local-mode clone has not been audited and is
+#' meant to stay with the owner, so it is refused unless `allow_local = TRUE`.
+#'
+#' `clone.csv` loses column classes. Read label columns as text where a label
+#' looks like a number, or `controls()` will not find its levels.
 #'
 #' @param m A `masque` object from [mask()].
 #' @param dir The folder to write. An existing folder that holds files is
@@ -696,13 +812,14 @@ read_plan <- function(path) {
 #' @param name Dataset name for the data card; `NULL` uses `"clone"`.
 #' @param overwrite Replace the four files if they exist.
 #' @param allow_high Write despite HIGH findings, with a warning.
+#' @param allow_local Write a local-mode clone, for a folder the owner keeps.
 #'
 #' @returns The paths written, invisibly.
 #'
 #' @examples
 #' if (requireNamespace("yaml", quietly = TRUE)) {
-#'   r <- propose_roles(iris, detect = FALSE)
-#'   m <- mask(iris, r, mode = "local", seed = 1L)
+#'   r <- propose_roles(iris, mode = "collaborate", detect = FALSE)
+#'   m <- mask(iris, r, mode = "collaborate", seed = 1L)
 #'   d <- tempfile()
 #'   handover(m, d)
 #'   list.files(d)
@@ -711,7 +828,8 @@ read_plan <- function(path) {
 #' @seealso [clone_plan()], [data_card()], [controls()].
 #'
 #' @export
-handover <- function(m, dir, name = NULL, overwrite = FALSE, allow_high = FALSE) {
+handover <- function(m, dir, name = NULL, overwrite = FALSE, allow_high = FALSE,
+                     allow_local = FALSE) {
   if (!S7::S7_inherits(m, masque_obj)) {
     cli::cli_abort(
       "`m` must be a {.cls masque} object; got {.cls {class(m)[1]}}.",
@@ -725,6 +843,15 @@ handover <- function(m, dir, name = NULL, overwrite = FALSE, allow_high = FALSE)
     )
   }
   .check_yaml_available()
+  if (!identical(m@mode, "collaborate") && !isTRUE(allow_local)) {
+    cli::cli_abort(
+      c(
+        "This clone was masked in local mode: it has no audit and keeps real labels.",
+        i = "Mask with {.code mode = \"collaborate\"} to hand it over, or pass `allow_local = TRUE` for a folder you keep."
+      ),
+      class = c("masque_handover_local_refusal", "orchestra_refusal")
+    )
+  }
   high <- .gate_release(m, allow_high)
   if (dir.exists(dir) && length(list.files(dir, all.files = TRUE, no.. = TRUE)) &&
     !isTRUE(overwrite)) {
@@ -748,6 +875,8 @@ handover <- function(m, dir, name = NULL, overwrite = FALSE, allow_high = FALSE)
 
 .handover_note <- function(m, n_high) {
   plan <- clone_plan(m)
+  r <- plan@roles
+  kept <- r$col[r$role == "outcome" & r$action == "keep"]
   c(
     "Masked clone for pipeline development",
     "",
@@ -758,7 +887,13 @@ handover <- function(m, dir, name = NULL, overwrite = FALSE, allow_high = FALSE)
     "plan.yaml holds the column roles and any declared controls, in the clone's names.",
     "card.yaml describes the table for downstream tools.",
     "",
-    "The values are re-simulated. Do not read an effect or an estimate from this table.",
+    "Re-simulated columns hold no real values. Do not read an effect or an estimate from this table.",
+    if (length(kept)) {
+      sprintf("These outcome columns hold real values: %s.", paste(kept, collapse = ", "))
+    },
+    if (!identical(m@mode, "collaborate")) {
+      "This is a local-mode clone. It keeps real labels and stays with the data owner."
+    },
     "Write and test your code here. The data owner runs the finished code on the real table.",
     if (length(plan@controls)) {
       paste0(
@@ -768,7 +903,7 @@ handover <- function(m, dir, name = NULL, overwrite = FALSE, allow_high = FALSE)
     },
     if (n_high > 0L) {
       sprintf(
-        "The owner released this clone despite %d HIGH leakage finding(s), after review.",
+        "The owner released this clone after reviewing HIGH leakage findings: %d.",
         n_high
       )
     }

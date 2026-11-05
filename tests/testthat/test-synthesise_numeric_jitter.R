@@ -75,8 +75,10 @@ test_that("Collaborate mode lowers numeric exact-match in mask()", {
   r <- propose_roles(df)
   r$role[r$col == "yield"] <- "outcome"
 
-  # Rep stays a kept design column (graded low), so no HIGH warning.
-  m <- mask(df, r, mode = "collaborate", seed = 1)
+  # Rep stays a kept design column (graded low), so no HIGH warning. The seed
+  # differs from the one that made the data: an equal seed draws the same
+  # normals, and the clone then tracks the table.
+  m <- mask(df, r, mode = "collaborate", seed = 2)
   audit <- audit_mask(m, print = FALSE)
 
   # Continuous outcome: exact_match_pct < 1

@@ -16,6 +16,7 @@
   if (is.null(coarsened)) coarsened <- character()
   na_pattern_uniq <- .global_na_pattern_uniqueness(df)
   strata <- .audit_strata(df, rec)
+  row_cell <- .audit_row_cell(df, rec)
   design_cols <- intersect(
     rec@roles$col[rec@roles$role == "design"], names(df)
   )
@@ -75,6 +76,18 @@
       }
     }
 
+    # A re-simulated number that tracks the original at its own row.
+    row_cor <- NA_real_
+    if (in_synth && kind %in% c("numeric", "integer") &&
+      .audit_numeric_resimulated(action) && !is_grained && !two_valued &&
+      !(col %in% linked) && comparable_n >= 10L) {
+      y <- synth[[col]]
+      both <- !is.na(x) & !is.na(y)
+      if (stats::sd(x[both]) > 0 && stats::sd(y[both]) > 0) {
+        row_cor <- stats::cor(x[both], y[both])
+      }
+    }
+
     # Same-row match against a permutation baseline: categorical, date and
     # two-valued columns, compared in the original label space.
     same <- NULL
@@ -122,7 +135,8 @@
       two_valued = two_valued, linked = col %in% linked,
       by_excess = by_excess, grained = is_grained,
       allow_kept_outcome = allow_kept_outcome,
-      value_set_pct = if (is.null(value_set)) NA_real_ else value_set$pct
+      value_set_pct = if (is.null(value_set)) NA_real_ else value_set$pct,
+      row_cor = row_cor, row_cell = row_cell
     )
 
     notes <- .audit_notes(
@@ -134,6 +148,12 @@
       row_grain = Filter(function(g) col %in% g$cols, row_grain),
       value_set = value_set
     )
+    if (isTRUE(abs(row_cor) >= .AUDIT_THRESHOLDS$row_cor)) {
+      notes <- paste0(
+        notes, if (nzchar(notes)) "; ",
+        sprintf("tracks the original row by row (r = %.2f)", row_cor)
+      )
+    }
 
     data.table::data.table(
       col                    = col,
@@ -166,6 +186,8 @@
   same_row_medium = list(excess = 10, z = 4),
   same_row_high = list(excess = 50, z = 4),
   value_set_high = 50,
+  row_cor = 0.95,
+  row_cor_cell = 10L,
   joint_medium = list(excess = 5, z = 4),
   joint_high = list(excess = 20, z = 4),
   rare_medium = list(excess = 1, z = 3),
@@ -181,6 +203,20 @@
 .excess_clears <- function(excess, sd, rule) {
   isTRUE(is.finite(excess) && excess >= rule$excess &&
     excess >= rule$z * sd)
+}
+
+# Median rows per cell of the columns a clone's numbers were conditioned or
+# shifted on; every row when there are none.
+.audit_row_cell <- function(df, rec) {
+  terms <- unlist(strsplit(
+    c(rec@conditioning_used, .prop_or(rec, "conditioning_shifted", character())),
+    ":", fixed = TRUE
+  ))
+  cols <- intersect(unique(terms), names(df))
+  if (!length(cols)) {
+    return(nrow(df))
+  }
+  stats::median(tabulate(.row_group_id(.cols(df, cols))))
 }
 
 # A scrambled numeric column is re-simulated through the copula, within the
@@ -583,7 +619,8 @@
   exact_match_pct, freq_min, n_unique_levels, n_rows, coarsened = FALSE,
   same_row_excess = NA_real_, same_row_sd = NA_real_, two_valued = FALSE,
   linked = FALSE, by_excess = FALSE, grained = FALSE,
-  allow_kept_outcome = FALSE, value_set_pct = NA_real_
+  allow_kept_outcome = FALSE, value_set_pct = NA_real_, row_cor = NA_real_,
+  row_cell = NA_integer_
 ) {
   collab <- identical(mode, "collaborate")
 
@@ -596,6 +633,13 @@
   #    boundary, MEDIUM when the synthetic stays with the owner.
   if (pii && in_synth) {
     return(if (collab) "high" else "medium")
+  }
+
+  # 0b. A re-simulated number that tracks the original row by row, in a small
+  #     conditioning cell whose mean is close to the rows themselves: HIGH.
+  tracks <- collab && isTRUE(abs(row_cor) >= .AUDIT_THRESHOLDS$row_cor)
+  if (tracks && isTRUE(row_cell <= .AUDIT_THRESHOLDS$row_cor_cell)) {
+    return("high")
   }
 
   # 1b. Outcome kept as real values beside re-simulated columns in
@@ -626,6 +670,12 @@
       same_row_excess, same_row_sd, .AUDIT_THRESHOLDS$same_row_high
     ) || isTRUE(value_set_pct >= .AUDIT_THRESHOLDS$value_set_high))) {
     return("high")
+  }
+
+  # 3c. The same in a large cell, where the clone may only keep big environment
+  #     means: MEDIUM.
+  if (tracks) {
+    return("medium")
   }
 
   # 4. Outcome with exact-match-pct > 1% in collaborate: MEDIUM. Two-valued

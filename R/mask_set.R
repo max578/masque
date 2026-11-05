@@ -109,6 +109,12 @@ mask_set <- function(input,
   .refuse_unused_dots("mask_set", ...)
   withr::local_preserve_seed()
   ladder <- match.arg(ladder)
+  if (is.list(roles) && any(vapply(roles, S7::S7_inherits, logical(1L), .plan_class))) {
+    .plan_refuse(
+      "{.fn mask_set} does not take a plan yet. Call {.code mask(df, plan)} on each table.",
+      "unsupported"
+    )
+  }
   # Check the shape of `roles` before reading its mode, so a wrong argument
   # is reported as such.
   if (!is.null(roles)) .check_roles_shape(roles)

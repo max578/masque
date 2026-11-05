@@ -97,8 +97,10 @@ all, in which case the clone is the pooled copula.
 
 \code{"design"} conditions on the retained design columns alone. The clone
 keeps the design means, block and environment variance, while a treatment
-effect is not carried, so a test of the treatment on the clone has the
-denominator it would have on the original and a true effect of zero.
+effect is not carried: a real effect moves into the residual, as it does
+when an owner permutes the treatment for a negative control, so the clone
+stands in for those negatives. The residual is not the one a real fit has.
+Linked \code{events} are not stratified by design under this option.
 A character vector of names gives the partition explicitly, from the
 retained design and treatment columns, and runs through the same ladder;
 treatment columns are still never dropped. The single word \code{"design"}
@@ -144,7 +146,8 @@ survives masking, coarsened; the recipe records the parameters and the site
 grouping it was coarsened under, and \code{\link[=apply_recipe]{apply_recipe()}} retargets to the real
 coordinates. Several published jitters of the same point average toward
 it: keep the seed, which the recipe records, and do not publish more than
-one jittered release of the same sites.}
+one jittered release of the same sites. Use a large random seed: where a
+clone shows site labels, a small one can be found by search.}
 
 \item{events}{Optional linked time-to-event outcomes. One spec per group of
 linked events, \code{list(time = c(...), status = c(...))}, with the time and

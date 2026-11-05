@@ -753,7 +753,7 @@ cat("maps is not installed on this build, so the site-grouping demo is",
 Grouping is a confidentiality control, not only a fidelity one. Donut
 displacement is isotropic, so the mean of many independent draws around
 one true site converges on that site. Displacing a 360-row trial row by
-row leaves its centroid a median 0.58 km from the truth, against the 5 km
+row leaves its centroid a median 0.64 km from the truth, against the 5 km
 floor the donut was asked for. One draw per site removes that estimator
 and leaves the full displacement in place. The unit has to be chosen
 carefully: it is the finest grouping denoting one physical place at one

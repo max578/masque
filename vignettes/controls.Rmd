@@ -227,12 +227,14 @@ recipe(m_plan)@plan@controls$default@strata
 ```
 
 `conditional = "design"` keeps the design means and block variance and carries
-no genotype effect, so a test of genotype on this clone has the denominator it
-would have on the original.
+no genotype effect. A real effect moves into the residual, as it does when the
+owner permutes genotype for a negative control, so the clone stands in for those
+negatives. A fit on this clone does not show the residual of a fit on the
+original.
 
 The analyst gets the plan in the clone's own names and labels. `handover()`
-writes it to a folder with the clone, the data card and a note, and leaves the
-recipe out. From there the analyst rebuilds the declared controls.
+writes it to a folder with a collaborate-mode clone, the data card and a note,
+and leaves the recipe out. From there the analyst rebuilds the declared controls.
 
 ```{r plan-analyst}
 analyst_plan <- clone_plan(m_plan)

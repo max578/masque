@@ -11,6 +11,18 @@
 * The rebuild table in `?jitter_coordinates` is corrected: 14.6, 9.4, 6.3, 4.4
   and 3.1 km at 1, 2, 4, 8 and 16 kept rebuilds, and seven rebuilds, not eight,
   fall below the 5 km floor.
+* Rows are one site when their coordinates agree to nine decimal places, so a
+  table written to a file and read back keeps its draw.
+* The audit grades a re-simulated number that tracks the original row by row
+  (r at or above 0.95): HIGH where its conditioning cell holds ten rows or fewer,
+  MEDIUM otherwise. A conditional clone of tiny strata can do this.
+* Under the hierarchy ladder a design level must hold three rows to carry a shift.
+  A level of two rows gave a shift close to those rows' own values: a clone
+  correlated 0.99 with the original at its rows, and the audit said low. Conditional
+  clones with such a column change.
+* A private `seed` in `controls()` no longer appears in the manifest.
+* The averaged-row figure in `?jitter_coordinates` is corrected to 0.64 km for
+  360 rows.
 * masque needs digest 0.6.21 or later.
 
 ## New features

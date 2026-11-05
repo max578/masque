@@ -72,7 +72,7 @@ test_that("mask() resolves unit, strata, effect on the source and writes back", 
   expect_true(is.numeric(s@effect))
   expect_setequal(names(s@effect), paste0("Variety", 1:10))
   again <- mask(d, masque_plan(.fx_plan_roles(d), controls = .fx_spec()),
-                seed = 99L, quiet = TRUE)
+                seed = 5L, quiet = TRUE)
   expect_identical(recipe(again)@plan@controls$default@effect, s@effect)
 })
 
@@ -343,7 +343,7 @@ test_that("handover writes four files and no source vocabulary", {
   ))
   dir <- withr::local_tempdir()
   out <- file.path(dir, "pack")
-  paths <- handover(m, out)
+  paths <- handover(m, out, allow_local = TRUE)
   expect_setequal(basename(paths), c("clone.csv", "plan.yaml", "card.yaml", "README.txt"))
   expect_setequal(list.files(out), basename(paths))
   text <- unlist(lapply(paths, readLines))
@@ -357,8 +357,8 @@ test_that("handover writes four files and no source vocabulary", {
   for (w in c("Variety", "yield")) {
     expect_true(any(grepl(w, own_text, fixed = TRUE)), info = w)
   }
-  expect_error(handover(m, out), class = "masque_handover_exists_refusal")
-  handover(m, out, overwrite = TRUE)
+  expect_error(handover(m, out, allow_local = TRUE), class = "masque_handover_exists_refusal")
+  handover(m, out, overwrite = TRUE, allow_local = TRUE)
 
   # The file round trip the note describes.
   clone <- data.table::fread(file.path(out, "clone.csv"))
@@ -382,4 +382,225 @@ test_that("handover runs the release gate", {
   expect_false(dir.exists(out))
   expect_warning(handover(m, out, allow_high = TRUE), class = "masque_high_override")
   expect_true(any(grepl("HIGH", readLines(file.path(out, "README.txt")))))
+})
+
+# Faults found in review before the 0.17.0 tag --------------------------------
+
+.fx_mapped <- function(action, seed = 12345L, spec_seed = 99L) {
+  d <- .fx_plan_table()
+  r <- set_role(.fx_plan_roles(d), "gen", role = "treatment", action = action)
+  spec <- control_spec(on = "gen", target = "yield", effect = list(sd = 0.3),
+                       n = 3L, seed = spec_seed)
+  suppressWarnings(mask(d, masque_plan(r, controls = spec), seed = seed, quiet = TRUE))
+}
+
+test_that("the clone plan's effect does not reveal the level map", {
+  for (act in c("alias", "scramble")) {
+    leaks <- vapply(1:12, function(s) {
+      m <- .fx_mapped(act, seed = 1000L + s)
+      e <- clone_plan(m)@controls$default@effect
+      map <- recipe(m)@level_maps$gen
+      # Names in clone order; nothing tied to source order remains.
+      expect_identical(names(e), sort(names(e), method = "radix"))
+      # The attack: order of the vector read as the source-sorted map.
+      identical(unname(map[sort(names(map))]), names(e))
+    }, logical(1L))
+    expect_false(any(leaks), info = act)
+
+    # The attack: recompute the draw from the public seed. It reaches clone
+    # labels only, and the same clone label gets the same draw in every build.
+    m <- .fx_mapped(act, seed = 7L)
+    e <- clone_plan(m)@controls$default@effect
+    root <- (99 + .CONTROL_SALT) %% .Machine$integer.max
+    draw <- withr::with_seed(root, stats::rnorm(length(e), 0, 0.3))
+    expect_equal(unname(e), draw)
+  }
+})
+
+test_that("two maps give the same clone-side effect vector values by label", {
+  a <- clone_plan(.fx_mapped("alias", seed = 1L))@controls$default@effect
+  b <- clone_plan(.fx_mapped("alias", seed = 2L))@controls$default@effect
+  expect_identical(a, b)
+})
+
+test_that("the same variety still takes the same shift on both sides", {
+  m <- .fx_mapped("alias")
+  src <- recipe(m)@plan@controls$default@effect
+  cln <- clone_plan(m)@controls$default@effect
+  map <- recipe(m)@level_maps$gen
+  expect_equal(unname(cln[unname(map[names(src)])]), unname(src))
+})
+
+test_that("a dropped on or target is refused and reaches no file", {
+  d <- .fx_plan_table()
+  d$protein <- withr::with_seed(2L, stats::rnorm(nrow(d)))
+  r <- .fx_plan_roles(d)
+  r <- set_role(r, "protein", role = "outcome", action = "scramble")
+  r1 <- set_role(r, "gen", role = "treatment", action = "drop")
+  expect_error(
+    mask(d, masque_plan(r1, controls = control_spec(on = "gen", n = 2L, seed = 1L)),
+         seed = 1L, quiet = TRUE),
+    class = "masque_control_dropped_refusal"
+  )
+  r2 <- set_role(r, "protein", role = "outcome", action = "drop")
+  expect_error(
+    mask(d, masque_plan(r2, controls = control_spec(
+      on = "gen", target = "protein", effect = list(sd = 0.2), n = 2L, seed = 1L
+    )), seed = 1L, quiet = TRUE),
+    class = "masque_control_dropped_refusal"
+  )
+})
+
+test_that("clone_plan fails closed on a name outside the clone", {
+  d <- .fx_plan_table()
+  m <- mask(d, masque_plan(.fx_plan_roles(d), controls = .fx_spec()), seed = 5L, quiet = TRUE)
+  rec <- m@recipe
+  s <- rec@plan@controls$default
+  s@strata <- "a_real_name"
+  plan <- rec@plan
+  plan@controls$default <- s
+  rec@plan <- plan
+  m@recipe <- rec
+  expect_error(clone_plan(m), class = "masque_plan_vocabulary_refusal")
+})
+
+test_that("a spec seed equal to the mask seed is refused", {
+  d <- .fx_plan_table()
+  p <- masque_plan(.fx_plan_roles(d), controls = .fx_spec())
+  expect_error(mask(d, p, seed = 77L, quiet = TRUE), class = "masque_control_seed_refusal")
+})
+
+test_that("mask_set() refuses a plan rather than ignoring it", {
+  d <- .fx_plan_table()
+  p <- masque_plan(.fx_plan_roles(d), alias_names = TRUE)
+  expect_error(
+    mask_set(list(a = d), roles = list(a = p), seed = 1L, quiet = TRUE),
+    class = "masque_plan_unsupported_refusal"
+  )
+})
+
+test_that("handover refuses a local clone unless asked", {
+  skip_if_not_installed("yaml")
+  d <- .fx_plan_table()
+  m <- suppressWarnings(mask(d, .fx_plan_roles(d), seed = 1L, quiet = TRUE))
+  out <- file.path(withr::local_tempdir(), "pack")
+  expect_error(handover(m, out), class = "masque_handover_local_refusal")
+  expect_false(dir.exists(out))
+  handover(m, out, allow_local = TRUE)
+  expect_true(file.exists(file.path(out, "clone.csv")))
+  expect_true(any(grepl("owner", readLines(file.path(out, "README.txt")))))
+})
+
+test_that("a scrambled whole-valued on is refused: its levels are real values", {
+  d <- .fx_plan_table()
+  d$age <- rep(c(31L, 47L, 53L, 68L, 72L), length.out = nrow(d))
+  r <- set_role(.fx_plan_roles(d), "gen", role = "treatment", action = "keep")
+  r <- set_role(r, "age", role = "covariate", action = "scramble")
+  expect_error(
+    mask(d, masque_plan(r, controls = control_spec(on = "age", n = 2L, seed = 1L)),
+         seed = 1L, quiet = TRUE),
+    class = "masque_control_on_refusal"
+  )
+})
+
+test_that("a numeric or integer treatment with an alias runs on both sides", {
+  d <- .fx_plan_table()
+  for (vals in list(as.numeric(as.integer(factor(d$gen))) / 2, as.integer(factor(d$gen)))) {
+    d$dose <- vals
+    x <- d[, setdiff(names(d), "gen")]
+    r <- propose_roles(x, mode = "local", detect = FALSE)
+    r <- set_role(r, c("site", "rep", "block"), role = "design", action = "keep")
+    r <- set_role(r, "yield", role = "outcome", action = "scramble")
+    r <- set_role(r, "dose", role = "treatment", action = "alias")
+    spec <- control_spec(on = "dose", target = "yield", effect = list(sd = 0.3),
+                         n = 2L, seed = 9L)
+    m <- suppressWarnings(mask(x, masque_plan(r, controls = spec), seed = 2L, quiet = TRUE))
+    ana <- controls(synthetic(m), clone_plan(m))
+    own <- controls(x, clone_plan(m), recipe = recipe(m))
+    expect_true(S7::S7_inherits(ana, masque_controls))
+    expect_true(S7::S7_inherits(own, masque_controls))
+    map <- recipe(m)@level_maps$dose
+    expect_equal(
+      unname(ana@spec@effect[unname(map[names(own@spec@effect)])]),
+      unname(own@spec@effect)
+    )
+  }
+})
+
+test_that("blank cells in a clone CSV stay missing under a clone plan", {
+  skip_if_not_installed("yaml")
+  d <- .fx_plan_table()
+  d$gen[c(2L, 50L, 90L)] <- NA
+  m <- suppressWarnings(mask(d, masque_plan(.fx_plan_roles(d), controls = control_spec(
+    on = "gen", target = "yield", effect = list(sd = 0.3), strata = "site", n = 3L, seed = 9L
+  )), seed = 2L, quiet = TRUE))
+  out <- file.path(withr::local_tempdir(), "pack")
+  handover(m, out, allow_local = TRUE)
+  clone <- data.table::fread(file.path(out, "clone.csv"))
+  expect_identical(sum(clone$gen == "", na.rm = TRUE), 3L)
+  ctl <- suppressWarnings(controls(clone, read_plan(file.path(out, "plan.yaml"))))
+  neg <- control_table(ctl, "negative", 1L)
+  expect_identical(which(is.na(neg$gen)), c(2L, 50L, 90L))
+  expect_false("" %in% ctl@truth$level)
+})
+
+test_that("the owner's manifest holds no private seed", {
+  d <- .fx_plan_table()
+  m <- mask(d, masque_plan(.fx_plan_roles(d), controls = .fx_spec()), seed = 5L, quiet = TRUE)
+  own <- controls(d, clone_plan(m), recipe = recipe(m))
+  expect_true(all(is.na(own@manifest$seed)))
+  ana <- controls(synthetic(m), clone_plan(m))
+  expect_false(anyNA(ana@manifest$seed))
+  r <- .fx_plan_roles(d)
+  priv <- controls(d, r, .fx_spec(), seed = 123L)
+  expect_true(all(is.na(priv@manifest$seed)))
+})
+
+test_that("an owner's table with row names from a filter is not refused", {
+  d <- .fx_plan_table()
+  m <- mask(d, masque_plan(.fx_plan_roles(d), controls = .fx_spec()), seed = 5L, quiet = TRUE)
+  filt <- d
+  rownames(filt) <- paste0("row", seq_len(nrow(filt)))
+  expect_true(S7::S7_inherits(
+    controls(filt, clone_plan(m), recipe = recipe(m)), masque_controls
+  ))
+})
+
+test_that("a partly doubled whole plot still resolves as the unit", {
+  withr::local_seed(3L)
+  sizes <- rep(c(1L, 1L, 2L), length.out = 60L)
+  d <- data.frame(wp = rep(sprintf("P%02d", seq_along(sizes)), sizes))
+  d$site <- rep(c("A", "B"), length.out = nrow(d))
+  d$site <- rep(rep(c("A", "B"), length.out = 60L), sizes)
+  d$irr <- rep(sample(rep(c("wet", "dry"), 30L)), sizes)
+  d$y <- stats::rnorm(nrow(d))
+  r <- propose_roles(d, mode = "local", detect = FALSE)
+  r <- set_role(r, c("wp", "site"), role = "design", action = "keep")
+  r <- set_role(r, "irr", role = "treatment", action = "keep")
+  r <- set_role(r, "y", role = "outcome", action = "scramble")
+  m <- suppressWarnings(mask(d, masque_plan(r, controls = control_spec(on = "irr", n = 2L, seed = 1L)),
+                             seed = 5L, quiet = TRUE))
+  expect_identical(recipe(m)@plan@controls$default@unit, "wp")
+})
+
+test_that("a plan's bad coordinates or alias_names are refused at the plan", {
+  d <- .fx_plan_table()
+  r <- .fx_plan_roles(d)
+  expect_error(masque_plan(r, coords = c("a", "b")), class = "masque_plan_coords_refusal")
+  expect_error(masque_plan(r, alias_names = NA), class = "masque_plan_alias_names_refusal")
+})
+
+test_that("the note names a kept outcome instead of calling it re-simulated", {
+  skip_if_not_installed("yaml")
+  d <- .fx_plan_table()
+  r <- propose_roles(d, mode = "collaborate", detect = FALSE)
+  r <- set_role(r, c("site", "rep", "block"), role = "design", action = "keep")
+  r <- set_role(r, "gen", role = "treatment", action = "alias")
+  r <- set_role(r, "yield", role = "outcome", action = "keep")
+  m <- suppressWarnings(mask(d, r, mode = "collaborate", seed = 1L, quiet = TRUE,
+                             allow_kept_outcome = TRUE))
+  out <- file.path(withr::local_tempdir(), "pack")
+  suppressWarnings(handover(m, out, allow_high = TRUE))
+  note <- readLines(file.path(out, "README.txt"))
+  expect_true(any(grepl("real values", note)))
 })

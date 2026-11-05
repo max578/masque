@@ -218,12 +218,17 @@ synthesise_numeric_conditional <- function(x_num, groups, min_stratum = 5L) {
   }, numeric(1))
 }
 
-# A column can carry a shift when two or more levels hold two or more rows;
-# single-row levels are pooled by `.collapse_singletons()`.
-.shiftable <- function(v) {
+# A column can carry a shift when two or more levels reach the floor; smaller
+# levels are pooled by `.collapse_singletons()`.
+.shiftable <- function(v, floor = 2L) {
   tab <- table(as.character(v))
-  sum(tab >= 2L) >= 2L
+  sum(tab >= floor) >= 2L
 }
+
+# Rows a level of a design term must hold to carry a shift. The shift of a level
+# of two rows is close to those rows' own outcomes. A treatment keeps a floor of
+# two: its means are what a conditional clone exists to carry.
+.SHIFT_FLOOR_DESIGN <- 3L
 
 # Pairs of dropped blocking and environment columns, as "a:b" (rep R1 in one
 # county is not R1 in another). Coordinates form no pairs.
@@ -245,12 +250,12 @@ synthesise_numeric_conditional <- function(x_num, groups, min_stratum = 5L) {
   interaction(lapply(.cols(df, parts), as.character), drop = TRUE, sep = ":")
 }
 
-# Levels with a single row share one pooled level, so the shift a row
-# receives is never that row's own outcome.
-.collapse_singletons <- function(v) {
+# Levels below the floor share one pooled level, so the shift a row receives is
+# never that row's own outcome.
+.collapse_singletons <- function(v, floor = 2L) {
   v <- as.character(v)
   tab <- table(v)
-  single <- names(tab)[tab < 2L]
+  single <- names(tab)[tab < floor]
   v[v %in% single] <- ".singleton"
   factor(v)
 }
@@ -271,7 +276,7 @@ synthesise_numeric_conditional <- function(x_num, groups, min_stratum = 5L) {
 #'   that restores the error variance the fit removed (`p` counts the stratum
 #'   and each term's degrees of freedom, weighted by its shrinkage).
 #' @noRd
-.design_shifts <- function(x_num, df, used, shifted) {
+.design_shifts <- function(x_num, df, used, shifted, treatment = character()) {
   shift <- matrix(
     0, nrow(x_num), ncol(x_num), dimnames = list(NULL, names(x_num))
   )
@@ -286,7 +291,11 @@ synthesise_numeric_conditional <- function(x_num, groups, min_stratum = 5L) {
   with_stratum <- nlevels(key) >= 2L && !any(used %in% shifted)
   terms <- lapply(shifted, function(term) .shift_term(df, term))
   names(terms) <- shifted
-  shifted <- shifted[vapply(terms, .shiftable, logical(1L))]
+  floors <- ifelse(shifted %in% treatment, 2L, .SHIFT_FLOOR_DESIGN)
+  names(floors) <- shifted
+  shifted <- shifted[vapply(shifted, function(term) {
+    .shiftable(terms[[term]], floors[[term]])
+  }, logical(1L))]
   n_fit <- min(vapply(x_num, function(y) sum(!is.na(y)), integer(1L)))
   # Over the parameter budget, pairs go first (last pair first), then
   # columns in the ladder's drop order.
@@ -294,7 +303,10 @@ synthesise_numeric_conditional <- function(x_num, groups, min_stratum = 5L) {
     if (!length(shifted)) {
       return(none)
     }
-    rhs <- lapply(terms[shifted], .collapse_singletons)
+    rhs <- lapply(shifted, function(term) {
+      .collapse_singletons(terms[[term]], floors[[term]])
+    })
+    names(rhs) <- shifted
     if (with_stratum) {
       rhs <- c(list(.stratum = key), rhs)
     }

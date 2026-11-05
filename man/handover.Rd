@@ -4,7 +4,14 @@
 \alias{handover}
 \title{Hand a clone to an analyst}
 \usage{
-handover(m, dir, name = NULL, overwrite = FALSE, allow_high = FALSE)
+handover(
+  m,
+  dir,
+  name = NULL,
+  overwrite = FALSE,
+  allow_high = FALSE,
+  allow_local = FALSE
+)
 }
 \arguments{
 \item{m}{A \code{masque} object from \code{\link[=mask]{mask()}}.}
@@ -17,6 +24,8 @@ refused unless \code{overwrite = TRUE}.}
 \item{overwrite}{Replace the four files if they exist.}
 
 \item{allow_high}{Write despite HIGH findings, with a warning.}
+
+\item{allow_local}{Write a local-mode clone, for a folder the owner keeps.}
 }
 \value{
 The paths written, invisibly.
@@ -26,12 +35,17 @@ Writes what the analyst works from into one folder: the clone (\code{clone.csv})
 the plan in clone vocabulary (\code{plan.yaml}), the data card (\code{card.yaml}) and a
 plain note (\code{README.txt}). The recipe is never written. The release gate runs
 first, as for \code{\link[=write_set]{write_set()}}: an unresolved HIGH finding blocks the write
-unless \code{allow_high = TRUE}.
+unless \code{allow_high = TRUE}. A local-mode clone has not been audited and is
+meant to stay with the owner, so it is refused unless \code{allow_local = TRUE}.
+}
+\details{
+\code{clone.csv} loses column classes. Read label columns as text where a label
+looks like a number, or \code{controls()} will not find its levels.
 }
 \examples{
 if (requireNamespace("yaml", quietly = TRUE)) {
-  r <- propose_roles(iris, detect = FALSE)
-  m <- mask(iris, r, mode = "local", seed = 1L)
+  r <- propose_roles(iris, mode = "collaborate", detect = FALSE)
+  m <- mask(iris, r, mode = "collaborate", seed = 1L)
   d <- tempfile()
   handover(m, d)
   list.files(d)
