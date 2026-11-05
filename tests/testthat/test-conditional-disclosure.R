@@ -66,6 +66,7 @@ test_that("the audit raises HIGH when a clone tracks the original row by row", {
                              seed = 1L, quiet = TRUE))
   expect_gt(stats::cor(d$y, synthetic(m)$y), 0.95)
   expect_identical(m@audit$leakage_class[m@audit$col == "y"], "high")
+  skip_if_not_installed("yaml")
   expect_error(handover(m, file.path(withr::local_tempdir(), "p")),
                class = "masque_blocked_write")
   # Falsifier: the marginal clone of the same table is not flagged.
@@ -131,6 +132,7 @@ test_that("three- and four-row levels that track their rows are HIGH and blocked
                                seed = 1L, quiet = TRUE))
     expect_gt(abs(stats::cor(d$y, synthetic(m)$y)), 0.9)
     expect_identical(m@audit$leakage_class[m@audit$col == "y"], "high")
+    skip_if_not_installed("yaml")
     expect_error(
       handover(m, file.path(withr::local_tempdir(), "p")),
       class = "masque_blocked_write"
