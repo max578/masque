@@ -33,7 +33,13 @@
 #' not declared, resolve to the finest design partition above the unit in which
 #' every stratum holds every level of `on`, or to none. A stratum that misses
 #' levels of `on` would keep part of the real effect in a negative control, so
-#' incomplete blocks are not chosen by default.
+#' incomplete blocks are not chosen by default. Declare a whole-plot unit where
+#' few plots hold more than one row: it is taken only when a quarter of the rows
+#' share a unit.
+#'
+#' A drawn effect, `list(sd = )`, is drawn over the clone's labels and shows
+#' nothing of the source. A declared effect is written to the clone plan as
+#' given, so values that rise with a level reveal that level's rank.
 #'
 #' @param roles A roles table from [propose_roles()].
 #' @param coords,events,conditional,ladder,grain,alias_names As in [mask()].
@@ -194,6 +200,7 @@ local(S7::method(print, .plan_class) <- function(x, ...) {
 
 # The plan as it ran, with every spec resolved on the source table.
 .plan_resolve <- function(plan, df, roles, rec, args) {
+  .check_spec_names(names(plan@controls), rec)
   specs <- lapply(plan@controls, .plan_resolve_spec, df = df, roles = roles, rec = rec)
   resolved_roles <- as.data.frame(rec@roles)
   attr(resolved_roles, "mode") <- rec@mode
@@ -252,6 +259,23 @@ local(S7::method(print, .plan_class) <- function(x, ...) {
     strata = strata, unit = unit, grain = grain, n = spec@n, seed = spec@seed
   )
   .resolve_control_spec(draft, df, roles)$spec
+}
+
+# A spec's name reaches the analyst as written, so it holds no hidden name.
+.check_spec_names <- function(spec_names, rec) {
+  hidden <- c(
+    names(rec@column_name_map),
+    unlist(lapply(rec@level_maps, names), use.names = FALSE)
+  )
+  tokens <- unlist(strsplit(as.character(spec_names), "[^[:alnum:]]+"), use.names = FALSE)
+  bad <- intersect(tokens, hidden)
+  if (length(bad)) {
+    .plan_refuse(
+      "A control spec's name holds {.val {bad}}, which the clone hides. Rename the spec.",
+      "controls"
+    )
+  }
+  invisible(TRUE)
 }
 
 # A column gone from the clone cannot be named in a plan the analyst reads.
@@ -473,8 +497,16 @@ clone_plan <- function(m) {
 
 # controls() from a plan ------------------------------------------------------
 
-# Offset that roots the owner's permutations away from the spec's seed.
+# Offset that roots a drawn effect away from the spec's seed.
 .CONTROL_SALT <- 15485863L
+
+# Not from the R stream: a seeded mask() must not determine it.
+.new_owner_key <- function() {
+  digest::digest(
+    list(Sys.time(), Sys.getpid(), tempfile()),
+    algo = "sha256"
+  )
+}
 
 # Arguments of controls() from a plan, on either side of the boundary.
 .controls_from_plan <- function(df, plan, spec, events, seed, recipe) {
@@ -490,7 +522,7 @@ clone_plan <- function(m) {
       )
     }
     return(list(
-      df = .blank_labels_to_na(df),
+      df = .blank_on_to_na(df, picked$spec),
       roles = plan@roles,
       spec = picked$spec,
       events = if (is.null(events) && length(plan@events)) plan@events else events,
@@ -516,20 +548,26 @@ clone_plan <- function(m) {
     } else {
       events
     },
-    seed = .control_source_seed(recipe@seed, source_spec@seed, seed),
+    seed = .control_source_seed(.prop_or(recipe, "owner_key", character()), source_spec@seed, seed),
     notes = "Source side: the seed is private. Release aggregates only."
   )
 }
 
-# A clone read back from CSV holds "" where it held NA. No label of a clone is
-# an empty string, because the cleaning step reads one as missing.
-.blank_labels_to_na <- function(df) {
+# A clone read back from CSV holds "" where `on` held NA. A plan whose effect
+# names "" as a level has a real blank label, and it stays.
+.blank_on_to_na <- function(df, spec) {
   .check_control_table(df)
   df <- .as_owned_dt(df)
-  for (cl in names(df)) {
-    if (is.character(df[[cl]]) && any(df[[cl]] == "", na.rm = TRUE)) {
-      data.table::set(df, which(df[[cl]] == ""), cl, NA_character_)
-    }
+  on <- spec@on
+  if (is.null(on) || !on %in% names(df) || "" %in% names(spec@effect)) {
+    return(df)
+  }
+  x <- df[[on]]
+  if (is.factor(x)) {
+    levels(x)[levels(x) == ""] <- NA
+    data.table::set(df, j = on, value = x)
+  } else if (is.character(x)) {
+    data.table::set(df, which(x == ""), on, NA_character_)
   }
   df
 }
@@ -604,7 +642,7 @@ clone_plan <- function(m) {
   df
 }
 
-.control_source_seed <- function(recipe_seed, spec_seed, seed) {
+.control_source_seed <- function(owner_key, spec_seed, seed) {
   if (!is.null(seed)) {
     .check_seed(seed)
     if (as.integer(seed) == spec_seed) {
@@ -615,15 +653,14 @@ clone_plan <- function(m) {
     }
     return(as.integer(seed))
   }
-  if (is.null(recipe_seed)) {
+  if (!length(owner_key)) {
     .control_refuse(
-      "The recipe holds no seed to derive a private one from. Pass a private `seed`.",
+      "This recipe was masked without a plan, so it holds no key to derive a private seed from. Pass a private `seed`.",
       "seed"
     )
   }
-  root <- (as.numeric(recipe_seed) + as.numeric(spec_seed) + .CONTROL_SALT) %%
-    .Machine$integer.max
-  .sub_seeds(root, 1L)
+  h <- digest::digest(paste(owner_key, spec_seed), algo = "sha256", serialize = FALSE)
+  strtoi(substr(h, 1L, 7L), 16L)
 }
 
 # YAML ------------------------------------------------------------------------
@@ -809,7 +846,8 @@ read_plan <- function(path) {
 #' @param m A `masque` object from [mask()].
 #' @param dir The folder to write. An existing folder that holds files is
 #'   refused unless `overwrite = TRUE`.
-#' @param name Dataset name for the data card; `NULL` uses `"clone"`.
+#' @param name Dataset name for the data card; `NULL` uses `"clone"`. It is
+#'   written as given, so it should say nothing the clone hides.
 #' @param overwrite Replace the four files if they exist.
 #' @param allow_high Write despite HIGH findings, with a warning.
 #' @param allow_local Write a local-mode clone, for a folder the owner keeps.

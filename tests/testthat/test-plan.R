@@ -212,13 +212,14 @@ test_that("the source side refuses what it should", {
     controls(d, .fx_plan_roles(d), .fx_spec(), recipe = rec),
     class = "masque_control_recipe_refusal"
   )
-  # No recipe seed and no private seed.
-  m0 <- mask(d, masque_plan(.fx_plan_roles(d), controls = .fx_spec()), quiet = TRUE)
+  # A plan-free recipe has no key: the owner must bring a private seed.
+  m0 <- suppressWarnings(mask(d, .fx_plan_roles(d), seed = 1L, quiet = TRUE))
+  plan <- recipe(m)@plan
   expect_error(
-    controls(d, clone_plan(m0), recipe = recipe(m0)),
+    controls(d, plan, recipe = recipe(m0)),
     class = "masque_control_seed_refusal"
   )
-  own <- controls(d, clone_plan(m0), recipe = recipe(m0), seed = 123L)
+  own <- controls(d, plan, recipe = recipe(m0), seed = 123L)
   expect_true(S7::S7_inherits(own, masque_controls))
 })
 
@@ -603,4 +604,74 @@ test_that("the note names a kept outcome instead of calling it re-simulated", {
   suppressWarnings(handover(m, out, allow_high = TRUE))
   note <- readLines(file.path(out, "README.txt"))
   expect_true(any(grepl("real values", note)))
+})
+
+test_that("no value the analyst holds rebuilds the owner's seeds", {
+  d <- .fx_plan_table()
+  for (s in c(0L, 1L, 42L)) {
+    m <- mask(d, masque_plan(.fx_plan_roles(d), controls = .fx_spec()),
+              seed = s, quiet = TRUE)
+    own <- controls(d, clone_plan(m), recipe = recipe(m))
+    guess <- (as.numeric(s) + 77 + .CONTROL_SALT) %% .Machine$integer.max
+    expect_false(identical(own@seeds, as.integer(.sub_seeds(.sub_seeds(guess, 1L), 5L))))
+    expect_false(any(own@seeds %in% as.integer(.sub_seeds(77L, 5L))))
+  }
+  # One seed, two recipes: the owner's key differs, the clone does not.
+  a <- mask(d, masque_plan(.fx_plan_roles(d), controls = .fx_spec()), seed = 1L, quiet = TRUE)
+  b <- mask(d, masque_plan(.fx_plan_roles(d), controls = .fx_spec()), seed = 1L, quiet = TRUE)
+  expect_identical(synthetic(a), synthetic(b))
+  expect_false(identical(recipe(a)@owner_key, recipe(b)@owner_key))
+  # The same recipe regenerates the owner's controls.
+  o1 <- controls(d, clone_plan(a), recipe = recipe(a))
+  o2 <- controls(d, clone_plan(a), recipe = recipe(a))
+  expect_identical(o1@seeds, o2@seeds)
+  # The key shows in no display route.
+  key <- recipe(a)@owner_key
+  shown <- c(utils::capture.output(print(recipe(a))), utils::capture.output(utils::str(recipe(a))))
+  expect_false(any(grepl(key, shown, fixed = TRUE)))
+})
+
+test_that("a spec name holding a hidden name or label is refused", {
+  d <- .fx_plan_table()
+  r <- .fx_plan_roles(d)
+  bad <- list(Variety1_vs_yield = .fx_spec())
+  expect_error(
+    mask(d, masque_plan(r, controls = bad, alias_names = TRUE), seed = 1L, quiet = TRUE),
+    class = "masque_plan_controls_refusal"
+  )
+  ok <- list(main_test = .fx_spec())
+  m <- mask(d, masque_plan(r, controls = ok, alias_names = TRUE), seed = 1L, quiet = TRUE)
+  expect_named(clone_plan(m)@controls, "main_test")
+})
+
+test_that("a non-terminating numeric alias works on both sides", {
+  d <- .fx_plan_table()
+  d$dose <- rep(c(1 / 3, 2 / 3, 1), length.out = nrow(d))
+  x <- d[, setdiff(names(d), "gen")]
+  r <- propose_roles(x, mode = "local", detect = FALSE)
+  r <- set_role(r, c("site", "rep", "block"), role = "design", action = "keep")
+  r <- set_role(r, "yield", role = "outcome", action = "scramble")
+  r <- set_role(r, "dose", role = "treatment", action = "alias")
+  spec <- control_spec(on = "dose", target = "yield", effect = list(sd = 0.5),
+                       n = 2L, seed = 9L)
+  m <- suppressWarnings(mask(x, masque_plan(r, controls = spec), seed = 2L, quiet = TRUE))
+  own <- controls(x, clone_plan(m), recipe = recipe(m))
+  neg <- control_table(own, "negative", 1L)
+  pos <- control_table(own, "positive", 1L)
+  d_y <- pos$yield - neg$yield
+  shift <- own@truth$shift_realised[match(.level_key(pos$dose), own@truth$level)]
+  expect_equal(d_y[!is.na(d_y)], shift[!is.na(d_y)])
+  expect_true(all(abs(shift) > 0))
+})
+
+test_that("a blank on means missing unless the plan names a blank level", {
+  d <- .fx_plan_table()
+  d$gen[3L] <- ""
+  r <- .fx_plan_roles(d)
+  r <- set_role(r, "gen", role = "treatment", action = "keep")
+  spec <- control_spec(on = "gen", target = "yield", effect = list(sd = 0.2), strata = "site", n = 2L, seed = 9L)
+  m <- suppressWarnings(mask(d, masque_plan(r, controls = spec), seed = 2L, quiet = TRUE))
+  ctl <- suppressWarnings(controls(synthetic(m), clone_plan(m)))
+  expect_true("" %in% ctl@truth$level)
+  expect_false(anyNA(control_table(ctl, "negative", 1L)$gen))
 })

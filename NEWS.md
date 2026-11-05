@@ -12,14 +12,17 @@
   and 3.1 km at 1, 2, 4, 8 and 16 kept rebuilds, and seven rebuilds, not eight,
   fall below the 5 km floor.
 * Rows are one site when their coordinates agree to nine decimal places, so a
-  table written to a file and read back keeps its draw.
-* The audit grades a re-simulated number that tracks the original row by row
-  (r at or above 0.95): HIGH where its conditioning cell holds ten rows or fewer,
-  MEDIUM otherwise. A conditional clone of tiny strata can do this.
-* Under the hierarchy ladder a design level must hold three rows to carry a shift.
-  A level of two rows gave a shift close to those rows' own values: a clone
+  table written to a file with 15 significant digits and read back keeps its draw
+  at nearly every site.
+* The audit grades a re-simulated number that tracks the original row by row:
+  HIGH at r of 0.9 or more on the rows of small levels, with the means of large
+  terms taken out. MEDIUM at 0.7 or more there, or at 0.95 or more overall, which
+  big environment means alone can reach.
+* Under the hierarchy ladder a design level must hold three rows to carry a
+  shift. A level of two rows gave a shift close to those rows' own values: a clone
   correlated 0.99 with the original at its rows, and the audit said low. Conditional
-  clones with such a column change.
+  clones with such a column change. Levels of three or four rows still carry a
+  shift, since real alpha blocks are that small, and the audit grades them.
 * A private `seed` in `controls()` no longer appears in the manifest.
 * The averaged-row figure in `?jitter_coordinates` is corrected to 0.64 km for
   360 rows.

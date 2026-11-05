@@ -16,7 +16,7 @@
   if (is.null(coarsened)) coarsened <- character()
   na_pattern_uniq <- .global_na_pattern_uniqueness(df)
   strata <- .audit_strata(df, rec)
-  row_cell <- .audit_row_cell(df, rec)
+  row_terms <- .audit_row_terms(df, rec)
   design_cols <- intersect(
     rec@roles$col[rec@roles$role == "design"], names(df)
   )
@@ -77,15 +77,11 @@
     }
 
     # A re-simulated number that tracks the original at its own row.
-    row_cor <- NA_real_
+    row_track <- list(all = NA_real_, within = NA_real_)
     if (in_synth && kind %in% c("numeric", "integer") &&
       .audit_numeric_resimulated(action) && !is_grained && !two_valued &&
-      !(col %in% linked) && comparable_n >= 10L) {
-      y <- synth[[col]]
-      both <- !is.na(x) & !is.na(y)
-      if (stats::sd(x[both]) > 0 && stats::sd(y[both]) > 0) {
-        row_cor <- stats::cor(x[both], y[both])
-      }
+      !(col %in% linked) && comparable_n >= .MIN_STRATUM) {
+      row_track <- .row_tracking(x, synth[[col]], row_terms)
     }
 
     # Same-row match against a permutation baseline: categorical, date and
@@ -136,7 +132,7 @@
       by_excess = by_excess, grained = is_grained,
       allow_kept_outcome = allow_kept_outcome,
       value_set_pct = if (is.null(value_set)) NA_real_ else value_set$pct,
-      row_cor = row_cor, row_cell = row_cell
+      row_track = row_track
     )
 
     notes <- .audit_notes(
@@ -148,10 +144,12 @@
       row_grain = Filter(function(g) col %in% g$cols, row_grain),
       value_set = value_set
     )
-    if (isTRUE(abs(row_cor) >= .AUDIT_THRESHOLDS$row_cor)) {
-      notes <- paste0(
-        notes, if (nzchar(notes)) "; ",
-        sprintf("tracks the original row by row (r = %.2f)", row_cor)
+    tracked <- c(row_track$within, row_track$all)
+    if (isTRUE(abs(row_track$within) >= .AUDIT_THRESHOLDS$row_cor_within_medium) ||
+      isTRUE(abs(row_track$all) >= .AUDIT_THRESHOLDS$row_cor)) {
+      notes <- sprintf(
+        "tracks the original row by row (r = %.2f)",
+        tracked[which(!is.na(tracked))[1L]]
       )
     }
 
@@ -186,8 +184,12 @@
   same_row_medium = list(excess = 10, z = 4),
   same_row_high = list(excess = 50, z = 4),
   value_set_high = 50,
+  # Tracking of a number on its own row: overall, and inside small levels. A real
+  # alpha design conditioned on 24 genotypes of three rows reaches 0.81.
   row_cor = 0.95,
-  row_cor_cell = 10L,
+  row_cor_within_high = 0.9,
+  row_cor_within_medium = 0.7,
+  row_cell_small = 10L,
   joint_medium = list(excess = 5, z = 4),
   joint_high = list(excess = 20, z = 4),
   rare_medium = list(excess = 1, z = 3),
@@ -205,18 +207,61 @@
     excess >= rule$z * sd)
 }
 
-# Median rows per cell of the columns a clone's numbers were conditioned or
-# shifted on; every row when there are none.
-.audit_row_cell <- function(df, rec) {
-  terms <- unlist(strsplit(
-    c(rec@conditioning_used, .prop_or(rec, "conditioning_shifted", character())),
-    ":", fixed = TRUE
-  ))
-  cols <- intersect(unique(terms), names(df))
-  if (!length(cols)) {
-    return(nrow(df))
+# The columns a clone's numbers were conditioned or shifted on, sorted into
+# large terms, whose means a clone may keep, and the rows held by small levels,
+# whose means sit close to those rows. A treatment's means are the point of a
+# conditional clone, so its levels count as small only below the stratum floor.
+.audit_row_terms <- function(df, rec) {
+  used <- intersect(.prop_or(rec, "conditioning_used", character()), names(df))
+  shifted <- .prop_or(rec, "conditioning_shifted", character())
+  cols <- intersect(unique(c(used, unlist(strsplit(shifted, ":", fixed = TRUE)))), names(df))
+  treatment <- rec@roles$col[rec@roles$role == "treatment"]
+  small_rows <- rep(FALSE, nrow(df))
+  large <- list()
+  # Rows per level, row by row, for a partition.
+  level_size <- function(partition) {
+    id <- .row_group_id(.cols(df, partition))
+    tabulate(id)[id]
   }
-  stats::median(tabulate(.row_group_id(.cols(df, cols))))
+  for (cl in cols) {
+    trt <- cl %in% treatment
+    size <- level_size(cl)
+    top <- if (trt) .MIN_STRATUM - 1L else .AUDIT_THRESHOLDS$row_cell_small
+    bottom <- if (trt) 2L else 3L
+    small_rows <- small_rows | (size >= bottom & size <= top)
+    if (stats::median(size) > top) {
+      large <- c(large, list(df[[cl]]))
+    }
+  }
+  if (length(used) >= 2L) {
+    size <- level_size(used)
+    small_rows <- small_rows |
+      (size >= .MIN_STRATUM & size <= .AUDIT_THRESHOLDS$row_cell_small)
+  }
+  list(large = large, small_rows = small_rows)
+}
+
+# Correlation of a number with its original overall and, on the rows of small
+# levels, after the means of the large terms are taken out.
+.row_tracking <- function(x, y, terms) {
+  both <- !is.na(x) & !is.na(y)
+  r <- function(a, b) {
+    if (length(a) >= 2L && stats::sd(a) > 0 && stats::sd(b) > 0) stats::cor(a, b) else NA_real_
+  }
+  a <- as.numeric(x[both])
+  b <- as.numeric(y[both])
+  overall <- r(a, b)
+  small <- terms$small_rows[both]
+  if (sum(small) < .MIN_STRATUM) {
+    return(list(all = overall, within = NA_real_))
+  }
+  for (g in terms$large) {
+    g <- as.character(g[both])
+    g[is.na(g)] <- ".na"
+    a <- a - stats::ave(a, g)
+    b <- b - stats::ave(b, g)
+  }
+  list(all = overall, within = r(a[small], b[small]))
 }
 
 # A scrambled numeric column is re-simulated through the copula, within the
@@ -619,8 +664,8 @@
   exact_match_pct, freq_min, n_unique_levels, n_rows, coarsened = FALSE,
   same_row_excess = NA_real_, same_row_sd = NA_real_, two_valued = FALSE,
   linked = FALSE, by_excess = FALSE, grained = FALSE,
-  allow_kept_outcome = FALSE, value_set_pct = NA_real_, row_cor = NA_real_,
-  row_cell = NA_integer_
+  allow_kept_outcome = FALSE, value_set_pct = NA_real_,
+  row_track = list(all = NA_real_, within = NA_real_)
 ) {
   collab <- identical(mode, "collaborate")
 
@@ -635,10 +680,9 @@
     return(if (collab) "high" else "medium")
   }
 
-  # 0b. A re-simulated number that tracks the original row by row, in a small
-  #     conditioning cell whose mean is close to the rows themselves: HIGH.
-  tracks <- collab && isTRUE(abs(row_cor) >= .AUDIT_THRESHOLDS$row_cor)
-  if (tracks && isTRUE(row_cell <= .AUDIT_THRESHOLDS$row_cor_cell)) {
+  # 0b. A re-simulated number that tracks the original inside small conditioning
+  #     cells, whose means are close to the rows themselves: HIGH.
+  if (collab && isTRUE(abs(row_track$within) >= .AUDIT_THRESHOLDS$row_cor_within_high)) {
     return("high")
   }
 
@@ -672,9 +716,10 @@
     return("high")
   }
 
-  # 3c. The same in a large cell, where the clone may only keep big environment
-  #     means: MEDIUM.
-  if (tracks) {
+  # 3c. Weaker tracking inside small levels, or overall only, where the clone may
+  #     be keeping big environment means.
+  if (collab && (isTRUE(abs(row_track$within) >= .AUDIT_THRESHOLDS$row_cor_within_medium) ||
+    isTRUE(abs(row_track$all) >= .AUDIT_THRESHOLDS$row_cor))) {
     return("medium")
   }
 

@@ -19,7 +19,8 @@ handover(
 \item{dir}{The folder to write. An existing folder that holds files is
 refused unless \code{overwrite = TRUE}.}
 
-\item{name}{Dataset name for the data card; \code{NULL} uses \code{"clone"}.}
+\item{name}{Dataset name for the data card; \code{NULL} uses \code{"clone"}. It is
+written as given, so it should say nothing the clone hides.}
 
 \item{overwrite}{Replace the four files if they exist.}
 

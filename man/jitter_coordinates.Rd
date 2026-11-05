@@ -144,9 +144,9 @@ things start a new draw for a site: a different seed, a changed site value
 columns. A clone built before version 0.17.0 used a different draw, so a
 rebuild under 0.17.0 is a new release of those sites even with the same seed.
 Treat each of these as a fresh seed: retire the versions it replaces. The seed
-reveals every displacement, so it stays as confidential as the recipe. Use a
-large random integer: where a clone shows site labels, or holds two pairs at
-one place, a small seed can be found by search.
+reveals every displacement, so it stays as confidential as the recipe. A seed
+has 31 bits: where a clone shows site labels and holds two pairs at one place,
+it can be found by search, so alias the label or declare one pair.
 
 Choose the unit carefully. It is the finest grouping that denotes \strong{one
 physical place at one time}. For a multi-year trial series that is location

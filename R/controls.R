@@ -401,7 +401,7 @@ control_table <- function(ctl, kind = c("null", "negative", "positive"), i = 1L)
   }
   # An aliased numeric is a set of labels, on both sides.
   action <- roles$action[match(on, roles$col)]
-  categorical <- kind %in% .categorical_kinds() || action %in% c("alias", "permute")
+  categorical <- kind %in% .categorical_kinds() || identical(action, "alias")
   whole <- kind %in% .numeric_kinds() && .is_whole_valued(df[[on]])
   if (!categorical && !whole) {
     .control_refuse(
@@ -486,7 +486,7 @@ control_table <- function(ctl, kind = c("null", "negative", "positive"), i = 1L)
 
 # The levels of `on` as character, in sorted order.
 .control_levels <- function(x) {
-  as.character(sort(unique(x[!is.na(x)])))
+  .level_key(sort(unique(x[!is.na(x)])))
 }
 
 # Share of strata in which `on` holds at most one distinct value.
@@ -650,7 +650,7 @@ control_table <- function(ctl, kind = c("null", "negative", "positive"), i = 1L)
 # The positive: each target's realised shift on the rows of each level of
 # the permuted `on`; nothing is clipped.
 .plant_effect <- function(out, ctl) {
-  on_val <- as.character(out[[ctl@spec@on]])
+  on_val <- .level_key(out[[ctl@spec@on]])
   crossed <- character()
   for (tg in unique(ctl@truth$target)) {
     tr <- ctl@truth[ctl@truth$target == tg, ]

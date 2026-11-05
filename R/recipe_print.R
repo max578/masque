@@ -367,7 +367,12 @@ reveal_maps <- function(rec, table = NULL) {
     frac <- NA_real_
   }
   if (!length(used)) {
-    return("conditional requested (no conditioning column; pooled fallback)")
+    shifted <- .prop_or(x, "conditioning_shifted", character())
+    return(if (length(shifted)) {
+      sprintf("conditional: pooled copula with additive shifts on %s", paste(shifted, collapse = ", "))
+    } else {
+      "conditional requested (no conditioning column; pooled fallback)"
+    })
   }
   r <- x@roles
   has_treatment <- any(requested %in% r$col[r$role == "treatment"])

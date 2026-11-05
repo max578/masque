@@ -225,10 +225,6 @@ synthesise_numeric_conditional <- function(x_num, groups, min_stratum = 5L) {
   sum(tab >= floor) >= 2L
 }
 
-# Rows a level of a design term must hold to carry a shift. The shift of a level
-# of two rows is close to those rows' own outcomes. A treatment keeps a floor of
-# two: its means are what a conditional clone exists to carry.
-.SHIFT_FLOOR_DESIGN <- 3L
 
 # Pairs of dropped blocking and environment columns, as "a:b" (rep R1 in one
 # county is not R1 in another). Coordinates form no pairs.
@@ -251,11 +247,15 @@ synthesise_numeric_conditional <- function(x_num, groups, min_stratum = 5L) {
 }
 
 # Levels below the floor share one pooled level, so the shift a row receives is
-# never that row's own outcome.
+# never that row's own outcome. A pool still below the floor gets no shift.
 .collapse_singletons <- function(v, floor = 2L) {
   v <- as.character(v)
   tab <- table(v)
   single <- names(tab)[tab < floor]
+  if (sum(tab[single]) < floor) {
+    v[v %in% single] <- NA_character_
+    return(factor(v))
+  }
   v[v %in% single] <- ".singleton"
   factor(v)
 }
@@ -291,7 +291,10 @@ synthesise_numeric_conditional <- function(x_num, groups, min_stratum = 5L) {
   with_stratum <- nlevels(key) >= 2L && !any(used %in% shifted)
   terms <- lapply(shifted, function(term) .shift_term(df, term))
   names(terms) <- shifted
-  floors <- ifelse(shifted %in% treatment, 2L, .SHIFT_FLOOR_DESIGN)
+  # A design level of two rows gives a shift close to its rows' own values. A
+  # level of three or four can too; the audit grades that, since real alpha blocks
+  # are this small. A treatment keeps a floor of two: its means are the point.
+  floors <- ifelse(shifted %in% treatment, 2L, 3L)
   names(floors) <- shifted
   shifted <- shifted[vapply(shifted, function(term) {
     .shiftable(terms[[term]], floors[[term]])

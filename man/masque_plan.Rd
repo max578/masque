@@ -43,7 +43,13 @@ partition within which \code{on} is constant, or to the row. Its \code{strata}, 
 not declared, resolve to the finest design partition above the unit in which
 every stratum holds every level of \code{on}, or to none. A stratum that misses
 levels of \code{on} would keep part of the real effect in a negative control, so
-incomplete blocks are not chosen by default.
+incomplete blocks are not chosen by default. Declare a whole-plot unit where
+few plots hold more than one row: it is taken only when a quarter of the rows
+share a unit.
+
+A drawn effect, \code{list(sd = )}, is drawn over the clone's labels and shows
+nothing of the source. A declared effect is written to the clone plan as
+given, so values that rise with a level reveal that level's rank.
 }
 \examples{
 trial <- read.csv(system.file("extdata", "john_alpha.csv", package = "masque"))
