@@ -49,9 +49,10 @@ masque_controls <- S7::new_class(
 #' * `negative`: the declared column `on` alone is permuted within the
 #'   declared design strata, at its unit, while the design structure and all
 #'   other associations are kept. Choose strata that every level of `on` can
-#'   reach, such as complete replicates: within incomplete blocks each block
-#'   keeps its set of levels, so part of the real effect of `on` survives. With `n` replicates it gives a permutation null for a whole
-#'   pipeline: a false-positive rate, a permutation p-value.
+#'   reach. Complete replicates qualify. Within incomplete blocks each block
+#'   keeps its set of levels, so part of the real effect of `on` survives.
+#'   With `n` replicates it gives a permutation null for a whole pipeline: a
+#'   false-positive rate, a permutation p-value.
 #' * `positive`: the same permutation as the negative replicate, plus the
 #'   declared shift per level of `on` on each target, in units of the
 #'   target's standard deviation in the table at hand. Positive minus

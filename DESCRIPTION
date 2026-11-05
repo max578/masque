@@ -29,7 +29,7 @@ Depends:
 Imports:
     cli,
     data.table (>= 1.15.0),
-    digest,
+    digest (>= 0.6.21),
     Matrix,
     S7,
     stats,

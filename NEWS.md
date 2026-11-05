@@ -1,5 +1,18 @@
 # masque (development version)
 
+## Behaviour changes
+
+* The site displacement of `jitter_coordinates()` and `mask(coords = )` is now
+  keyed on the site's value and the seed, so one seed gives a site one
+  displacement even after rows are shuffled, added or removed. In 0.16.0 the
+  advice to reuse the seed held only for a byte-identical table. **A clone built
+  by an earlier version moves under the new draw, so rebuilding it counts as a
+  second release of its sites: retire the old clone.**
+* The rebuild table in `?jitter_coordinates` is corrected: 14.6, 9.4, 6.3, 4.4
+  and 3.1 km at 1, 2, 4, 8 and 16 kept rebuilds, and seven rebuilds, not eight,
+  fall below the 5 km floor.
+* masque needs digest 0.6.21 or later.
+
 ## New features
 
 * Known-truth controls. `control_spec()` declares what a control removes and
