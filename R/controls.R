@@ -86,13 +86,22 @@ masque_controls <- S7::new_class(
 #'
 #' @param df The table to derive controls from: a data frame or data.table.
 #' @param roles Its role table, as returned by [roles()] for a clone or by
-#'   [propose_roles()] and [set_role()] for any table.
-#' @param spec A [control_spec()].
+#'   [propose_roles()] and [set_role()] for any table. Or a plan: the analyst
+#'   passes [clone_plan()] with the clone, the owner passes the plan and the
+#'   `recipe` with the real table.
+#' @param spec A [control_spec()]. With a plan in `roles`, the name of one of
+#'   its specs, or `NULL` when it holds exactly one.
 #' @param events Linked time/status pairs among the outcome columns, in the
 #'   form [mask()] takes. The null permutes each pair as one block. `NULL`
 #'   when there are none.
 #' @param seed A private seed for the permutations that overrides the
-#'   spec's seed, for the owner's side; `NULL` uses the spec's seed.
+#'   spec's seed, for the owner's side; `NULL` uses the spec's seed, or with a
+#'   `recipe` a private seed derived from the recipe's. A value equal to the
+#'   spec's seed is refused there.
+#' @param recipe With a plan in `roles`, the recipe of the clone. `df` is then
+#'   the real table: its cleaning and conformance are replayed as in
+#'   [apply_recipe()], a table with a different schema or NA mask is refused,
+#'   and a spec that differs from the one fixed at [mask()] is refused.
 #'
 #' @returns A `masque_controls` object: the resolved spec (`@spec`), the
 #'   manifest (`@manifest`, one row per dataset), the truth table
@@ -117,8 +126,21 @@ masque_controls <- S7::new_class(
 #' @seealso [control_spec()], [control_table()], [mask()], [roles()].
 #'
 #' @export
-controls <- function(df, roles, spec, events = NULL, seed = NULL) {
+controls <- function(df, roles, spec = NULL, events = NULL, seed = NULL,
+                     recipe = NULL) {
   withr::local_preserve_seed()
+  plan_notes <- character()
+  if (S7::S7_inherits(roles, .plan_class)) {
+    from_plan <- .controls_from_plan(df, roles, spec, events, seed, recipe)
+    df <- from_plan$df
+    roles <- from_plan$roles
+    spec <- from_plan$spec
+    events <- from_plan$events
+    seed <- from_plan$seed
+    plan_notes <- from_plan$notes
+  } else if (!is.null(recipe)) {
+    .control_refuse("`recipe` goes with a plan in `roles`: {.code controls(real, plan, recipe = rec)}.", "recipe")
+  }
   .check_control_table(df)
   .check_control_spec_class(spec)
   if (!is.null(seed)) {
@@ -149,7 +171,7 @@ controls <- function(df, roles, spec, events = NULL, seed = NULL) {
     grain_units = res$grain_units,
     manifest = manifest,
     truth = res$truth,
-    notes = res$notes
+    notes = c(res$notes, plan_notes)
   )
 }
 

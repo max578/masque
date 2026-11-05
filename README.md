@@ -117,6 +117,11 @@ ctl <- controls(synthetic(m), roles(m), spec)
 control_table(ctl, "positive", 1L)
 ```
 
+A `masque_plan()` holds the roles and the spec together, so the spec is fixed
+before any real result exists. `mask(df, plan)` resolves it on the source,
+`handover()` gives the analyst the clone and the plan in clone vocabulary, and
+`controls(real, plan, recipe = rec)` runs it on the owner's side.
+
 ## Threat model
 
 `masque` is **not** a privacy-preserving or differential-privacy tool. It is a

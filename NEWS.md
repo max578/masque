@@ -1,4 +1,4 @@
-# masque (development version)
+# masque 0.17.0
 
 ## Behaviour changes
 
@@ -15,6 +15,17 @@
 
 ## New features
 
+* `masque_plan()` holds the roles and every named spec in one object.
+  `mask(df, plan)` reads them from it, an argument passed as well overrides the
+  plan, and each control spec is resolved on the source and written back to the
+  recipe. `save_plan()` and `read_plan()` keep a plan as YAML.
+* `clone_plan()` gives the plan in clone vocabulary. `controls(clone, plan)` runs
+  the declared controls for the analyst. `controls(real, plan, recipe = rec)`
+  runs them for the owner: cleaning and conformance are replayed, a table with a
+  different schema or NA mask is refused, a spec changed since `mask()` is refused
+  and the seed is derived privately from the recipe.
+* `handover(m, dir)` writes the clone, the clone plan, the data card and a note
+  to one folder after the release gate. It never writes the recipe.
 * `mask(conditional = )` takes `"design"`, which conditions on the retained
   design columns alone: the clone keeps design means and block variance and
   carries no treatment effect. It also takes column names, an explicit

@@ -4,22 +4,32 @@
 \alias{controls}
 \title{Derive null, negative and positive controls from a table}
 \usage{
-controls(df, roles, spec, events = NULL, seed = NULL)
+controls(df, roles, spec = NULL, events = NULL, seed = NULL, recipe = NULL)
 }
 \arguments{
 \item{df}{The table to derive controls from: a data frame or data.table.}
 
 \item{roles}{Its role table, as returned by \code{\link[=roles]{roles()}} for a clone or by
-\code{\link[=propose_roles]{propose_roles()}} and \code{\link[=set_role]{set_role()}} for any table.}
+\code{\link[=propose_roles]{propose_roles()}} and \code{\link[=set_role]{set_role()}} for any table. Or a plan: the analyst
+passes \code{\link[=clone_plan]{clone_plan()}} with the clone, the owner passes the plan and the
+\code{recipe} with the real table.}
 
-\item{spec}{A \code{\link[=control_spec]{control_spec()}}.}
+\item{spec}{A \code{\link[=control_spec]{control_spec()}}. With a plan in \code{roles}, the name of one of
+its specs, or \code{NULL} when it holds exactly one.}
 
 \item{events}{Linked time/status pairs among the outcome columns, in the
 form \code{\link[=mask]{mask()}} takes. The null permutes each pair as one block. \code{NULL}
 when there are none.}
 
 \item{seed}{A private seed for the permutations that overrides the
-spec's seed, for the owner's side; \code{NULL} uses the spec's seed.}
+spec's seed, for the owner's side; \code{NULL} uses the spec's seed, or with a
+\code{recipe} a private seed derived from the recipe's. A value equal to the
+spec's seed is refused there.}
+
+\item{recipe}{With a plan in \code{roles}, the recipe of the clone. \code{df} is then
+the real table: its cleaning and conformance are replayed as in
+\code{\link[=apply_recipe]{apply_recipe()}}, a table with a different schema or NA mask is refused,
+and a spec that differs from the one fixed at \code{\link[=mask]{mask()}} is refused.}
 }
 \value{
 A \code{masque_controls} object: the resolved spec (\verb{@spec}), the
@@ -45,9 +55,10 @@ Use it as a smoke test and to expose leakage through analysed columns.
 \item \code{negative}: the declared column \code{on} alone is permuted within the
 declared design strata, at its unit, while the design structure and all
 other associations are kept. Choose strata that every level of \code{on} can
-reach, such as complete replicates: within incomplete blocks each block
-keeps its set of levels, so part of the real effect of \code{on} survives. With \code{n} replicates it gives a permutation null for a whole
-pipeline: a false-positive rate, a permutation p-value.
+reach. Complete replicates qualify. Within incomplete blocks each block
+keeps its set of levels, so part of the real effect of \code{on} survives.
+With \code{n} replicates it gives a permutation null for a whole pipeline: a
+false-positive rate, a permutation p-value.
 \item \code{positive}: the same permutation as the negative replicate, plus the
 declared shift per level of \code{on} on each target, in units of the
 target's standard deviation in the table at hand. Positive minus

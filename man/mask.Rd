@@ -30,7 +30,10 @@ mask(
 record and its merges and type changes go on the recipe, so
 \code{\link[=apply_recipe]{apply_recipe()}} replays them; \code{clean} is not applied a second time.}
 
-\item{roles}{A roles table from \code{\link[=propose_roles]{propose_roles()}} (possibly edited).
+\item{roles}{A roles table from \code{\link[=propose_roles]{propose_roles()}} (possibly edited), or a
+\code{\link[=masque_plan]{masque_plan()}}. A plan supplies \code{coords}, \code{events}, \code{conditional},
+\code{ladder}, \code{grain} and \code{alias_names} where the call leaves them out, and its
+control specs are resolved on \code{df} and written back to the recipe.
 Tables from masque <= 0.5.0 are upgraded with a deprecation
 warning; see \code{\link[=roles_validate]{roles_validate()}}.}
 
@@ -66,8 +69,9 @@ original-to-alias map is stored in the recipe and inverted by
 aliased synthetic round-trips. Alias the names when the schema itself
 is sensitive.}
 
-\item{conditional}{Logical scalar (default \code{FALSE}). The
-\emph{collaborate-grade conditional clone}. When \code{FALSE}, scrambled
+\item{conditional}{\code{FALSE} (default), \code{TRUE}, \code{"design"}, or a character
+vector of column names. The \emph{collaborate-grade conditional clone}.
+When \code{FALSE}, scrambled
 numeric columns are re-simulated from one global Gaussian copula -
 marginals and global covariance survive, but the treatment-to-outcome
 relationship does not, so a causal model fitted on the clone recovers
@@ -89,7 +93,16 @@ into a global fallback. The rung reached is recorded on the recipe as
 the pooled share as \code{fallback_frac}, and any coarsening or residual
 pooling raises a classed \code{masque_conditional_degraded} warning --
 including the case where no treatment or design column survives at
-all, in which case the clone is the pooled copula.}
+all, in which case the clone is the pooled copula.
+
+\code{"design"} conditions on the retained design columns alone. The clone
+keeps the design means, block and environment variance, while a treatment
+effect is not carried, so a test of the treatment on the clone has the
+denominator it would have on the original and a true effect of zero.
+A character vector of names gives the partition explicitly, from the
+retained design and treatment columns, and runs through the same ladder;
+treatment columns are still never dropped. The single word \code{"design"}
+always means this option, even where a column has that name.}
 
 \item{ladder}{How the coarsening ladder orders the design columns it may
 drop, and what it keeps of a dropped one. \code{"hierarchy"} (the default)

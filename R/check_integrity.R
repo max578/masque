@@ -32,7 +32,7 @@
         "changed since the recipe was built), pass ",
         "{.code check_integrity = FALSE} to {.fun apply_recipe}."
       )
-    ))
+    ), class = c("masque_integrity_refusal", "orchestra_refusal"))
   }
   invisible(TRUE)
 }

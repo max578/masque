@@ -88,6 +88,11 @@ masque_recipe <- S7::new_class(
     allow_kept_outcome = S7::new_property(
       class = S7::class_logical, default = FALSE
     ),
+    # The plan as it ran, specs resolved on the source; NULL without a plan.
+    # Absent before 0.17.0.
+    plan = S7::new_property(
+      class = S7::new_union(NULL, .plan_class), default = NULL
+    ),
     warnings = S7::new_property(
       class = S7::class_character, default = character()
     ),

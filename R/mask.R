@@ -51,7 +51,10 @@
 #'   [conform_table()], whose `data` element is then masked. Its cleaning
 #'   record and its merges and type changes go on the recipe, so
 #'   [apply_recipe()] replays them; `clean` is not applied a second time.
-#' @param roles A roles table from [propose_roles()] (possibly edited).
+#' @param roles A roles table from [propose_roles()] (possibly edited), or a
+#'   [masque_plan()]. A plan supplies `coords`, `events`, `conditional`,
+#'   `ladder`, `grain` and `alias_names` where the call leaves them out, and its
+#'   control specs are resolved on `df` and written back to the recipe.
 #'   Tables from masque <= 0.5.0 are upgraded with a deprecation
 #'   warning; see [roles_validate()].
 #' @param mode Either `"local"` or `"collaborate"`. When omitted, inherit
@@ -283,6 +286,28 @@ mask <- function(df,
   # Undo any RNG change made inside mask() on exit, whichever path made it.
   withr::local_preserve_seed()
 
+  # A plan fills the arguments the call leaves out.
+  plan <- NULL
+  if (!missing(roles) && S7::S7_inherits(roles, .plan_class)) {
+    plan <- roles
+    if (!identical(plan@vocabulary, "source")) {
+      .plan_refuse(
+        c(
+          "This plan is in clone vocabulary.",
+          i = "It describes a clone for {.fn controls}, and cannot mask a table."
+        ),
+        "vocabulary"
+      )
+    }
+    roles <- plan@roles
+    if (missing(coords) && length(plan@coords)) coords <- plan@coords
+    if (missing(events) && length(plan@events)) events <- plan@events
+    if (missing(conditional)) conditional <- plan@conditional
+    if (missing(ladder)) ladder <- plan@ladder
+    if (missing(grain)) grain <- plan@grain
+    if (missing(alias_names)) alias_names <- plan@alias_names
+  }
+
   # A conformance object carries its own cleaning and the judged decisions;
   # both go on the recipe so apply_recipe() can replay them.
   conform_rec <- NULL
@@ -434,6 +459,7 @@ mask <- function(df,
 
   # With nothing to condition on, a conditional clone uses the global copula.
   conditioning_cols <- .resolve_conditioning(conditional, roles)
+  conditional_declared <- conditional
   conditional <- !isFALSE(conditional)
   if (conditional && !length(conditioning_cols)) {
     msg <- paste0(
@@ -646,6 +672,12 @@ mask <- function(df,
     warnings          = warnings_acc,
     integrity_fp      = digest::digest(is.na(df), algo = "sha256")
   )
+  if (!is.null(plan)) {
+    rec@plan <- .plan_resolve(plan, df, roles, rec, list(
+      coords = coords, events = events, conditional = conditional_declared,
+      ladder = ladder, grain = grain, alias_names = alias_names
+    ))
+  }
 
   masque_obj(
     synthetic = .as_owned_dt(synth),

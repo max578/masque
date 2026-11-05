@@ -128,6 +128,12 @@ masque <- function(input,
   clean <- match.arg(clean)
   ladder <- match.arg(ladder)
 
+  if (S7::S7_inherits(roles, .plan_class)) {
+    .plan_refuse(
+      "{.fn masque} does not take a plan yet. Call {.code mask(df, plan)}.",
+      "unsupported"
+    )
+  }
   is_set <- .masque_is_set(input)
   if (!is_set && (!is.null(sheets) || !is.null(info))) {
     cli::cli_abort(c(

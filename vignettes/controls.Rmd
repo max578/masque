@@ -205,6 +205,51 @@ more query against the original, and with the permutations known they are
 linear equations in the real outcome. The replicate count in the spec is
 the query budget, declared with everything else.
 
+## Carrying the spec in a plan
+
+So far the spec has been a separate object. A plan fixes it in advance, with the
+roles, and takes it through the boundary. At `mask()` the spec is resolved on
+the source and recorded on the recipe. Where a unit or strata are not declared,
+the plan picks them: here the replicate, since each replicate holds every
+genotype and a block does not. The clone is unchanged by the spec.
+
+```{r plan-mask}
+r_plan <- set_role(r, "gen", role = "treatment", action = "alias")
+plan <- masque_plan(
+  r_plan,
+  conditional = "design",
+  controls = control_spec(
+    on = "gen", target = "yield", effect = list(sd = 0.5), n = 19L, seed = 2026L
+  )
+)
+m_plan <- suppressWarnings(mask(trial, plan, mode = "local", seed = 1L))
+recipe(m_plan)@plan@controls$default@strata
+```
+
+`conditional = "design"` keeps the design means and block variance and carries
+no genotype effect, so a test of genotype on this clone has the denominator it
+would have on the original.
+
+The analyst gets the plan in the clone's own names and labels. `handover()`
+writes it to a folder with the clone, the data card and a note, and leaves the
+recipe out. From there the analyst rebuilds the declared controls.
+
+```{r plan-analyst}
+analyst_plan <- clone_plan(m_plan)
+ctl_analyst <- controls(synthetic(m_plan), analyst_plan)
+ctl_analyst@spec@strata
+```
+
+The owner passes the same plan with the recipe and the real table. Cleaning is
+replayed, a table that does not match the recipe is refused, a spec changed since
+`mask()` is refused, and the seed is derived from the recipe, so the analyst
+cannot rebuild these permutations.
+
+```{r plan-owner}
+ctl_owner_plan <- controls(trial, analyst_plan, recipe = recipe(m_plan))
+identical(ctl_owner_plan@seeds, ctl_analyst@seeds)
+```
+
 ## What a control cannot tell you
 
 * A kept column is structure and is never permuted. Leakage through kept

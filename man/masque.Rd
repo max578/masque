@@ -52,7 +52,8 @@ in \code{\link[=mask]{mask()}} and \code{\link[=mask_set]{mask_set()}}; with no 
 
 \item{alias_names}{Hide column names; see \code{\link[=mask]{mask()}} / \code{\link[=mask_set]{mask_set()}}.}
 
-\item{conditional}{Logical scalar (default \code{FALSE}). The conditional
+\item{conditional}{\code{FALSE} (default), \code{TRUE}, \code{"design"} or column names.
+The conditional
 clone mode passed through to \code{\link[=mask]{mask()}} / \code{\link[=mask_set]{mask_set()}}: when \code{TRUE},
 numeric columns are re-simulated within each treatment-by-design
 stratum so the treatment-to-outcome relationship survives the clone.

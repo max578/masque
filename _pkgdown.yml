@@ -62,6 +62,14 @@ reference:
   - controls
   - control_table
 
+- title: Plan and handover
+  desc: Roles and named specs in one object, and what an analyst receives.
+  contents:
+  - masque_plan
+  - clone_plan
+  - save_plan
+  - handover
+
 - title: Geospatial post-processing
   desc: Coarsen or re-anchor synthetic coordinates while keeping them on land and plausible.
   contents:
