@@ -38,9 +38,8 @@ the spec first meets a table. Required with \code{target}.}
 \item{strata}{Design columns within which \code{on} is permuted, or \code{NULL}
 for no stratification. Every unit of \code{on} must lie within one stratum.}
 
-\item{unit}{Design columns within which \code{on} is constant, so that it is
-permuted across those units rather than across rows; \code{NULL} (the
-default) permutes rows.}
+\item{unit}{Design columns within which \code{on} is constant. \code{on} is then
+permuted across those units. \code{NULL} (the default) permutes rows.}
 
 \item{grain}{A named list giving, for other analysed columns constant
 within a design unit, the unit columns: \code{list(rain = "trial")}. Such a
@@ -49,8 +48,7 @@ constant within each unit.}
 
 \item{n}{The number of negative (and positive) replicates.}
 
-\item{seed}{The seed of the control draws. Required, so that a control is
-reproducible from its declaration.}
+\item{seed}{The seed of the control draws. Required.}
 }
 \value{
 A \code{masque_control_spec} object, with a print method.

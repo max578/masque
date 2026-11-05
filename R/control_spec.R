@@ -1,10 +1,4 @@
 # control_spec.R -- control_spec(): the declaration behind controls().
-#
-# A control spec names the column whose effect a negative control removes,
-# the outcome a positive control plants an effect on, the effect per level in
-# outcome-SD units, the design strata and unit of the restricted permutation,
-# the unit-grained columns, the replicate count and the seed. It is declared
-# before any control table exists and is the record of what was planted.
 
 #' Internal: the masque_control_spec S7 class
 #'
@@ -71,16 +65,14 @@ masque_control_spec <- S7::new_class(
 #'   the spec first meets a table. Required with `target`.
 #' @param strata Design columns within which `on` is permuted, or `NULL`
 #'   for no stratification. Every unit of `on` must lie within one stratum.
-#' @param unit Design columns within which `on` is constant, so that it is
-#'   permuted across those units rather than across rows; `NULL` (the
-#'   default) permutes rows.
+#' @param unit Design columns within which `on` is constant. `on` is then
+#'   permuted across those units. `NULL` (the default) permutes rows.
 #' @param grain A named list giving, for other analysed columns constant
 #'   within a design unit, the unit columns: `list(rain = "trial")`. Such a
 #'   column is permuted across its units in the null control, so it stays
 #'   constant within each unit.
 #' @param n The number of negative (and positive) replicates.
-#' @param seed The seed of the control draws. Required, so that a control is
-#'   reproducible from its declaration.
+#' @param seed The seed of the control draws. Required.
 #'
 #' @returns A `masque_control_spec` object, with a print method.
 #'

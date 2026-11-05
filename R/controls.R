@@ -1,13 +1,6 @@
 # controls.R -- controls() and control_table(): null, negative and positive
 # control datasets derived from a table by restricted permutation and planted
-# effects.
-#
-# A control is a function of the table, its role table, a control spec and a
-# seed; nothing is re-simulated. The null permutes every analysed column, the
-# negative permutes one declared column within design strata at its unit, and
-# the positive adds a declared per-level shift to that negative. The controls
-# object holds the table, the resolved spec, one seed per dataset and the
-# manifest; control_table() regenerates any dataset from its seed.
+# effects. Nothing is re-simulated.
 
 #' Internal: the masque_controls S7 class
 #'
@@ -94,8 +87,8 @@ masque_controls <- S7::new_class(
 #'   [propose_roles()] and [set_role()] for any table.
 #' @param spec A [control_spec()].
 #' @param events Linked time/status pairs among the outcome columns, in the
-#'   form [mask()] takes, so that the null permutes each pair as one block;
-#'   `NULL` when there are none.
+#'   form [mask()] takes. The null permutes each pair as one block. `NULL`
+#'   when there are none.
 #' @param seed A private seed for the permutations that overrides the
 #'   spec's seed, for the owner's side; `NULL` uses the spec's seed.
 #'
@@ -219,9 +212,7 @@ control_table <- function(ctl, kind = c("null", "negative", "positive"), i = 1L)
 
 # Resolution ----------------------------------------------------------------
 
-# Resolve a spec against a table and its roles: fill `on`, check every
-# declared column against the roles, build the stratum and unit ids, draw or
-# complete the effect vector and compute the truth table.
+# Resolve a spec against a table and its roles.
 .resolve_control_spec <- function(spec, df, roles) {
   n <- nrow(df)
   notes <- character()
@@ -502,10 +493,7 @@ control_table <- function(ctl, kind = c("null", "negative", "positive"), i = 1L)
   out
 }
 
-# One row per target and level: the effect in SD units, the target's SD,
-# its within-strata residual SD, and the raw and realised shift. A
-# whole-valued target takes a whole shift; a shift that rounds away is
-# refused.
+# One row per target and level; a whole-valued target takes a whole shift.
 .control_truth <- function(df, target, effect, strata_id) {
   empty <- data.table::data.table(
     target = character(), level = character(), effect_sd = double(),
@@ -573,11 +561,9 @@ control_table <- function(ctl, kind = c("null", "negative", "positive"), i = 1L)
 
 # Permutation ---------------------------------------------------------------
 
-# Permute the non-missing values of `x` across the units given by `unit_id`,
-# within the groups given by `strata_id`. Each observed unit keeps one value
-# (its first non-missing one) and receives another unit's value from the same
-# stratum, broadcast to its non-missing rows; an all-missing unit stays
-# missing. With `unit_id = seq_along(x)` this is a row permutation.
+# Permute the non-missing values of `x` across units within strata; an
+# all-missing unit stays missing. With `unit_id = seq_along(x)` it is a row
+# permutation.
 .permute_within <- function(x, unit_id, strata_id) {
   obs <- which(!is.na(x))
   if (length(obs) < 2L) {
@@ -631,9 +617,8 @@ control_table <- function(ctl, kind = c("null", "negative", "positive"), i = 1L)
   invisible(out)
 }
 
-# The positive: add each target's realised shift to the rows of each level
-# of the permuted `on`. Nothing is clipped; a non-negative target taken
-# below zero is reported.
+# The positive: each target's realised shift on the rows of each level of
+# the permuted `on`; nothing is clipped.
 .plant_effect <- function(out, ctl) {
   on_val <- as.character(out[[ctl@spec@on]])
   crossed <- character()

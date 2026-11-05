@@ -1,7 +1,5 @@
-# Fixtures for the control datasets: a small MET with a trial-level numeric,
-# categorical and date covariate, a plot-level covariate correlated with
-# yield, a whole-plot factor, a whole-valued outcome, and missing cells
-# including one trial with no covariate value at all.
+# Fixtures for the control datasets: a small MET with trial-level covariates,
+# a whole-plot factor, a whole-valued outcome and missing cells.
 .ctl_met <- function(n_trial = 4L, n_rep = 3L, n_gen = 8L, seed = 11L) {
   withr::with_seed(seed, {
     trials <- sprintf("T%d", seq_len(n_trial))

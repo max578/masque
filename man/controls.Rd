@@ -15,8 +15,8 @@ controls(df, roles, spec, events = NULL, seed = NULL)
 \item{spec}{A \code{\link[=control_spec]{control_spec()}}.}
 
 \item{events}{Linked time/status pairs among the outcome columns, in the
-form \code{\link[=mask]{mask()}} takes, so that the null permutes each pair as one block;
-\code{NULL} when there are none.}
+form \code{\link[=mask]{mask()}} takes. The null permutes each pair as one block. \code{NULL}
+when there are none.}
 
 \item{seed}{A private seed for the permutations that overrides the
 spec's seed, for the owner's side; \code{NULL} uses the spec's seed.}
