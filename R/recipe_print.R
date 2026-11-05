@@ -206,6 +206,13 @@ local({
   str <- utils::str
   S7::method(str, masque_recipe) <- .str_redacted
   S7::method(str, masque_obj) <- .str_redacted
+  S7::method(str, masque_controls) <- function(object, ...) {
+    cat(sprintf(
+      "<masque_controls> %d rows, %d replicates; details not shown. See print().\n",
+      nrow(object@table), object@spec@n
+    ))
+    invisible(NULL)
+  }
 })
 
 

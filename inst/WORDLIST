@@ -16,6 +16,7 @@ CMD
 Codecov
 comparator's
 conductoR
+confounder
 covr
 CRD
 cryptographic
@@ -23,8 +24,8 @@ dataentry
 dev
 difftime
 Doherty
-donut
 Donut
+donut
 errored
 et
 genotype's
@@ -59,8 +60,8 @@ PII
 pkgdown
 POSIXct
 POSIXlt
-pre
 Pre
+pre
 RCBD
 README
 regexes

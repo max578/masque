@@ -70,10 +70,11 @@ masque_control_spec <- S7::new_class(
 #'   for no stratification. Every unit of `on` must lie within one stratum.
 #'   Prefer complete replicates to incomplete blocks; see [controls()].
 #' @param unit Design columns within which `on` is constant. `on` is then
-#'   permuted across those units. `NULL` (the default) permutes rows, and in a
-#'   plan picks the finest design column on which `on` is constant, if it has
-#'   enough units for a 5 percent level. In the plan's default a coarse column
-#'   is not preferred, since it can be a confounder of `on`.
+#'   permuted across those units, so name the unit `on` was assigned at.
+#'   `NULL` (the default) permutes rows, and in a plan picks the coarsest design
+#'   column on which `on` is constant and which has enough units for a 5 percent
+#'   level, with a warning (class `masque_control_unit_ambiguous`) when several
+#'   qualify.
 #' @param grain A named list giving, for other analysed columns constant
 #'   within a design unit, the unit columns: `list(rain = "trial")`. Such a
 #'   column is permuted across its units in the null control, so it stays

@@ -323,11 +323,9 @@ local(S7::method(print, .plan_class) <- function(x, ...) {
   stats::setNames(unname(draw[clone]), levels)
 }
 
-# Finest design column, then pair of columns, within which `on` is constant. A
-# coarse column of this kind can be a confounder. A row alone is constant by
-# construction, so a quarter of the rows must share a unit for the constancy to
-# mean anything. A column whose units cannot reach a 5 percent level is passed
-# over, and the unit falls to the row with a warning when nothing else remains.
+# Coarsest design column, then pair, within which `on` is constant and whose
+# units can reach a 5 percent level. A row alone is constant by construction, so
+# a quarter of the rows must share a unit for the constancy to mean anything.
 .default_control_unit <- function(df, on, design) {
   n <- nrow(df)
   too_few <- character()
@@ -350,7 +348,19 @@ local(S7::method(print, .plan_class) <- function(x, ...) {
       max(id)
     }, integer(1L))
     if (any(!is.na(n_units))) {
-      return(pick[[which.max(n_units)]])
+      chosen <- pick[[which.min(n_units)]]
+      if (sum(!is.na(n_units)) > 1L) {
+        warning(warningCondition(
+          sprintf(
+            "`%s` is constant within several design columns (%s). The default unit is %s, the coarsest. Name the unit `%s` was assigned at in `unit`: a finer one hides pseudoreplication in the negative controls.",
+            on,
+            paste(vapply(pick[!is.na(n_units)], paste, character(1L), collapse = " + "), collapse = ", "),
+            paste(chosen, collapse = " + "), on
+          ),
+          class = "masque_control_unit_ambiguous"
+        ))
+      }
+      return(chosen)
     }
   }
   if (length(too_few)) {
@@ -586,7 +596,7 @@ clone_plan <- function(m) {
     },
     seed = draw$seed,
     key = draw$key,
-    notes = "Source side: the seed is private. Release aggregates only."
+    notes = "Source side: the draw is private. Release the false-positive rate, the power and one permutation p-value, and nothing from a single replicate."
   )
 }
 

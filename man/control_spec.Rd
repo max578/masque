@@ -43,10 +43,11 @@ for no stratification. Every unit of \code{on} must lie within one stratum.
 Prefer complete replicates to incomplete blocks; see \code{\link[=controls]{controls()}}.}
 
 \item{unit}{Design columns within which \code{on} is constant. \code{on} is then
-permuted across those units. \code{NULL} (the default) permutes rows, and in a
-plan picks the finest design column on which \code{on} is constant, if it has
-enough units for a 5 percent level. In the plan's default a coarse column
-is not preferred, since it can be a confounder of \code{on}.}
+permuted across those units, so name the unit \code{on} was assigned at.
+\code{NULL} (the default) permutes rows, and in a plan picks the coarsest design
+column on which \code{on} is constant and which has enough units for a 5 percent
+level, with a warning (class \code{masque_control_unit_ambiguous}) when several
+qualify.}
 
 \item{grain}{A named list giving, for other analysed columns constant
 within a design unit, the unit columns: \code{list(rain = "trial")}. Such a

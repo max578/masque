@@ -114,7 +114,7 @@ a note saying the clone does not keep that grain.
 
 The grade of a re-simulated number compares rows. A shift on a design level
 of three or four rows, with within-level noise as large as the signal, can
-grade low while the correlation of the level means stays above 0.85. A low
+grade low while the correlation of the level means stays near 0.85. A low
 class means the rows are not copies. It does not mean the level means are
 hidden.
 

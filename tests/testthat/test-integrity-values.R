@@ -58,6 +58,48 @@ test_that("non-finite values and whole numbers read back as doubles match", {
   expect_false(masque:::.content_matches(fp, masque:::.content_fingerprint(moved)))
 })
 
+test_that("a column's type on the way back from a file does not change the match", {
+  d <- data.frame(
+    empty = rep(NA_real_, 12L), lab = factor(1:12), whole = 3e9 + 1:12,
+    flag = rep(c(TRUE, FALSE), 6L), txt = as.character(1:12)
+  )
+  fp <- masque:::.content_fingerprint(d)
+  back <- data.frame(
+    empty = rep(NA, 12L), lab = 1:12, whole = as.character(3e9 + 1:12),
+    flag = rep(c(1L, 0L), 6L), txt = 1:12
+  )
+  expect_true(masque:::.content_matches(fp, masque:::.content_fingerprint(back)))
+  back$lab[1L] <- 99L
+  expect_false(masque:::.content_matches(fp, masque:::.content_fingerprint(back)))
+})
+
+test_that("neither a large value nor a large table hides a change", {
+  set.seed(9)
+  n <- 1000L
+  y <- c(1e10, stats::rnorm(n - 1L))
+  fp <- masque:::.content_fingerprint(data.frame(y = y))
+  y2 <- c(y[1L], rev(y[-1L]))
+  expect_false(masque:::.content_matches(fp, masque:::.content_fingerprint(data.frame(y = y2))))
+  path <- withr::local_tempfile(fileext = ".csv")
+  data.table::fwrite(data.frame(y = y), path)
+  expect_true(masque:::.content_matches(fp, masque:::.content_fingerprint(data.table::fread(path))))
+  big <- stats::rnorm(1e5, 5000, 1000)
+  fp2 <- masque:::.content_fingerprint(data.frame(y = big))
+  big[17L] <- big[17L] + 50
+  expect_false(masque:::.content_matches(fp2, masque:::.content_fingerprint(data.frame(y = big))))
+})
+
+test_that("each sum has its own tolerance", {
+  entry <- function(value = 100, log_value = 10) {
+    list(sums = list(y = list(
+      value = value, scale = 1e6, log_value = log_value, log_scale = 1e3, other = "x"
+    )), text = "t")
+  }
+  expect_true(masque:::.content_matches(entry(), entry(100 + 1e-9, 10 + 1e-12)))
+  expect_false(masque:::.content_matches(entry(), entry(value = 100 + 1e-7)))
+  expect_false(masque:::.content_matches(entry(), entry(log_value = 10 + 1e-10)))
+})
+
 test_that("a recipe without the value fingerprint still applies", {
   f <- integrity_fixture()
   rec <- f$rec

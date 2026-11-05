@@ -30,16 +30,16 @@
   keeps its 31 bits. Release the false-positive rate, the power and one
   permutation p-value, and nothing computed from a single replicate.
 * `apply_recipe()` and `controls()` with a recipe now refuse a table whose values
-  differ from those the recipe was built on, not only its NA mask. Numbers match
-  within what a file at 15 digits changes.
-* In a plan, the default control unit is the finest design column on which `on`
-  is constant, not the coarsest, which can be a confounder. A column with too few
-  units for a 5 percent level is passed over with a warning.
-* A warning now marks a unit and strata with too few arrangements for a 5 percent
-  level (`masque_control_unit_small`), strata holding one level of `on` above 10
-  percent rather than 50 (`masque_control_strata_weak`), and a whole-valued
-  target whose rounding changes the declared shape
-  (`masque_control_shape_rounded`).
+  differ from those the recipe was built on, not only its NA mask. A table read
+  back from a file at 15 digits still matches, as do its column types.
+* In a plan, the default control unit passes over a column with too few units for
+  a 5 percent level. It warns when several columns qualify
+  (`masque_control_unit_ambiguous`): name the unit `on` was assigned at.
+* New warnings mark units and strata with too few arrangements for a 5 percent
+  level (`masque_control_unit_small`) and a whole-valued target whose rounding
+  changes the declared shape (`masque_control_shape_rounded`).
+  `masque_control_strata_weak` now fires when `on` is constant in over 10 percent
+  of the strata (was 50).
 * `handover(allow_high = TRUE)` names the overridden findings in `README.txt`.
   The refusal text now says what each writer records: only `masque()` writes to
   the recipe.

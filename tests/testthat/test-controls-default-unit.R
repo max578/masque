@@ -20,7 +20,7 @@ confounded <- function(tech = TRUE) {
   list(d = d, r = r)
 }
 
-test_that("the default unit is the finest legal column, not the confounder", {
+test_that("a confounder too coarse for a 5 percent level is not the default", {
   f <- confounded()
   spec <- control_spec(on = "gen", target = "y", effect = list(sd = 0.5), n = 20L, seed = 3L)
   m <- mask(f$d, masque_plan(f$r, controls = spec), seed = 4L, quiet = TRUE)
@@ -39,14 +39,20 @@ test_that("the default unit is the finest legal column, not the confounder", {
   )
 })
 
-test_that("between two legal columns the finer one is chosen", {
+test_that("between two legal columns the coarser is chosen, with a warning", {
   d <- data.frame(
     field = rep(paste0("f", 1:8), each = 8L),
     tech = rep(paste0("t", 1:16), each = 4L),
     gen = rep(paste0("G", 1:4), each = 16L)
   )
-  expect_identical(masque:::.default_control_unit(d, "gen", c("field", "tech")), "tech")
-  expect_identical(masque:::.default_control_unit(d, "gen", c("tech", "field")), "tech")
+  expect_warning(
+    u1 <- masque:::.default_control_unit(d, "gen", c("field", "tech")),
+    class = "masque_control_unit_ambiguous"
+  )
+  expect_identical(u1, "field")
+  expect_identical(
+    suppressWarnings(masque:::.default_control_unit(d, "gen", c("tech", "field"))), "field"
+  )
 })
 
 test_that("a column with too few units is passed over, with a warning", {
@@ -75,6 +81,19 @@ test_that("arrangements are counted within strata and across equal labels", {
   expect_false(masque:::.level_attainable(1:6, rep(c("a", "b"), each = 3L), rep(1L, 6L)))
   expect_false(masque:::.level_attainable(1:6, c("a", "a", "b", "b", "b", "b"), rep(1:2, each = 3L)))
   expect_true(masque:::.level_attainable(1:7, c(rep("a", 3L), rep("b", 4L)), rep(1L, 7L)))
+})
+
+test_that("label symmetry counts across strata, and a unit's NA row does not drop it", {
+  # Paired, five blocks: 32 arrangements, 16 partitions.
+  pair <- rep(c("a", "b"), 5L)
+  expect_false(masque:::.level_attainable(1:10, pair, rep(1:5, each = 2L)))
+  # A randomised block of three treatments in two blocks: 36 arrangements, 6 partitions.
+  expect_false(masque:::.level_attainable(1:6, rep(c("a", "b", "c"), 2L), rep(1:2, each = 3L)))
+  # Eight units whose first rows hold NA are still eight units.
+  unit <- rep(1:8, each = 2L)
+  on <- rep(c("a", "a", "b", "b", "c", "c", "d", "d"), each = 2L)
+  on[seq(1L, 15L, by = 2L)] <- NA
+  expect_true(masque:::.level_attainable(unit, on, rep(1L, 16L)))
 })
 
 test_that("strata holding one level warn from a tenth of the strata", {
@@ -115,6 +134,14 @@ test_that("rounding that changes the declared shape warns", {
     class = "masque_control_shape_rounded"
   )
   expect_identical(ctl@truth$shift_realised[ctl@truth$level == "a"], -ctl@truth$shift_realised[ctl@truth$level == "b"])
+  many <- data.frame(gen = rep(paste0("G", 1:24), 3L), y = as.integer(rpois(72L, 10)))
+  rm <- suppressWarnings(propose_roles(many, detect = FALSE))
+  rm <- set_role(rm, "gen", role = "treatment", action = "keep")
+  rm <- set_role(rm, "y", role = "outcome", action = "scramble")
+  expect_warning(
+    controls(many, rm, control_spec(on = "gen", target = "y", effect = stats::setNames(rep(c(0.4, -0.2), 12L), paste0("G", 1:24)), seed = 1L)),
+    class = "masque_control_shape_rounded"
+  )
   expect_no_warning(
     controls(d, r, control_spec(on = "gen", target = "y", effect = c(a = 2, b = -1), seed = 1L)),
     class = "masque_control_shape_rounded"

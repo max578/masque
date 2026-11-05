@@ -23,8 +23,8 @@ written without simulator state.}
 Writes the recipe to a single \code{.rds} file. The default is
 \strong{runtime-minimal}:
 no simulator state (copula covariance, raw margins) is written, only the
-translation maps, factor metadata, storage classes, integrity fingerprint,
-and warnings. This keeps the saved artefact small and reduces the
+translation maps, factor metadata, storage classes, integrity fingerprints,
+the key behind the owner's controls, and warnings. This keeps the saved artefact small and reduces the
 information that would leak if the recipe file alone were shared.
 }
 \details{

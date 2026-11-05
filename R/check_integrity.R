@@ -52,28 +52,45 @@
   invisible(TRUE)
 }
 
-# What the recipe records of the values. Numbers get one weighted sum per
-# column, compared within a tolerance, because a table written at 15 digits and
-# read back must still match; the weights make it depend on row order. Anything
-# else gets a digest of its text, so a factor matches the character column a
-# file gives back. Column order does not enter.
+# What the recipe records of the values: two weighted sums per numeric column
+# and a digest of the rest. The tolerance covers a file at 15 digits. The sum of
+# logs guards small values beside a very large one.
 .content_fingerprint <- function(df) {
   cols <- sort(names(df), method = "radix")
-  numeric_col <- vapply(cols, function(cl) is.numeric(df[[cl]]) && !is.object(df[[cl]]), logical(1L))
-  sums <- lapply(cols[numeric_col], function(cl) {
-    x <- as.double(df[[cl]])
-    ok <- is.finite(x)
-    w <- sin(seq_along(x) * sqrt(2))
-    list(
-      value = sum(x[ok] * w[ok]),
-      scale = sum(abs(x[ok] * w[ok])),
-      other = digest::digest(list(which(!ok & !is.na(x)), x[!ok & !is.na(x)]), algo = "sha256")
-    )
-  })
-  names(sums) <- cols[numeric_col]
-  text <- lapply(cols[!numeric_col], function(cl) enc2utf8(as.character(df[[cl]])))
-  names(text) <- cols[!numeric_col]
-  list(sums = sums, text = digest::digest(text, algo = "sha256"))
+  canon <- lapply(cols, function(cl) .content_canonical(df[[cl]]))
+  names(canon) <- cols
+  numeric_col <- vapply(canon, is.numeric, logical(1L))
+  list(
+    sums = lapply(canon[numeric_col], function(x) {
+      ok <- is.finite(x)
+      w <- sin(seq_along(x) * sqrt(2))
+      list(
+        value = sum(x[ok] * w[ok]),
+        scale = sum(abs(x[ok] * w[ok])),
+        log_value = sum(sign(x[ok]) * log1p(abs(x[ok])) * w[ok]),
+        log_scale = sum(log1p(abs(x[ok])) * abs(w[ok])),
+        other = digest::digest(list(which(!ok & !is.na(x)), x[!ok & !is.na(x)]), algo = "sha256")
+      )
+    }),
+    text = digest::digest(canon[!numeric_col], algo = "sha256")
+  )
+}
+
+# One form for a column whatever a file reader made of it: a number, where every
+# value reads as one, and otherwise text. Logical values count as 0 and 1.
+.content_canonical <- function(x) {
+  if (is.numeric(x) && !is.object(x) || inherits(x, "integer64")) {
+    return(as.double(x))
+  }
+  if (is.logical(x)) {
+    return(as.double(x))
+  }
+  text <- enc2utf8(as.character(x))
+  if (all(text[!is.na(text)] %in% c("TRUE", "FALSE"))) {
+    return(as.double(text == "TRUE"))
+  }
+  num <- suppressWarnings(as.numeric(text))
+  if (any(is.na(num) & !is.na(text))) text else num
 }
 
 .content_matches <- function(recorded, actual) {
@@ -85,6 +102,7 @@
     a <- recorded$sums[[cl]]
     b <- actual$sums[[cl]]
     identical(a$other, b$other) &&
-      abs(a$value - b$value) <= 1e-8 * max(a$scale, b$scale)
+      abs(a$value - b$value) <= 1e-14 * max(a$scale, b$scale) &&
+      abs(a$log_value - b$log_value) <= 1e-14 * max(a$log_scale, b$log_scale)
   }, logical(1L)))
 }

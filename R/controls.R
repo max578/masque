@@ -583,9 +583,8 @@ control_table <- function(ctl, kind = c("null", "negative", "positive"), i = 1L)
     shift_raw <- unname(effect) * sd_y
     shift_realised <- if (whole) round(shift_raw) else shift_raw
     vanished <- whole & effect != 0 & shift_realised == 0
-    if (whole && !any(vanished) && any(shift_raw != 0) && max(abs(
-      shift_realised / sum(abs(shift_realised)) - shift_raw / sum(abs(shift_raw))
-    )) > 0.1) {
+    ratio <- (shift_realised / shift_raw)[shift_raw != 0]
+    if (whole && !any(vanished) && length(ratio) && diff(range(ratio)) > 0.1 * mean(abs(ratio))) {
       warning(warningCondition(
         sprintf(
           "On the whole-valued target %s, rounding changes the shape of the declared effect. `shift_realised` in `@truth` holds the effect that is in the table.",
@@ -645,18 +644,15 @@ control_table <- function(ctl, kind = c("null", "negative", "positive"), i = 1L)
 # Permutation ---------------------------------------------------------------
 
 # Can a permutation of `on` across units within strata reach a 5 percent level?
-# True when it has at least 20 arrangements; swapping the labels of equal-sized
-# levels with no strata gives the same partition, so those count once.
+# True when it has at least 20 arrangements. Swapping the labels of levels with
+# the same count in every stratum gives the same partition, so those count once.
 .level_attainable <- function(unit_id, on_val, strata_id) {
-  keep <- !is.na(on_val) & !duplicated(unit_id)
-  val <- as.character(on_val[keep])
-  log_n <- sum(vapply(split(val, strata_id[keep]), function(v) {
-    lfactorial(length(v)) - sum(lfactorial(table(v)))
-  }, numeric(1L)))
-  if (length(unique(strata_id[keep])) == 1L) {
-    log_n <- log_n - sum(lfactorial(table(table(val))))
-  }
-  log_n >= log(20) - 1e-8
+  keep <- !is.na(on_val)
+  keep[keep] <- !duplicated(unit_id[keep])
+  counts <- table(as.character(on_val[keep]), strata_id[keep])
+  log_n <- sum(lfactorial(colSums(counts))) - sum(lfactorial(counts))
+  same_counts <- apply(counts, 1L, paste, collapse = " ")
+  log_n - sum(lfactorial(table(same_counts))) >= log(20) - 1e-8
 }
 
 # One permutation of 1:n by Fisher-Yates, its uniforms taken from SHA-256 of
@@ -847,7 +843,7 @@ local(S7::method(print, masque_controls) <- function(x, ...) {
       "Datasets: 1 null, %d negative, %d positive",
       spec@n, if (is.null(spec@target)) 0L else spec@n
     ),
-    "*" = "Seeds: present"
+    "*" = if (length(x@key)) "Draw: a private key" else "Seeds: present"
   ))
   if (nrow(x@truth)) {
     cli::cli_h2("Planted truth (positive minus negative, per level of on)")
