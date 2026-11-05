@@ -369,8 +369,14 @@ reveal_maps <- function(rec, table = NULL) {
   if (!length(used)) {
     return("conditional requested (no conditioning column; pooled fallback)")
   }
+  r <- x@roles
+  has_treatment <- any(requested %in% r$col[r$role == "treatment"])
   line <- sprintf(
-    "conditional (treatment -> outcome preserved; strata: %s)",
+    if (has_treatment) {
+      "conditional (treatment -> outcome preserved; strata: %s)"
+    } else {
+      "design-conditioned (treatment effect not carried; strata: %s)"
+    },
     paste(used, collapse = ", ")
   )
   dropped <- setdiff(requested, used)

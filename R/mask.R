@@ -82,8 +82,9 @@
 #'   [apply_recipe()] / [unmask()], so a pipeline written against the
 #'   aliased synthetic round-trips. Alias the names when the schema itself
 #'   is sensitive.
-#' @param conditional Logical scalar (default `FALSE`). The
-#'   *collaborate-grade conditional clone*. When `FALSE`, scrambled
+#' @param conditional `FALSE` (default), `TRUE`, `"design"`, or a character
+#'   vector of column names. The *collaborate-grade conditional clone*.
+#'   When `FALSE`, scrambled
 #'   numeric columns are re-simulated from one global Gaussian copula -
 #'   marginals and global covariance survive, but the treatment-to-outcome
 #'   relationship does not, so a causal model fitted on the clone recovers
@@ -106,6 +107,15 @@
 #'   pooling raises a classed `masque_conditional_degraded` warning --
 #'   including the case where no treatment or design column survives at
 #'   all, in which case the clone is the pooled copula.
+#'
+#'   `"design"` conditions on the retained design columns alone. The clone
+#'   keeps the design means, block and environment variance, while a treatment
+#'   effect is not carried, so a test of the treatment on the clone has the
+#'   denominator it would have on the original and a true effect of zero.
+#'   A character vector of names gives the partition explicitly, from the
+#'   retained design and treatment columns, and runs through the same ladder;
+#'   treatment columns are still never dropped. The single word `"design"`
+#'   always means this option, even where a column has that name.
 #' @param ladder How the coarsening ladder orders the design columns it may
 #'   drop, and what it keeps of a dropped one. `"hierarchy"` (the default)
 #'   drops plot coordinates (`row`, `col`, `range`, `plot`) first, then
@@ -287,13 +297,7 @@ mask <- function(df,
       class = c("masque_bad_df_refusal", "orchestra_refusal")
     )
   }
-  if (!is.logical(conditional) || length(conditional) != 1L ||
-    is.na(conditional)) {
-    cli::cli_abort(
-      "`conditional` must be a single `TRUE` or `FALSE`.",
-      class = c("masque_bad_conditional_refusal", "orchestra_refusal")
-    )
-  }
+  .check_conditional_arg(conditional)
   if (!is.logical(grain) || length(grain) != 1L || is.na(grain)) {
     cli::cli_abort(
       "`grain` must be a single `TRUE` or `FALSE`.",
@@ -429,15 +433,13 @@ mask <- function(df,
   opts <- mode_defaults(mode)
 
   # With nothing to condition on, a conditional clone uses the global copula.
-  conditioning_cols <- if (isTRUE(conditional)) {
-    .conditioning_cols(roles)
-  } else {
-    character()
-  }
-  if (isTRUE(conditional) && !length(conditioning_cols)) {
+  conditioning_cols <- .resolve_conditioning(conditional, roles)
+  conditional <- !isFALSE(conditional)
+  if (conditional && !length(conditioning_cols)) {
     msg <- paste0(
-      "conditional = TRUE but no treatment or design column survives to ",
-      "condition on; numeric synthesis falls back to the global copula."
+      "A conditional clone was asked for but no treatment or design column ",
+      "of its partition survives; numeric synthesis falls back to the global ",
+      "copula."
     )
     # Classed, so a caller can catch the loss of conditional fidelity.
     warning(warningCondition(msg, class = "masque_conditional_degraded"))
@@ -447,7 +449,8 @@ mask <- function(df,
   result <- with_rng_state(
     seed,
     .mask_orchestrate(
-      df, roles, mode, opts, .shared_maps, conditional, ladder,
+      df, roles, mode, opts, .shared_maps, conditional, conditioning_cols,
+      ladder,
       events = event_specs, grain = grain_res$groups
     )
   )
@@ -703,7 +706,7 @@ mask <- function(df,
   if (length(dropped)) {
     parts <- c(parts, sprintf(
       paste0(
-        "conditional = TRUE: cells of the finest conditioning stratum held ",
+        "Conditional clone: cells of the finest conditioning stratum held ",
         "fewer than %d rows, so the ladder coarsened it by dropping %s. ",
         "Conditioning on: %s."
       ),
@@ -739,7 +742,9 @@ mask <- function(df,
 # Internal: per-action synthesis, with the RNG already seeded. The action
 # column decides what happens to each column; mode only adds numeric jitter.
 .mask_orchestrate <- function(df, roles, mode, opts, shared_maps = list(),
-                              conditional = FALSE, ladder = "hierarchy",
+                              conditional = FALSE,
+                              conditioning_cols = character(),
+                              ladder = "hierarchy",
                               events = list(), grain = list()) {
   synth <- df
   level_maps <- list()
@@ -772,7 +777,7 @@ mask <- function(df,
     if (isTRUE(conditional)) {
       conditional_report <- .conditioning_ladder(
         df,
-        cond_cols    = .conditioning_cols(roles),
+        cond_cols    = conditioning_cols,
         protect_cols = roles$col[role == "treatment" & action != "drop"],
         min_stratum  = .MIN_STRATUM,
         ladder       = ladder,
@@ -822,7 +827,9 @@ mask <- function(df,
   # Linked events: status patterns permuted, gaps re-simulated per pattern.
   event_reports <- list()
   if (length(events)) {
-    trt_cols <- roles$col[role == "treatment" & action != "drop"]
+    trt_cols <- intersect(
+      roles$col[role == "treatment" & action != "drop"], conditioning_cols
+    )
     strata <- if (isTRUE(conditional) && length(trt_cols)) {
       do.call(paste, c(lapply(.cols(df, trt_cols), as.character), sep = "/"))
     }

@@ -41,7 +41,7 @@
 #' @param alias_names Hide column names. `FALSE` (default) keeps them;
 #'   `TRUE` aliases every non-link column (linked join keys keep their
 #'   names so the synthetic set stays joinable).
-#' @param conditional Logical scalar (default `FALSE`). Passed through to
+#' @param conditional `FALSE` (default), `TRUE` or `"design"`. Passed through to
 #'   each per-table [mask()] call: when `TRUE`, every table's numeric
 #'   block is re-simulated within its own treatment-by-design strata so
 #'   the treatment-to-outcome relationship survives the clone. See

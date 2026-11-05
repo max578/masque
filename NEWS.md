@@ -15,6 +15,10 @@
 
 ## New features
 
+* `mask(conditional = )` takes `"design"`, which conditions on the retained
+  design columns alone: the clone keeps design means and block variance and
+  carries no treatment effect. It also takes column names, an explicit
+  partition that runs through the same ladder.
 * Known-truth controls. `control_spec()` declares what a control removes and
   plants; `controls()` derives a null, `n` negative and `n` positive control
   datasets from any table with a role table, by restricted permutation at

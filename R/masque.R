@@ -60,7 +60,8 @@
 #' @param clean Hygiene mode passed to [clean_table()] (`"auto"`,
 #'   `"report"`, `"off"`).
 #' @param alias_names Hide column names; see [mask()] / [mask_set()].
-#' @param conditional Logical scalar (default `FALSE`). The conditional
+#' @param conditional `FALSE` (default), `TRUE`, `"design"` or column names.
+#'   The conditional
 #'   clone mode passed through to [mask()] / [mask_set()]: when `TRUE`,
 #'   numeric columns are re-simulated within each treatment-by-design
 #'   stratum so the treatment-to-outcome relationship survives the clone.
