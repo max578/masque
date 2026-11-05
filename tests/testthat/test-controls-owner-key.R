@@ -36,7 +36,7 @@ test_that("a recipe draw is the whole digest and holds no integer seed", {
   expect_true(all(is.na(own@seeds)))
   expect_true(all(is.na(own@manifest$seed)))
   shown <- c(utils::capture.output(print(own)), utils::capture.output(utils::str(own)))
-  expect_false(any(grepl(own@key, shown, fixed = TRUE)))
+  expect_false(any(grepl(substr(own@key, 1L, 12L), shown, fixed = TRUE)))
   # A key differing in its last digit gives other permutations.
   other <- own
   last <- substr(own@key, 64L, 64L)
