@@ -85,7 +85,8 @@
   if (is.logical(x)) {
     return(as.double(x))
   }
-  text <- enc2utf8(as.character(x))
+  # c() drops the growable bit data.table may set, which serialize() would hash.
+  text <- c(enc2utf8(as.character(x)))
   if (all(text[!is.na(text)] %in% c("TRUE", "FALSE"))) {
     return(as.double(text == "TRUE"))
   }

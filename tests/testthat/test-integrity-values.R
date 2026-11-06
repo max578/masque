@@ -124,3 +124,10 @@ test_that("the fingerprint stays with the owner", {
   expect_false(any(grepl(value, shipped, fixed = TRUE)))
   expect_false(any(grepl(f$rec@content_fp$text, shipped, fixed = TRUE)))
 })
+
+test_that("the value fingerprint does not depend on how text is held in memory", {
+  path <- tempfile(fileext = ".csv")
+  writeLines(c("site,yield", "a,1", "b,2", "c,3"), path)
+  read <- data.table::fread(path)
+  expect_identical(.content_fingerprint(read), .content_fingerprint(data.table::copy(read)))
+})
