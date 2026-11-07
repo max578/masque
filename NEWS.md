@@ -27,8 +27,8 @@
   plan and its recipe, the owner's permutations now come from SHA-256 of a
   256-bit key from the system's random source, because a derived integer seed
   could be searched against a per-replicate statistic. A private integer `seed`
-  keeps its 31 bits. Release the false-positive rate, the power and one
-  permutation p-value, and nothing computed from a single replicate.
+  keeps its 31 bits. Release nothing computed from a single replicate, and check
+  the permutation p-value as the result of the test on the real table.
 * `apply_recipe()` and `controls()` with a recipe now refuse a table whose values
   differ from those the recipe was built on, not only its NA mask. A table read
   back from a file at 15 digits still matches, as do its column types.
@@ -68,7 +68,7 @@
   design columns alone: the clone keeps design means and block variance and
   carries no treatment effect. It also takes column names, an explicit
   partition that runs through the same ladder.
-* Known-truth controls. `control_spec()` declares what a control removes and
+* Known-truth controls. `control_spec()` declares what a control permutes and
   plants; `controls()` derives a null, `n` negative and `n` positive control
   datasets from any table with a role table, by restricted permutation at
   the declared unit within declared design strata and a per-level shift in

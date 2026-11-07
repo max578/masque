@@ -16,9 +16,10 @@ control_spec(
 )
 }
 \arguments{
-\item{on}{The name of the column whose association with the rest of the
-table the negative control removes, by permuting it within \code{strata} at
-its \code{unit}. Must be a treatment or covariate column, categorical or
+\item{on}{The name of the column the negative control reassigns, by
+permuting it within \code{strata} at its \code{unit}. The outcome is not changed,
+so any real effect of \code{on} stays in it as unexplained variation. Must be
+a treatment or covariate column, categorical or
 whole-valued. \code{NULL} (the default) means the single treatment column of
 the table; a table with several or no treatment columns needs \code{on}
 named.}
@@ -29,7 +30,9 @@ control. A logical, factor, date, event or two-valued column is
 refused when the spec meets the table.}
 
 \item{effect}{The planted effect per level of \code{on}, in units of the
-target's standard deviation in the table at hand: a named numeric
+target's standard deviation in the table at hand. That standard deviation
+includes the design variance and any real effect of \code{on}, so the size is
+not a multiple of an analysis's residual. Give it as a named numeric
 vector (\code{c(G01 = 0.5, G02 = -0.5)}; a level not named shifts by zero),
 or \code{list(sd = s)} to draw one shift per level from a normal
 distribution with standard deviation \code{s}, under the spec's seed, when
@@ -62,8 +65,8 @@ constant within each unit.}
 A \code{masque_control_spec} object, with a print method.
 }
 \description{
-A control spec says what \code{\link[=controls]{controls()}} removes and plants: the column
-whose effect the negative control removes (\code{on}), the outcome the
+A control spec says what \code{\link[=controls]{controls()}} permutes and plants: the column
+the negative control reassigns (\code{on}), the outcome the
 positive control plants an effect on (\code{target}), the planted effect per
 level of \code{on} in outcome-SD units (\code{effect}), the design strata within
 which \code{on} is permuted and the unit it is permuted at, the other

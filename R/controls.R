@@ -47,11 +47,14 @@ masque_controls <- S7::new_class(
 #'   units and stays constant within each. Design, treatment and kept
 #'   columns, the NA mask and every column's multiset of values are kept.
 #'   No association among analysed columns, or with the treatment, remains.
-#'   Use it as a smoke test and to expose leakage through analysed columns.
+#'   Use it as a smoke test: a pipeline that finds signal here builds that
+#'   signal itself. A leak already in the table, such as a covariate that
+#'   copies the outcome, is shuffled away with the rest and passes.
 #' * `negative`: the declared column `on` alone is permuted within the
 #'   declared design strata, at its unit, while the design structure and all
-#'   other associations are kept. Choose strata that every level of `on` can
-#'   reach. Complete replicates qualify. Within incomplete blocks each block
+#'   other associations are kept. The outcome is not changed, so any real
+#'   effect of `on` stays in it as unexplained variation. Choose strata that
+#'   every level of `on` can reach. Complete replicates qualify. Within incomplete blocks each block
 #'   keeps its set of levels, so part of the real effect of `on` survives.
 #'   With `n` replicates it gives a permutation null for a whole pipeline: a
 #'   false-positive rate, a permutation p-value.
@@ -80,15 +83,20 @@ masque_controls <- S7::new_class(
 #' a per-replicate statistic can try each value, because the true seed fits the
 #' statistic exactly and a wrong one does not.
 #'
-#' Control tables built from an original never leave the owner. What leaves is
-#' the false-positive rate, the power and one permutation p-value, through the
-#' owner's usual output checking. A vector of per-replicate means or contrasts
-#' is not an aggregate, under either route.
+#' Control tables built from an original never leave the owner. What may leave
+#' goes through the owner's usual output checking, classed by what it
+#' estimates. The false-positive rate says little about the real outcome. The
+#' rate at which the positives find the shift depends on the residual variance.
+#' The permutation p-value is the result of the analyst's test on the real
+#' table. A vector of per-replicate means or contrasts is not an aggregate,
+#' under either route, and every further pipeline run on the original is
+#' another set of queries.
 #'
 #' @section Limits:
 #' A kept column is structure and is never permuted, so leakage through
-#' kept columns, ids or row order passes the null. A planted effect is
-#' clean: uniform within a level, with no confounding and no interaction.
+#' kept columns, ids or row order passes the null. No control can detect
+#' confounding. A planted effect is clean: uniform within a level, with no
+#' confounding and no interaction.
 #' Nothing is clipped, so a shift can take a non-negative outcome below
 #' zero; [control_table()] warns when it does. The null collapses the
 #' design means of row-grained outcomes, so false-positive calibration

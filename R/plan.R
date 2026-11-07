@@ -596,7 +596,7 @@ clone_plan <- function(m) {
     },
     seed = draw$seed,
     key = draw$key,
-    notes = "Source side: the draw is private. Release the false-positive rate, the power and one permutation p-value, and nothing from a single replicate."
+    notes = "Source side: the draw is private. Nothing from a single replicate leaves. The permutation p-value is the result of the test on the real table, and the rate at which the positives find the shift reflects its residual variance: check both as results."
   )
 }
 

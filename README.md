@@ -101,8 +101,8 @@ real data in scientific inference.
 ### Known-truth controls
 
 A pipeline developed on the clone can be checked against datasets in which
-the answer is known. A control spec, declared once, names the column whose
-effect is removed, the design strata it is permuted within, the outcome an
+the answer is known. A control spec, declared once, names the column to
+reassign, the design strata it is permuted within, the outcome an
 effect is planted on and the size of that effect. From it, `controls()`
 derives a null (every analysed column permuted), negative replicates (one
 column permuted within strata) and positive replicates (the negative plus

@@ -34,8 +34,8 @@ masque_control_spec <- S7::new_class(
 
 #' Declare the controls to derive from a table
 #'
-#' A control spec says what [controls()] removes and plants: the column
-#' whose effect the negative control removes (`on`), the outcome the
+#' A control spec says what [controls()] permutes and plants: the column
+#' the negative control reassigns (`on`), the outcome the
 #' positive control plants an effect on (`target`), the planted effect per
 #' level of `on` in outcome-SD units (`effect`), the design strata within
 #' which `on` is permuted and the unit it is permuted at, the other
@@ -47,9 +47,10 @@ masque_control_spec <- S7::new_class(
 #' needs `on`, which defaults to the single treatment column of the table.
 #' The positive control needs `target` and `effect` together.
 #'
-#' @param on The name of the column whose association with the rest of the
-#'   table the negative control removes, by permuting it within `strata` at
-#'   its `unit`. Must be a treatment or covariate column, categorical or
+#' @param on The name of the column the negative control reassigns, by
+#'   permuting it within `strata` at its `unit`. The outcome is not changed,
+#'   so any real effect of `on` stays in it as unexplained variation. Must be
+#'   a treatment or covariate column, categorical or
 #'   whole-valued. `NULL` (the default) means the single treatment column of
 #'   the table; a table with several or no treatment columns needs `on`
 #'   named.
@@ -58,7 +59,9 @@ masque_control_spec <- S7::new_class(
 #'   control. A logical, factor, date, event or two-valued column is
 #'   refused when the spec meets the table.
 #' @param effect The planted effect per level of `on`, in units of the
-#'   target's standard deviation in the table at hand: a named numeric
+#'   target's standard deviation in the table at hand. That standard deviation
+#'   includes the design variance and any real effect of `on`, so the size is
+#'   not a multiple of an analysis's residual. Give it as a named numeric
 #'   vector (`c(G01 = 0.5, G02 = -0.5)`; a level not named shifts by zero),
 #'   or `list(sd = s)` to draw one shift per level from a normal
 #'   distribution with standard deviation `s`, under the spec's seed, when

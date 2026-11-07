@@ -25,29 +25,37 @@ library(masque)
 
 ## Why
 
-A pipeline is an assay. Before an assay is trusted on a sample, it is run on
-a blank, on a negative control and on a positive control, and its readings
-on those three are what make the reading on the sample interpretable.
 `masque` gives an analyst the structure of a confidential table without its
-values. Controls add the other three: datasets derived from a table in
-which the answer is known in advance.
+values. Controls are tables derived from a table in which part of the answer is
+fixed by construction, so a pipeline can be run where the right reading is
+known.
 
-* The **null** control permutes every analysed column, so nothing is
-  associated with anything. A pipeline that still finds signal on it has a
-  leak or a bug.
+* The **null** control permutes every analysed column, so no analysed column
+  is associated with another or with the treatment. It is a smoke test. A
+  pipeline that finds strong signal on it has built that signal itself, from the
+  outcome or from a column the shuffle left alone. A leak that sits in the
+  table, such as a covariate that copies the outcome, is shuffled away with
+  everything else, so a quiet null does not clear a pipeline.
 * The **negative** control permutes one declared column, by default the
   treatment, within the design strata. Its allocation is random within them
-  and everything else is as it was. A pipeline that finds it has a false
-  positive, and over many replicates the rate of those is the pipeline's
-  false-positive rate on this very structure.
-* The **positive** control adds a declared effect to the negative. The
-  pipeline should find it, and the size it reports can be compared with the
-  size that was planted.
+  and everything else is as it was, the outcome included. It is a sham
+  assignment: the permuted column is unrelated to the outcome, and any real
+  effect it had stays in the outcome as extra noise. Over many replicates the
+  share of negatives on which a pipeline rejects is its false-positive rate on
+  this table under this allocation. On a randomised experiment, the rank of the
+  real result among them is a randomisation p-value.
+* The **positive** control adds a declared shift per level to the negative.
+  The share of positives on which a pipeline finds it is its sensitivity to a
+  clean shift of that size on this table.
+
+In epidemiology a negative control is a variable chosen to share the bias of
+the question. These controls are null by permutation and share no bias, so none
+of them can show confounding.
 
 Nothing is re-simulated. Each control is a permutation of the table it was
-built from, with a shift added for the positive, so the design columns, the
-treatment allocation, the missing cells and every column's set of values are
-exactly those of the input.
+built from, with a shift added for the positive. The design columns and the
+missing cells are those of the input, and every column keeps its set of values,
+apart from the shifted target of a positive.
 
 ## A clone and a declaration
 
@@ -117,8 +125,8 @@ genotype_p <- function(d) {
 On the clone itself the genotype term is not expected to show, because the
 default clone re-simulates yield without a genotype effect. On the null it
 must not show. On the negatives it shows at the pipeline's false-positive
-rate. On the positives it shows at the pipeline's power against the planted
-size.
+rate. On the positives it shows at the rate the pipeline finds the planted
+shift.
 
 ```{r run}
 p_clone <- genotype_p(clone)
@@ -138,13 +146,16 @@ data.frame(
 )
 ```
 
-The negatives give the pipeline's false-positive rate on this design, and
-the positives its power against the planted effect. Both are properties of
-the pipeline on this structure, learned without a single real yield.
+The negatives give the pipeline's false-positive rate, and the positives the
+rate at which it finds the planted shift. Both describe this pipeline on this
+table under these permutations, learned without a single real yield. Another
+table with the same design can give other rates.
 
-The planted size can be checked as well. The genotype means on a positive
+The construction can be checked as well. The genotype means on a positive
 replicate, less those on its negative replicate, are the planted shifts
-exactly, because the two share one permutation.
+exactly, because the two share one permutation. This checks the controls, not
+the pipeline: raw genotype means recover the shifts by construction, so only an
+adjusted estimate can show a fault in the pipeline.
 
 ```{r recovery}
 neg <- control_table(ctl, "negative", 1L)
@@ -152,6 +163,19 @@ pos <- control_table(ctl, "positive", 1L)
 recovered <- tapply(pos$yield, pos$gen, mean) - tapply(neg$yield, neg$gen, mean)
 planted <- ctl@truth$shift_realised[match(names(recovered), ctl@truth$level)]
 all.equal(as.numeric(recovered), planted)
+```
+
+The planted size is in units of the yield's standard deviation in the table
+at hand. That standard deviation holds the block variance and any real
+genotype effect, so a size of 0.5 is not half the noise the pipeline sees.
+Read it against the residual of the pipeline's own model:
+
+```{r residual-units}
+residual_sd <- function(d) {
+  blocks <- interaction(d$rep, d$block, drop = TRUE)
+  summary(stats::lm(yield ~ blocks + gen, data = d))$sigma
+}
+0.5 * ctl@truth$sd_y[1] / residual_sd(clone)
 ```
 
 ## The owner's side: the same spec on the original
@@ -177,15 +201,19 @@ p_pos_owner <- vapply(seq_len(spec@n), function(i) {
 }, numeric(1))
 ```
 
-What leaves the owner's side is a verdict about the pipeline, through the
-owner's usual output checking: the false-positive rate over the negatives,
-the power over the positives and, for the real result, a permutation
-p-value, the share of negatives whose p-value is at or below the real one.
+Each reading is classed by what it estimates before it goes through the owner's
+usual output checking. The false-positive rate over the negatives describes the
+pipeline under sham assignment. For a test whose null distribution does not
+depend on the yields, it says little about them. The rate
+at which the positives find the shift depends on the residual variance, so it
+tells something about the scale of the real noise. The permutation p-value, the
+share of negatives whose p-value is at or below the real one, is the result of
+the analyst's test on the real table, and it is checked as a result.
 
 ```{r verdict}
 data.frame(
   verdict = c(
-    "false-positive rate (negatives)", "power at the planted effect (positives)",
+    "false-positive rate (negatives)", "planted shift found (positives)",
     "permutation p-value of the real result"
   ),
   value = c(
@@ -195,17 +223,24 @@ data.frame(
 )
 ```
 
-The two sides read close to each other here, within what 19 replicates can
-resolve. They need not. The default clone re-simulates yield without the
-block structure, so its residual variance differs from the original's, and
-any gap between the readings says what fidelity this pipeline needs from a
-clone.
+The owner's readings describe the pipeline on the real table, and they are the
+ones that answer the analyst. The clone's readings are a rehearsal. Here the
+two sides read close to each other, within what 19 replicates can resolve.
+They need not. The default clone re-simulates yield without the block
+structure, so its residual variance differs from the original's. A gap
+between the readings is a statement about the clone. Agreement is not a check
+on the pipeline, and a rate of zero on both sides agrees while saying nothing.
+The same planted 0.5 is
+`r round(0.5 * ctl_owner@truth$sd_y[1] / residual_sd(trial), 2)` residual
+standard deviations of the pipeline's model on the original and
+`r round(0.5 * ctl@truth$sd_y[1] / residual_sd(clone), 2)` on the clone.
 
 The control tables built from the original hold the real values and never
 leave. Per-replicate results do not leave either: each replicate is one
 more query against the original, and with the permutations known they are
-linear equations in the real outcome. The replicate count in the spec is
-the query budget, declared with everything else.
+linear equations in the real outcome. The replicate count in the spec bounds
+the queries for one pipeline, and every further pipeline or spec run on the
+original is another set of them.
 
 ## Carrying the spec in a plan
 
@@ -266,21 +301,28 @@ identical(ctl_owner_plan@seeds, ctl_analyst@seeds)
 * A sequential test depends on the order of its terms. A treatment entered
   before the blocks carries their variance, and its false-positive rate on
   this design is well above nominal. The negatives show this, as they should.
-* The negative control removes the effect of one column under exchangeable
-  allocation within the strata. It cannot detect confounding, and on
-  observational data it is a permutation test with no randomisation
-  guarantee behind it.
+* The negative control reassigns one column under exchangeable allocation
+  within the strata. The outcome is unchanged, so a large real effect of that
+  column makes the residual on a negative larger than on the original. It
+  cannot detect confounding, and on observational data it is a permutation
+  test with no randomisation guarantee behind it.
 * A planted effect is clean: the same shift for every plot of a genotype,
-  no confounding, no interaction. The verdict is sensitivity to a clean
-  effect of the declared size, not power against the real one.
-* A shift is added in units of the outcome's standard deviation in the
-  table at hand, so the same spec plants the same nominal size on the clone
-  and on the original while the signal-to-noise ratio may differ. The
-  `@truth` table records the standard deviation used and the residual
-  standard deviation within the strata on each side.
+  no confounding, no interaction. The positives measure sensitivity to a
+  clean shift of the declared size, not power against the real effect, and a
+  pipeline that is biased under confounding still finds it.
+* A shift is added in units of the outcome's standard deviation in the table
+  at hand. That standard deviation includes the design variance and any real
+  effect, so the same spec plants the same nominal size on the clone and on
+  the original while the shift relative to the residual may differ. The
+  `@truth` table records the standard deviation used and, as
+  `sd_within_strata`, the standard deviation left after the stratum means
+  are removed. That figure still holds the effect of `on` and any variance
+  within the strata, so it is larger than the residual of a model that fits
+  them.
 * Nothing is clipped. A negative shift can take a non-negative outcome
-  below zero; `control_table()` warns when it does.
-* A negative control sets the size of a test that uses within-stratum
+  below zero; `control_table()` warns when it does. On a count the shift is
+  added, not a change of rate.
+* A negative control estimates the size of a test that uses within-stratum
   contrasts, so fit the strata. On this design, with replicate strata, `yield ~
   rep + gen` rejects near 5 percent and `yield ~ gen` rejects almost never,
   because the replicate variance stays in its residual. A shared rate on both
@@ -289,6 +331,9 @@ identical(ctl_owner_plan@seeds, ctl_analyst@seeds)
 * The null collapses the design means of row-level outcomes, so a mixed
   model sees a different variance structure. Calibrate false positives on
   the negative control, not on the null.
+* A pipeline adjusted until its controls read well has been fitted to this
+  null and this planted shift. It can still be wrong for every other
+  question.
 
 ```{r teardown, include = FALSE}
 options(old_options)
