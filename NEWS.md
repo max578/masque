@@ -46,6 +46,10 @@
 * The averaged-row figure in `?jitter_coordinates` is corrected to 0.64 km for
   360 rows.
 * masque needs digest 0.6.21 or later.
+* The range statement in `vignette("confidentiality")` is corrected. A whole
+  number in a collaborate clone can fall one full step outside the observed
+  range, not half a step as 0.16.0 stated, so a column whose minimum is 0 can
+  show -1. A conditional clone can go further.
 
 ## New features
 

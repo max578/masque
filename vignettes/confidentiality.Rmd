@@ -72,7 +72,7 @@ per-column work:
 | Date / time columns | row-permuted with class preserved | row-permuted with class preserved |
 | Identifiers (`id`) | kept | dropped |
 | Free text (`text`: a character column in which more than half the values are distinct) | kept | dropped |
-| Numeric synthesis | Gaussian copula with empirical-quantile marginals (may emit observed values) | the same, plus within-resolution jitter, with whole numbers stochastically rounded. A value can fall up to half a measurement step outside the observed range |
+| Numeric synthesis | Gaussian copula with empirical-quantile marginals (may emit observed values) | the same, plus within-resolution jitter, with whole numbers stochastically rounded. A value can fall up to half a measurement step outside the observed range, and a whole number up to one full step, so a column whose minimum is 0 can show -1. A conditional clone can go further, because it adds level effects after the draw |
 | Columns constant within a design unit | one value per unit, drawn from the real unit values | one value per unit, jittered, or row by row when there are fewer than five units |
 | NA mask | preserved cell-by-cell | preserved cell-by-cell |
 | `audit_mask()` | on demand | automatic at `mask()` time |
