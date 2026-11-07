@@ -98,6 +98,30 @@ real data in scientific inference.
 
 ---
 
+### Known-truth controls
+
+A pipeline developed on the clone can be checked against datasets in which
+the answer is known. A control spec, declared once, names the column to
+reassign, the design strata it is permuted within, the outcome an
+effect is planted on and the size of that effect. From it, `controls()`
+derives a null (every analysed column permuted), negative replicates (one
+column permuted within strata) and positive replicates (the negative plus
+the planted shift), by permutation alone. The same spec runs on the clone
+for the analyst and, with a private seed, on the original for the owner,
+who returns a verdict about the pipeline rather than a dataset.
+
+```r
+spec <- control_spec(on = "gen", target = "yield", effect = list(sd = 0.5),
+                     strata = "rep", n = 19L, seed = 2026L)
+ctl <- controls(synthetic(m), roles(m), spec)
+control_table(ctl, "positive", 1L)
+```
+
+A `masque_plan()` holds the roles and the spec together, so the spec is fixed
+before any real result exists. `mask(df, plan)` resolves it on the source,
+`handover()` gives the analyst the clone and the plan in clone vocabulary, and
+`controls(real, plan, recipe = rec)` runs it on the owner's side.
+
 ## Threat model
 
 `masque` is **not** a privacy-preserving or differential-privacy tool. It is a

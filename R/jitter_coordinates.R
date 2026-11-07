@@ -27,22 +27,26 @@
 #' source table has one true coordinate per place. `by` chooses how a site is
 #' identified:
 #'
-#' - `by = NULL` (default) treats rows that share an identical input coordinate
-#'   pair as one site. This needs no user action and cannot alter genuinely
+#' - `by = NULL` (default) treats rows that share an input coordinate pair, to
+#'   nine decimal places, as one site. This needs no user action and cannot alter genuinely
 #'   point-level data, where every input pair is already distinct.
 #' - `by = c("trial")` (one or more column names) treats rows sharing those
 #'   values as one site, for the case where a site's recorded coordinates differ
 #'   slightly between rows. Where such a group holds more than one distinct
 #'   input coordinate, the group's row-weighted centroid is used and the
 #'   consolidation is reported.
-#' - `by = FALSE` restores the pre-0.10.0 behaviour of displacing every row
-#'   independently, and warns if the input carries repeated coordinate pairs.
-#'   It exists only so a table masked by an earlier version can be reproduced.
+#' - `by = FALSE` displaces every row independently, as versions before 0.10.0
+#'   did, and warns if the input carries repeated coordinate pairs. The draw
+#'   follows the row's position, so shuffled rows move differently.
+#'
+#' The draw is a function of the seed, the two column names and the site's
+#' value: its coordinates, or its `by` values. Row order and the other sites
+#' in the table play no part.
 #'
 #' Displacing each row of a repeated coordinate separately leaks the site.
 #' Donut displacement is isotropic, so the mean of many independent draws
 #' around one true site converges on that site: averaging the 360 rows of
-#' a single trial recovers the true position to a median 0.58 km, against the
+#' a single trial recovers the true position to a median 0.64 km, against the
 #' 5 km floor the donut was asked for. One draw per site removes the estimator
 #' and leaves the full displacement in place.
 #'
@@ -55,19 +59,31 @@
 #'
 #' \tabular{lr}{
 #'   Rebuilds kept \tab Median recovery error \cr
-#'   1  \tab 14.2 km \cr
-#'   2  \tab 10.1 km \cr
-#'   4  \tab  6.4 km \cr
-#'   8  \tab  4.5 km \cr
+#'   1  \tab 14.6 km \cr
+#'   2  \tab  9.4 km \cr
+#'   4  \tab  6.3 km \cr
+#'   8  \tab  4.4 km \cr
 #'   16 \tab  3.1 km
 #' }
 #'
-#' Eight kept rebuilds fall below the 5 km floor the donut was asked for.
+#' Seven kept rebuilds fall below the 5 km floor the donut was asked for.
 #'
-#' The remedy is to **reuse the seed**. The same `seed` reproduces the
-#' same displacement for the same sites, so any number of rebuilds yields one
-#' point and nothing to average. Draw a fresh seed only when you intend to
-#' supersede every earlier version, and retire the ones you replace.
+#' A known region also cuts the annulus. Someone who knows a site lies in a
+#' square a few times `max_km` wide or smaller can discard the part of the
+#' annulus around the released point that falls outside it, with no second
+#' release needed.
+#'
+#' The remedy is to **reuse the seed**. The same `seed` gives a site the same
+#' displacement in every rebuild, even when rows are shuffled, added or removed,
+#' so any number of rebuilds yields one point and nothing to average. Three
+#' things start a new draw for a site: a different seed, a changed site value
+#' (a corrected coordinate, a renamed `by` label) and renamed coordinate
+#' columns. A clone built before version 0.17.0 used a different draw, so a
+#' rebuild under 0.17.0 is a new release of those sites even with the same seed.
+#' Treat each of these as a fresh seed: retire the versions it replaces. The seed
+#' reveals every displacement, so it stays as confidential as the recipe. A seed
+#' has 31 bits: where a clone shows site labels and holds two pairs at one place,
+#' it can be found by search, so alias the label or declare one pair.
 #'
 #' Choose the unit carefully. It is the finest grouping that denotes **one
 #' physical place at one time**. For a multi-year trial series that is location
@@ -106,7 +122,11 @@
 #'   displacement that lands in the sea, using [maps::map.where()] (requires the
 #'   `maps` package). A function `function(lon, lat)` returning a logical vector
 #'   supplies your own test (for example an `sf`-based high-resolution
-#'   coastline). `FALSE` applies no constraint.
+#'   coastline). `FALSE` applies no constraint. The test conditions the annulus:
+#'   near a coast the accepted directions are the ones on land, so the mean
+#'   displacement points inland and the median distance can move by kilometres,
+#'   while no point falls inside `min_km`. A site that cannot reach land is
+#'   missing.
 #' @param max_tries Maximum re-draws per site before giving up. Default `100`.
 #'   A site that cannot be placed on land is set to `NA` on both axes, with a
 #'   warning: masque never emits the true coordinate as though it were masked.
@@ -198,7 +218,11 @@ jitter_coordinates <- function(df, lat_col, lon_col,
   land_fn <- .resolve_land_fn(on_land)
 
   withr::local_preserve_seed()
-  if (!is.null(seed)) set.seed(as.integer(.check_seed(seed)))
+  root <- if (is.null(seed)) {
+    sample.int(.Machine$integer.max, 1L)
+  } else {
+    as.integer(.check_seed(seed))
+  }
 
   lat <- df[[lat_col]]
   lon <- df[[lon_col]]
@@ -218,9 +242,11 @@ jitter_coordinates <- function(df, lat_col, lon_col,
 
   lat_v <- lat[valid]
   lon_v <- lon[valid]
-  # Rows are one site only when their coordinates are identical as doubles.
+  # Rows are one site when their coordinates agree to nine decimal places, about
+  # 0.1 mm, so writing the table to a file and back does not start a new draw.
+  # Adding zero merges -0 with 0.
   pair_key <- paste(
-    match(lat_v, unique(lat_v)), match(lon_v, unique(lon_v)),
+    sprintf("%.9f", lat_v + 0), sprintf("%.9f", lon_v + 0),
     sep = "\r"
   )
 
@@ -302,15 +328,16 @@ jitter_coordinates <- function(df, lat_col, lon_col,
     tries <- tries + 1L
     la <- src_lat[pending]
     lo <- src_lon[pending]
+    u <- .site_uniforms(root, c(lat_col, lon_col), ug[pending], tries)
     if (method == "donut") {
       # sqrt of a uniform on [min^2, max^2] is uniform by AREA over the annulus.
-      radius <- sqrt(stats::runif(length(pending), min_km^2, max_km^2))
-      bearing <- stats::runif(length(pending), 0, 2 * pi)
+      radius <- sqrt(min_km^2 + u[, 1L] * (max_km^2 - min_km^2))
+      bearing <- u[, 2L] * 2 * pi
       d_north <- radius * cos(bearing)
       d_east <- radius * sin(bearing)
     } else {
-      d_north <- stats::rnorm(length(pending), 0, sd_km)
-      d_east <- stats::rnorm(length(pending), 0, sd_km)
+      d_north <- stats::qnorm(u[, 1L], 0, sd_km)
+      d_east <- stats::qnorm(u[, 2L], 0, sd_km)
     }
     cand_lat <- la + d_north / 111.32
     cand_lon <- lo + d_east / (111.32 * cos(la * pi / 180))
@@ -347,6 +374,24 @@ jitter_coordinates <- function(df, lat_col, lon_col,
       consolidated = consolidated, unplaced = length(pending)
     )
   )
+}
+
+# Two uniforms in (0, 1) per site for one try: a pure function of the seed,
+# the coordinate pair, the try and the site's value. Nothing depends on row
+# order, on the other sites or on the RNG kind, so a pinned seed gives a site
+# the same displacement in any table that holds it.
+.site_uniforms <- function(root, pair, keys, try) {
+  hash <- digest::getVDigest("sha256")
+  h <- hash(
+    enc2utf8(paste(root, pair[1L], pair[2L], try, keys, sep = "\r")),
+    serialize = FALSE
+  )
+  word <- function(from) {
+    high <- strtoi(substr(h, from, from + 5L), 16L)
+    low <- strtoi(substr(h, from + 6L, from + 12L), 16L)
+    (high * 16^7 + low + 0.5) / 16^13
+  }
+  cbind(word(1L), word(14L))
 }
 
 # A structured account of one coordinate-pair jitter, recorded on the recipe.
@@ -579,13 +624,13 @@ jitter_coordinates <- function(df, lat_col, lon_col,
 }
 
 # Jitter each spec in place and return the frame with one report per spec.
-# Sites are grouped on `original`; each spec draws from its own sub-stream.
+# Sites are grouped on `original`; the pair's names separate its draws.
 .apply_coord_jitter <- function(synth, specs, seed, original = NULL) {
   n <- length(specs)
   if (!n) {
     return(list(df = synth, reports = list()))
   }
-  sub_seeds <- .sub_seeds(seed, n)
+  root <- if (is.null(seed)) .sub_seeds(NULL, 1L) else seed
   reports <- vector("list", n)
   for (i in seq_len(n)) {
     s <- specs[[i]]
@@ -602,7 +647,7 @@ jitter_coordinates <- function(df, lat_col, lon_col,
       synth, lat_col = s$lat, lon_col = s$lon,
       by = if (isFALSE(s$by)) FALSE else NULL,
       method = s$method, min_km = s$min_km, max_km = s$max_km,
-      sd_km = s$sd_km, on_land = s$on_land, seed = sub_seeds[[i]],
+      sd_km = s$sd_km, on_land = s$on_land, seed = root,
       .group = grp
     )
     synth <- res$df

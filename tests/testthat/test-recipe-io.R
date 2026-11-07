@@ -27,27 +27,30 @@ test_that("save_recipe + read_recipe round-trip is identity", {
   expect_identical(rec@integrity_fp, rec2@integrity_fp)
 })
 
-test_that("save_recipe file is much smaller than the raw data (1000x20 fixture)", {
-  set.seed(0)
-  df <- data.frame(
-    Rep = rep(1:4, 250),
-    block = rep(1:5, each = 200),
-    Genotype = factor(rep(LETTERS[1:10], 100)),
-    yield = rnorm(1000)
-  )
-  for (i in 1:16) df[[paste0("cov_", i)]] <- rnorm(1000)
-  r <- propose_roles(df)
-  r$role[r$col == "yield"] <- "outcome"
-  m <- mask(df, r, mode = "collaborate", seed = 1)
-
-  tmp <- tempfile(fileext = ".rds")
-  save_recipe(recipe(m), tmp)
-  sz <- file.info(tmp)$size
-  # Compared with the data under the same serialiser: absolute sizes differ
-  # across R versions (R-devel is several times larger).
-  data_rds <- tempfile(fileext = ".rds")
-  saveRDS(df, data_rds)
-  expect_lt(sz, file.info(data_rds)$size)
+test_that("save_recipe file does not grow with the rows of the data", {
+  sizes <- function(n) {
+    set.seed(0)
+    df <- data.frame(
+      Rep = rep(1:4, length.out = n),
+      block = rep(1:5, length.out = n),
+      Genotype = factor(rep(LETTERS[1:10], length.out = n)),
+      yield = rnorm(n)
+    )
+    for (i in 1:16) df[[paste0("cov_", i)]] <- rnorm(n)
+    r <- propose_roles(df)
+    r$role[r$col == "yield"] <- "outcome"
+    m <- mask(df, r, mode = "collaborate", seed = 1)
+    recipe_rds <- tempfile(fileext = ".rds")
+    save_recipe(recipe(m), recipe_rds)
+    data_rds <- tempfile(fileext = ".rds")
+    saveRDS(df, data_rds)
+    file.info(c(recipe_rds, data_rds))$size
+  }
+  small <- sizes(1000L)
+  large <- sizes(10000L)
+  # The class definition sets the file's base size, which varies with the R
+  # version. A recipe holding rows would grow with the data.
+  expect_lt(large[1L] - small[1L], 0.01 * (large[2L] - small[2L]))
 })
 
 test_that("save_recipe errors on invalid inputs", {

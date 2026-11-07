@@ -47,7 +47,10 @@ write_set <- function(m, path, overwrite = FALSE, allow_high = FALSE) {
   if (!is.character(path) || length(path) != 1L || !nzchar(path)) {
     cli::cli_abort("`path` must be a single non-empty string.")
   }
-  .gate_release(m, allow_high)
+  .gate_release(
+    m, allow_high,
+    "the override is only in that warning, so keep your own record"
+  )
   .write_set_dispatch(m@synthetic, path, overwrite)
   invisible(path)
 }

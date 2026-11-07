@@ -1,3 +1,81 @@
+# masque 0.17.0
+
+## Behaviour changes
+
+* The site displacement of `jitter_coordinates()` and `mask(coords = )` is now
+  keyed on the site's value and the seed, so one seed gives a site one
+  displacement even after rows are shuffled, added or removed. In 0.16.0 the
+  advice to reuse the seed held only for a byte-identical table. **A clone built
+  by an earlier version moves under the new draw, so rebuilding it counts as a
+  second release of its sites: retire the old clone.**
+* The rebuild table in `?jitter_coordinates` is corrected: 14.6, 9.4, 6.3, 4.4
+  and 3.1 km at 1, 2, 4, 8 and 16 kept rebuilds, and seven rebuilds, not eight,
+  fall below the 5 km floor.
+* Rows are one site when their coordinates agree to nine decimal places, so a
+  table written to a file with 15 significant digits and read back keeps its draw
+  at nearly every site.
+* The audit grades a re-simulated number that tracks the original row by row:
+  HIGH at r of 0.9 or more on the rows of small levels, with the means of large
+  terms taken out. MEDIUM at 0.7 or more there, or at 0.95 or more overall, which
+  big environment means alone can reach.
+* Under the hierarchy ladder a design level must hold three rows to carry a
+  shift. A level of two rows gave a shift close to those rows' own values: a clone
+  correlated 0.99 with the original at its rows, and the audit said low. Conditional
+  clones with such a column change. Levels of three or four rows still carry a
+  shift, since real alpha blocks are that small, and the audit grades them.
+* A private `seed` in `controls()` no longer appears in the manifest. With a
+  plan and its recipe, the owner's permutations now come from SHA-256 of a
+  256-bit key from the system's random source, because a derived integer seed
+  could be searched against a per-replicate statistic. A private integer `seed`
+  keeps its 31 bits. Release nothing computed from a single replicate, and check
+  the permutation p-value as the result of the test on the real table.
+* `apply_recipe()` and `controls()` with a recipe now refuse a table whose values
+  differ from those the recipe was built on, not only its NA mask. A table read
+  back from a file at 15 digits still matches, as do its column types.
+* In a plan, the default control unit passes over a column with too few units for
+  a 5 percent level. It warns when several columns qualify
+  (`masque_control_unit_ambiguous`): name the unit `on` was assigned at.
+* New warnings mark units and strata with too few arrangements for a 5 percent
+  level (`masque_control_unit_small`) and a whole-valued target whose rounding
+  changes the declared shape (`masque_control_shape_rounded`).
+  `masque_control_strata_weak` now fires when `on` is constant in over 10 percent
+  of the strata (was 50).
+* `handover(allow_high = TRUE)` names the overridden findings in `README.txt`.
+  The refusal text now says what each writer records: only `masque()` writes to
+  the recipe.
+* The averaged-row figure in `?jitter_coordinates` is corrected to 0.64 km for
+  360 rows.
+* masque needs digest 0.6.21 or later.
+* The range statement in `vignette("confidentiality")` is corrected. A whole
+  number in a collaborate clone can fall one full step outside the observed
+  range, not half a step as 0.16.0 stated, so a column whose minimum is 0 can
+  show -1. A conditional clone can go further.
+
+## New features
+
+* `masque_plan()` holds the roles and every named spec in one object.
+  `mask(df, plan)` reads them from it, an argument passed as well overrides the
+  plan, and each control spec is resolved on the source and written back to the
+  recipe. `save_plan()` and `read_plan()` keep a plan as YAML.
+* `clone_plan()` gives the plan in clone vocabulary. `controls(clone, plan)` runs
+  the declared controls for the analyst. `controls(real, plan, recipe = rec)`
+  runs them for the owner: cleaning and conformance are replayed, a table with a
+  different schema or NA mask is refused, a spec changed since `mask()` is refused
+  and the seed is derived privately from the recipe.
+* `handover(m, dir)` writes the clone, the clone plan, the data card and a note
+  to one folder after the release gate. It never writes the recipe.
+* `mask(conditional = )` takes `"design"`, which conditions on the retained
+  design columns alone: the clone keeps design means and block variance and
+  carries no treatment effect. It also takes column names, an explicit
+  partition that runs through the same ladder.
+* Known-truth controls. `control_spec()` declares what a control permutes and
+  plants; `controls()` derives a null, `n` negative and `n` positive control
+  datasets from any table with a role table, by restricted permutation at
+  the declared unit within declared design strata and a per-level shift in
+  target-SD units; `control_table()` regenerates any of them from its seed.
+  The same spec runs on the clone and, with a private seed, on the
+  original. Vignette "Known-truth controls".
+
 # masque 0.16.0
 
 ## Behaviour changes

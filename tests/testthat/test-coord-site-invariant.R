@@ -48,7 +48,7 @@ test_that("the donut contract still holds, now per site", {
 
 test_that("a site's true position is not recoverable by averaging its rows", {
   # The privacy regression. Per-row jitter left the centroid of a 360-row site
-  # a median 0.58 km from the truth, against a 5 km floor.
+  # a median 0.64 km from the truth, against a 5 km floor.
   n <- 360L
   df <- data.frame(lat = rep(-34.9, n), lon = rep(138.6, n))
   err <- vapply(1:10, function(s) {

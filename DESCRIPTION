@@ -1,6 +1,6 @@
 Package: masque
 Title: Structurally Faithful Development Surrogates for Tabular Data
-Version: 0.16.0
+Version: 0.17.0
 Authors@R: c(
     person("Max", "Moldovan",
            email = "max.moldovan@gmail.com",
@@ -29,7 +29,7 @@ Depends:
 Imports:
     cli,
     data.table (>= 1.15.0),
-    digest,
+    digest (>= 0.6.21),
     Matrix,
     S7,
     stats,
@@ -42,6 +42,7 @@ Suggests:
     ggplot2,
     knitr,
     maps,
+    openssl,
     readxl,
     rmarkdown,
     spelling,

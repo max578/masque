@@ -60,7 +60,8 @@
 #' @param clean Hygiene mode passed to [clean_table()] (`"auto"`,
 #'   `"report"`, `"off"`).
 #' @param alias_names Hide column names; see [mask()] / [mask_set()].
-#' @param conditional Logical scalar (default `FALSE`). The conditional
+#' @param conditional `FALSE` (default), `TRUE`, `"design"` or column names.
+#'   The conditional
 #'   clone mode passed through to [mask()] / [mask_set()]: when `TRUE`,
 #'   numeric columns are re-simulated within each treatment-by-design
 #'   stratum so the treatment-to-outcome relationship survives the clone.
@@ -127,6 +128,12 @@ masque <- function(input,
   clean <- match.arg(clean)
   ladder <- match.arg(ladder)
 
+  if (S7::S7_inherits(roles, .plan_class)) {
+    .plan_refuse(
+      "{.fn masque} does not take a plan yet. Call {.code mask(df, plan)}.",
+      "unsupported"
+    )
+  }
   is_set <- .masque_is_set(input)
   if (!is_set && (!is.null(sheets) || !is.null(info))) {
     cli::cli_abort(c(
