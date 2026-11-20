@@ -13,6 +13,9 @@ is the same.
   These tests failed on CRAN once S7 1.0.0 was released.
 * A new test reads a recipe file written by masque 0.16.0 and checks that it
   still translates a table and translates it back.
+* The package now names its funder and copyright holder, the Grains Research
+  and Development Corporation (GRDC). masque is developed within Analytics for
+  the Australian Grains Industry (AAGI).
 
 # masque 0.17.0
 

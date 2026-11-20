@@ -19,6 +19,10 @@ lists them: known-truth control datasets, a plan object that holds the roles
 and the control specifications, and corrections to the coordinate displacement
 and to the leakage audit.
 
+`Authors@R` now names the funder and copyright holder, the Grains Research and
+Development Corporation, which 0.16.0 omitted. `LICENSE` reads "masque
+authors" to match. The maintainer and the licence are unchanged.
+
 ## Test environments
 
 * Local: macOS (Apple Silicon), R 4.6.1, S7 1.0.0.
