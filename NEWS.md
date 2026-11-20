@@ -12,7 +12,7 @@ is the same.
   use the functions S7 exports, so they no longer depend on how S7 stores it.
   These tests failed on CRAN once S7 1.0.0 was released.
 * Two tests compared a recipe read from disk with the one in memory as whole
-  S7 objects. Under R-devel the comparison stepped into S7's own namespace and
+  S7 objects. Under R-devel the comparison stepped into the namespace of S7 and
   failed during `R CMD check`. They now compare each recipe's class and
   properties.
 * A new test reads a recipe file written by masque 0.16.0 and checks that it
