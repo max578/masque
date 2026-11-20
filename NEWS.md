@@ -11,6 +11,10 @@ is the same.
 * Three tests read the place where S7 used to keep an object's class. They now
   use the functions S7 exports, so they no longer depend on how S7 stores it.
   These tests failed on CRAN once S7 1.0.0 was released.
+* Two tests compared a recipe read from disk with the one in memory as whole
+  S7 objects. Under R-devel the comparison stepped into S7's own namespace and
+  failed during `R CMD check`. They now compare each recipe's class and
+  properties.
 * A new test reads a recipe file written by masque 0.16.0 and checks that it
   still translates a table and translates it back.
 * The package now names its funder and copyright holder, the Grains Research

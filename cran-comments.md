@@ -11,6 +11,9 @@ before 2026-12-11.
 * **Correction.** The tests now use S7's exported functions only. The package
   requires S7 (>= 1.0.0), because a recipe file saved under S7 1.0.0 cannot be
   read under an earlier S7.
+* **R-devel.** Two tests that compared whole recipe objects failed under
+  R-devel (2026-11-19 r90939) because the comparison entered S7's namespace.
+  They now compare each recipe's class and properties.
 
 The version moves from 0.16.0 to 0.17.1 because 0.17.0 was finished while
 0.16.0 was in review and was never submitted. Its changes come with this
