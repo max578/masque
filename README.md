@@ -241,7 +241,7 @@ The package also ships a `CITATION.cff` file.
 
 masque is developed within Analytics for the Australian Grains Industry
 (AAGI), funded by the Grains Research and Development Corporation (GRDC) under
-projects CUR2210-005OPX and UOA2301-005OPX.
+project UOA2301-005OPX.
 
 ---
 

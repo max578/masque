@@ -69,7 +69,7 @@ Authors:
 
 Other contributors:
 \itemize{
-  \item Grains Research and Development Corporation (\href{https://ror.org/02xwr1996}{ROR}) (GRDC Project CUR2210-005OPX (AAGI-CU), UOA2301-005OPX (AAGI-AU)) [funder, copyright holder]
+  \item Grains Research and Development Corporation (\href{https://ror.org/02xwr1996}{ROR}) (GRDC Project UOA2301-005OPX (AAGI-AU)) [funder, copyright holder]
 }
 
 }

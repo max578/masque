@@ -29,7 +29,13 @@ authors" to match. The maintainer and the licence are unchanged.
 
 ## R CMD check results
 
-0 errors | 0 warnings | 0 notes
+0 errors | 0 warnings | 1 note
+
+* The incoming check may list the ROR ID `02xwr1996` as possibly invalid, with
+  ror.org answering 429 (Too Many Requests). The ID is that of the Grains
+  Research and Development Corporation and is active in the ROR registry.
+* Days since last update: this update corrects the check failures the CRAN
+  Team asked to have corrected.
 
 ## Reverse dependencies
 
