@@ -1,3 +1,19 @@
+# masque 0.17.1
+
+This release makes the package work with S7 1.0.0. The code that builds and
+audits a clone is the same as in 0.17.0, and a clone built with the same seed
+is the same.
+
+* masque now needs S7 1.0.0 or later. S7 1.0.0 stores an object's class in a
+  new way, and a recipe saved under it cannot be read by an older S7. With the
+  new minimum, two people who both run this version can always read each
+  other's recipe files. A recipe saved by an earlier masque still reads.
+* Three tests read the place where S7 used to keep an object's class. They now
+  use S7's exported functions, so they no longer depend on how S7 stores it.
+  These tests failed on CRAN once S7 1.0.0 was released.
+* A new test reads a recipe file written by masque 0.16.0 and checks that it
+  still translates a table and translates it back.
+
 # masque 0.17.0
 
 ## Behaviour changes

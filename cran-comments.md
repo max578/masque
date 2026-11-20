@@ -1,47 +1,35 @@
-## Resubmission
+## Submission
 
-This is a resubmission of a new package, now version 0.16.0. The review of
-0.15.0 asked for two changes:
+This is masque 0.17.1. It corrects the test failures shown on the CRAN check
+page for 0.16.0, which the CRAN Team asked on 2026-11-20 to have corrected
+before 2026-12-11.
 
-* **Console output that cannot be suppressed.** The interactive review in
-  `R/masque.R` wrote the plan table and its menus with `print()` and
-  `cat()`. It now captures that text and writes it with
-  `cli::cli_verbatim()`, which signals a message, so `suppressMessages()`
-  silences it. The `print()` and `cat()` calls left in
-  the package are inside `print()`, `format()`, `str()` and `knit_print()`
-  methods, and in `reveal_maps()`, whose only purpose is to print the
-  label maps a user asks to see.
-* **Vignettes that change `options()`.** Each of the four vignettes saves
-  the user's options with `old_options <- options(width = 100)` in its
-  setup chunk and restores them with `options(old_options)` in its last
-  chunk. Rendering every vignette leaves `options()` unchanged.
+* **Cause.** Three tests read the attribute in which S7 kept an object's
+  class. S7 1.0.0, released on 2026-11-19, renamed that attribute, and the
+  tests failed on every platform that had the new S7. The package's own code
+  never used the attribute.
+* **Correction.** The tests now use S7's exported functions only. The package
+  requires S7 (>= 1.0.0), because a recipe file saved under S7 1.0.0 cannot be
+  read under an earlier S7.
 
-Since 0.15.0 the package has also gained `data_card()` and `roles()`,
-synthesis of unit-constant columns once per design unit, linked
-time-to-event outcomes, and fixes to the leakage audit and the
-multi-table round trip. `NEWS.md` lists them.
+The version moves from 0.16.0 to 0.17.1 because 0.17.0 was finished while
+0.16.0 was in review and was never submitted. Its changes come with this
+correction so that a second update does not follow within weeks. `NEWS.md`
+lists them: known-truth control datasets, a plan object that holds the roles
+and the control specifications, and corrections to the coordinate displacement
+and to the leakage audit.
 
 ## Test environments
 
-* Local: macOS (Apple Silicon), R 4.6.1.
-* GitHub Actions: Ubuntu (R-devel, R-release, R-oldrel-1), Windows
-  (R-release), macOS (R-release).
-* R-hub: Linux (R-devel), Ubuntu next, Windows (R-devel), macOS arm64
-  (R-devel).
-* win-builder: Windows, R-devel (2026-10-28 r90783 ucrt).
+* Local: macOS (Apple Silicon), R 4.6.1, S7 1.0.0.
 
 ## R CMD check results
 
-0 errors | 0 warnings | 1 note
-
-* New submission.
-
-  win-builder also lists "anonymisation" as possibly misspelled. It is the
-  Australian spelling; the package declares `Language: en-AU`.
+0 errors | 0 warnings | 0 notes
 
 ## Reverse dependencies
 
-None (first submission).
+None.
 
 ## Data shipped with the package
 
