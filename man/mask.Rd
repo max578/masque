@@ -30,7 +30,10 @@ mask(
 record and its merges and type changes go on the recipe, so
 \code{\link[=apply_recipe]{apply_recipe()}} replays them; \code{clean} is not applied a second time.}
 
-\item{roles}{A roles table from \code{\link[=propose_roles]{propose_roles()}} (possibly edited).
+\item{roles}{A roles table from \code{\link[=propose_roles]{propose_roles()}} (possibly edited), or a
+\code{\link[=masque_plan]{masque_plan()}}. A plan supplies \code{coords}, \code{events}, \code{conditional},
+\code{ladder}, \code{grain} and \code{alias_names} where the call leaves them out, and its
+control specs are resolved on \code{df} and written back to the recipe.
 Tables from masque <= 0.5.0 are upgraded with a deprecation
 warning; see \code{\link[=roles_validate]{roles_validate()}}.}
 
@@ -66,8 +69,9 @@ original-to-alias map is stored in the recipe and inverted by
 aliased synthetic round-trips. Alias the names when the schema itself
 is sensitive.}
 
-\item{conditional}{Logical scalar (default \code{FALSE}). The
-\emph{collaborate-grade conditional clone}. When \code{FALSE}, scrambled
+\item{conditional}{\code{FALSE} (default), \code{TRUE}, \code{"design"}, or a character
+vector of column names. The \emph{collaborate-grade conditional clone}.
+When \code{FALSE}, scrambled
 numeric columns are re-simulated from one global Gaussian copula -
 marginals and global covariance survive, but the treatment-to-outcome
 relationship does not, so a causal model fitted on the clone recovers
@@ -89,7 +93,19 @@ into a global fallback. The rung reached is recorded on the recipe as
 the pooled share as \code{fallback_frac}, and any coarsening or residual
 pooling raises a classed \code{masque_conditional_degraded} warning --
 including the case where no treatment or design column survives at
-all, in which case the clone is the pooled copula.}
+all, in which case the clone is the pooled copula.
+
+\code{"design"} conditions on the retained design columns alone. The clone
+keeps the design means, block and environment variance, while a treatment
+effect is not carried: a real effect moves into the residual, as it does
+when an owner permutes the treatment for a negative control, so the clone
+stands in for those negatives. The residual is not the one a real fit has.
+Linked \code{events} are stratified only by treatment columns of the partition,
+so \code{"design"} and a design-only partition do not keep their design means.
+A character vector of names gives the partition explicitly, from the
+retained design and treatment columns, and runs through the same ladder;
+treatment columns are still never dropped. The single word \code{"design"}
+always means this option, even where a column has that name.}
 
 \item{ladder}{How the coarsening ladder orders the design columns it may
 drop, and what it keeps of a dropped one. \code{"hierarchy"} (the default)
@@ -109,7 +125,12 @@ stratum keep the stratum columns' main effects the same way, which is
 how a three-replicate variety trial keeps its genotype means. A level
 with a single row is pooled with the other singletons before the fit,
 so no row's own outcome is carried. The terms carried are recorded on
-the recipe as \code{conditioning_shifted}. \code{"levels"}
+the recipe as \code{conditioning_shifted}. The interaction of a dropped column
+with a kept treatment is not carried, so a multi-environment clone can keep
+its genotype and environment means and lose the genotype-by-environment
+pattern. Shrinkage of a shift uses the mean level size, so on unbalanced
+columns the small levels are shrunk less than their own size would give.
+\code{"levels"}
 is the ladder of masque 0.11.1 to 0.12.0: columns are dropped in
 decreasing order of distinct values and a dropped column leaves no
 trace in the clone.}
@@ -131,7 +152,8 @@ survives masking, coarsened; the recipe records the parameters and the site
 grouping it was coarsened under, and \code{\link[=apply_recipe]{apply_recipe()}} retargets to the real
 coordinates. Several published jitters of the same point average toward
 it: keep the seed, which the recipe records, and do not publish more than
-one jittered release of the same sites.}
+one jittered release of the same sites. A seed has 31 bits: where a clone
+shows site labels and holds two pairs at one place, it can be found by search.}
 
 \item{events}{Optional linked time-to-event outcomes. One spec per group of
 linked events, \code{list(time = c(...), status = c(...))}, with the time and

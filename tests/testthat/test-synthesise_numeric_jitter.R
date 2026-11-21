@@ -39,6 +39,14 @@ test_that("synthesise_numeric_collaborate stays within half a step of range", {
   expect_true(all(out >= min(x_obs) - half) && all(out <= max(x_obs) + half))
 })
 
+test_that("a whole-numbered column can reach one full step past the range", {
+  set.seed(1)
+  x_obs <- rep(0:20, 10L)
+  out <- masque:::synthesise_numeric_collaborate(x_obs, rep(0, length(x_obs)))
+  expect_identical(min(out), -1L)
+  expect_true(all(out >= -1L))
+})
+
 test_that("synthesise_numeric_collaborate preserves integer class", {
   set.seed(1)
   x_obs <- sample(1L:20L, 200, replace = TRUE)
@@ -75,8 +83,10 @@ test_that("Collaborate mode lowers numeric exact-match in mask()", {
   r <- propose_roles(df)
   r$role[r$col == "yield"] <- "outcome"
 
-  # Rep stays a kept design column (graded low), so no HIGH warning.
-  m <- mask(df, r, mode = "collaborate", seed = 1)
+  # Rep stays a kept design column (graded low), so no HIGH warning. The seed
+  # differs from the one that made the data: an equal seed draws the same
+  # normals, and the clone then tracks the table.
+  m <- mask(df, r, mode = "collaborate", seed = 2)
   audit <- audit_mask(m, print = FALSE)
 
   # Continuous outcome: exact_match_pct < 1

@@ -34,7 +34,8 @@
 #' @param rec A `masque_recipe` object (e.g. from `recipe(m)`).
 #' @param check_integrity Logical. When `TRUE` (default), verifies that
 #'   the NA mask of `original` matches the recipe's recorded
-#'   `integrity_fp`. Mismatches error with guidance. Pass `FALSE` to
+#'   `integrity_fp` and values against the recipe's fingerprint of them,
+#'   numbers within rounding from a file. Mismatches error with guidance. Pass `FALSE` to
 #'   bypass when the missingness has legitimately changed since the
 #'   recipe was built.
 #'

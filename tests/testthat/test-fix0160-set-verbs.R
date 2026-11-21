@@ -45,7 +45,7 @@ test_that("save_recipe() and read_recipe() round-trip a recipe bundle", {
   expect_identical(save_recipe(bundle, path), path)
   back <- read_recipe(path)
   expect_true(S7::S7_inherits(back, masque:::masque_recipe_set))
-  expect_equal(back, bundle)
+  expect_equal(recipe_as_data(back), recipe_as_data(bundle))
   expect_identical(names(back@recipes), names(bundle@recipes))
   expect_identical(back@links, bundle@links)
   for (nm in names(bundle@recipes)) {

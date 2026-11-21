@@ -206,6 +206,13 @@ local({
   str <- utils::str
   S7::method(str, masque_recipe) <- .str_redacted
   S7::method(str, masque_obj) <- .str_redacted
+  S7::method(str, masque_controls) <- function(object, ...) {
+    cat(sprintf(
+      "<masque_controls> %d rows, %d replicates; details not shown. See print().\n",
+      nrow(object@table), object@spec@n
+    ))
+    invisible(NULL)
+  }
 })
 
 
@@ -367,10 +374,21 @@ reveal_maps <- function(rec, table = NULL) {
     frac <- NA_real_
   }
   if (!length(used)) {
-    return("conditional requested (no conditioning column; pooled fallback)")
+    shifted <- .prop_or(x, "conditioning_shifted", character())
+    return(if (length(shifted)) {
+      sprintf("conditional: pooled copula with additive shifts on %s", paste(shifted, collapse = ", "))
+    } else {
+      "conditional requested (no conditioning column; pooled fallback)"
+    })
   }
+  r <- x@roles
+  has_treatment <- any(requested %in% r$col[r$role == "treatment"])
   line <- sprintf(
-    "conditional (treatment -> outcome preserved; strata: %s)",
+    if (has_treatment) {
+      "conditional (treatment -> outcome preserved; strata: %s)"
+    } else {
+      "design-conditioned (treatment effect not carried; strata: %s)"
+    },
     paste(used, collapse = ", ")
   )
   dropped <- setdiff(requested, used)

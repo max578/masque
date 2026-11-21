@@ -138,6 +138,51 @@ set_role <- function(roles, cols, role = NULL, action = NULL) {
   roles$col[keep]
 }
 
+# `conditional` is one flag, the word "design", or column names.
+.check_conditional_arg <- function(conditional) {
+  ok <- if (is.character(conditional)) {
+    length(conditional) >= 1L && !anyNA(conditional) &&
+      all(nzchar(conditional)) && !anyDuplicated(conditional)
+  } else {
+    is.logical(conditional) && length(conditional) == 1L && !is.na(conditional)
+  }
+  if (ok) {
+    return(invisible(conditional))
+  }
+  cli::cli_abort(
+    paste0(
+      "`conditional` must be `TRUE`, `FALSE`, {.val design} or a character ",
+      "vector of retained design and treatment column names."
+    ),
+    class = c("masque_bad_conditional_refusal", "orchestra_refusal")
+  )
+}
+
+# The columns a conditional clone conditions on, before the ladder.
+.resolve_conditioning <- function(conditional, roles) {
+  if (isFALSE(conditional)) {
+    return(character())
+  }
+  retained <- .conditioning_cols(roles)
+  if (isTRUE(conditional)) {
+    return(retained)
+  }
+  if (identical(conditional, "design")) {
+    return(intersect(retained, roles$col[roles$role == "design"]))
+  }
+  bad <- setdiff(conditional, retained)
+  if (length(bad)) {
+    cli::cli_abort(
+      c(
+        "`conditional` names {.field {bad}}.",
+        x = "Only retained design and treatment columns can define a partition."
+      ),
+      class = c("masque_bad_conditional_refusal", "orchestra_refusal")
+    )
+  }
+  conditional
+}
+
 # Per-mode default action for a (role, kind) pair, used by propose_roles(),
 # set_role(), the v1 upgrade and NA-action resolution.
 .default_action <- function(role, kind, mode) {

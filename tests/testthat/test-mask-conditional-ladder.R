@@ -293,7 +293,8 @@ test_that("mask(ladder = 'hierarchy') keeps the environment effect of a MET", {
   expect_identical(rec@ladder, "hierarchy")
   expect_identical(rec@conditioning_used, c("trt", "site"))
   expect_identical(rec@conditioning_dropped, c("row", "rep"))
-  expect_setequal(rec@conditioning_shifted, c("rep", "row"))
+  # `row` holds two rows a level here, below the floor for a design shift.
+  expect_identical(rec@conditioning_shifted, "rep")
   f_clone <- fit(as.data.frame(synthetic(m)))
   # Floor 0.4: the clone re-draws each cell's six-to-eight residuals, and
   # site:rep in the original is half replicate signal and half noise df.

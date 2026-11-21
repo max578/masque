@@ -88,9 +88,21 @@ masque_recipe <- S7::new_class(
     allow_kept_outcome = S7::new_property(
       class = S7::class_logical, default = FALSE
     ),
+    # Fresh entropy behind the owner's control seeds, which no seed can guess.
+    # Empty without a plan. Absent before 0.17.0.
+    owner_key = S7::new_property(
+      class = S7::class_character, default = character()
+    ),
+    # The plan as it ran, specs resolved on the source; NULL without a plan.
+    # Absent before 0.17.0.
+    plan = S7::new_property(
+      class = S7::new_union(NULL, .plan_class), default = NULL
+    ),
     warnings = S7::new_property(
       class = S7::class_character, default = character()
     ),
+    # A fingerprint of the values, beside the NA mask's. Absent before 0.17.0.
+    content_fp = S7::new_property(class = S7::class_list, default = list()),
     integrity_fp = S7::class_character
   )
 )

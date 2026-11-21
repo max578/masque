@@ -169,15 +169,13 @@ test_that("a recipe saved before the conform property existed still applies", {
   raw <- state_raw()
   rec <- recipe(mask(raw, state_roles(raw, "local"), mode = "local", seed = 1))
   # Rebuild the object as an older masque wrote it: the class definition it
-  # carries has no `conform` property and the attribute is absent.
-  cls <- attr(rec, "S7_class")
+  # carries has no `conform` property. Built with S7's exported functions only.
+  keep <- setdiff(S7::prop_names(rec), "conform")
   old_cls <- S7::new_class(
     "masque_recipe", package = "masque",
-    properties = cls@properties[setdiff(names(cls@properties), "conform")]
+    properties = stats::setNames(rep(list(S7::class_any), length(keep)), keep)
   )
-  old <- rec
-  attr(old, "conform") <- NULL
-  attr(old, "S7_class") <- old_cls
+  old <- do.call(old_cls, S7::props(rec, keep))
   expect_error(old@conform)
   expect_identical(apply_recipe(raw, old), apply_recipe(raw, rec))
 })

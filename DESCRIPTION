@@ -1,12 +1,14 @@
 Package: masque
 Title: Structurally Faithful Development Surrogates for Tabular Data
-Version: 0.16.0
+Version: 0.17.1
 Authors@R: c(
     person("Max", "Moldovan",
            email = "max.moldovan@gmail.com",
            role  = c("aut", "cre"),
            comment = c(ORCID = "0000-0001-9680-8474",
-                       affiliation = "Adelaide University"))
+                       affiliation = "Adelaide University")),
+    person("Grains Research and Development Corporation", role = c("fnd", "cph"),
+           comment = c("GRDC Project UOA2301-005OPX (AAGI-AU)", ROR = "02xwr1996"))
     )
 Description: Turns a confidential tabular dataset - a single table, a folder
     of files, or a multi-sheet workbook - into a structurally faithful
@@ -29,9 +31,9 @@ Depends:
 Imports:
     cli,
     data.table (>= 1.15.0),
-    digest,
+    digest (>= 0.6.21),
     Matrix,
-    S7,
+    S7 (>= 1.0.0),
     stats,
     utils,
     withr
@@ -42,6 +44,7 @@ Suggests:
     ggplot2,
     knitr,
     maps,
+    openssl,
     readxl,
     rmarkdown,
     spelling,

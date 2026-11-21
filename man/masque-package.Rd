@@ -67,5 +67,10 @@ Authors:
   \item Max Moldovan \email{max.moldovan@gmail.com} (\href{https://orcid.org/0000-0001-9680-8474}{ORCID}) (affiliation: Adelaide University)
 }
 
+Other contributors:
+\itemize{
+  \item Grains Research and Development Corporation (\href{https://ror.org/02xwr1996}{ROR}) (GRDC Project UOA2301-005OPX (AAGI-AU)) [funder, copyright holder]
+}
+
 }
 \keyword{internal}

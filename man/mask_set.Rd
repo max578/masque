@@ -51,7 +51,7 @@ modes must be reconciled explicitly. Otherwise default to \code{"local"}.}
 \code{TRUE} aliases every non-link column (linked join keys keep their
 names so the synthetic set stays joinable).}
 
-\item{conditional}{Logical scalar (default \code{FALSE}). Passed through to
+\item{conditional}{\code{FALSE} (default), \code{TRUE} or \code{"design"}. Passed through to
 each per-table \code{\link[=mask]{mask()}} call: when \code{TRUE}, every table's numeric
 block is re-simulated within its own treatment-by-design strata so
 the treatment-to-outcome relationship survives the clone. See

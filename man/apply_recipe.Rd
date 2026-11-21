@@ -13,7 +13,8 @@ apply_recipe(original, rec, check_integrity = TRUE)
 
 \item{check_integrity}{Logical. When \code{TRUE} (default), verifies that
 the NA mask of \code{original} matches the recipe's recorded
-\code{integrity_fp}. Mismatches error with guidance. Pass \code{FALSE} to
+\code{integrity_fp} and values against the recipe's fingerprint of them,
+numbers within rounding from a file. Mismatches error with guidance. Pass \code{FALSE} to
 bypass when the missingness has legitimately changed since the
 recipe was built.}
 }
