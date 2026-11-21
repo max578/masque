@@ -33,6 +33,7 @@ authors" to match. The maintainer and the licence are unchanged.
   (R-release), macOS (R-release).
 * R-hub: Linux (R-devel), Ubuntu next (R-devel), Windows (R-devel), macOS
   arm64 (R-devel).
+* win-builder: Windows (R-release, R 4.6.2).
 
 ## R CMD check results
 
