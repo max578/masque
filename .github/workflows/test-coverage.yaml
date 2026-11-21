@@ -31,7 +31,8 @@ jobs:
 
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
-          extra-packages: any::covr, any::xml2
+          # covr 4.0.0 fails with "Can't read coverage trace file".
+          extra-packages: covr@3.6.5, any::xml2
           needs: coverage
 
       - name: Test coverage
