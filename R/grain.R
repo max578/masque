@@ -163,12 +163,18 @@
   action <- roles$action[match(cols, roles$col)]
   new_unit <- list()
   maps <- list()
+  notes <- character()
 
-  # Noise columns draw one independent value per unit.
+  # Noise columns draw one independent value per unit; the finite-count rule
+  # counts units, since each unit's value is one summary input.
   for (cl in cols[action == "noise"]) {
-    res <- .noise_column(ut[[cl]], noise, prefix = paste0(cl, "_L"))
+    res <- .noise_column(ut[[cl]], noise,
+      prefix = paste0(cl, "_L"), name = cl,
+      what = c("observed unit", "observed units")
+    )
     new_unit[[cl]] <- res$x
     if (!is.null(res$map)) maps[[cl]] <- res$map
+    notes <- c(notes, res$note)
   }
 
   num <- cols[kind %in% .numeric_kinds() & action != "noise"]
@@ -208,7 +214,7 @@
     }
     out[[cl]] <- x
   }
-  list(columns = out, level_maps = maps)
+  list(columns = out, level_maps = maps, notes = notes)
 }
 
 

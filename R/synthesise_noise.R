@@ -6,11 +6,17 @@
 # the 99th percentile, read as the quantile function at 0, 0.1, ..., 1.
 .NOISE_PROBS <- c(0.01, seq(0.1, 0.9, by = 0.1), 0.99)
 
+# Fewest finite values a summary draw reads. Eleven or fewer are recovered
+# exactly from the eleven knots, so a shorter column takes the standard draw.
+.NOISE_MIN_FINITE <- 12L
+
 # Internal: draw one column as noise. `x` is the original column; `noise` is
-# "summary" or "standard"; `prefix` names coded categorical levels. Returns
-# list(x = column, map = original -> code map or NULL). Only the non-missing
-# cells are drawn, so the draw count depends on the NA mask alone.
-.noise_column <- function(x, noise, prefix) {
+# "summary" or "standard"; `prefix` names coded categorical levels; `name`
+# and `what` word the warnings. Returns list(x = column, map = original ->
+# code map or NULL, note = warning text or NULL). Only the non-missing cells
+# are drawn, so the draw count depends on the NA mask alone.
+.noise_column <- function(x, noise, prefix, name = prefix,
+                          what = c("finite value", "finite values")) {
   obs <- !is.na(x)
   n_obs <- sum(obs)
   if (inherits(x, "POSIXlt")) {
@@ -20,8 +26,15 @@
   if (is.logical(x)) {
     lv <- sort(unique(x[obs]))
     out <- x
+    note <- NULL
+    if (n_obs && n_obs < .NOISE_MIN_FINITE) {
+      note <- .noise_small_warning(name, n_obs, what)
+      lv <- c(FALSE, TRUE)
+    } else if (length(lv) == 1L) {
+      note <- .noise_single_warning(name)
+    }
     out[obs] <- if (length(lv)) lv[.noise_index(length(lv), n_obs)] else x[obs]
-    return(list(x = out, map = NULL))
+    return(list(x = out, map = NULL, note = note))
   }
 
   if (is.factor(x) || is.character(x)) {
@@ -47,6 +60,14 @@
   if (!n_fin) {
     return(list(x = x, map = NULL))
   }
+  note <- NULL
+  if (!identical(noise, "standard") && n_fin < .NOISE_MIN_FINITE) {
+    note <- .noise_small_warning(name, n_fin, what)
+    noise <- "standard"
+  } else if (!identical(noise, "standard") &&
+    data.table::uniqueN(v[fin]) == 1L) {
+    note <- .noise_single_warning(name)
+  }
   new <- if (identical(noise, "standard")) {
     .noise_standard(v[fin], x)
   } else {
@@ -62,7 +83,29 @@
     out <- as.integer(out)
   }
   attributes(out) <- attributes(x)
-  list(x = out, map = NULL)
+  list(x = out, map = NULL, note = note)
+}
+
+# Internal: warn that a short column took the standard draw; returns the text.
+.noise_small_warning <- function(name, n, what) {
+  msg <- sprintf(
+    paste0(
+      "%s has %d %s, fewer than %d. A summary of so few gives the values ",
+      "back, so it was drawn as standard noise."
+    ),
+    name, n, what[[if (n == 1L) 1L else 2L]], .NOISE_MIN_FINITE
+  )
+  warning(warningCondition(msg, class = "masque_noise_small_sample"))
+  msg
+}
+
+# Internal: warn that a one-value column is that value in the clone.
+.noise_single_warning <- function(name) {
+  msg <- sprintf(
+    "%s holds one observed value, so the clone holds that value too.", name
+  )
+  warning(warningCondition(msg, class = "masque_noise_single_value"))
+  msg
 }
 
 # Internal: `n` uniform draws over 1..k. A single level takes no draw, so it

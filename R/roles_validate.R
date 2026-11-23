@@ -20,7 +20,7 @@
 #'   \item missing required columns (`col`, `role`, `action`, `kind`);
 #'   \item unknown role (not in `design`, `treatment`, `outcome`,
 #'     `covariate`, `date`, `id`, `text`, `other`) or unknown action
-#'     (not in `keep`, `scramble`, `alias`, `drop`);
+#'     (not in `keep`, `noise`, `scramble`, `alias`, `drop`);
 #'   \item any `NA` role (an `NA` *action* is allowed - it resolves to
 #'     the default for the row's role and kind);
 #'   \item an incompatible (role, action, kind) combination, e.g.
@@ -37,9 +37,15 @@
 #'   \item every action is `keep` - the "synthetic" would equal the
 #'     original byte-for-byte;
 #'   \item the table was proposed for one mode but is being validated
-#'     for another (actions are taken as-is; defaults are not
-#'     re-resolved).
+#'     for another and holds no record of its proposed actions (a
+#'     hand-built table): its actions are taken as-is.
 #' }
+#'
+#' A table proposed for one mode and validated for another is re-resolved:
+#' each action still on its proposed default takes the new mode's default,
+#' an edited action is kept, and the changes are listed in a message.
+#' Moving from `"null"` or `"collaborate"` to `"local"` also warns with
+#' `masque_mode_downgrade`.
 #'
 #' @param roles A roles table from [propose_roles()] (possibly edited),
 #'   or a v1 roles table (deprecated, upgraded with a warning).
@@ -241,7 +247,8 @@ roles_validate <- function(roles, df = NULL, mode = NULL) {
     cli::cli_warn(c(
       paste0(
         "`roles` was prepared for mode {.val {proposed_mode}} but is ",
-        "being used with mode {.val {mode}}; actions are taken as-is."
+        "being used with mode {.val {mode}} and holds no record of its ",
+        "proposed actions, so they are taken as-is."
       ),
       i = paste0(
         "Re-run {.code propose_roles(df, mode = \"{mode}\")} if you ",

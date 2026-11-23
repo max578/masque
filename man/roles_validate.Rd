@@ -43,7 +43,7 @@ Hard errors:
 \item missing required columns (\code{col}, \code{role}, \code{action}, \code{kind});
 \item unknown role (not in \code{design}, \code{treatment}, \code{outcome},
 \code{covariate}, \code{date}, \code{id}, \code{text}, \code{other}) or unknown action
-(not in \code{keep}, \code{scramble}, \code{alias}, \code{drop});
+(not in \code{keep}, \code{noise}, \code{scramble}, \code{alias}, \code{drop});
 \item any \code{NA} role (an \code{NA} \emph{action} is allowed - it resolves to
 the default for the row's role and kind);
 \item an incompatible (role, action, kind) combination, e.g.
@@ -60,9 +60,15 @@ Loud advisories (warnings, not errors):
 \item every action is \code{keep} - the "synthetic" would equal the
 original byte-for-byte;
 \item the table was proposed for one mode but is being validated
-for another (actions are taken as-is; defaults are not
-re-resolved).
+for another and holds no record of its proposed actions (a
+hand-built table): its actions are taken as-is.
 }
+
+A table proposed for one mode and validated for another is re-resolved:
+each action still on its proposed default takes the new mode's default,
+an edited action is kept, and the changes are listed in a message.
+Moving from \code{"null"} or \code{"collaborate"} to \code{"local"} also warns with
+\code{masque_mode_downgrade}.
 }
 \examples{
 r <- propose_roles(iris)

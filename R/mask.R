@@ -7,9 +7,10 @@
 #' `masque_recipe`.
 #'
 #' By default (`mode = "null"`), every outcome and covariate is simulated
-#' independently. Each numeric column keeps only its approximate range and
-#' shape. Only the experimental design and the pattern of missing values are
-#' kept exactly, and labels are replaced by codes. Identifier, free-text and
+#' independently. Each numeric column keeps only an eleven-point summary:
+#' its 1st percentile, deciles and 99th percentile. Only the experimental
+#' design and the pattern of missing values are kept exactly, and category
+#' labels are replaced by codes. Identifier, free-text and
 #' unsupported columns are dropped. The clone carries no relationship between
 #' columns, so it suits writing and testing code, not estimating effects.
 #'
@@ -57,12 +58,28 @@
 #'     replaced by independent draws, row by row, that use nothing from its
 #'     values except a coarse summary (see `noise`). Categorical columns are
 #'     drawn uniformly over their levels, which are replaced by codes
-#'     `<col>_LNNN`. A column constant within a design unit gets one draw per
-#'     unit. The default for these roles in null mode.}
+#'     `<col>_LNNN`. A logical column stays logical and is drawn uniformly
+#'     over the values it holds, so a logical that is always `TRUE` stays
+#'     `TRUE` (with a `masque_noise_single_value` warning, as for a numeric
+#'     column with one observed value). A column constant within a design
+#'     unit gets one draw per unit. The default for these roles in null
+#'     mode.}
 #' }
 #'
-#' The NA mask of every retained column is preserved cell-by-cell. RNG
-#' state is preserved across the call.
+#' Summary noise needs at least 12 finite values, since eleven or fewer are
+#' recovered exactly from the eleven summary points. A shorter numeric, date
+#' or logical noise column takes the standard draw instead, with a
+#' `masque_noise_small_sample` warning; for a column constant within a
+#' design unit the count is of units with an observed value.
+#'
+#' The NA mask of every retained column is preserved cell-by-cell, and
+#' `NaN`, `Inf` and `-Inf` cells are kept in place like the missing cells.
+#' A `POSIXlt` column is returned as `POSIXct`. An `integer64` column that
+#' would be read (any action other than `keep` or `drop`) is refused with
+#' `masque_integer64_refusal`; convert it with `as.numeric()` or
+#' `as.character()` first. RNG state is preserved across the call. Null
+#' mode draws from a stream of its own, so a null clone and a local or
+#' collaborate clone made with the same seed are not paired row by row.
 #'
 #' @param df A data frame, or the `masque_conformance` object returned by
 #'   [conform_table()], whose `data` element is then masked. Its cleaning
@@ -86,9 +103,10 @@
 #'   `events` spec) is refused in null and collaborate mode with
 #'   `masque_too_few_rows_refusal`, because such a clone is the original
 #'   values resampled, or drawn from a summary that is close to them; local
-#'   mode warns with `masque_too_few_rows`. Kept, aliased and dropped columns
-#'   are not re-simulated, and categorical noise draws codes only, so a short
-#'   lookup table of those masks in any mode.
+#'   mode warns with `masque_too_few_rows`. A logical noise column counts,
+#'   since it is drawn over the values it holds. Kept, aliased and dropped
+#'   columns are not re-simulated, and factor and character noise draws
+#'   codes only, so a short lookup table of those masks in any mode.
 #' @param seed Optional integer for reproducibility.
 #' @param clean Label and column-name hygiene before masking, passed to
 #'   [clean_table()]: one of `"auto"` (default - trim whitespace and
@@ -255,12 +273,17 @@
 #' @param noise The draw behind the `noise` action: `"summary"` (default)
 #'   draws each numeric or date column independently from its 1st
 #'   percentile, deciles and 99th percentile, interpolated linearly, so every
-#'   value lies between the 1st and 99th percentiles; whole numbers stay
-#'   whole. `"standard"` reads only the column's type and draws on a fixed
+#'   draw lies between the 1st and 99th percentiles. Whole numbers stay
+#'   whole, and the rounding can take a value just outside those
+#'   percentiles. A column with fewer than 12 finite values takes the
+#'   standard draw (see Details). `"standard"` reads only the column's type
+#'   and draws on a fixed
 #'   scale: a proportion from Beta(2, 2), a non-negative number from
 #'   Gamma(2, 1), other numbers from N(0, 1), 0/1 values from Bernoulli(0.5),
 #'   counts from Poisson(5) and dates uniformly within the year 2000.
-#'   Categorical columns are drawn uniformly over their levels either way.
+#'   Columns with the same type flags draw the same values under one seed,
+#'   whatever their means. Categorical columns are drawn uniformly over their
+#'   levels either way.
 #' @param quiet Single logical. `TRUE` silences the `masque_mode_downgrade`
 #'   warning raised when a roles table prepared for `"null"` or
 #'   `"collaborate"` is used in `"local"` mode, for a plan that is
@@ -500,6 +523,7 @@ mask <- function(df,
       class = c("masque_bad_allow_kept_outcome_refusal", "orchestra_refusal")
     )
   }
+  .refuse_integer64(df, roles)
   warnings_acc <- c(
     warnings_acc, .check_row_floor(df, roles, mode, event_specs)
   )
@@ -532,7 +556,7 @@ mask <- function(df,
   }
 
   result <- with_rng_state(
-    seed,
+    if (identical(mode, "null")) .null_seed(seed) else seed,
     .mask_orchestrate(
       df, roles, mode, opts, .shared_maps, conditional, conditioning_cols,
       ladder,
@@ -932,9 +956,12 @@ mask <- function(df,
   noise_idx <- which(action == "noise" & !is_shared & !is_event & !is_grain)
   for (j in noise_idx) {
     col <- roles$col[j]
-    res <- .noise_column(df[[col]], noise, prefix = paste0(col, "_L"))
+    res <- .noise_column(df[[col]], noise,
+      prefix = paste0(col, "_L"), name = col
+    )
     synth[[col]] <- res$x
     if (!is.null(res$map)) level_maps[[col]] <- res$map
+    warnings <- c(warnings, res$note)
   }
 
   # Linked events: status patterns permuted, gaps re-simulated per pattern.
@@ -1028,6 +1055,7 @@ mask <- function(df,
       synth[[col]] <- res$columns[[col]]
     }
     level_maps[names(res$level_maps)] <- res$level_maps
+    warnings <- c(warnings, res$notes)
   }
 
   # Linked columns were aliased by the shared block and are never dropped.
@@ -1081,13 +1109,14 @@ mask <- function(df,
   if (n >= .MIN_STRATUM) {
     return(character())
   }
-  # Categorical noise draws codes uniformly and discloses nothing.
+  # Factor and character noise draws codes uniformly and discloses nothing;
+  # a logical is drawn over the values it holds, so it counts.
   resim <- roles$col[
     ((roles$action == "scramble" &
       roles$kind %in%
         c(.numeric_kinds(), .categorical_kinds(), .date_kinds())) |
       (roles$action == "noise" &
-        roles$kind %in% c(.numeric_kinds(), .date_kinds()))) &
+        roles$kind %in% c(.numeric_kinds(), .date_kinds(), "logical"))) &
       !roles$role %in% c("treatment", "design")
   ]
   resim <- unique(c(resim, unlist(lapply(events, function(s) {
@@ -1121,6 +1150,29 @@ mask <- function(df,
   )
   warning(warningCondition(msg, class = "masque_too_few_rows"))
   msg
+}
+
+# Internal: refuse an integer64 column that would be read. Its storage is
+# not a double, so a summary or a scramble would read a bit pattern.
+.refuse_integer64 <- function(df, roles) {
+  read <- roles$col[!roles$action %in% c("keep", "drop")]
+  bad <- read[vapply(read, function(cl) {
+    inherits(df[[cl]], "integer64")
+  }, logical(1L))]
+  if (!length(bad)) {
+    return(invisible(NULL))
+  }
+  cli::cli_abort(c(
+    "{.field {bad}} {cli::qty(length(bad))}{?is/are} {.cls integer64}.",
+    x = paste0(
+      "masque reads numbers as doubles, and an {.cls integer64} column ",
+      "stored as one would be read as a bit pattern."
+    ),
+    i = paste0(
+      "Convert with {.code as.numeric()} (values within double range) or ",
+      "{.code as.character()} first, or keep or drop the column."
+    )
+  ), class = c("masque_integer64_refusal", "orchestra_refusal"))
 }
 
 # Internal: relabel through a shared `original -> alias` map, keeping the

@@ -61,3 +61,17 @@ with_rng_state <- function(seed, expr) {
   root <- (as.numeric(seed) + .LINK_SALT) %% .Machine$integer.max
   .sub_seeds(root, 1L)
 }
+
+# Offset that gives null mode its own stream, so a null clone and a local or
+# collaborate clone under one seed draw from different streams.
+.NULL_SALT <- 7919L
+
+# Seed of a null-mode clone; NULL stays NULL.
+.null_seed <- function(seed) {
+  if (is.null(seed)) {
+    return(NULL)
+  }
+  .check_seed(seed)
+  root <- (as.numeric(seed) + .NULL_SALT) %% .Machine$integer.max
+  .sub_seeds(root, 1L)
+}

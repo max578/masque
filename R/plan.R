@@ -981,7 +981,8 @@ handover <- function(m, dir, name = NULL, overwrite = FALSE, allow_high = FALSE,
     "plan.yaml holds the column roles and any declared controls, in the clone's names.",
     "card.yaml describes the table for downstream tools.",
     "",
-    "Re-simulated columns hold no real values. Do not read an effect or an estimate from this table.",
+    "Re-simulated columns are draws from a summary of the original; a column with only one observed value is that value.",
+    "Do not read an effect or an estimate from this table. Use the clone to write and run a pipeline, not to tune one.",
     if (length(kept)) {
       sprintf("These outcome columns hold real values: %s.", paste(kept, collapse = ", "))
     },

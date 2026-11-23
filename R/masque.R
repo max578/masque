@@ -498,6 +498,9 @@ masque <- function(input,
       "any release decision; masque informs that decision, it does not ",
       "make it."
     ))
+    cli::cli_alert_info(
+      "Use the clone to write and run a pipeline, not to tune one."
+    )
   } else {
     cli::cli_alert_info(
       "Local development copy - owner use only, not for external sharing."

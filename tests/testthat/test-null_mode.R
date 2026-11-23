@@ -117,8 +117,13 @@ test_that("a site-level covariate gets one draw per site", {
   df <- null_fixture()
   df$rain <- c(310, 280, 450)[as.integer(df$site)]
   r <- null_roles(df)
-  m <- mask(df, r, seed = 7L, quiet = TRUE)
+  # Three sites are fewer than twelve observed units: standard draw.
+  expect_warning(
+    m <- mask(df, r, seed = 7L, quiet = TRUE),
+    class = "masque_noise_small_sample"
+  )
   s <- synthetic(m)
+  expect_false(any(s$rain %in% c(310, 280, 450)))
   per_site <- tapply(s$rain, s$site, function(v) length(unique(v)))
   expect_true(all(per_site == 1L))
 })
@@ -197,9 +202,12 @@ test_that("mask_set() links keys but not noise columns in null mode", {
       action = "alias"
     )
   )
-  ms <- mask_set(
-    list(plots = plots, trials = trials), roles = roles, seed = 1L,
-    quiet = TRUE
+  expect_warning(
+    ms <- mask_set(
+      list(plots = plots, trials = trials), roles = roles, seed = 1L,
+      quiet = TRUE
+    ),
+    class = "masque_noise_small_sample"
   )
   s <- synthetic(ms)
   expect_identical(ms@mode, "null")
