@@ -21,19 +21,14 @@ its approximate range and shape. The experimental design and the pattern of
 missing values are kept exactly, and category labels are replaced by codes.
 When the code needs correlations between columns, use
 `mode = "collaborate"`, or `mode = "local"` if the copy will not leave the
-data owner. Treatment effects also need `conditional = TRUE`. Each step
-discloses more about the real data, and masque gives no formal privacy
-guarantee.
+data owner. Treatment effects can also be mimicked by setting
+`conditional = TRUE`. Each step discloses more about the real data, and
+masque gives no formal privacy guarantee.
 
 It is for owners of confidential research data who want an outside analyst
 to build the analysis without seeing the real values, and for the analysts
 who build it. The input can be a single table, a folder of files or a
 multi-sheet workbook.
-
-**Security note.** Clones made with masque 0.13.0 or earlier can reveal
-which alias stands for which label. If you shared one, make it again with
-0.14.0 and share the new clone instead. The same seed gives the same
-values.
 
 The [changelog](https://max578.github.io/masque/news/index.html) lists
 what changed in each release.
