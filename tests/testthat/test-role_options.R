@@ -1,10 +1,10 @@
 # test-role_options.R -- the option grid must mirror the validator.
 
-test_that("role_options() returns the full 32-row grid", {
+test_that("role_options() returns the full 40-row grid", {
   opts <- role_options()
   expect_s3_class(opts, "data.table")
   expect_identical(names(opts), c("role", "action", "kinds", "notes"))
-  expect_identical(nrow(opts), 32L)
+  expect_identical(nrow(opts), 40L)
   expect_setequal(
     unique(opts$role),
     c(
@@ -14,9 +14,9 @@ test_that("role_options() returns the full 32-row grid", {
   )
   expect_setequal(
     unique(opts$action),
-    c("keep", "scramble", "alias", "drop")
+    c("keep", "scramble", "alias", "drop", "noise")
   )
-  expect_true(all(table(opts$role) == 4L))
+  expect_true(all(table(opts$role) == 5L))
 })
 
 test_that("keep and drop are unconstrained for every role", {
@@ -87,4 +87,15 @@ test_that("an unknown kind is rejected with the vocabulary shown", {
   expect_error(role_options(kind = "banana"), "must be one of")
   expect_error(role_options(kind = 1L), "must be one of")
   expect_error(role_options(kind = c("factor", "numeric")), "must be one of")
+})
+
+test_that("noise applies to outcome, covariate and date columns only", {
+  opts <- role_options()
+  row_of <- function(r) opts[opts$role == r & opts$action == "noise", ]
+  expect_identical(row_of("outcome")$kinds, "all except other")
+  expect_identical(row_of("covariate")$kinds, row_of("outcome")$kinds)
+  expect_identical(row_of("date")$kinds, "date, datetime")
+  for (r in c("design", "treatment", "id", "text", "other")) {
+    expect_identical(row_of(r)$kinds, "none", info = r)
+  }
 })

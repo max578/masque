@@ -9,7 +9,7 @@ test_that("design columns are byte-identical between original and synthetic", {
     cov1 = rnorm(100),
     stringsAsFactors = FALSE
   )
-  r <- propose_roles(df)
+  r <- propose_roles(df, mode = "local")
   r$role[r$col == "yield"] <- "outcome"
 
   m <- suppressWarnings(mask(df, r, seed = 1))
@@ -29,7 +29,7 @@ test_that("treatment column passes through step 3 (levels handled step 4)", {
     yield = rnorm(20),
     stringsAsFactors = FALSE
   )
-  r <- propose_roles(df)
+  r <- propose_roles(df, mode = "local")
   r$role[r$col == "yield"] <- "outcome"
 
   m <- suppressWarnings(mask(df, r, seed = 1))
@@ -44,7 +44,7 @@ test_that("free-text columns pass through in local mode", {
     notes = paste0("note_", seq_len(20)), # auto-detected free text
     stringsAsFactors = FALSE
   )
-  r <- propose_roles(df)
+  r <- propose_roles(df, mode = "local")
   r$role[r$col == "yield"] <- "outcome"
 
   m <- suppressWarnings(mask(df, r, seed = 1))
@@ -61,7 +61,7 @@ test_that("synthetic has the same shape and column order as original", {
     c = factor(rep(c("x", "y"), 25)),
     stringsAsFactors = FALSE
   )
-  r <- propose_roles(df)
+  r <- propose_roles(df, mode = "local")
   r$role[r$col == "b"] <- "outcome"
 
   m <- suppressWarnings(mask(df, r, seed = 1))

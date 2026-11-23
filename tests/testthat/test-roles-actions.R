@@ -2,7 +2,7 @@
 # v1 upgrade, the new roles, and the design + alias opt-out.
 
 test_that("set_role re-roling re-resolves the default action", {
-  r <- propose_roles(iris)
+  r <- propose_roles(iris, mode = "local")
   expect_equal(r$action[r$col == "Sepal.Length"], "scramble")
   r <- set_role(r, "Sepal.Length", role = "outcome")
   expect_equal(r$role[r$col == "Sepal.Length"], "outcome")
@@ -10,7 +10,7 @@ test_that("set_role re-roling re-resolves the default action", {
 })
 
 test_that("set_role with an explicit action pins the column", {
-  r <- propose_roles(iris)
+  r <- propose_roles(iris, mode = "local")
   r <- set_role(r, "Sepal.Width", action = "keep")
   expect_equal(r$action[r$col == "Sepal.Width"], "keep")
   # Pinned: re-validating for collaborate must not move it back.
@@ -19,7 +19,7 @@ test_that("set_role with an explicit action pins the column", {
 })
 
 test_that("set_role validates inputs", {
-  r <- propose_roles(iris)
+  r <- propose_roles(iris, mode = "local")
   expect_error(set_role(r, "nope", role = "outcome"), "not in")
   expect_error(set_role(r, "Species", role = "bogus"), "must be one of")
   expect_error(set_role(r, "Species", action = "bogus"), "must be one of")
@@ -56,7 +56,7 @@ test_that("mask(mode=) re-resolves a default-action table to that mode", {
 })
 
 test_that("no outcome is required: numeric covariates still scramble", {
-  r <- propose_roles(mtcars, detect = FALSE)
+  r <- propose_roles(mtcars, detect = FALSE, mode = "local")
   expect_true(all(r$role == "covariate"))
   m <- suppressWarnings(mask(mtcars, r, seed = 1))
   s <- synthetic(m)
@@ -71,7 +71,7 @@ test_that("design + alias hides labels but keeps structure (opt-out)", {
     rep = rep(1:3, 6),
     yield = rnorm(18)
   )
-  r <- propose_roles(df, detect = FALSE)
+  r <- propose_roles(df, detect = FALSE, mode = "local")
   r <- set_role(r, "site", role = "design", action = "alias")
   m <- suppressWarnings(mask(df, r, seed = 1))
   s <- synthetic(m)
@@ -91,7 +91,7 @@ test_that("id + alias preserves row linkage across two columns", {
     yield = rnorm(6),
     stringsAsFactors = FALSE
   )
-  r <- propose_roles(df, detect = FALSE)
+  r <- propose_roles(df, detect = FALSE, mode = "local")
   r <- set_role(r, "plot_id", action = "alias")
   m <- suppressWarnings(mask(df, r, seed = 1))
   s <- synthetic(m)
@@ -106,7 +106,7 @@ test_that("a numeric id aliased in place round-trips to numeric", {
     rep = c(1L, 1L, 2L, 2L),
     yield = c(1.1, 2.2, 3.3, 4.4)
   )
-  r <- propose_roles(df, detect = FALSE)
+  r <- propose_roles(df, detect = FALSE, mode = "local")
   r <- set_role(r, "sample_id", role = "id", action = "alias")
   m <- suppressWarnings(mask(df, r, seed = 1))
   back <- unmask(apply_recipe(df, recipe(m)), recipe(m))
@@ -115,13 +115,13 @@ test_that("a numeric id aliased in place round-trips to numeric", {
 })
 
 test_that("an all-keep table warns that nothing is masked", {
-  r <- propose_roles(iris, detect = FALSE)
+  r <- propose_roles(iris, detect = FALSE, mode = "local")
   r <- set_role(r, names(iris), action = "keep")
   expect_warning(roles_validate(r, iris), "nothing will be masked")
 })
 
 test_that("incompatible role/action combinations are rejected", {
-  r <- propose_roles(iris, detect = FALSE)
+  r <- propose_roles(iris, detect = FALSE, mode = "local")
   # design columns cannot be scrambled
   r2 <- set_role(r, "Species", role = "design", action = "scramble")
   expect_error(roles_validate(r2, iris), "cannot be scrambled")

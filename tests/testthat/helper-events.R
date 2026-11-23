@@ -26,7 +26,7 @@
 }
 
 .events_roles <- function(df) {
-  r <- propose_roles(df)
+  r <- propose_roles(df, mode = "local")
   r <- set_role(r, "arm", role = "treatment")
   for (cn in c("time_rec", "status_rec", "time_death", "status_death")) {
     r <- set_role(r, cn, role = "outcome", action = "scramble")

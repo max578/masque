@@ -12,7 +12,7 @@ make_audit_fixture <- function(n = 100, seed = 0) {
 }
 
 basic_roles <- function(df) {
-  r <- propose_roles(df)
+  r <- propose_roles(df, mode = "local")
   r$role[r$col == "yield"] <- "outcome"
   r
 }
@@ -68,7 +68,7 @@ test_that("audit_mask flags PII-retained as HIGH", {
     yield = rnorm(100),
     stringsAsFactors = FALSE
   )
-  r <- propose_roles(df)
+  r <- propose_roles(df, mode = "local")
   r$role[r$col == "yield"] <- "outcome"
   # User OVERRIDES auto-flag and keeps contact_person as covariate
   r$role[r$col == "contact_person"] <- "covariate"
@@ -93,7 +93,7 @@ test_that("freq=1 categorical covariate is HIGH leakage in collaborate", {
     yield = rnorm(100),
     stringsAsFactors = FALSE
   )
-  r <- propose_roles(df)
+  r <- propose_roles(df, mode = "local")
   r$role[r$col == "yield"] <- "outcome"
   expect_warning(
     m <- mask(df, r, mode = "collaborate", seed = 1),
@@ -111,7 +111,7 @@ test_that("Collaborate mode warns at mask() time on HIGH leakage", {
     yield = rnorm(100),
     stringsAsFactors = FALSE
   )
-  r <- propose_roles(df)
+  r <- propose_roles(df, mode = "local")
   r$role[r$col == "yield"] <- "outcome"
   r$role[r$col == "contact_email"] <- "covariate"
   expect_warning(mask(df, r, mode = "collaborate", seed = 1), "HIGH leakage")

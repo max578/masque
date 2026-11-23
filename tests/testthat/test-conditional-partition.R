@@ -17,7 +17,7 @@
 }
 
 .fx_block_roles <- function(d) {
-  r <- propose_roles(d, detect = FALSE)
+  r <- propose_roles(d, detect = FALSE, mode = "local")
   r <- set_role(r, c("rep", "block"), role = "design", action = "keep")
   r <- set_role(r, "gen", role = "treatment", action = "keep")
   set_role(r, "y", role = "outcome", action = "scramble")
@@ -101,7 +101,7 @@ test_that("structure is preserved and the recipe round-trips", {
 test_that("the ladder coarsens a thin design partition and warns", {
   d <- .fx_blocks()
   d$row <- seq_len(nrow(d))
-  r <- propose_roles(d, detect = FALSE)
+  r <- propose_roles(d, detect = FALSE, mode = "local")
   r <- set_role(r, c("rep", "block", "row"), role = "design", action = "keep")
   r <- set_role(r, "gen", role = "treatment", action = "keep")
   r <- set_role(r, "y", role = "outcome", action = "scramble")
@@ -115,7 +115,7 @@ test_that("the ladder coarsens a thin design partition and warns", {
 
 test_that("with no design column left the design option warns and pools", {
   d <- .fx_blocks()
-  r <- propose_roles(d, detect = FALSE)
+  r <- propose_roles(d, detect = FALSE, mode = "local")
   r <- set_role(r, c("rep", "block"), role = "covariate", action = "scramble")
   r <- set_role(r, "gen", role = "treatment", action = "keep")
   r <- set_role(r, "y", role = "outcome", action = "scramble")
@@ -151,7 +151,7 @@ test_that("the design option leaves linked events unstratified by treatment", {
   d$t2 <- d$t1 + withr::with_seed(9L, stats::rexp(n, 0.1))
   d$s1 <- withr::with_seed(10L, stats::rbinom(n, 1L, ifelse(d$arm == "a", 0.9, 0.1)))
   d$s2 <- 1L
-  r <- propose_roles(d, detect = FALSE)
+  r <- propose_roles(d, detect = FALSE, mode = "local")
   r <- set_role(r, "centre", role = "design", action = "keep")
   r <- set_role(r, "arm", role = "treatment", action = "keep")
   r <- set_role(r, c("t1", "t2", "s1", "s2"), role = "outcome", action = "scramble")

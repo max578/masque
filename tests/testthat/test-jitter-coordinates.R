@@ -104,7 +104,7 @@ test_that("mask(coords=) coarsens a declared pair on land and records it", {
 
 test_that("mask(coords=) validates the declared columns", {
   df <- data.frame(gps_s = c(-34, -35), gps_e = c(138, 140), y = c(1, 2))
-  roles <- suppressWarnings(propose_roles(df, detect = FALSE))
+  roles <- suppressWarnings(propose_roles(df, detect = FALSE, mode = "local"))
   expect_error(
     suppressWarnings(mask(df, roles, coords = list(c(lat = "nope", lon = "gps_e")))),
     "not found"
@@ -119,7 +119,7 @@ test_that("coords accepts the c() form with numeric params (string-coerced)", {
   onl <- !is.na(maps::map.where("world", lon, lat))
   df <- data.frame(gps_s = lat[onl][1:40], gps_e = lon[onl][1:40],
                    y = stats::rnorm(40))
-  roles <- suppressWarnings(propose_roles(df, detect = FALSE))
+  roles <- suppressWarnings(propose_roles(df, detect = FALSE, mode = "local"))
   roles <- set_role(roles, c("gps_s", "gps_e"), action = "keep")
   # c() coerces 10 / 18 to "10" / "18"; the coarsening must still honour them
   m <- suppressWarnings(mask(df, roles, seed = 1, mode = "local",

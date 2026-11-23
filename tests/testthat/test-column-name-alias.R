@@ -1,7 +1,7 @@
 # Column-name aliasing: the alias_names depth control on mask().
 
 basic <- function(df = iris) {
-  r <- propose_roles(df, detect = FALSE)
+  r <- propose_roles(df, detect = FALSE, mode = "local")
   set_role(r, "Sepal.Length", role = "outcome")
 }
 

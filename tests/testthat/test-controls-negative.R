@@ -63,7 +63,7 @@ test_that("on constant in most strata warns", {
     y = seq_len(16L) + 0.5,
     stringsAsFactors = FALSE
   )
-  r <- suppressWarnings(propose_roles(df, detect = FALSE))
+  r <- suppressWarnings(propose_roles(df, detect = FALSE, mode = "local"))
   r <- set_role(r, "site", role = "design", action = "keep")
   r <- set_role(r, "trt", role = "treatment", action = "keep")
   r <- set_role(r, "y", role = "outcome", action = "scramble")

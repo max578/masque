@@ -39,13 +39,16 @@
 #' `action` sets the masking depth per column:
 #'
 #' \describe{
-#'   \item{`keep`}{Byte-identical pass-through, both modes.}
+#'   \item{`keep`}{Byte-identical pass-through, in every mode.}
+#'   \item{`noise`}{Outcome, covariate and date columns: replace the values
+#'     with independent draws that use only a coarse summary of the column;
+#'     categorical levels become codes. The default in null mode.}
 #'   \item{`scramble`}{Re-simulate (numeric) or row-permute
 #'     (categorical / date / text); original label vocabulary remains
 #'     visible.}
 #'   \item{`alias`}{Scramble where applicable, plus opaque label
 #'     substitution - the vocabulary itself is hidden.}
-#'   \item{`drop`}{Column excluded from the synthetic, both modes.}
+#'   \item{`drop`}{Column excluded from the synthetic, in every mode.}
 #' }
 #'
 #' The proposed `action` column is resolved for `mode`, so the table you
@@ -56,10 +59,16 @@
 #'
 #' @section Default classification rules, applied in order:
 #'
+#' The actions below are those of `"local"` and `"collaborate"` mode. In the
+#' default `"null"` mode every outcome, covariate and date column takes
+#' `noise`, categorical design columns and treatments take `alias`, numeric
+#' design columns take `keep`, and id, text and unsupported columns take
+#' `drop`.
+#'
 #' 1. PII-pattern column names (`contact`, `email`, `phone`, `gps`,
 #'    `latitude` / `longitude`, `postcode`, `ssn`, `password`, `owner`,
 #'    `farmer`, `operator`, etc., case-insensitive substring) ->
-#'    `pii_suspected = TRUE` and action `drop` in **both** modes.
+#'    `pii_suspected = TRUE` and action `drop` in **every** mode.
 #'    Re-role deliberately if the column must survive.
 #' 2. Date / POSIXct / POSIXlt / difftime columns -> role `date`,
 #'    action `scramble` (row permutation).
@@ -104,9 +113,9 @@
 #'
 #' Since masque 0.9.1, high-confidence environment columns detected by
 #' [detect_design()] are promoted to role `design`. In local mode their values
-#' remain byte-identical. In collaborate mode categorical environment labels
-#' default to `alias`, which preserves row assignment and factor codes while
-#' hiding the vocabulary. Numeric environment columns default to `keep` and
+#' remain byte-identical. In null and collaborate mode categorical
+#' environment labels default to `alias`, which preserves row assignment and
+#' factor codes while hiding the vocabulary. Numeric environment columns default to `keep` and
 #' raise a `masque_environment_disclosure` warning for explicit review.
 #'
 #' Weak or competing environment candidates never change roles automatically.
@@ -119,7 +128,7 @@
 #'
 #' @param df A data frame. Must have at least one column.
 #' @param mode The masking mode the table is being prepared for:
-#'   `"local"` (default) or `"collaborate"`. Stored as
+#'   `"null"` (default), `"local"` or `"collaborate"`. Stored as
 #'   `attr(roles, "mode")` and used to resolve default actions.
 #' @param detect Logical scalar (default `TRUE`). When `TRUE`, run
 #'   [detect_design()] and overlay its recommended role hints.
@@ -132,6 +141,7 @@
 #'
 #' @examples
 #' propose_roles(iris)
+#' propose_roles(iris, mode = "local")
 #' propose_roles(iris, mode = "collaborate")
 #'
 #' met <- expand.grid(
@@ -145,7 +155,7 @@
 #'   validation applied at `mask()` time.
 #'
 #' @export
-propose_roles <- function(df, mode = c("local", "collaborate"),
+propose_roles <- function(df, mode = c("null", "local", "collaborate"),
                           detect = TRUE) {
   if (!is.data.frame(df)) {
     cli::cli_abort("`df` must be a data frame; got {.cls {class(df)[1]}}.")
@@ -181,7 +191,10 @@ propose_roles <- function(df, mode = c("local", "collaborate"),
 # Notes each column mask() would synthesise once per design unit.
 .note_grain <- function(roles, df, mode) {
   for (g in .detect_grain(df, roles)) {
-    if (identical(mode, "collaborate") && g$n_units < .MIN_STRATUM) next
+    if (.shareable_mode(mode) && g$n_units < .MIN_STRATUM &&
+      !.all_noise(g$cols, roles)) {
+      next
+    }
     unit <- paste(g$unit, collapse = ":")
     idx <- match(g$cols, roles$col)
     hint <- sprintf("Constant within %s; synthesised per %s.", unit, unit)
@@ -212,11 +225,11 @@ propose_roles <- function(df, mode = c("local", "collaborate"),
         identical(roles$action[row_idx], unname(pa[[col_i]]))
     )
     if (tracks_default) {
-      action_field <- if (identical(mode, "collaborate")) {
-        "action_collaborate"
-      } else {
-        "action_local"
-      }
+      action_field <- switch(mode,
+        collaborate = "action_collaborate",
+        local = "action_local",
+        NA_character_
+      )
       recommended_action <- if (action_field %in% names(rec)) {
         rec[[action_field]][i]
       } else {
@@ -238,7 +251,7 @@ propose_roles <- function(df, mode = c("local", "collaborate"),
 }
 
 .warn_environment_disclosure <- function(roles, ds, mode) {
-  if (!identical(mode, "collaborate") || nrow(ds@recommended_roles) == 0L) {
+  if (!.shareable_mode(mode) || nrow(ds@recommended_roles) == 0L) {
     return(invisible(NULL))
   }
   rec <- ds@recommended_roles
@@ -259,7 +272,7 @@ propose_roles <- function(df, mode = c("local", "collaborate"),
   cli::cli_warn(c(
     paste0(
       "Numeric environment column{?s} {.field {env_cols}} remain{?s/} ",
-      "{.val keep} in collaborate mode."
+      "{.val keep} in ", mode, " mode."
     ),
     "i" = paste0(
       "This preserves environment structure but may disclose year or other ",
@@ -279,6 +292,7 @@ classify_one_column <- function(nm, x, mode = "local") {
   kind <- col_kind(x)
   is_pii <- matches_pattern(nm, PII_PATTERN)
   collab <- identical(mode, "collaborate")
+  null <- identical(mode, "null")
 
   if (is_pii) {
     role <- if (kind %in% c("character", "factor")) {
@@ -292,33 +306,46 @@ classify_one_column <- function(nm, x, mode = "local") {
     }
     action <- "drop"
     notes <- paste0(
-      "PII pattern in column name -> drop in both modes (flagged); ",
+      "PII pattern in column name -> drop in every mode (flagged); ",
       "re-role deliberately to retain."
     )
   } else if (kind %in% .date_kinds()) {
     role <- "date"
     action <- .default_action(role, kind, mode)
-    notes <- paste0(
-      "Date/time column -> row-permuted; class and NA pattern ",
-      "preserved. Use keep to leave untouched."
-    )
+    notes <- if (null) {
+      paste0(
+        "Date/time column -> independent draws within its approximate ",
+        "range; class and NA pattern preserved."
+      )
+    } else {
+      paste0(
+        "Date/time column -> row-permuted; class and NA pattern ",
+        "preserved. Use keep to leave untouched."
+      )
+    }
   } else if (matches_pattern(nm, ID_PATTERN)) {
     role <- "id"
     action <- .default_action(role, kind, mode)
-    notes <- if (collab) {
+    notes <- if (null) {
+      "ID-pattern name -> dropped in null mode; alias to keep linkage."
+    } else if (collab) {
       "ID-pattern name -> dropped in collaborate; alias to keep linkage."
     } else {
       "ID-pattern name -> kept in local mode; alias to hide values."
     }
   } else if (matches_pattern(nm, DESIGN_PATTERN)) {
     role <- "design"
-    action <- "keep"
-    notes <- "Design-pattern name -> design (byte-identical)."
+    action <- .default_action(role, kind, mode)
+    notes <- if (identical(action, "alias")) {
+      "Design-pattern name -> design (structure exact, labels coded)."
+    } else {
+      "Design-pattern name -> design (byte-identical)."
+    }
   } else if (matches_pattern(nm, TREATMENT_PATTERN)) {
     role <- "treatment"
     action <- .default_action(role, kind, mode)
-    notes <- if (collab) {
-      "Treatment-pattern name -> labels aliased in collaborate mode."
+    notes <- if (collab || null) {
+      "Treatment-pattern name -> labels aliased."
     } else {
       "Treatment-pattern name -> passes through in local mode."
     }
@@ -326,19 +353,27 @@ classify_one_column <- function(nm, x, mode = "local") {
     matches_pattern(nm, OUTCOME_PATTERN)) {
     role <- "outcome"
     action <- .default_action(role, kind, mode)
-    notes <- "Outcome-pattern name -> outcome (re-simulated)."
+    notes <- if (null) {
+      "Outcome-pattern name -> outcome (independent draws)."
+    } else {
+      "Outcome-pattern name -> outcome (re-simulated)."
+    }
   } else if (kind == "character" && is_free_text(x)) {
     role <- "text"
     action <- .default_action(role, kind, mode)
-    notes <- if (collab) {
+    notes <- if (collab || null) {
       "High-cardinality character (likely free text) -> dropped."
     } else {
       "High-cardinality character (likely free text) -> kept in local."
     }
   } else if (kind == "other") {
     role <- "other"
-    action <- "keep"
-    notes <- "Unsupported class -> kept as-is; set action drop to remove."
+    action <- .default_action(role, kind, mode)
+    notes <- if (identical(action, "drop")) {
+      "Unsupported class -> dropped; set action keep to retain as-is."
+    } else {
+      "Unsupported class -> kept as-is; set action drop to remove."
+    }
   } else {
     role <- "covariate"
     action <- .default_action(role, kind, mode)

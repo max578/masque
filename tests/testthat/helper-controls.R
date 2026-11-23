@@ -36,7 +36,7 @@
 }
 
 .ctl_roles <- function(df) {
-  r <- suppressWarnings(propose_roles(df, detect = FALSE))
+  r <- suppressWarnings(propose_roles(df, detect = FALSE, mode = "local"))
   r <- set_role(r, c("trial", "rep", "block"), role = "design", action = "keep")
   r <- set_role(r, "gen", role = "treatment", action = "keep")
   r <- set_role(r, "irrig", role = "covariate", action = "scramble")
@@ -70,7 +70,7 @@
 }
 
 .ctl_two_arm_roles <- function(df) {
-  r <- suppressWarnings(propose_roles(df, detect = FALSE))
+  r <- suppressWarnings(propose_roles(df, detect = FALSE, mode = "local"))
   r <- set_role(r, "trt", role = "treatment", action = "keep")
   set_role(r, "y", role = "outcome", action = "scramble")
 }
@@ -85,7 +85,7 @@
 }
 
 .ctl_many_roles <- function(df) {
-  r <- suppressWarnings(propose_roles(df, detect = FALSE))
+  r <- suppressWarnings(propose_roles(df, detect = FALSE, mode = "local"))
   r <- set_role(r, "lev", role = "treatment", action = "keep")
   set_role(r, "y", role = "outcome", action = "scramble")
 }

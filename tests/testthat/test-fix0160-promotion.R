@@ -129,7 +129,7 @@ test_that("an augmented trial keeps genotype and never treats yield", {
     d <- .f18_augmented(integer_yield)
     info <- paste("integer_yield =", integer_yield)
     expect_equal(sum(table(d$genotype) == 1L), 18L, info = info)
-    r <- propose_roles(d)
+    r <- propose_roles(d, mode = "local")
     expect_equal(.role_of(r, "genotype"), "treatment", info = info)
     expect_equal(.role_of(r, "block"), "design", info = info)
     expect_equal(.role_of(r, "yield"), "outcome", info = info)
@@ -146,11 +146,11 @@ test_that("an augmented trial keeps genotype and never treats yield", {
 })
 
 test_that("unreplicated genotypes found by name stay treatments", {
-  single <- propose_roles(.f18_single_site_unreplicated())
+  single <- propose_roles(.f18_single_site_unreplicated(), mode = "local")
   expect_equal(.role_of(single, "genotype"), "treatment")
   expect_equal(.role_of(single, "row"), "design")
 
-  multi <- propose_roles(.f18_multi_site_unreplicated())
+  multi <- propose_roles(.f18_multi_site_unreplicated(), mode = "local")
   expect_equal(.role_of(multi, "genotype"), "treatment")
   expect_equal(.role_of(multi, "site"), "design")
 })
@@ -163,10 +163,10 @@ test_that("site-name spellings are design columns, raw and legalised", {
   for (nm in spellings) {
     d <- .f18_site_named(nm)
     expect_identical(names(d)[1L], nm)
-    expect_equal(.role_of(propose_roles(d, detect = FALSE), nm), "design",
+    expect_equal(.role_of(propose_roles(d, detect = FALSE, mode = "local"), nm), "design",
       info = nm
     )
-    r <- propose_roles(d)
+    r <- propose_roles(d, mode = "local")
     expect_equal(.role_of(r, nm), "design", info = nm)
     expect_equal(.role_of(r, "genotype"), "treatment", info = nm)
   }
@@ -184,7 +184,7 @@ test_that("yates.oats: varieties on whole plots, nitrogen on sub-plots", {
   expect_setequal(ds@treatment_col, c("gen", "nitro"))
   expect_identical(ds@block_cols, "block")
 
-  r <- propose_roles(d)
+  r <- propose_roles(d, mode = "local")
   expect_equal(.role_of(r, "gen"), "treatment")
   expect_equal(.role_of(r, "nitro"), "treatment")
   expect_equal(.role_of(r, "block"), "design")

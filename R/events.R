@@ -47,12 +47,13 @@
   }
   role_of <- roles$role[match(cols, roles$col)]
   action_of <- roles$action[match(cols, roles$col)]
-  bad_role <- cols[role_of != "outcome" | action_of != "scramble"]
+  # A declaration wins over a null clone's noise default.
+  bad_role <- cols[role_of != "outcome" | !action_of %in% c("scramble", "noise")]
   if (length(bad_role)) {
     .events_refuse(c(
       paste0(
         "Event column{?s} {.field {bad_role}} must have role ",
-        "{.val outcome} and action {.val scramble}."
+        "{.val outcome} and action {.val scramble} or {.val noise}."
       ),
       i = "Set them with {.fn set_role}."
     ))

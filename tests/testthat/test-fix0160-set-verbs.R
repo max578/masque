@@ -157,7 +157,7 @@ test_that("audit_mask() on a local set takes the originals as a named list", {
 })
 
 test_that("audit_mask(original =) reads through aliased and repaired column names", {
-  r <- propose_roles(iris)
+  r <- propose_roles(iris, mode = "local")
   r <- set_role(r, "Sepal.Length", role = "outcome")
   m <- mask(iris, r, mode = "local", seed = 1L, alias_names = TRUE)
   a <- audit_mask(m, original = iris, print = FALSE)
@@ -169,7 +169,7 @@ test_that("audit_mask(original =) reads through aliased and repaired column name
     y = seq_len(20L) / 4,
     check.names = FALSE
   )
-  r2 <- propose_roles(d)
+  r2 <- propose_roles(d, mode = "local")
   r2 <- set_role(r2, "Site Name", role = "design", action = "keep")
   r2 <- set_role(r2, "y", role = "outcome", action = "scramble")
   m2 <- suppressWarnings(mask(d, r2, mode = "local", seed = 1L))
@@ -178,7 +178,7 @@ test_that("audit_mask(original =) reads through aliased and repaired column name
 })
 
 test_that("audit_mask(original =) refuses an original that is not a table", {
-  r <- propose_roles(iris)
+  r <- propose_roles(iris, mode = "local")
   r <- set_role(r, "Sepal.Length", role = "outcome")
   m <- mask(iris, r, mode = "local", seed = 1L)
   expect_error(

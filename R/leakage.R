@@ -244,7 +244,7 @@
 # Correlation of a number with its original overall and, on the rows of small
 # levels, after the means of the large terms are taken out.
 .row_tracking <- function(x, y, terms) {
-  both <- !is.na(x) & !is.na(y)
+  both <- is.finite(x) & is.finite(y)
   r <- function(a, b) {
     if (length(a) >= 2L && stats::sd(a) > 0 && stats::sd(b) > 0) stats::cor(a, b) else NA_real_
   }
@@ -265,9 +265,10 @@
 }
 
 # A scrambled numeric column is re-simulated through the copula, within the
-# conditioning strata when the clone is conditional.
+# conditioning strata when the clone is conditional; a noise column is drawn
+# independently and is checked the same way.
 .audit_numeric_resimulated <- function(action) {
-  is.na(action) || !nzchar(action) || action == "scramble"
+  is.na(action) || !nzchar(action) || action %in% c("scramble", "noise")
 }
 
 # Row strata of a conditional clone (an integer id per row), else NULL.
@@ -396,7 +397,7 @@
 # Table-level checks against permutation baselines. Design, treatment, id,
 # aliased text and linked columns match by construction and are held fixed.
 .joint_audit <- function(df, synth, rec, mode, audit, linked, strata) {
-  collab <- identical(mode, "collaborate")
+  collab <- .shareable_mode(mode)
   coarsened <- unlist(lapply(rec@coords, function(cr) c(cr$lat, cr$lon)),
                       use.names = FALSE)
   retained <- audit$alias_status != "dropped" & !(audit$col %in% coarsened)
@@ -512,7 +513,9 @@
     label, observed, baseline, sd
   )
   if (!collab && verdict != "low") {
-    notes <- sprintf("%s; %s in collaborate mode", notes, toupper(verdict))
+    notes <- sprintf(
+      "%s; %s when shared (null or collaborate mode)", notes, toupper(verdict)
+    )
   }
   data.table::data.table(
     check = check, cols = paste(cols, collapse = ", "),
@@ -667,7 +670,9 @@
   allow_kept_outcome = FALSE, value_set_pct = NA_real_,
   row_track = list(all = NA_real_, within = NA_real_)
 ) {
-  collab <- identical(mode, "collaborate")
+  # `collab` covers null mode too: both clones are meant to leave the owner,
+  # so "collaborate" in the rules below means either.
+  collab <- .shareable_mode(mode)
 
   # 0. A coordinate jittered in place is retained but displaced: MEDIUM.
   if (isTRUE(coarsened) && in_synth) {
@@ -702,7 +707,8 @@
 
   # 3. Categorical covariate with a frequency-1 level in collaborate: HIGH
   if (role == "covariate" && kind %in% c("factor", "character", "logical") &&
-    collab && !is.na(freq_min) && freq_min == 1L) {
+    collab && !is.na(freq_min) && freq_min == 1L &&
+    !identical(action, "noise")) {
     return("high")
   }
 
@@ -762,7 +768,7 @@
                          coarsened = FALSE, same = NULL, two_valued = FALSE,
                          allow_kept_outcome = FALSE, row_grain = list(),
                          value_set = NULL) {
-  collab <- identical(mode, "collaborate")
+  collab <- .shareable_mode(mode)
   bits <- character()
   if (pii && !isTRUE(coarsened)) bits <- c(bits, "PII-pattern column name")
   if (isTRUE(coarsened)) {
@@ -801,10 +807,14 @@
     (is.na(action) || action == "scramble")) {
     bits <- c(bits, "date/time row-permuted")
   }
-  if (alias_status == "passthrough" && role == "treatment" && collab) {
-    bits <- c(bits, "treatment passthrough in collaborate (unexpected)")
+  if (identical(action, "noise")) {
+    bits <- c(bits, "independent draws (noise)")
   }
-  if (!is.na(freq_min) && freq_min == 1L && role == "covariate" && collab) {
+  if (alias_status == "passthrough" && role == "treatment" && collab) {
+    bits <- c(bits, "treatment passthrough in a clone meant to be shared (unexpected)")
+  }
+  if (!is.na(freq_min) && freq_min == 1L && role == "covariate" && collab &&
+    !identical(action, "noise")) {
     bits <- c(bits, "rare level (freq = 1)")
   }
   if (!is.na(exact_match_pct) && exact_match_pct > 1 && collab &&

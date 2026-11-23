@@ -1,7 +1,7 @@
 # F19 and F22: refusals with a complete message and a proper class.
 
 .refusal_roles <- function() {
-  r <- propose_roles(iris)
+  r <- propose_roles(iris, mode = "local")
   set_role(r, "Sepal.Length", role = "outcome")
 }
 

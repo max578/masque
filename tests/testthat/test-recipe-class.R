@@ -1,5 +1,5 @@
 test_that("recipe() returns a masque_recipe with required properties", {
-  r <- propose_roles(iris)
+  r <- propose_roles(iris, mode = "local")
   r$role[r$col == "Sepal.Length"] <- "outcome"
   m <- suppressWarnings(mask(iris, r, seed = 1))
 
@@ -19,7 +19,7 @@ test_that("recipe() returns a masque_recipe with required properties", {
 })
 
 test_that("integrity_fp matches digest of the original NA mask", {
-  r <- propose_roles(iris)
+  r <- propose_roles(iris, mode = "local")
   r$role[r$col == "Sepal.Length"] <- "outcome"
   m <- suppressWarnings(mask(iris, r, seed = 1))
 
@@ -28,7 +28,7 @@ test_that("integrity_fp matches digest of the original NA mask", {
 })
 
 test_that("factor_meta records levels and ordered status", {
-  r <- propose_roles(iris)
+  r <- propose_roles(iris, mode = "local")
   r$role[r$col == "Sepal.Length"] <- "outcome"
   m <- suppressWarnings(mask(iris, r, seed = 1))
 
@@ -39,14 +39,14 @@ test_that("factor_meta records levels and ordered status", {
 })
 
 test_that("Local mode keeps level_maps empty by default", {
-  r <- propose_roles(iris)
+  r <- propose_roles(iris, mode = "local")
   r$role[r$col == "Sepal.Length"] <- "outcome"
   m <- suppressWarnings(mask(iris, r, seed = 1, mode = "local"))
   expect_length(recipe(m)@level_maps, 0L)
 })
 
 test_that("Local mode warning is captured into recipe@warnings", {
-  r <- propose_roles(iris)
+  r <- propose_roles(iris, mode = "local")
   r$role[r$col == "Sepal.Length"] <- "outcome"
   m <- suppressWarnings(mask(iris, r, seed = 1, mode = "local"))
   expect_true(any(grepl("local mode", recipe(m)@warnings)))

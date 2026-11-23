@@ -32,9 +32,11 @@
 #'   of column names to treat as cross-table links, or `FALSE` to disable
 #'   linking entirely (each table masked independently). When `NULL`
 #'   (default), links are detected automatically.
-#' @param mode Either `"local"` or `"collaborate"`. When omitted and `roles`
-#'   are supplied, inherit their common mode. Tables prepared for different
-#'   modes must be reconciled explicitly. Otherwise default to `"local"`.
+#' @param mode One of `"null"`, `"local"` or `"collaborate"`. When omitted
+#'   and `roles` are supplied, inherit their common mode. Tables prepared for
+#'   different modes must be reconciled explicitly. Otherwise default to
+#'   `"null"`. In null mode a column drawn as noise is not linked across
+#'   tables unless it is named in `links`.
 #' @param seed Optional integer for reproducibility.
 #' @param clean Hygiene mode passed to [clean_table()] for every table
 #'   (`"auto"`, `"report"`, or `"off"`).
@@ -51,7 +53,10 @@
 #' @param grain Single logical (default `TRUE`); passed through to each
 #'   [mask()] call, which synthesises a unit-constant column once per unit.
 #' @param allow_kept_outcome Single logical, passed to each [mask()] call:
-#'   `TRUE` allows a kept outcome in a collaborate clone and records it.
+#'   `TRUE` allows a kept outcome in a null or collaborate clone and records
+#'   it.
+#' @param noise The draw behind the `noise` action, `"summary"` (default) or
+#'   `"standard"`; passed to each [mask()] call.
 #' @param quiet Logical; suppress the link / hygiene report, including the
 #'   hint that a table looks like documentation.
 #' @param sheets For an Excel workbook, the sheets to read (default: all);
@@ -94,7 +99,7 @@
 mask_set <- function(input,
                      roles = NULL,
                      links = NULL,
-                     mode = c("local", "collaborate"),
+                     mode = c("null", "local", "collaborate"),
                      seed = NULL,
                      clean = c("auto", "report", "off"),
                      alias_names = FALSE,
@@ -102,6 +107,7 @@ mask_set <- function(input,
                      ladder = c("hierarchy", "levels"),
                      grain = TRUE,
                      allow_kept_outcome = FALSE,
+                     noise = c("summary", "standard"),
                      quiet = FALSE,
                      sheets = NULL,
                      info = NULL,
@@ -119,7 +125,7 @@ mask_set <- function(input,
   # is reported as such.
   if (!is.null(roles)) .check_roles_shape(roles)
   if (missing(mode)) {
-    mode <- "local"
+    mode <- "null"
     if (!is.null(roles) && is.list(roles)) {
       role_modes <- unique(vapply(roles, function(role_table) {
         attr(role_table, "mode") %||% NA_character_
@@ -140,7 +146,7 @@ mask_set <- function(input,
             "carries mode provenance."
           ),
           "i" = paste0(
-            "Defaulting to {.val local}. Pass {.code mode =} explicitly, ",
+            "Defaulting to {.val null}. Pass {.code mode =} explicitly, ",
             "or keep the tables from {.fn propose_roles} (a ",
             "{.fn data.table} copy or a CSV round-trip strips the mode ",
             "attribute)."
@@ -149,7 +155,8 @@ mask_set <- function(input,
       }
     }
   }
-  mode <- match.arg(mode, c("local", "collaborate"))
+  mode <- match.arg(mode, .modes())
+  noise <- .check_noise_arg(noise)
   clean <- match.arg(clean)
 
   # A table given as a conform_table() result was cleaned and conformed
@@ -236,6 +243,7 @@ mask_set <- function(input,
       ladder = ladder,
       grain = grain,
       allow_kept_outcome = allow_kept_outcome,
+      noise = noise,
       .shared_maps = shared_by_table[[nm]],
       .cleaning = cleaning[[nm]]
     )
@@ -263,7 +271,7 @@ mask_set <- function(input,
     synthetic = synth_tables,
     recipe    = rec_set,
     mode      = mode,
-    audit     = if (identical(mode, "collaborate")) audits else NULL
+    audit     = if (.shareable_mode(mode)) audits else NULL
   )
 }
 
@@ -430,6 +438,12 @@ mask_set <- function(input,
       character(1L)
     )
     if (!.kinds_compatible(kinds)) next
+    # A null clone links no noise column unless asked: a shared alias map
+    # would carry the real values across the set.
+    if (identical(mode, "null") && !is.character(links) &&
+      .any_noise_action(roles, tabs, col)) {
+      next
+    }
     vals <- lapply(tabs, function(nm) {
       unique(stats::na.omit(as.character(tables[[nm]][[col]])))
     })
@@ -438,6 +452,14 @@ mask_set <- function(input,
     groups[[col]] <- list(name = col, tables = tabs)
   }
   groups
+}
+
+# TRUE when `col` has action "noise" in any of the tables named.
+.any_noise_action <- function(roles, tabs, col) {
+  any(vapply(tabs, function(nm) {
+    r <- roles[[nm]]
+    isTRUE(any(r$action[r$col == col] == "noise"))
+  }, logical(1L)))
 }
 
 # All categorical, or all numeric/integer: linkable. Mixed kinds are not.

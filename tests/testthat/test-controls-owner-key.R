@@ -4,7 +4,7 @@ owner_fixture <- function() {
   set.seed(5)
   d <- expand.grid(gen = paste0("g", 1:6), rep = paste0("r", 1:6), stringsAsFactors = FALSE)
   d$y <- stats::rnorm(36L)
-  r <- suppressWarnings(propose_roles(d, detect = FALSE))
+  r <- suppressWarnings(propose_roles(d, detect = FALSE, mode = "local"))
   r <- set_role(r, "rep", role = "design", action = "keep")
   r <- set_role(r, "gen", role = "treatment", action = "keep")
   r <- set_role(r, "y", role = "outcome", action = "scramble")

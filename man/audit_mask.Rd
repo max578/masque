@@ -24,9 +24,11 @@ named list of per-table audit data.tables, printed table by table.
 \description{
 Returns a per-column audit data.table, with table-level checks attached, and
 prints a severity-grouped report.
-Auto-runs in \code{mode = "collaborate"} at \code{\link[=mask]{mask()}} time and stores the
+Auto-runs in \code{mode = "null"} and \code{mode = "collaborate"} at \code{\link[=mask]{mask()}} time and stores the
 result on the masque object (\code{m@audit}); for local-mode audits or
 explicit re-audits, pass the original data frame via \code{original}.
+A null-mode clone is graded on the same scale as a collaborate clone:
+wherever a rule below names collaborate mode, it applies to null mode too.
 }
 \details{
 Each row of the returned data.table holds:

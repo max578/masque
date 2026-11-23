@@ -182,7 +182,7 @@ test_that("`by` rejects a non-grouping", {
 # ---- the invariant through mask() -------------------------------------------
 
 .masked_sites <- function(df, coords, ...) {
-  roles <- suppressWarnings(propose_roles(df, detect = FALSE))
+  roles <- suppressWarnings(propose_roles(df, detect = FALSE, mode = "local"))
   cols <- unlist(lapply(coords, function(s) c(s[["lat"]], s[["lon"]])))
   roles <- set_role(roles, cols, action = "keep")
   m <- suppressWarnings(mask(df, roles, seed = 1, coords = coords, ...))
@@ -246,7 +246,7 @@ test_that("two declared coordinate pairs are displaced independently", {
 
 test_that("mask(coords=) rejects a grouping column not in the original", {
   df <- data.frame(lat = c(-34.9, -35.2), lon = c(138.6, 142.0), y = c(1, 2))
-  roles <- suppressWarnings(propose_roles(df, detect = FALSE))
+  roles <- suppressWarnings(propose_roles(df, detect = FALSE, mode = "local"))
   expect_error(
     suppressWarnings(mask(df, roles, coords = list(
       list(lat = "lat", lon = "lon", by = "nope")))),
@@ -257,7 +257,7 @@ test_that("mask(coords=) rejects a grouping column not in the original", {
 test_that("a pre-0.10.0 recipe reads back with no coordinate record", {
   df <- .site_fixture(n = 2L, k = 3L)
   df$y <- stats::rnorm(6)
-  roles <- suppressWarnings(propose_roles(df, detect = FALSE))
+  roles <- suppressWarnings(propose_roles(df, detect = FALSE, mode = "local"))
   m <- suppressWarnings(mask(df, roles, seed = 1))
   rec <- recipe(m)
   attr(rec, "coords") <- NULL # as an older recipe deserialises

@@ -286,7 +286,7 @@ test_that("local mode reports the joint verdicts without grading them", {
   srj <- .joint_row_of(a, "same_row_joint")
   expect_identical(srj$leakage_class, "low")
   expect_gt(srj$excess, 90)
-  expect_match(srj$notes, "HIGH in collaborate mode", fixed = TRUE)
+  expect_match(srj$notes, "HIGH when shared", fixed = TRUE)
   expect_no_error(masque:::.gate_release(m))
 })
 

@@ -11,7 +11,7 @@ test_that("print(recipe) does not leak original level labels (collaborate)", {
     yield = rnorm(100),
     stringsAsFactors = FALSE
   )
-  r <- propose_roles(df)
+  r <- propose_roles(df, mode = "local")
   r$role[r$col == "yield"] <- "outcome"
 
   m <- mask(df, r, mode = "collaborate", seed = 1)
@@ -34,7 +34,7 @@ test_that("print(recipe) shows level-map markers but not contents", {
     yield = rnorm(100),
     stringsAsFactors = FALSE
   )
-  r <- propose_roles(df)
+  r <- propose_roles(df, mode = "local")
   r$role[r$col == "yield"] <- "outcome"
 
   m <- mask(df, r, mode = "collaborate", seed = 1)
@@ -51,7 +51,7 @@ test_that("reveal_maps(recipe) prints the original labels (audited reveal)", {
     yield = rnorm(100),
     stringsAsFactors = FALSE
   )
-  r <- propose_roles(df)
+  r <- propose_roles(df, mode = "local")
   r$role[r$col == "yield"] <- "outcome"
 
   m <- mask(df, r, mode = "collaborate", seed = 1)
@@ -66,7 +66,7 @@ test_that("reveal_maps(recipe) prints the original labels (audited reveal)", {
 })
 
 test_that("reveal_maps prints a warning banner before maps", {
-  r <- propose_roles(iris)
+  r <- propose_roles(iris, mode = "local")
   r$role[r$col == "Sepal.Length"] <- "outcome"
   r$role[r$col == "Species"] <- "covariate"
   m <- mask(iris, r, mode = "collaborate", seed = 1)
@@ -75,7 +75,7 @@ test_that("reveal_maps prints a warning banner before maps", {
 })
 
 test_that("reveal_maps writes nothing to stdout, so it can be silenced", {
-  r <- propose_roles(iris)
+  r <- propose_roles(iris, mode = "local")
   r$role[r$col == "Sepal.Length"] <- "outcome"
   r$role[r$col == "Species"] <- "covariate"
   m <- mask(iris, r, mode = "collaborate", seed = 1)
@@ -84,7 +84,7 @@ test_that("reveal_maps writes nothing to stdout, so it can be silenced", {
 })
 
 test_that("reveal_maps on an empty-maps recipe says so", {
-  r <- propose_roles(iris)
+  r <- propose_roles(iris, mode = "local")
   r$role[r$col == "Sepal.Length"] <- "outcome"
   m <- suppressWarnings(mask(iris, r, mode = "local", seed = 1))
   joined <- capture_full(reveal_maps(recipe(m)))
@@ -96,7 +96,7 @@ test_that("reveal_maps errors on non-recipe input", {
 })
 
 test_that("Seed is redacted in print(recipe)", {
-  r <- propose_roles(iris)
+  r <- propose_roles(iris, mode = "local")
   r$role[r$col == "Sepal.Length"] <- "outcome"
   m <- suppressWarnings(mask(iris, r, seed = 99999, mode = "local"))
   joined <- capture_full(print(recipe(m)))
@@ -105,7 +105,7 @@ test_that("Seed is redacted in print(recipe)", {
 })
 
 test_that("print(masque) calls through to print(recipe)", {
-  r <- propose_roles(iris)
+  r <- propose_roles(iris, mode = "local")
   r$role[r$col == "Sepal.Length"] <- "outcome"
   m <- suppressWarnings(mask(iris, r, mode = "local", seed = 1))
   joined <- capture_full(print(m))

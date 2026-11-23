@@ -8,7 +8,7 @@ masque(
   input,
   roles = NULL,
   out = NULL,
-  mode = c("local", "collaborate"),
+  mode = c("null", "local", "collaborate"),
   seed = NULL,
   clean = c("auto", "report", "off"),
   alias_names = FALSE,
@@ -37,13 +37,16 @@ review is skipped.}
 \code{.xlsx} with \code{writexl}). For a set, a folder (one CSV per table) or
 an \code{.xlsx} workbook. When \code{NULL} (default) nothing is written.}
 
-\item{mode}{Either \code{"local"} or \code{"collaborate"}. \code{"local"} makes an
-owner-only development copy (real labels may remain); \code{"collaborate"}
-makes a copy meant to be shared, with labels aliased, numbers jittered,
-free text dropped and the leakage audit run. When omitted and \code{roles}
+\item{mode}{One of \code{"null"} (default), \code{"local"} or \code{"collaborate"}.
+\code{"null"} keeps the design and the missing-value pattern, codes the labels
+and draws every outcome and covariate independently. \code{"local"} makes an
+owner-only development copy that keeps structure (real labels may
+remain); \code{"collaborate"} keeps structure in a copy meant to be shared,
+with labels aliased, numbers jittered, free text dropped and the
+leakage audit run. When omitted and \code{roles}
 are supplied, the mode the roles were proposed for is used, exactly as
 in \code{\link[=mask]{mask()}} and \code{\link[=mask_set]{mask_set()}}; with no \code{roles}, the proposal is made for
-\code{"local"}.}
+\code{"null"}. The \code{noise} argument of \code{\link[=mask]{mask()}} passes through \code{...}.}
 
 \item{seed}{Optional integer for reproducibility.}
 
@@ -72,7 +75,7 @@ the proposed plan without prompting.}
 HIGH-leakage finding - are never suppressed.}
 
 \item{allow_high}{Logical (default \code{FALSE}). When \code{out} is set and
-the collaborate-mode audit flagged HIGH leakage, the write is
+the mask-time audit flagged HIGH leakage, the write is
 refused. Pass \code{TRUE} to write anyway after your own review; the
 override raises a \code{masque_high_override} warning and is recorded in
 the recipe's warnings, so the exception stays auditable.}
@@ -127,7 +130,7 @@ action from numbered menus, with every change applied through
 scriptable path. With \code{ask = FALSE} (the default in
 non-interactive use) the proposed plan is used as-is, with a note.
 \item \strong{Mask} the data in the chosen \code{mode}.
-\item \strong{Audit} - in \code{collaborate} mode the leakage audit runs and its
+\item \strong{Audit} - in \code{null} and \code{collaborate} mode the leakage audit runs and its
 headline is printed. A HIGH finding surfaces as a classed warning
 (\code{masque_high_leakage}) - it is never silenced by the guided flow.
 \item \strong{Write} - if \code{out} is set, the masked data is written there

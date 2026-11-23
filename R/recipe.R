@@ -88,6 +88,11 @@ masque_recipe <- S7::new_class(
     allow_kept_outcome = S7::new_property(
       class = S7::class_logical, default = FALSE
     ),
+    # The draw behind the noise action: "summary" or "standard". Absent before
+    # 0.18.0, when no column could be noise.
+    noise = S7::new_property(
+      class = S7::class_character, default = "summary"
+    ),
     # Fresh entropy behind the owner's control seeds, which no seed can guess.
     # Empty without a plan. Absent before 0.17.0.
     owner_key = S7::new_property(

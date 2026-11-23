@@ -2,9 +2,11 @@
 #'
 #' Returns a per-column audit data.table, with table-level checks attached, and
 #' prints a severity-grouped report.
-#' Auto-runs in `mode = "collaborate"` at [mask()] time and stores the
+#' Auto-runs in `mode = "null"` and `mode = "collaborate"` at [mask()] time and stores the
 #' result on the masque object (`m@audit`); for local-mode audits or
 #' explicit re-audits, pass the original data frame via `original`.
+#' A null-mode clone is graded on the same scale as a collaborate clone:
+#' wherever a rule below names collaborate mode, it applies to null mode too.
 #'
 #' Each row of the returned data.table holds:
 #'

@@ -244,7 +244,7 @@ local(S7::method(print, .plan_class) <- function(x, ...) {
   grain <- spec@grain
   analysed <- roles$col[
     roles$role %in% c("outcome", "covariate", "date") &
-      roles$action %in% c("scramble", "alias")
+      roles$action %in% c("scramble", "alias", "noise")
   ]
   for (g in .prop_or(rec, "grain", list())) {
     if (all(g$unit %in% design)) {
@@ -932,11 +932,11 @@ handover <- function(m, dir, name = NULL, overwrite = FALSE, allow_high = FALSE,
     )
   }
   .check_yaml_available()
-  if (!identical(m@mode, "collaborate") && !isTRUE(allow_local)) {
+  if (!.shareable_mode(m@mode) && !isTRUE(allow_local)) {
     cli::cli_abort(
       c(
         "This clone was masked in local mode: it has no audit and keeps real labels.",
-        i = "Mask with {.code mode = \"collaborate\"} to hand it over, or pass `allow_local = TRUE` for a folder you keep."
+        i = "Mask with {.code mode = \"null\"} or {.code mode = \"collaborate\"} to hand it over, or pass `allow_local = TRUE` for a folder you keep."
       ),
       class = c("masque_handover_local_refusal", "orchestra_refusal")
     )
@@ -985,7 +985,7 @@ handover <- function(m, dir, name = NULL, overwrite = FALSE, allow_high = FALSE,
     if (length(kept)) {
       sprintf("These outcome columns hold real values: %s.", paste(kept, collapse = ", "))
     },
-    if (!identical(m@mode, "collaborate")) {
+    if (!.shareable_mode(m@mode)) {
       "This is a local-mode clone. It keeps real labels and stays with the data owner."
     },
     "Write and test your code here. The data owner runs the finished code on the real table.",

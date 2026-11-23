@@ -120,7 +120,7 @@ test_that("interleaved trial labels are not reported as groups", {
 
 test_that("a pinned action prevents automatic role promotion", {
   d <- met_county_fixture()
-  roles <- propose_roles(d, detect = FALSE)
+  roles <- propose_roles(d, detect = FALSE, mode = "local")
   roles$action[roles$col == "county"] <- "drop"
   ds <- detect_design(d)
 
@@ -143,7 +143,7 @@ test_that("a suspected but unconfirmed environment is preserved, not scrambled",
   ds <- detect_design(u)
   expect_equal(ds@scope_status, "review_required")
 
-  roles <- propose_roles(u)
+  roles <- propose_roles(u, mode = "local")
   expect_equal(roles$role[roles$col == "county"], "design")
   expect_equal(roles$action[roles$col == "county"], "keep")
 

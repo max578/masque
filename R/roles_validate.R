@@ -10,8 +10,8 @@
 #' `mask_levels` column) are upgraded in place with a deprecation
 #' warning. The upgrade preserves the v1 semantics exactly: v1 `keep`
 #' becomes action `keep`; v1 `ignore` becomes role `id` / `text` /
-#' `other` with action `keep` in local mode and `drop` in collaborate
-#' mode; v1 treatment `mask_levels = "permute"` becomes action
+#' `other` with action `keep` in local mode and `drop` in null and
+#' collaborate mode; v1 treatment `mask_levels = "permute"` becomes action
 #' `scramble`.
 #'
 #' Hard errors:
@@ -45,9 +45,9 @@
 #'   or a v1 roles table (deprecated, upgraded with a warning).
 #' @param df Optional data frame. If supplied, `roles` is checked for
 #'   one-to-one column-name correspondence with `df`.
-#' @param mode Optional mode (`"local"` or `"collaborate"`) used to
+#' @param mode Optional mode (`"null"`, `"local"` or `"collaborate"`) used to
 #'   resolve `NA` actions and to upgrade v1 tables. Defaults to
-#'   `attr(roles, "mode")`, falling back to `"local"`.
+#'   `attr(roles, "mode")`, falling back to `"null"`.
 #'
 #' @return The validated (and possibly upgraded / resolved) roles
 #'   table, invisibly.
@@ -67,10 +67,12 @@ roles_validate <- function(roles, df = NULL, mode = NULL) {
     )
   }
   if (is.null(mode)) {
-    mode <- attr(roles, "mode") %||% "local"
+    mode <- attr(roles, "mode") %||% "null"
   }
-  if (!(mode %in% c("local", "collaborate"))) {
-    cli::cli_abort("`mode` must be {.val local} or {.val collaborate}.")
+  if (!(mode %in% .modes())) {
+    cli::cli_abort(
+      "`mode` must be {.val null}, {.val local} or {.val collaborate}."
+    )
   }
 
   required <- c("col", "role")
@@ -221,14 +223,14 @@ roles_validate <- function(roles, df = NULL, mode = NULL) {
     return(roles)
   }
 
-  if (identical(proposed_mode, "collaborate") && identical(mode, "local")) {
+  if (.shareable_mode(proposed_mode) && identical(mode, "local")) {
     cli::cli_warn(c(
       paste0(
-        "A roles table prepared for {.val collaborate} is being used in ",
+        "A roles table prepared for {.val {proposed_mode}} is being used in ",
         "{.val local} mode."
       ),
       "i" = paste0(
-        "Collaborate defaults may be downgraded to values that expose real ",
+        "Shareable defaults may be downgraded to values that expose real ",
         "labels. Confirm this mode change before sharing output."
       )
     ), class = "masque_mode_downgrade")

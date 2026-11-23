@@ -8,7 +8,7 @@ integrity_fixture <- function() {
     y = stats::rnorm(36L, 5, 2),
     stringsAsFactors = FALSE
   )
-  r <- suppressWarnings(propose_roles(d, detect = FALSE))
+  r <- suppressWarnings(propose_roles(d, detect = FALSE, mode = "local"))
   r <- set_role(r, "rep", role = "design", action = "keep")
   r <- set_role(r, "gen", role = "treatment", action = "keep")
   r <- set_role(r, "y", role = "outcome", action = "scramble")

@@ -17,7 +17,7 @@
 
 # Roles that keep everything except the two ordinary columns.
 .keep_roles <- function(d) {
-  r <- suppressWarnings(propose_roles(d, detect = FALSE))
+  r <- suppressWarnings(propose_roles(d, detect = FALSE, mode = "local"))
   r$action[r$col %in% setdiff(names(d), c("a", "y"))] <- "keep"
   r
 }
@@ -35,7 +35,7 @@ test_that("the refusal names the column and reads in the singular", {
   set.seed(1)
   d <- .coord_fixture()
   d$gps_e <- NULL
-  r <- suppressWarnings(propose_roles(d, detect = FALSE))
+  r <- suppressWarnings(propose_roles(d, detect = FALSE, mode = "local"))
   r$action[r$col == "gps_s"] <- "keep"
   err <- tryCatch(
     suppressWarnings(mask(d, r, seed = 1)),
@@ -60,7 +60,7 @@ test_that("a masking action satisfies the guard", {
   set.seed(1)
   d <- .coord_fixture()
   # propose_roles() proposes `drop` for a PII-named column by default.
-  r <- suppressWarnings(propose_roles(d, detect = FALSE))
+  r <- suppressWarnings(propose_roles(d, detect = FALSE, mode = "local"))
   expect_no_error(suppressWarnings(mask(d, r, seed = 1)))
 })
 
@@ -104,7 +104,7 @@ test_that("ordinary numeric covariates do not trip the value-shape test", {
     ph      = round(stats::runif(n, 4.5, 8.5), 1),
     y       = stats::rnorm(n)
   )
-  r <- suppressWarnings(propose_roles(d, detect = FALSE))
+  r <- suppressWarnings(propose_roles(d, detect = FALSE, mode = "local"))
   r$action[r$col %in% c("temp_c", "yield_t", "ph")] <- "keep"
   expect_no_warning(mask(d, r, seed = 1), class = "masque_coords_suspected")
 })

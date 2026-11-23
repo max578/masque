@@ -22,9 +22,11 @@
   action <- roles$action
   kind <- roles$kind
   cand <- roles$col[
-    ((role %in% c("covariate", "outcome") & action == "scramble" &
+    ((role %in% c("covariate", "outcome") &
+      action %in% c("scramble", "noise") &
       kind %in% c(.numeric_kinds(), .categorical_kinds(), .date_kinds())) |
-      (role == "date" & action == "scramble" & kind %in% .date_kinds()) |
+      (role == "date" & action %in% c("scramble", "noise") &
+        kind %in% .date_kinds()) |
       (role == "covariate" & action == "alias" &
         kind %in% .categorical_kinds())) &
       !roles$col %in% exclude
@@ -88,8 +90,9 @@
 }
 
 # Internal: mark each grain group "unit" or "row" (grain = FALSE, or a small
-# collaborate grain, with a warning); returns the groups and recipe lines.
-.resolve_grain <- function(groups, grain, mode) {
+# grain in a shareable mode that would resample real values, with a warning);
+# returns the groups and recipe lines.
+.resolve_grain <- function(groups, grain, mode, roles = NULL) {
   lines <- character()
   for (i in seq_along(groups)) {
     g <- groups[[i]]
@@ -106,7 +109,8 @@
         cols, if (length(g$cols) > 1L) "are" else "is", unit, g$n_units,
         if (length(g$cols) > 1L) "were" else "was"
       ))
-    } else if (identical(mode, "collaborate") && g$n_units < .MIN_STRATUM) {
+    } else if (.shareable_mode(mode) && g$n_units < .MIN_STRATUM &&
+      !.all_noise(g$cols, roles)) {
       g$synthesised <- "row"
       g$reason <- sprintf("fewer than %d units", .MIN_STRATUM)
       msg <- sprintf(
@@ -143,7 +147,8 @@
 
 # Internal: synthesise one grain group on its unit table and broadcast each
 # unit's value to its non-missing rows; returns the columns and level maps.
-.synthesise_grain_group <- function(df, group, roles, jitter) {
+.synthesise_grain_group <- function(df, group, roles, jitter,
+                                    noise = "summary") {
   cols <- group$cols
   row_unit <- .unit_id(df, group$unit)
   n_units <- max(row_unit)
@@ -159,7 +164,14 @@
   new_unit <- list()
   maps <- list()
 
-  num <- cols[kind %in% .numeric_kinds()]
+  # Noise columns draw one independent value per unit.
+  for (cl in cols[action == "noise"]) {
+    res <- .noise_column(ut[[cl]], noise, prefix = paste0(cl, "_L"))
+    new_unit[[cl]] <- res$x
+    if (!is.null(res$map)) maps[[cl]] <- res$map
+  }
+
+  num <- cols[kind %in% .numeric_kinds() & action != "noise"]
   if (length(num)) {
     x_unit <- as.data.frame(ut[num], stringsAsFactors = FALSE)
     names(x_unit) <- num
@@ -174,7 +186,7 @@
       }
     }
   }
-  for (cl in setdiff(cols, num)) {
+  for (cl in setdiff(cols, c(num, cols[action == "noise"]))) {
     new_unit[[cl]] <- synthesise_categorical_local(ut[[cl]])
   }
 
@@ -182,6 +194,12 @@
   for (cl in cols) {
     x <- df[[cl]]
     obs <- !is.na(x)
+    if (is.factor(new_unit[[cl]])) {
+      # Coded noise levels replace the original vocabulary.
+      x <- factor(x, levels = levels(new_unit[[cl]]))
+    } else if (is.character(new_unit[[cl]]) && !is.character(x)) {
+      x <- as.character(x)
+    }
     x[obs] <- new_unit[[cl]][row_unit[obs]]
     if (identical(action[match(cl, cols)], "alias")) {
       res <- alias_levels(x, prefix = paste0(cl, "_L"))
@@ -213,4 +231,9 @@
     paste(unit, collapse = " : "), n, if (n == 1L) "" else "s",
     g$synthesised, if (nzchar(g$reason)) sprintf(" (%s)", g$reason) else ""
   )
+}
+
+# TRUE when every column named is drawn as noise, which resamples nothing.
+.all_noise <- function(cols, roles) {
+  !is.null(roles) && all(roles$action[match(cols, roles$col)] == "noise")
 }

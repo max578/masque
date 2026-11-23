@@ -14,7 +14,7 @@ queue_readline <- function(answers) {
 }
 
 test_that("editor failure falls back to the console editor, session intact", {
-  r <- propose_roles(iris)
+  r <- propose_roles(iris, mode = "local")
   # Column "Species" by name; keep role (blank); action 3 = alias; done.
   local_mocked_bindings(
     .masque_edit_gui = function(roles) stop("X11 library is missing"),
@@ -32,7 +32,7 @@ test_that("editor failure falls back to the console editor, session intact", {
 })
 
 test_that("console editor: re-roling re-resolves the action via set_role()", {
-  r <- propose_roles(iris)
+  r <- propose_roles(iris, mode = "local")
   # Row number 5 = Species; role 3 = outcome; keep action (blank); done.
   local_mocked_bindings(
     .masque_readline = queue_readline(c("5", "3", "", ""))
@@ -44,14 +44,14 @@ test_that("console editor: re-roling re-resolves the action via set_role()", {
 })
 
 test_that("console editor: blank input returns the table unchanged", {
-  r <- propose_roles(iris)
+  r <- propose_roles(iris, mode = "local")
   local_mocked_bindings(.masque_readline = queue_readline(""))
   r2 <- suppressMessages(masque:::.masque_edit_console(r))
   expect_identical(r2, r)
 })
 
 test_that("console editor: unknown column warns and re-prompts", {
-  r <- propose_roles(iris)
+  r <- propose_roles(iris, mode = "local")
   local_mocked_bindings(
     .masque_readline = queue_readline(c("nope", "99", ""))
   )
@@ -63,7 +63,7 @@ test_that("console editor: unknown column warns and re-prompts", {
 })
 
 test_that("console editor: invalid role entry keeps the current value", {
-  r <- propose_roles(iris)
+  r <- propose_roles(iris, mode = "local")
   # Species; invalid role; blank action; done -> unchanged.
   local_mocked_bindings(
     .masque_readline = queue_readline(c("Species", "widget", "", ""))
@@ -77,7 +77,7 @@ test_that("console editor: invalid role entry keeps the current value", {
 })
 
 test_that("a working spreadsheet editor still round-trips attributes", {
-  r <- propose_roles(iris)
+  r <- propose_roles(iris, mode = "local")
   local_mocked_bindings(
     # Simulate utils::edit(): returns an edited plain data.frame with
     # the provenance attributes dropped.

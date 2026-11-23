@@ -56,7 +56,7 @@ test_that("a named site unit is keyed on its value, not its position", {
 test_that("mask() keeps the displacement across a shuffled or extended table", {
   df <- .fx_sites()
   df$y <- withr::with_seed(1L, stats::rnorm(nrow(df)))
-  roles <- propose_roles(df, detect = FALSE)
+  roles <- propose_roles(df, detect = FALSE, mode = "local")
   roles$role[roles$col == "site"] <- "design"
   roles$action[roles$col == "site"] <- "keep"
   roles$role[roles$col == "y"] <- "outcome"

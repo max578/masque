@@ -78,7 +78,7 @@ test_that("name legalisation uniquifies collisions", {
 
 test_that("mask(clean='auto') legalises names and remaps the roles table", {
   df <- make_dirty()
-  r <- propose_roles(df) # roles keyed to dirty names
+  r <- propose_roles(df, mode = "local") # roles keyed to dirty names
   r <- set_role(r, "Yield (t/ha)", role = "outcome")
   m <- suppressWarnings(mask(df, r, seed = 1))
   expect_equal(names(synthetic(m)), c("Site.Name", "Yield..t.ha.", "rep"))
@@ -87,7 +87,7 @@ test_that("mask(clean='auto') legalises names and remaps the roles table", {
 
 test_that("apply_recipe re-applies cleaning so retargeting lines up", {
   df <- make_dirty()
-  r <- propose_roles(df)
+  r <- propose_roles(df, mode = "local")
   r <- set_role(r, "Yield (t/ha)", role = "outcome")
   m <- suppressWarnings(mask(df, r, seed = 1))
   fwd <- apply_recipe(df, recipe(m)) # df still has the dirty names
@@ -97,7 +97,7 @@ test_that("apply_recipe re-applies cleaning so retargeting lines up", {
 
 test_that("mask(clean='off') legalises names and round-trips them", {
   df <- make_dirty()
-  r <- propose_roles(df)
+  r <- propose_roles(df, mode = "local")
   r <- set_role(r, "Yield (t/ha)", role = "outcome")
   m <- suppressWarnings(mask(df, r, seed = 1, clean = "off"))
   # Legalised even under clean = "off": an invalid name silently rewritten

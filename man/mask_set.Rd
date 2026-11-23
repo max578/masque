@@ -8,7 +8,7 @@ mask_set(
   input,
   roles = NULL,
   links = NULL,
-  mode = c("local", "collaborate"),
+  mode = c("null", "local", "collaborate"),
   seed = NULL,
   clean = c("auto", "report", "off"),
   alias_names = FALSE,
@@ -16,6 +16,7 @@ mask_set(
   ladder = c("hierarchy", "levels"),
   grain = TRUE,
   allow_kept_outcome = FALSE,
+  noise = c("summary", "standard"),
   quiet = FALSE,
   sheets = NULL,
   info = NULL,
@@ -38,9 +39,11 @@ of column names to treat as cross-table links, or \code{FALSE} to disable
 linking entirely (each table masked independently). When \code{NULL}
 (default), links are detected automatically.}
 
-\item{mode}{Either \code{"local"} or \code{"collaborate"}. When omitted and \code{roles}
-are supplied, inherit their common mode. Tables prepared for different
-modes must be reconciled explicitly. Otherwise default to \code{"local"}.}
+\item{mode}{One of \code{"null"}, \code{"local"} or \code{"collaborate"}. When omitted
+and \code{roles} are supplied, inherit their common mode. Tables prepared for
+different modes must be reconciled explicitly. Otherwise default to
+\code{"null"}. In null mode a column drawn as noise is not linked across
+tables unless it is named in \code{links}.}
 
 \item{seed}{Optional integer for reproducibility.}
 
@@ -64,7 +67,11 @@ or \code{"levels"}; passed through to each \code{\link[=mask]{mask()}} call.}
 \code{\link[=mask]{mask()}} call, which synthesises a unit-constant column once per unit.}
 
 \item{allow_kept_outcome}{Single logical, passed to each \code{\link[=mask]{mask()}} call:
-\code{TRUE} allows a kept outcome in a collaborate clone and records it.}
+\code{TRUE} allows a kept outcome in a null or collaborate clone and records
+it.}
+
+\item{noise}{The draw behind the \code{noise} action, \code{"summary"} (default) or
+\code{"standard"}; passed to each \code{\link[=mask]{mask()}} call.}
 
 \item{quiet}{Logical; suppress the link / hygiene report, including the
 hint that a table looks like documentation.}

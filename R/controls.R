@@ -290,11 +290,11 @@ control_table <- function(ctl, kind = c("null", "negative", "positive"), i = 1L)
   )
   analysed <- intersect(names(df), roles$col[
     roles$role %in% c("outcome", "covariate", "date") &
-      roles$action %in% c("scramble", "alias")
+      roles$action %in% c("scramble", "alias", "noise")
   ])
   if (!length(analysed)) {
     .control_refuse(
-      "The table has no analysed column: an outcome, covariate or date column with action `scramble` or `alias`.",
+      "The table has no analysed column: an outcome, covariate or date column with action `scramble`, `alias` or `noise`.",
       "analysed"
     )
   }

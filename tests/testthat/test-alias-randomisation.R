@@ -72,7 +72,7 @@ test_that("mask(collaborate) produces a seed-dependent treatment map", {
     yield = c(3.1, 4.2, 2.8, 5.0, 3.7, 4.4),
     stringsAsFactors = FALSE
   )
-  r <- propose_roles(df, detect = FALSE)
+  r <- propose_roles(df, detect = FALSE, mode = "local")
   r$role[r$col == "variety"] <- "treatment"
   r$role[r$col == "yield"] <- "outcome"
   r <- roles_validate(r, df, mode = "collaborate")

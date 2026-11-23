@@ -10,7 +10,7 @@ high_fixture <- function() {
     yield = rnorm(100),
     stringsAsFactors = FALSE
   )
-  r <- propose_roles(df)
+  r <- propose_roles(df, mode = "local")
   r$role[r$col == "yield"] <- "outcome"
   r$role[r$col == "contact_email"] <- "covariate"
   list(df = df, roles = r)
@@ -25,7 +25,7 @@ clean_fixture <- function() {
     yield = rnorm(100, mean = 10, sd = 2),
     stringsAsFactors = FALSE
   )
-  r <- propose_roles(df)
+  r <- propose_roles(df, mode = "local")
   r$role[r$col == "yield"] <- "outcome"
   list(df = df, roles = r)
 }
@@ -55,7 +55,7 @@ test_that("guided masque() surfaces the HIGH leakage warning (set)", {
     sites = data.frame(loc = c("x", "y", "z", "u", "v"),
                        depth = c(1.2, 3.4, 2.2, 0.8, 2.9))
   )
-  roles <- list(trial = f$roles, sites = propose_roles(tables$sites))
+  roles <- list(trial = f$roles, sites = propose_roles(tables$sites, mode = "local"))
   seen <- FALSE
   withCallingHandlers(
     m <- masque(
@@ -93,7 +93,7 @@ test_that("blocked write: write_set() refuses and writes nothing", {
     sites = data.frame(loc = c("x", "y", "z", "u", "v"),
                        depth = c(1.2, 3.4, 2.2, 0.8, 2.9))
   )
-  roles <- list(trial = f$roles, sites = propose_roles(tables$sites))
+  roles <- list(trial = f$roles, sites = propose_roles(tables$sites, mode = "local"))
   m <- suppressWarnings(mask_set(
     tables,
     roles = roles, mode = "collaborate", seed = 1, quiet = TRUE
@@ -160,7 +160,7 @@ test_that("clean collaborate objects write ungated", {
 })
 
 test_that("mask() errors on unused arguments instead of ignoring them", {
-  r <- propose_roles(iris)
+  r <- propose_roles(iris, mode = "local")
   r$role[r$col == "Sepal.Length"] <- "outcome"
   expect_error(mask(iris, r, sedd = 1), "sedd")
   expect_error(mask(iris, r, sedd = 1), "Unused")
@@ -168,7 +168,7 @@ test_that("mask() errors on unused arguments instead of ignoring them", {
 })
 
 test_that("local mode is never gated", {
-  r <- propose_roles(iris)
+  r <- propose_roles(iris, mode = "local")
   r$role[r$col == "Sepal.Length"] <- "outcome"
   out <- file.path(tempdir(), "masque-local.csv")
   on.exit(unlink(out), add = TRUE)
@@ -230,7 +230,7 @@ test_that("a joint HIGH finding blocks write_set() and names the check", {
 test_that("write_set's refusal says the override is not on the recipe", {
   set.seed(6)
   a <- data.frame(id = 1:20, y = stats::rnorm(20L))
-  r <- suppressWarnings(propose_roles(a, detect = FALSE))
+  r <- suppressWarnings(propose_roles(a, detect = FALSE, mode = "local"))
   r <- set_role(r, "y", role = "outcome", action = "keep")
   r <- set_role(r, "id", role = "id", action = "keep")
   m <- suppressWarnings(mask_set(list(t1 = a), list(t1 = r), mode = "collaborate", seed = 1L,

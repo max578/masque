@@ -12,7 +12,7 @@ confounded <- function(tech = TRUE) {
   d$y <- c(0, 5, 1)[match(d$field, paste0("f", 1:3))] + stats::rnorm(90L)
   design <- if (tech) c("field", "tech") else "field"
   if (!tech) d$tech <- NULL
-  r <- suppressWarnings(propose_roles(d, detect = FALSE))
+  r <- suppressWarnings(propose_roles(d, detect = FALSE, mode = "local"))
   r <- set_role(r, design, role = "design", action = "keep")
   r <- set_role(r, "gen", role = "treatment", action = "keep")
   r <- set_role(r, "y", role = "outcome", action = "scramble")
@@ -102,7 +102,7 @@ test_that("strata holding one level warn from a tenth of the strata", {
     trt = c(rep("a", 8L), rep("b", 8L), rep(c("a", "b"), 12L)),
     y = seq_len(40L) + 0.5
   )
-  r <- suppressWarnings(propose_roles(d, detect = FALSE))
+  r <- suppressWarnings(propose_roles(d, detect = FALSE, mode = "local"))
   r <- set_role(r, "site", role = "design", action = "keep")
   r <- set_role(r, "trt", role = "treatment", action = "keep")
   r <- set_role(r, "y", role = "outcome", action = "scramble")
@@ -126,7 +126,7 @@ test_that("the stored absence of strata goes back through the constructor", {
 test_that("rounding that changes the declared shape warns", {
   set.seed(4)
   d <- data.frame(gen = rep(c("a", "b", "c"), 20L), y = as.integer(rpois(60L, 10)))
-  r <- suppressWarnings(propose_roles(d, detect = FALSE))
+  r <- suppressWarnings(propose_roles(d, detect = FALSE, mode = "local"))
   r <- set_role(r, "gen", role = "treatment", action = "keep")
   r <- set_role(r, "y", role = "outcome", action = "scramble")
   expect_warning(
@@ -135,7 +135,7 @@ test_that("rounding that changes the declared shape warns", {
   )
   expect_identical(ctl@truth$shift_realised[ctl@truth$level == "a"], -ctl@truth$shift_realised[ctl@truth$level == "b"])
   many <- data.frame(gen = rep(paste0("G", 1:24), 3L), y = as.integer(rpois(72L, 10)))
-  rm <- suppressWarnings(propose_roles(many, detect = FALSE))
+  rm <- suppressWarnings(propose_roles(many, detect = FALSE, mode = "local"))
   rm <- set_role(rm, "gen", role = "treatment", action = "keep")
   rm <- set_role(rm, "y", role = "outcome", action = "scramble")
   expect_warning(

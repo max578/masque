@@ -1,5 +1,5 @@
 make_recipe <- function(mode = "collaborate", seed = 1) {
-  r <- propose_roles(iris)
+  r <- propose_roles(iris, mode = "local")
   r$role[r$col == "Sepal.Length"] <- "outcome"
   r$role[r$col == "Species"] <- "covariate"
   m <- if (mode == "local") {
@@ -37,7 +37,7 @@ test_that("save_recipe file does not grow with the rows of the data", {
       yield = rnorm(n)
     )
     for (i in 1:16) df[[paste0("cov_", i)]] <- rnorm(n)
-    r <- propose_roles(df)
+    r <- propose_roles(df, mode = "local")
     r$role[r$col == "yield"] <- "outcome"
     m <- mask(df, r, mode = "collaborate", seed = 1)
     recipe_rds <- tempfile(fileext = ".rds")

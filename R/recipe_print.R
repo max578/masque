@@ -361,6 +361,15 @@ reveal_maps <- function(rec, table = NULL) {
 # Internal: one-line clone-fidelity summary. Reports the rung the ladder
 # reached, and the pooled fraction when it differs from the one requested.
 .recipe_fidelity_line <- function(x) {
+  if (identical(x@mode, "null")) {
+    scrambled <- "action" %in% names(x@roles) &&
+      any(x@roles$action == "scramble")
+    return(paste0(
+      "null (independent draws; design and missing-value pattern exact",
+      if (scrambled) "; scrambled columns share a global copula" else "",
+      ")"
+    ))
+  }
   if (!isTRUE(x@conditional)) {
     return("marginal / structural (global copula)")
   }

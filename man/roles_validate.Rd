@@ -13,9 +13,9 @@ or a v1 roles table (deprecated, upgraded with a warning).}
 \item{df}{Optional data frame. If supplied, \code{roles} is checked for
 one-to-one column-name correspondence with \code{df}.}
 
-\item{mode}{Optional mode (\code{"local"} or \code{"collaborate"}) used to
+\item{mode}{Optional mode (\code{"null"}, \code{"local"} or \code{"collaborate"}) used to
 resolve \code{NA} actions and to upgrade v1 tables. Defaults to
-\code{attr(roles, "mode")}, falling back to \code{"local"}.}
+\code{attr(roles, "mode")}, falling back to \code{"null"}.}
 }
 \value{
 The validated (and possibly upgraded / resolved) roles
@@ -33,8 +33,8 @@ v1 vocabulary with \code{keep} / \code{ignore} roles and the optional
 \code{mask_levels} column) are upgraded in place with a deprecation
 warning. The upgrade preserves the v1 semantics exactly: v1 \code{keep}
 becomes action \code{keep}; v1 \code{ignore} becomes role \code{id} / \code{text} /
-\code{other} with action \code{keep} in local mode and \code{drop} in collaborate
-mode; v1 treatment \code{mask_levels = "permute"} becomes action
+\code{other} with action \code{keep} in local mode and \code{drop} in null and
+collaborate mode; v1 treatment \code{mask_levels = "permute"} becomes action
 \code{scramble}.
 
 Hard errors:

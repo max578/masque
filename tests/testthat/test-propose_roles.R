@@ -1,5 +1,5 @@
 test_that("propose_roles returns a data.table with the expected schema", {
-  r <- propose_roles(iris)
+  r <- propose_roles(iris, mode = "local")
   expect_s3_class(r, "data.table")
   expect_named(r, c(
     "col", "role", "action", "kind", "freq_or_range", "pii_suspected",
@@ -18,7 +18,7 @@ test_that("propose_roles returns a data.table with the expected schema", {
 })
 
 test_that("propose_roles(detect = FALSE) classifies iris by name (v0.2)", {
-  r <- propose_roles(iris, detect = FALSE)
+  r <- propose_roles(iris, detect = FALSE, mode = "local")
   numeric_cols <- c(
     "Sepal.Length", "Sepal.Width", "Petal.Length", "Petal.Width"
   )
@@ -36,14 +36,14 @@ test_that("propose_roles(detect = TRUE) overlays design hints (default)", {
     KEEP.OUT.ATTRS = FALSE
   )
   d$response <- seq_len(nrow(d)) / 10
-  r <- propose_roles(d)
+  r <- propose_roles(d, mode = "local")
   expect_equal(r$role[r$col == "arm"], "treatment")
   expect_match(r$notes[r$col == "arm"], "detect_design")
   expect_equal(attr(r, "design")@class_label, "RCBD")
 })
 
 test_that("a CRD with no design column leaves its factor a covariate", {
-  r <- propose_roles(iris)
+  r <- propose_roles(iris, mode = "local")
   # Species is balanced 50/50/50, a CRD, but no design column crosses it.
   expect_equal(r$role[r$col == "Species"], "covariate")
   ds <- attr(r, "design")
@@ -54,7 +54,7 @@ test_that("a CRD with no design column leaves its factor a covariate", {
 })
 
 test_that("propose_roles classifies mtcars (all numeric -> covariate)", {
-  r <- propose_roles(mtcars)
+  r <- propose_roles(mtcars, mode = "local")
   expect_true(all(r$role == "covariate"))
   expect_true(all(r$kind %in% c("numeric", "integer")))
   # mtcars has no design structure -> detect_design returns "none".
@@ -63,12 +63,12 @@ test_that("propose_roles classifies mtcars (all numeric -> covariate)", {
 })
 
 test_that("propose_roles errors on non-data-frame input", {
-  expect_error(propose_roles(1:10), "must be a data frame")
-  expect_error(propose_roles(list()), "must be a data frame")
+  expect_error(propose_roles(1:10, mode = "local"), "must be a data frame")
+  expect_error(propose_roles(list(), mode = "local"), "must be a data frame")
 })
 
 test_that("propose_roles errors on zero-column data frame", {
-  expect_error(propose_roles(data.frame()), "no columns")
+  expect_error(propose_roles(data.frame(), mode = "local"), "no columns")
 })
 
 # Pattern-matching coverage --------------------------------------------------
@@ -82,7 +82,7 @@ test_that("PII patterns flag obvious cases and set action = drop", {
     yield = c(2.3, 4.1),
     stringsAsFactors = FALSE
   )
-  r <- propose_roles(df)
+  r <- propose_roles(df, mode = "local")
   pii_cols <- r$col[r$pii_suspected]
   expect_setequal(
     pii_cols, c("contact_name", "email_addr", "gps_lat", "farmer")
@@ -104,7 +104,7 @@ test_that("Design patterns assign role = design (case-insensitive)", {
     stringsAsFactors = FALSE
   )
   # A 4-row toy frame is too small for design detection.
-  r <- propose_roles(df, detect = FALSE)
+  r <- propose_roles(df, detect = FALSE, mode = "local")
   design_cols <- r$col[r$role == "design"]
   expect_setequal(
     design_cols, c("Rep", "BLOCK", "Row", "col", "site", "year", "plot")
@@ -121,7 +121,7 @@ test_that("Treatment patterns assign role = treatment", {
     yield = c(1, 2, 3, 4),
     stringsAsFactors = FALSE
   )
-  r <- propose_roles(df)
+  r <- propose_roles(df, mode = "local")
   treat_cols <- r$col[r$role == "treatment"]
   expect_setequal(treat_cols, c("Genotype", "variety", "cultivar", "trt_code"))
 })
@@ -135,7 +135,7 @@ test_that("ID patterns assign role = id", {
     yield = c(1, 2, 3, 4, 5),
     stringsAsFactors = FALSE
   )
-  r <- propose_roles(df)
+  r <- propose_roles(df, mode = "local")
   expect_equal(r$role[r$col == "id"], "id")
   expect_equal(r$role[r$col == "plot_id"], "id")
   expect_equal(r$role[r$col == "id_local"], "id")
@@ -156,7 +156,7 @@ test_that("Date and POSIXct columns get the date role, scrambled", {
     yield = c(1.0, 2.0, 3.0),
     stringsAsFactors = FALSE
   )
-  r <- propose_roles(df)
+  r <- propose_roles(df, mode = "local")
   expect_equal(r$role[r$col == "sowing_date"], "date")
   expect_equal(r$role[r$col == "measured_at"], "date")
   expect_equal(r$action[r$col == "sowing_date"], "scramble")
@@ -170,7 +170,7 @@ test_that("Unsupported column classes default to role other, kept", {
     payload = I(list(list(a = 1), list(a = 2), list(a = 3))),
     yield = c(1.0, 2.0, 3.0)
   )
-  r <- propose_roles(df, detect = FALSE)
+  r <- propose_roles(df, detect = FALSE, mode = "local")
   expect_equal(r$kind[r$col == "payload"], "other")
   expect_equal(r$role[r$col == "payload"], "other")
   expect_equal(r$action[r$col == "payload"], "keep")
@@ -187,7 +187,7 @@ test_that("Free-text character columns get the text role", {
   )
   # detect = FALSE: this test exercises the free-text ignore logic, not
   # structural detection (which might pick `region` as a treatment).
-  r <- propose_roles(df, detect = FALSE)
+  r <- propose_roles(df, detect = FALSE, mode = "local")
   expect_equal(r$role[r$col == "notes"], "text")
   expect_equal(r$action[r$col == "notes"], "keep")
   expect_equal(r$role[r$col == "region"], "covariate")
@@ -205,7 +205,7 @@ test_that("freq_or_range is informative", {
     x_date = as.Date(c("2026-01-01", "2026-01-02", "2026-01-03")),
     stringsAsFactors = FALSE
   )
-  r <- propose_roles(df)
+  r <- propose_roles(df, mode = "local")
   expect_match(r$freq_or_range[r$col == "x_num"], "^\\[1\\.1, 3\\.3\\]$")
   expect_match(r$freq_or_range[r$col == "x_int"], "^\\[1, 3\\]$")
   expect_equal(r$freq_or_range[r$col == "x_fac"], "n=2 levels")
@@ -226,7 +226,7 @@ test_that("propose_roles handles MET tab_04 (skip if .fst fixture absent)", {
   )
 
   df <- fst::read_fst(fpath, as.data.table = FALSE)
-  r <- propose_roles(df)
+  r <- propose_roles(df, mode = "local")
 
   expect_equal(nrow(r), ncol(df))
   expect_true("design" %in% r$role)
@@ -252,7 +252,7 @@ test_that("propose_roles handles MET tab_07 (skip if .fst fixture absent)", {
   )
 
   df <- fst::read_fst(fpath, as.data.table = FALSE)
-  r <- propose_roles(df)
+  r <- propose_roles(df, mode = "local")
 
   expect_equal(nrow(r), ncol(df))
   expect_true("design" %in% r$role)

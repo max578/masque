@@ -308,7 +308,7 @@ unmask <- function(x, rec, column = NULL) {
   roles <- rec@roles
   dropped <- if ("action" %in% names(roles)) {
     roles$col[roles$action == "drop"]
-  } else if (identical(rec@mode, "collaborate")) {
+  } else if (.shareable_mode(rec@mode)) {
     roles$col[roles$role == "ignore"]
   } else {
     character()

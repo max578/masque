@@ -9,7 +9,7 @@ make_collab_fixture_for_apply <- function() {
     note = paste0("n_", seq_len(100)), # -> ignore
     stringsAsFactors = FALSE
   )
-  r <- propose_roles(df)
+  r <- propose_roles(df, mode = "local")
   r$role[r$col == "yield"] <- "outcome"
   m <- mask(df, r, mode = "collaborate", seed = 1)
   list(df = df, m = m, rec = recipe(m))
@@ -47,7 +47,7 @@ test_that("logical covariate aliases round-trip back to logical values", {
     yield = rnorm(n),
     stringsAsFactors = FALSE
   )
-  r <- propose_roles(df, detect = FALSE)
+  r <- propose_roles(df, detect = FALSE, mode = "local")
   r$role[r$col == "yield"] <- "outcome"
   r$role[r$col == "sprayed"] <- "covariate"
 
@@ -107,7 +107,7 @@ test_that("unmask on atomic vector with a single-map recipe auto-selects", {
     yield = rnorm(20),
     stringsAsFactors = FALSE
   )
-  r <- propose_roles(df)
+  r <- propose_roles(df, mode = "local")
   r$role[r$col == "yield"] <- "outcome"
   m <- mask(df, r, mode = "collaborate", seed = 1)
   rec <- recipe(m)
@@ -131,7 +131,7 @@ test_that("apply_recipe + unmask is identity on local-mode recipe (no maps)", {
     yield = rnorm(20),
     stringsAsFactors = FALSE
   )
-  r <- propose_roles(df)
+  r <- propose_roles(df, mode = "local")
   r$role[r$col == "yield"] <- "outcome"
   m <- suppressWarnings(mask(df, r, mode = "local", seed = 1))
   rec <- recipe(m)
@@ -170,7 +170,7 @@ test_that("unmask passes atomic numeric through with no level maps", {
     yield = rnorm(100),
     stringsAsFactors = FALSE
   )
-  r <- propose_roles(df, detect = FALSE)
+  r <- propose_roles(df, detect = FALSE, mode = "local")
   r$role[r$col == "yield"] <- "outcome"
   m <- suppressWarnings(mask(df, r, mode = "local", seed = 1))
   rec <- recipe(m)
@@ -270,7 +270,7 @@ test_that("a linked factor's level order does not reveal its alias map", {
     b = data.frame(site = site, z = seq_len(20) / 7)
   )
   roles <- lapply(tables, function(tab) {
-    set_role(propose_roles(tab, detect = FALSE), "site",
+    set_role(propose_roles(tab, detect = FALSE, mode = "local"), "site",
       role = "design", action = "alias"
     )
   })

@@ -2,7 +2,7 @@
 # paths only (interactive review is exercised by hand).
 
 test_that("masque() on a data frame with supplied roles masks it", {
-  r <- propose_roles(iris)
+  r <- propose_roles(iris, mode = "local")
   r <- set_role(r, "Sepal.Length", role = "outcome")
   m <- masque(iris, roles = r, seed = 1, ask = FALSE, quiet = TRUE)
   expect_true(S7::S7_inherits(m, masque_obj))
@@ -10,7 +10,7 @@ test_that("masque() on a data frame with supplied roles masks it", {
 })
 
 test_that("masque() auto-proposes roles when none supplied (ask = FALSE)", {
-  m <- masque(iris, seed = 1, ask = FALSE, quiet = TRUE)
+  m <- masque(iris, seed = 1, ask = FALSE, quiet = TRUE, mode = "local")
   expect_true(S7::S7_inherits(m, masque_obj))
   expect_equal(nrow(synthetic(m)), nrow(iris))
 })
@@ -31,7 +31,7 @@ test_that("masque() reads a single CSV file", {
   d <- withr::local_tempdir()
   csv <- file.path(d, "data.csv")
   utils::write.csv(iris, csv, row.names = FALSE)
-  m <- masque(csv, seed = 1, ask = FALSE, quiet = TRUE)
+  m <- masque(csv, seed = 1, ask = FALSE, quiet = TRUE, mode = "local")
   expect_true(S7::S7_inherits(m, masque_obj))
   expect_equal(nrow(synthetic(m)), nrow(iris))
 })
@@ -46,7 +46,7 @@ test_that("masque() reads a folder as a set", {
     data.frame(gen = c("x", "y", "x", "y", "x"), w = c(1, 2, 4, 3, 5)),
     file.path(d, "t2.csv"), row.names = FALSE
   )
-  m <- masque(d, seed = 1, ask = FALSE, quiet = TRUE)
+  m <- masque(d, seed = 1, ask = FALSE, quiet = TRUE, mode = "local")
   expect_true(S7::S7_inherits(m, masque_set))
   expect_setequal(names(synthetic(m)), c("t1", "t2"))
 })
@@ -54,7 +54,7 @@ test_that("masque() reads a folder as a set", {
 test_that("masque() writes single-table output to a CSV", {
   d <- withr::local_tempdir()
   out <- file.path(d, "masked.csv")
-  r <- propose_roles(iris)
+  r <- propose_roles(iris, mode = "local")
   r <- set_role(r, "Sepal.Length", role = "outcome")
   masque(iris, roles = r, seed = 1, out = out, ask = FALSE, quiet = TRUE)
   expect_true(file.exists(out))
@@ -76,7 +76,7 @@ test_that("masque() writes a set to a folder", {
 })
 
 test_that("masque() errors on an unreadable input path", {
-  expect_error(masque("/no/such/path", ask = FALSE, quiet = TRUE), "No file")
+  expect_error(masque("/no/such/path", ask = FALSE, quiet = TRUE, mode = "local"), "No file")
 })
 
 test_that("masque() result round-trips like the lower-level verbs", {
