@@ -21,8 +21,8 @@ nothing else from the recipe. With \code{\link[=controls]{controls()}} it gives 
 pre-declared controls on the clone.
 }
 \examples{
-r <- propose_roles(iris, detect = FALSE)
-clone_plan(mask(iris, r, mode = "local", seed = 1L))
+r <- propose_roles(iris, mode = "local", detect = FALSE)
+clone_plan(mask(iris, r, seed = 1L))
 
 }
 \seealso{

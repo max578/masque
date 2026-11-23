@@ -53,7 +53,7 @@ given, so values that rise with a level reveal that level's rank.
 }
 \examples{
 trial <- read.csv(system.file("extdata", "john_alpha.csv", package = "masque"))
-r <- propose_roles(trial, detect = FALSE)
+r <- propose_roles(trial, mode = "local", detect = FALSE)
 r <- set_role(r, c("rep", "block"), role = "design", action = "keep")
 r <- set_role(r, "gen", role = "treatment", action = "alias")
 r <- set_role(r, "yield", role = "outcome", action = "scramble")
