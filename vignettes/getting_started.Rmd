@@ -34,7 +34,7 @@ seeing the real yields or genotype names. This vignette shows the
 agronomist's side of that handover on the John and Williams (1995)
 alpha-design trial shipped with the package.
 
-The synthetic table is a copy for writing code, meant for a named
+The synthetic table is a stand-in for writing code, meant for a named
 collaborator and not for public release. *Confidentiality and the threat
 model* sets out what is and is not protected. Read it before sharing any
 output.
@@ -42,8 +42,7 @@ output.
 ## What
 
 `masque()` is the main function. Point it at a table, or a folder or
-workbook of related tables, and it reads the data, proposes a masking
-plan and masks. In an interactive session it pauses first so the
+workbook of related tables, and it reads the data, proposes a masking plan and masks the data. In an interactive session it pauses first so the
 data owner can review the plan.
 
 The output of `masque()` is a pair: the *synthetic* clone, the only part
@@ -139,7 +138,7 @@ knitr::kable(
 ```
 
 ```{r one-call-mask}
-m <- masque(df, seed = 1L, ask = FALSE)
+m <- masque(df, seed = 5L, ask = FALSE)
 ```
 
 `ask = FALSE` skips the interactive review, as a vignette must. In an
@@ -180,9 +179,9 @@ quantile(df$yield, c(0.01, 0.99))
 
 When the pipeline needs the relationships between columns, ask for them
 with a mode. A collaborate clone of the same trial re-simulates yield
-through the copula and runs the leakage audit before it is shared. With
-only one numeric column, this trial has no correlation for the copula to
-keep, so the visible difference is that the design labels stay:
+through the copula and keeps the design labels. With only one
+re-simulated numeric column (`yield`), there is no correlation for the
+copula to keep, so the visible difference is that the design labels stay:
 
 ```{r one-call-collaborate}
 m_collab <- masque(df, mode = "collaborate", seed = 2L, ask = FALSE)
@@ -242,9 +241,9 @@ knitr::kable(
 ```
 
 Changing a role resets the action to that role's default, unless you also
-pass `action`. Naming an outcome is optional. Outcomes and numeric
-covariates are re-simulated together either way, and only a conditional
-clone reads the outcome role.
+pass `action`. Naming an outcome is optional. In local and collaborate
+mode, outcomes and numeric covariates are re-simulated together either
+way, and only a conditional clone reads the outcome role.
 
 ### Editing the plan as code
 
@@ -257,9 +256,8 @@ edits the same table.
 r2 <- set_role(plan, c("row", "col"), action = "drop")
 ```
 
-Direct edits work too. A direct `role` edit leaves `action` untouched, so
-setting the action to `NA` tells `mask()` to fill in the default for the
-new role:
+Direct edits work too. A direct `role` edit leaves `action` as it was.
+Set `action` to `NA` and `mask()` fills in the new role's default:
 
 ```{r edit-direct}
 r2[col == "rep", `:=`(role = "covariate", action = NA_character_)]
@@ -283,7 +281,7 @@ column:
 knitr::kable(
   role_options(kind = "factor")[, c("role", "action")],
   caption = paste0(
-    "Every (role, action) pair the validator accepts for a factor ",
+    "Every (role, action) pair the package accepts for a factor ",
     "column."
   )
 )
@@ -292,11 +290,13 @@ knitr::kable(
 The plan also has a `pii_suspected` column. `propose_roles()` sets it
 from the column *name* (`email`, `phone`, `owner`, ...) and drops a
 flagged column in every mode. If a flagged column is kept, the audit
-grades it HIGH. The scan reads names, not content, so flag or drop a
-harmlessly named column that holds sensitive values, such as a `paddock`
-column holding farm names:
+grades it HIGH. The scan reads names, not content. A harmlessly named
+column that holds sensitive values, such as a `paddock` column holding
+farm names, should be dropped by hand, or flagged so that the audit grades
+it HIGH if it is kept:
 
 ```{r pii-by-hand, eval = FALSE}
+plan <- set_role(plan, "paddock", action = "drop")
 plan[col == "paddock", pii_suspected := TRUE]
 ```
 
@@ -503,7 +503,7 @@ knitr::kable(
 )
 ```
 
-This safeguard protects the allocation a pipeline reads. A default clone
+Coding environment labels in place keeps the allocation a pipeline reads. A default clone
 carries no genotype-by-environment effect at all. A local or collaborate
 clone carries one only when it is conditional, and even then sparse
 treatment-by-environment cells may fall back to pooled synthesis. No clone
@@ -528,10 +528,11 @@ runs. Related tables are masked together and still join.
 
 The agronomist can therefore hand over a default clone that keeps the plot
 layout and the links between tables, and only a coarse summary of the real
-yields. The statistician can write and run a full pipeline on it without
-seeing the real genotype names or yields. A collaborate clone adds the
-correlations between numeric columns, and `conditional = TRUE` adds the
-treatment effect. `handover()` writes the clone, its plan and its data
+yields. It still discloses the exact design and treatment allocation, and
+any numeric environment such as `year` unless it is converted first. The statistician can write and run a full pipeline on it without
+seeing the real genotype names or yields. A collaborate clone adds the correlations between numeric columns, at the
+cost of real design labels and numerics within a measurement step of
+observed values, and `conditional = TRUE` adds the treatment effect. `handover()` writes the clone, its plan and its data
 card to a folder for the collaborator. How the
 finished pipeline runs on the real data is covered in *Recipe anatomy and
 the round-trip*.
@@ -554,10 +555,9 @@ also in *Confidentiality and the threat model*.
 
 *Confidentiality and the threat model* sets out what a synthetic
 clone protects and what it does not, the depth controls beyond role and
-action, the leakage audit, and the conditional clone that mimics a
-treatment effect. *Recipe anatomy and the round-trip* is the analyst's
-side of this handover: what the recipe carries, and how a pipeline built on
-the synthetic runs on the original. *What a
+action, the leakage audit, and the conditional clone that mimics a treatment effect. *Recipe anatomy and the round-trip* covers the return leg: what the
+recipe carries, and how the data owner runs the finished pipeline on the
+original with it. *What a
 conditional clone keeps of the design* tests what a model fitted on a
 conditional clone still finds, on eight field designs. *Known-truth controls* derives
 datasets in which the answer is known, to check a pipeline before it meets
