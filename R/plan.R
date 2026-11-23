@@ -50,7 +50,7 @@
 #'
 #' @examples
 #' trial <- read.csv(system.file("extdata", "john_alpha.csv", package = "masque"))
-#' r <- propose_roles(trial, detect = FALSE)
+#' r <- propose_roles(trial, mode = "local", detect = FALSE)
 #' r <- set_role(r, c("rep", "block"), role = "design", action = "keep")
 #' r <- set_role(r, "gen", role = "treatment", action = "alias")
 #' r <- set_role(r, "yield", role = "outcome", action = "scramble")
@@ -466,8 +466,8 @@ local(S7::method(print, .plan_class) <- function(x, ...) {
 #' @returns A `masque_plan` in clone vocabulary.
 #'
 #' @examples
-#' r <- propose_roles(iris, detect = FALSE)
-#' clone_plan(mask(iris, r, mode = "local", seed = 1L))
+#' r <- propose_roles(iris, mode = "local", detect = FALSE)
+#' clone_plan(mask(iris, r, seed = 1L))
 #'
 #' @seealso [masque_plan()], [controls()], [handover()].
 #'

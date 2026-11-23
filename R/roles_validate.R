@@ -230,7 +230,7 @@ roles_validate <- function(roles, df = NULL, mode = NULL) {
         "{.val local} mode."
       ),
       "i" = paste0(
-        "Shareable defaults may be downgraded to values that expose real ",
+        "Its defaults may be downgraded to values that expose real ",
         "labels. Confirm this mode change before sharing output."
       )
     ), class = "masque_mode_downgrade")
