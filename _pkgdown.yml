@@ -30,7 +30,7 @@ reference:
   - plot_design_summary
 
 - title: Masking
-  desc: Produce a structurally faithful synthetic clone of one or many tables.
+  desc: Make synthetic copies of one or many tables.
   contents:
   - mask
   - mask_set

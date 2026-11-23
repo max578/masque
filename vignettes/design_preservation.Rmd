@@ -37,7 +37,9 @@ are still in the clone. The allocation (every design column and the
 treatment labels) is returned as it was (here in local mode, with design
 and treatment columns kept), and the outcomes are re-simulated.
 What matters is whether a model fitted on those outcomes still finds the
-treatment, block and environment effects.
+treatment, block and environment effects. Every clone here is made with
+`mode = "local"`, because the default mode (`"null"`) draws outcomes
+independently and keeps none of these effects.
 
 This vignette checks eight design classes, with a public exemplar of each
 from the `agridat` package. Each is masked as a conditional clone twenty

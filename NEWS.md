@@ -1,3 +1,58 @@
+# masque 0.18.0
+
+## Breaking changes
+
+* The default clone now carries no information beyond the design. A new
+  mode, `"null"`, is the default of `propose_roles()`, `mask()`,
+  `mask_set()` and `masque()`. By default, every outcome and covariate is
+  simulated independently. Each numeric column keeps only its approximate
+  range and shape. Only the experimental design and the pattern of missing
+  values are kept exactly, and labels are replaced by codes. Identifier,
+  free-text and unsupported columns are dropped.
+* Code that relied on the old default gets a different clone after
+  upgrading. To keep the 0.17.1 behaviour, pass `mode = "local"` to
+  `propose_roles()` (or to `masque()` or `mask_set()` when they propose the
+  roles). Clones made with `mode = "local"` or `mode = "collaborate"` are
+  the same as in 0.17.1 under the same seed.
+* A roles table with no mode attached now falls back to `"null"`, still
+  with the `masque_mode_unset` warning.
+
+## New features
+
+* New action `noise`, for outcome, covariate and date columns. The column
+  is replaced by independent draws that use nothing from its values except
+  a coarse summary. The missing-value mask and the storage class are kept.
+  A column that is constant within a design unit gets one draw per unit.
+* New argument `noise` in `mask()` and `mask_set()` picks the draw.
+  `"summary"` (the default) draws each numeric or date column from its 1st
+  percentile, deciles and 99th percentile, interpolated linearly, and keeps
+  whole numbers whole. `"standard"` reads only the column's type and draws
+  on a fixed scale. Categorical columns are drawn uniformly over their
+  levels, which are replaced by codes, either way.
+* Null-mode clones are audited at mask time and graded like collaborate
+  clones. They pass the write gate and `handover()` without `allow_local`.
+* `mask_set()` in null mode does not link a column drawn as noise across
+  tables unless it is named in `links`, since a shared code map would carry
+  its real values. Keys such as identifiers still link.
+* A table of fewer than five rows with a numeric or date noise column is
+  refused in null mode, as a scrambled one is in collaborate mode: its
+  summary would be close to the values themselves.
+* `conditional = TRUE` needs `mode = "local"` or `mode = "collaborate"`. In
+  null mode it is refused with `masque_null_conditional_refusal`.
+* Declared event times (`events =`) and known-truth controls accept noise
+  columns.
+
+## Bug fixes
+
+* The mask-time audit no longer stops with an error when a numeric column
+  holds `Inf` or `-Inf`. Its row-tracking check now uses finite values only.
+
+## Documentation
+
+* The package title is now "Synthetic Copies of Confidential Data Tables",
+  and the description, README and vignettes lead with what a default copy
+  keeps and how to ask for more.
+
 # masque 0.17.1
 
 This release makes the package work with S7 1.0.0. The code that builds and

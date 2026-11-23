@@ -32,8 +32,9 @@ sensitivity is set wrongly. This vignette covers all three, with examples
 that trigger the package's safeguards.
 
 `masque` is **not** a privacy-preserving or differential-privacy tool. It
-is a structurally faithful development surrogate. Read this vignette
-before sharing any `masque` output beyond your own machine.
+produces a development surrogate that keeps the structure of an
+experiment. Read this vignette before sharing any `masque` output beyond
+your own machine.
 
 ## What
 
@@ -44,16 +45,16 @@ the *synthetic* crosses the trust boundary:
 
 | Actor holds | Wants to learn | What `masque` protects |
 |---|---|---|
-| Synthetic only | Original raw values | Aliased treatment and categorical vocabularies, jittered numerics, dropped ids and free text, and optionally the column names |
+| Synthetic only | Original raw values | By default, every outcome and covariate value, replaced by independent draws. By default and in collaborate mode, aliased treatment and categorical vocabularies and dropped ids and free text. In collaborate mode, re-simulated and jittered numerics. Optionally, the column names |
 | Synthetic + recipe | Original raw values | Nothing: together they undo every alias |
 | Recipe only | Original raw values | The values, which the recipe does not hold. It does hold the real labels, the original column names and the seed |
 | Synthetic + external side information | Identity of treatments / sites | The label vocabulary and the order it was in. A preserved design footprint or a `keep` column is recognisable, level frequencies are unchanged, and side information wins |
 | Conditional clone (`conditional = TRUE`) | Outcome mean of a treatment or design level | Nothing: the clone reproduces the outcome mean of each treatment, block and environment level. A level with only a few plots reveals close to its real mean; a level with a single plot is pooled with the other single-plot levels first |
 
-`masque` keeps enough structure for a pipeline to run unchanged. Two modes
-set the balance between privacy and fidelity, every translation is written
-to a private recipe that round-trips, and the output is audited before it
-is shared.
+`masque` keeps enough structure for a pipeline to run unchanged. Three
+modes set the balance between privacy and fidelity, every translation is
+written to a private recipe that round-trips, and the output is audited
+before it is shared.
 
 It gives no differential-privacy guarantee and does not make output safe
 for public release. It does not hide rare strata, small designs, thin
@@ -61,31 +62,107 @@ site-by-year cells or contact names, and it does not change pipeline code.
 
 Every column carries a `role` (what it is) and an
 `action` (how deeply it is masked, from `role_options()`'s validated
-grid: `keep`, `scramble`, `alias`, `drop`). `mask()`'s `mode` argument
-chooses sensible defaults for both, so the common case is safe without
-per-column work:
+grid: `keep`, `noise`, `scramble`, `alias`, `drop`). `mask()`'s `mode`
+argument chooses defaults for both, so the common case needs no
+per-column work.
 
-| Knob | `mode = "local"` | `mode = "collaborate"` |
-|---|---|---|
-| Treatment labels, numeric doses included | kept | aliased (`trt_001`) |
-| Categorical covariate labels | kept | aliased (`<col>_L001`) |
-| Date / time columns | row-permuted with class preserved | row-permuted with class preserved |
-| Identifiers (`id`) | kept | dropped |
-| Free text (`text`: a character column in which more than half the values are distinct) | kept | dropped |
-| Numeric synthesis | Gaussian copula with empirical-quantile marginals (may emit observed values) | the same, plus within-resolution jitter, with whole numbers stochastically rounded. A value can fall up to half a measurement step outside the observed range, and a whole number up to one full step, so a column whose minimum is 0 can show -1. A conditional clone can go further, because it adds level effects after the draw |
-| Columns constant within a design unit | one value per unit, drawn from the real unit values | one value per unit, jittered, or row by row when there are fewer than five units |
-| NA mask | preserved cell-by-cell | preserved cell-by-cell |
-| `audit_mask()` | on demand | automatic at `mask()` time |
-| `print(recipe)` | redacted | redacted, with explicit `reveal_maps()` to inspect |
+By default, every outcome and covariate is simulated independently. Each
+numeric column keeps only its approximate range and shape. Only the
+experimental design and the pattern of missing values are kept exactly, and
+labels are replaced by codes. This is `mode = "null"`. It keeps nothing of
+the relationships between columns, so it discloses none of them.
+
+A pipeline that needs those relationships opts into structure.
+`mode = "local"` is for the custodian's own development and keeps labels as
+they are. `mode = "collaborate"` keeps the same structure for a clone
+shared with someone else, with labels aliased, numerics jittered and the
+audit run at mask time:
+
+| Knob | `mode = "null"` (default) | `mode = "local"` | `mode = "collaborate"` |
+|---|---|---|---|
+| Design columns | structure exact; categorical labels coded (`<col>_D001`), numeric columns kept | kept | kept; a categorical environment detected with high confidence is aliased |
+| Treatment labels, numeric doses included | aliased (`trt_001`) | kept | aliased (`trt_001`) |
+| Categorical covariate labels | drawn uniformly over the levels, coded (`<col>_L001`) | kept | aliased (`<col>_L001`) |
+| Numeric outcomes and covariates | drawn independently from the 1st percentile, deciles and 99th percentile, so every value lies within them; whole numbers stay whole | Gaussian copula with empirical-quantile marginals (may emit observed values) | the same, plus within-resolution jitter, with whole numbers stochastically rounded. A value can fall up to half a measurement step outside the observed range, and a whole number up to one full step, so a column whose minimum is 0 can show -1. A conditional clone can go further, because it adds level effects after the draw |
+| Date / time columns | drawn independently within the approximate range, class preserved | row-permuted with class preserved | row-permuted with class preserved |
+| Identifiers (`id`) | dropped | kept | dropped |
+| Free text (`text`: a character column in which more than half the values are distinct) | dropped | kept | dropped |
+| Columns constant within a design unit | one independent draw per unit | one value per unit, drawn from the real unit values | one value per unit, jittered, or row by row when there are fewer than five units |
+| NA mask | preserved cell-by-cell | preserved cell-by-cell | preserved cell-by-cell |
+| `conditional = TRUE` | refused | available | available |
+| `audit_mask()` | automatic at `mask()` time | on demand | automatic at `mask()` time |
+| `handover()` | accepted | refused unless `allow_local = TRUE` | accepted |
+| `print(recipe)` | redacted, with explicit `reveal_maps()` to inspect | redacted | redacted, with explicit `reveal_maps()` to inspect |
 
 ## Example
 
+### What a default clone keeps
+
+A small trial with four sites, a site-level rainfall, a sowing date, a
+soil class and two missing yields shows each default action at work:
+
+```{r null-fixture}
+null_trial <- data.frame(
+  site = factor(rep(c("Roseworthy", "Minnipa", "Turretfield", "Hart"),
+                    each = 6L)),
+  rep = rep(seq_len(3L), 8L),
+  sown = as.Date("2021-05-01") + sample(0:30, 24L, replace = TRUE),
+  soil = factor(sample(c("clay", "loam", "sand"), 24L, replace = TRUE)),
+  rainfall = rep(c(300, 420, 510, 380), each = 6L),
+  yield = round(rnorm(24L, 3, 0.5), 2),
+  note = sprintf("plot note %d", seq_len(24L))
+)
+null_trial$yield[c(2L, 9L)] <- NA
+plan_null <- propose_roles(null_trial, detect = FALSE)
+plan_null <- set_role(plan_null, "soil", role = "covariate")
+knitr::kable(
+  plan_null[, c("col", "role", "action")],
+  caption = "The default masking plan."
+)
+s_null <- synthetic(mask(null_trial, plan_null, seed = 1L))
+knitr::kable(
+  head(s_null, 8L),
+  digits = 2,
+  caption = "The first eight rows of the default clone."
+)
+```
+
+The site labels are codes and each site keeps its six plots. `soil` is
+drawn uniformly over three coded levels. The sowing dates are drawn within
+the range of the real ones. Rainfall is constant within each site, so it
+gets one draw per site. The free-text `note` is dropped. The missing
+yields stay in the same rows, and every drawn yield lies within the 1st
+and 99th percentiles of the real ones:
+
+```{r null-checks}
+identical(is.na(s_null$yield), is.na(null_trial$yield))
+tapply(s_null$rainfall, s_null$site, function(x) length(unique(x)))
+range(s_null$yield, na.rm = TRUE)
+quantile(null_trial$yield, c(0.01, 0.99), na.rm = TRUE)
+```
+
+`noise = "standard"` ignores the values and uses only each column's
+type. Proportions are drawn from Beta(2, 2), other non-negative
+numbers from Gamma(2, 1), other numbers from N(0, 1), 0/1 columns from
+Bernoulli(0.5), counts from Poisson(5) and dates uniformly within the year
+2000:
+
+```{r null-standard}
+s_std <- synthetic(mask(null_trial, plan_null, seed = 1L, noise = "standard"))
+knitr::kable(
+  head(s_std[, c("site", "sown", "rainfall", "yield")], 4L),
+  digits = 2,
+  caption = "The first rows of a clone drawn with `noise = \"standard\"`."
+)
+```
+
 ### Depth controls: hiding design structure
 
-Design columns are byte-identical by default, which preserves the
-experimental layout exactly. A publicly registered trial layout is a
-fingerprint. To keep the structure but hide the site or block *labels*,
-set a design column's action to `alias`:
+The default codes categorical design labels. In local and collaborate mode
+design columns are byte-identical, which preserves the experimental layout
+exactly, labels included. A publicly registered trial layout is a
+fingerprint. To keep the structure but hide the site or block *labels* in
+those modes, set a design column's action to `alias`:
 
 ```{r design-alias}
 df <- data.frame(
@@ -93,7 +170,7 @@ df <- data.frame(
   rep = rep(seq_len(3L), 6L),
   yield = rnorm(18L)
 )
-plan <- propose_roles(df, detect = FALSE)
+plan <- propose_roles(df, mode = "collaborate", detect = FALSE)
 plan <- set_role(plan, "site", role = "design", action = "alias")
 s <- synthetic(mask(df, plan, mode = "collaborate", seed = 1L))
 site_names_gone <- !any(as.character(s$site) %in% as.character(df$site))
@@ -105,8 +182,9 @@ knitr::kable(
 )
 ```
 
-Aliasing a design column breaks byte-identity, so it is never a default.
-Names can be hidden the same way: `mask(...,
+Aliasing a design column breaks byte-identity, so local and collaborate
+mode never do it by default, apart from a detected environment in
+collaborate mode. Names can be hidden the same way: `mask(...,
 alias_names = TRUE)` replaces every retained column name with an opaque
 code that the recipe inverts on the round-trip, and a character vector
 hides only the names given.
@@ -147,8 +225,8 @@ differential-privacy guarantee.
 ### Numeric treatments
 
 A dose or a nitrogen rate is a numeric treatment. Its values are often the
-most recognisable part of a trial, so collaborate mode aliases them by
-default, as it does treatment labels. The clone carries `trt_001`,
+most recognisable part of a trial, so the default and collaborate modes
+alias them, as they do treatment labels. The clone carries `trt_001`,
 `trt_002`, ... as text, and the recipe turns them back into the exact
 numbers:
 
@@ -175,9 +253,9 @@ audits HIGH.
 
 ### The conditional clone: preserving the treatment effect
 
-The default numeric synthesis re-simulates every scrambled numeric column
-from one Gaussian copula with empirical-quantile marginals, fitted on the
-whole table. That preserves each column's marginal distribution and the
+In local and collaborate mode, numeric synthesis re-simulates every
+scrambled numeric column from one Gaussian copula with empirical-quantile
+marginals, fitted on the whole table. That preserves each column's marginal distribution and the
 global covariance, which is enough to develop most pipelines. It does not
 keep the relationship between treatment and outcome. The synthetic
 outcomes are drawn from the pooled distribution and the treatment labels
@@ -190,7 +268,9 @@ answer on such a clone.
 the copula *within each treatment-by-design stratum* rather than pooling,
 so a row's synthetic outcome inherits the location of the treatment that
 row carries. The treatment effect a causal model estimates is kept, within
-sampling tolerance.
+sampling tolerance. A default clone keeps no treatment effect by design,
+so `mask()` refuses `conditional = TRUE` there and asks for
+`mode = "local"` or `mode = "collaborate"`.
 
 The contrast is easiest to see on a two-arm trial with a known effect:
 
@@ -202,7 +282,7 @@ arm <- factor(rep(c("ctrl", "treat"), each = n / 2L))
 yield <- 10 + 5 * (arm == "treat") + rnorm(n, sd = 2)
 trial <- data.frame(genotype = arm, yield = yield)
 
-plan <- propose_roles(trial, detect = FALSE)
+plan <- propose_roles(trial, mode = "local", detect = FALSE)
 plan <- set_role(plan, "genotype", role = "treatment", action = "scramble")
 plan <- set_role(plan, "yield", role = "outcome")
 
@@ -225,7 +305,7 @@ effect_cond <- effect_of(cond)
 
 knitr::kable(
   data.frame(
-    clone = c("marginal (default)", "conditional"),
+    clone = c("marginal", "conditional"),
     estimated_effect = c(effect_marg, effect_cond),
     true_effect = true_effect
   ),
@@ -266,8 +346,8 @@ knitr::kable(
 ```{r fig-conditional, eval = requireNamespace("ggplot2", quietly = TRUE), fig.cap = "Estimated treatment effect (yield units) on the marginal versus conditional clone, against the true effect fitted on the original trial (dashed line). The marginal clone collapses the effect toward zero; the conditional clone recovers it."}
 effect_df <- data.frame(
   clone = factor(
-    c("marginal (default)", "conditional"),
-    levels = c("marginal (default)", "conditional")
+    c("marginal", "conditional"),
+    levels = c("marginal", "conditional")
   ),
   estimated_effect = c(effect_marg, effect_cond)
 )
@@ -329,12 +409,13 @@ it asked for:
 
 ```r
 withCallingHandlers(
-  mask(trial, plan, seed = 1L, conditional = TRUE),
+  mask(trial, plan, mode = "local", seed = 1L, conditional = TRUE),
   masque_conditional_degraded = function(w) stop(conditionMessage(w))
 )
 ```
 
-Conditional cloning composes with both modes and with `mask_set()` (each
+Conditional cloning composes with local and collaborate mode and with
+`mask_set()` (each
 table is stratified by its own treatment and design columns). With no
 treatment or design column to condition on at all, the path degrades to
 the global copula and raises the same classed warning. It is worth
@@ -343,8 +424,8 @@ just a distribution.
 
 ### What the copula carries: monotone, not non-monotone, association
 
-Numeric columns that are kept and re-simulated together share one Gaussian
-copula, fitted on the normal scores of their ranks. A Gaussian copula
+In local and collaborate mode, numeric columns that are re-simulated
+together share one Gaussian copula, fitted on the normal scores of their ranks. A Gaussian copula
 holds a single correlation per pair, so it reproduces a *monotone*
 association (linear, or any order-preserving curve) but not a
 dependence that a correlation cannot express. A non-monotone relationship,
@@ -360,7 +441,8 @@ x_u <- runif(n, -3, 3)
 y_u <- x_u^2 + rnorm(n, sd = 0.5)           # non-monotone (U-shaped)
 d <- data.frame(x_lin, y_lin, x_u, y_u)
 
-s <- synthetic(mask(d, propose_roles(d, detect = FALSE), seed = 1L))
+s <- synthetic(mask(d, propose_roles(d, mode = "local", detect = FALSE),
+                    seed = 1L))
 
 # R-squared of a quadratic fit captures association of any curvature.
 fit_r2 <- function(x, y) summary(lm(y ~ poly(x, 2)))$r.squared
@@ -438,8 +520,9 @@ correlation between a grained column and the row-level columns, so the
 link between rainfall and yield above is lost, and grained columns are
 not conditioned on treatment when `conditional = TRUE`.
 
-In local mode the unit values are drawn from the real unit values. In
-collaborate mode they are jittered, and a grain with fewer than five units
+By default each unit gets one independent draw. In local mode the unit
+values are drawn from the real unit values. In collaborate mode they are
+jittered, and a grain with fewer than five units
 is synthesised row by row instead, with a `masque_grain_small_units`
 warning, because resampling so few real values would disclose them. The
 audit then notes that the clone does not keep that grain. `grain = FALSE`
@@ -502,8 +585,8 @@ covariate and the events.
 ### The leakage audit, and a refused write
 
 `audit_mask()` inspects the synthetic against the original and grades
-the leakage of each column. In collaborate mode it runs automatically and
-warns at `mask()` time. The fixture below is built to trip it: a
+the leakage of each column. In the default and collaborate modes it runs
+automatically and warns at `mask()` time. The fixture below is built to trip it: a
 PII-suspected column the user retains against the default, and a
 categorical covariate with a frequency-one level.
 
@@ -617,8 +700,8 @@ blocked.
 ### Small tables
 
 Re-simulating a column of a few rows returns the original values in a new
-order. Collaborate mode therefore refuses a table of fewer than five rows
-when any column would be re-simulated:
+order. The default and collaborate modes therefore refuse a table of fewer
+than five rows when any column would be scrambled:
 
 ```{r small-table, error = TRUE}
 tiny <- trial_kept[1:4, c("block", "yield")]
@@ -626,8 +709,8 @@ mask(tiny, propose_roles(tiny, mode = "collaborate"), mode = "collaborate",
      seed = 1L)
 ```
 
-Local mode warns instead. Kept, aliased and dropped columns are not
-re-simulated, so a short lookup table of site codes masks in either mode.
+Local mode warns instead. Kept, aliased, dropped and noise columns are
+not re-simulated, so a short lookup table of site codes masks in any mode.
 Five rows is a floor, not a guarantee. A column of a few dozen rows still
 carries values close to the real ones, and jitter within a measurement
 step does little to hide them. The same applies to small strata of a
@@ -801,7 +884,11 @@ to the local field density rather than the default.
 Aliasing a design column hides the site names and keeps the layout. The
 alias map hides which label is which, but not how often each occurs.
 
-The default clone keeps the pooled mean and SD of yield but loses the
+A default clone keeps the experimental design, the missing cells and each
+column's approximate range, and nothing of the relationships between
+columns.
+
+The marginal clone keeps the pooled mean and SD of yield but loses the
 treatment effect (`r round(effect_marg, 2)` against a true
 `r round(true_effect, 2)`), and a pipeline that checks only marginal
 fidelity would not notice. The conditional clone keeps it
@@ -830,7 +917,7 @@ disclosure-control guarantee in the formal sense. The alias map raises the
 cost of a public-vocabulary attack, but a bijection preserves level
 frequencies. A determined attacker with strong side information about
 frequencies and structure is not stopped by an alias alone. The Gaussian
-copula keeps only monotone association, so a pipeline whose core modelling
+copula of local and collaborate mode keeps only monotone association, so a pipeline whose core modelling
 step is non-linear should be validated on the original data through the
 recipe. The donut jitter's k-anonymity property
 is a rule of thumb tied to entity density, not a certified guarantee, and
@@ -844,15 +931,16 @@ attacker might already hold. These limits are part of the method.
 ## What to read next
 
 *Getting started with masque* covers the custodian's side of a first
-masking run: `masque()`, the roles-and-actions plan, and
-multi-environment detection.
+masking run: `masque()`, the default clone and how to opt into structure,
+the roles-and-actions plan, and multi-environment detection.
 *Recipe anatomy and the round-trip* is the analyst's side: what the
 recipe stores and how a pipeline built on the synthetic re-targets to the
 original.
 
 ## Reproduce
 
-`set.seed(1)` is set once for the whole document; the conditional-clone
+`set.seed(1)` is set once for the whole document and drives the
+default-clone fixture; the conditional-clone
 fixture reseeds explicitly with `set.seed(42)` and the copula-shape fixture
 with `set.seed(7)`, so both sections are self-contained regardless of
 chunk execution order. The grain fixture reseeds with `set.seed(3)` and the

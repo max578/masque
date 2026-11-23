@@ -61,16 +61,18 @@ apart from the shifted target of a positive.
 
 The example is the alpha-design trial shipped with the package: 24
 genotypes in 72 plots, three replicates, six blocks of four plots within
-each replicate.
+each replicate. The clone is made with `mode = "local"`, because the default mode
+(`"null"`) keeps no structure and its yields would carry no block or
+replicate pattern.
 
 ```{r trial}
 trial <- read.csv(system.file("extdata", "john_alpha.csv", package = "masque"))
-r <- propose_roles(trial, detect = FALSE)
+r <- propose_roles(trial, mode = "local", detect = FALSE)
 r <- set_role(r, c("rep", "block"), role = "design", action = "keep")
 r <- set_role(r, "gen", role = "treatment", action = "keep")
 r <- set_role(r, "yield", role = "outcome", action = "scramble")
 r <- set_role(r, c("plot", "row", "col"), role = "id", action = "keep")
-m <- mask(trial, r, seed = 1L)
+m <- mask(trial, r, mode = "local", seed = 1L)
 clone <- synthetic(m)
 ```
 
@@ -123,7 +125,7 @@ genotype_p <- function(d) {
 ```
 
 On the clone itself the genotype term is not expected to show, because the
-default clone re-simulates yield without a genotype effect. On the null it
+clone re-simulates yield without a genotype effect. On the null it
 must not show. On the negatives it shows at the pipeline's false-positive
 rate. On the positives it shows at the rate the pipeline finds the planted
 shift.
@@ -226,7 +228,7 @@ data.frame(
 The owner's readings describe the pipeline on the real table, and they are the
 ones that answer the analyst. The clone's readings are a rehearsal. Here the
 two sides read close to each other, within what 19 replicates can resolve.
-They need not. The default clone re-simulates yield without the block
+They need not. The clone re-simulates yield without the block
 structure, so its residual variance differs from the original's. A gap
 between the readings is a statement about the clone. Agreement is not a check
 on the pipeline, and a rate of zero on both sides agrees while saying nothing.
@@ -270,7 +272,7 @@ negatives. A fit on this clone does not show the residual of a fit on the
 original.
 
 The analyst gets the plan in the clone's own names and labels. `handover()`
-writes it to a folder with a collaborate-mode clone, the data card and a note,
+writes it to a folder with a default or collaborate clone, the data card and a note,
 and leaves the recipe out. From there the analyst rebuilds the declared controls.
 
 ```{r plan-analyst}

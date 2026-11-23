@@ -35,6 +35,10 @@ the original and the recipe. This vignette covers what the recipe carries,
 how the analyst's finished pipeline is run on the original, and what
 happens when the original holds a value the recipe has never seen.
 
+The examples use `mode = "collaborate"`, because the default mode
+(`"null"`) keeps no structure beyond the design. The recipe works the same
+way in every mode.
+
 ## What
 
 The `masque_recipe` object returned by `mask()` holds the real labels,
@@ -252,7 +256,7 @@ re-targeted tables join on the same keys the synthetic tables do.
 The checks above are about labels. The figure shows the numeric column the
 analyst works with: the original yield against the synthetic yield.
 
-```{r fig-overlay, eval = requireNamespace("ggplot2", quietly = TRUE), fig.cap = "Density of yield, original trial against the synthetic clone the analyst develops against. The two distributions overlap closely because the default numeric synthesis preserves each column's marginal distribution."}
+```{r fig-overlay, eval = requireNamespace("ggplot2", quietly = TRUE), fig.cap = "Density of yield, original trial against the synthetic clone the analyst develops against. The two distributions overlap closely because collaborate mode re-simulates each numeric column from its own marginal distribution."}
 synth_tbl <- synthetic(m)
 overlay_df <- rbind(
   data.frame(value = df$yield, table = "original"),
