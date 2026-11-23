@@ -9,19 +9,19 @@
 #' the design and the treatments, are replaced by codes. Columns that look
 #' like identifiers or free text are left out. More of the real structure can
 #' be kept on request, at the cost of disclosing more about the real data.
-#' With `mode = "local"` (for the data owner's own use) or `mode =
-#' "collaborate"` (for sharing), numeric columns are simulated from a
+#' With `mode = "local"` (for the data owner's own use) or
+#' `mode = "collaborate"` (for sharing), numeric columns are simulated from a
 #' Gaussian copula, which approximately preserves each column's distribution
-#' and the correlations between them. In those modes, `conditional = TRUE` in
-#' [mask()] also preserves treatment effects. A folder of files or a
-#' multi-sheet workbook can be masked together. Keys shared by the tables get
-#' the same codes in every table, so the synthetic tables still join. Each
-#' run also returns a recipe, which maps the codes back to the real labels.
-#' The recipe is as confidential as the data and should stay with the data
-#' owner. [apply_recipe()] converts the real data into the names and codes of
-#' the copy, so code written on the copy runs on it unchanged, and [unmask()]
-#' converts results back to the real labels. The package gives no formal
-#' privacy guarantee.
+#' and the correlations between them. In those modes, treatment effects can
+#' also be mimicked by setting `conditional = TRUE` in [mask()]. A folder of
+#' files or a multi-sheet workbook can be masked together. Keys shared by the
+#' tables get the same codes in every table, so the synthetic tables still
+#' join. Each run also returns a recipe, which maps the codes back to the
+#' real labels. The recipe is as confidential as the data and should stay
+#' with the data owner. [apply_recipe()] converts the real data into the
+#' names and codes of the copy, so code written on the copy runs on it
+#' unchanged, and [unmask()] converts results back to the real labels. The
+#' package gives no formal privacy guarantee.
 #'
 #' @section Getting started:
 #' [masque()] is the one-call front door: it reads the input, proposes a

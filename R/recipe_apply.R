@@ -11,8 +11,8 @@
 #'    trimmed labels from [clean_table()], then the label merges and type
 #'    changes from [conform_table()] when the clone was built on a
 #'    conformance object.
-#' 2. **Verify integrity** by comparing the NA mask of `original` to the
-#'    SHA-256 fingerprint stored on the recipe (controlled by
+#' 2. **Verify integrity** by comparing the NA mask and the values of
+#'    `original` with the fingerprints stored on the recipe (controlled by
 #'    `check_integrity`).
 #' 3. **Drop** every column whose resolved `action` was `"drop"` on the
 #'    roles table `mask()` masked with, in either mode. A linked join key
@@ -33,11 +33,11 @@
 #' @param original A data frame in the original namespace.
 #' @param rec A `masque_recipe` object (e.g. from `recipe(m)`).
 #' @param check_integrity Logical. When `TRUE` (default), verifies that
-#'   the NA mask of `original` matches the recipe's recorded
-#'   `integrity_fp` and values against the recipe's fingerprint of them,
-#'   numbers within rounding from a file. Mismatches error with guidance. Pass `FALSE` to
-#'   bypass when the missingness has legitimately changed since the
-#'   recipe was built.
+#'   the NA mask of `original` matches the recipe's recorded `integrity_fp`
+#'   and that its values match the recipe's fingerprint of them, numbers to
+#'   within the rounding of a file. A mismatch is an error with guidance.
+#'   Pass `FALSE` to run on a table that has legitimately changed since the
+#'   recipe was built; a label the recipe has never seen is still refused.
 #'
 #' @return A data.table in the synthetic namespace, ready for the pipeline.
 #'

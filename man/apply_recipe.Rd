@@ -12,11 +12,11 @@ apply_recipe(original, rec, check_integrity = TRUE)
 \item{rec}{A \code{masque_recipe} object (e.g. from \code{recipe(m)}).}
 
 \item{check_integrity}{Logical. When \code{TRUE} (default), verifies that
-the NA mask of \code{original} matches the recipe's recorded
-\code{integrity_fp} and values against the recipe's fingerprint of them,
-numbers within rounding from a file. Mismatches error with guidance. Pass \code{FALSE} to
-bypass when the missingness has legitimately changed since the
-recipe was built.}
+the NA mask of \code{original} matches the recipe's recorded \code{integrity_fp}
+and that its values match the recipe's fingerprint of them, numbers to
+within the rounding of a file. A mismatch is an error with guidance.
+Pass \code{FALSE} to run on a table that has legitimately changed since the
+recipe was built; a label the recipe has never seen is still refused.}
 }
 \value{
 A data.table in the synthetic namespace, ready for the pipeline.
@@ -34,8 +34,8 @@ Operations applied (in order):
 trimmed labels from \code{\link[=clean_table]{clean_table()}}, then the label merges and type
 changes from \code{\link[=conform_table]{conform_table()}} when the clone was built on a
 conformance object.
-\item \strong{Verify integrity} by comparing the NA mask of \code{original} to the
-SHA-256 fingerprint stored on the recipe (controlled by
+\item \strong{Verify integrity} by comparing the NA mask and the values of
+\code{original} with the fingerprints stored on the recipe (controlled by
 \code{check_integrity}).
 \item \strong{Drop} every column whose resolved \code{action} was \code{"drop"} on the
 roles table \code{mask()} masked with, in either mode. A linked join key

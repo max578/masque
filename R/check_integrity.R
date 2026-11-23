@@ -12,7 +12,7 @@
     # Recipe was built without a fingerprint (defensive: should not happen
     # in normal flows). Surface a quiet inform and proceed.
     cli::cli_inform(c(
-      i = "Recipe has no integrity fingerprint; skipping NA-mask check."
+      i = "Recipe has no integrity fingerprint; skipping the integrity check."
     ))
     return(invisible(TRUE))
   }

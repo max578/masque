@@ -291,7 +291,7 @@ you reviewed is the plan that runs.
 The mode changes the transformations and decides whether the audit runs.
 Whether a synthetic table is appropriate for a given collaborator,
 environment or jurisdiction is a release decision for the data
-custodian; masque informs that decision, it does not make it.
+owner. masque informs that decision. It does not make it.
 }
 \section{Behaviour by action}{
 
