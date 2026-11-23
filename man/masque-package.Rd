@@ -8,8 +8,9 @@
 Creates a synthetic copy of a confidential data table, so that analysis
 code can be written and tested without the real values. By default, every
 outcome and covariate is simulated independently, with no link to other
-columns or to the real rows. Each numeric column keeps only its
-approximate range and shape. The experimental design and the pattern of
+columns or to the real rows. Each numeric column keeps only an
+eleven-point summary: its 1st percentile, deciles and 99th percentile.
+The experimental design and the pattern of
 missing values are kept exactly, and category labels, including those of
 the design and the treatments, are replaced by codes. Columns that look
 like identifiers or free text are left out. More of the real structure can

@@ -70,7 +70,8 @@ column is: `design`, `treatment`, `outcome`, `covariate`, `date`, `id`,
 ### What a default clone keeps
 
 By default, every outcome and covariate is simulated independently. Each
-numeric column keeps only its approximate range and shape. Only the
+numeric column keeps only an eleven-point summary: its 1st percentile,
+deciles and 99th percentile. Only the
 experimental design and the pattern of missing values are kept exactly, and
 labels are replaced by codes.
 

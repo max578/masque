@@ -68,7 +68,8 @@ of `mask()` chooses the defaults, so the common case needs no per-column
 work.
 
 By default, every outcome and covariate is simulated independently. Each
-numeric column keeps only its approximate range and shape. Only the
+numeric column keeps only an eleven-point summary: its 1st percentile,
+deciles and 99th percentile. Only the
 experimental design and the pattern of missing values are kept exactly, and
 labels are replaced by codes. This is `mode = "null"`. It keeps none of
 the relationships among outcome and covariate values. The design layout,
@@ -86,11 +87,11 @@ audit run at mask time:
 | Design columns | structure exact; categorical labels coded (`<col>_D001`), numeric columns kept | kept | kept; a categorical environment detected with high confidence is aliased |
 | Treatment labels, numeric doses included | aliased (`trt_001`) | kept | aliased (`trt_001`) |
 | Categorical covariate labels | drawn uniformly over the levels, coded (`<col>_L001`) | kept | aliased (`<col>_L001`) |
-| Numeric outcomes and covariates | drawn independently from a piecewise-linear curve through the 1st percentile, the deciles and the 99th percentile, so every value lies between the 1st and 99th percentiles; whole numbers stay whole | Gaussian copula with empirical-quantile marginals (may emit observed values) | the same, plus within-resolution jitter, with whole numbers stochastically rounded. A value can fall up to half a measurement step outside the observed range, and a whole number up to one full step, so a column whose minimum is 0 can show -1. A conditional clone can go further, because it adds level effects after the draw |
+| Numeric outcomes and covariates | drawn independently from a piecewise-linear curve through the 1st percentile, the deciles and the 99th percentile, so every draw lies between the 1st and 99th percentiles; whole numbers stay whole, and rounding can take one just outside; a column with fewer than 12 finite values takes the standard draw | Gaussian copula with empirical-quantile marginals (may emit observed values) | the same, plus within-resolution jitter, with whole numbers stochastically rounded. A value can fall up to half a measurement step outside the observed range, and a whole number up to one full step, so a column whose minimum is 0 can show -1. A conditional clone can go further, because it adds level effects after the draw |
 | Date / time columns | drawn independently within the approximate range, class preserved | row-permuted with class preserved | row-permuted with class preserved |
 | Identifiers (`id`) | dropped | kept | dropped |
 | Free text (`text`: a character column in which more than half the values are distinct) | dropped | kept | dropped |
-| Columns constant within a design unit | one independent draw per unit | one value per unit, drawn from the real unit values | one value per unit, jittered, or row by row when there are fewer than five units |
+| Columns constant within a design unit | one independent draw per unit; the standard draw when fewer than 12 units are observed | one value per unit, drawn from the real unit values | one value per unit, jittered, or row by row when there are fewer than five units |
 | NA mask | preserved cell-by-cell | preserved cell-by-cell | preserved cell-by-cell |
 | `conditional = TRUE` | refused | available | available |
 | `audit_mask()` | automatic at `mask()` time | on demand | automatic at `mask()` time |
@@ -132,7 +133,9 @@ knitr::kable(
 The site labels are codes and each site keeps its six plots. `soil` is
 drawn uniformly over three coded levels. The sowing dates are drawn within
 the range of the real ones. Rainfall is constant within each site, so it
-gets one draw per site. The free-text `note` is dropped. The missing
+gets one draw per site. Four sites are fewer than the twelve observed
+values a summary draw needs, so rainfall takes the standard draw and
+`mask()` warns. The free-text `note` is dropped. The missing
 yields stay in the same rows, and every drawn yield lies within the 1st
 and 99th percentiles of the real ones:
 
@@ -160,6 +163,21 @@ knitr::kable(
   caption = "The first rows of a clone drawn with `noise = \"standard\"`."
 )
 ```
+
+Two columns with the same type flags draw the same values under one seed,
+whatever their means, because the flags are all a standard draw reads.
+
+The summary is small, but it is not nothing. Three facts bound what it
+gives away. A column of eleven or fewer finite values can be read back
+exactly from its eleven points, which is why such a column takes the
+standard draw. Below 101 values the 1st percentile is interpolated from
+the minimum, so the minimum enters the summary, and the maximum enters
+it the same way through the 99th percentile. And many clones of one table, each
+drawn under a different seed, estimate the eleven points ever more
+closely. A clone should therefore be made once and shared once, as for a
+second jitter of the same table: a second draw under a new seed adds
+nothing for the developer and narrows the estimate for anyone holding
+both.
 
 ### Hiding design labels
 
@@ -713,8 +731,9 @@ mask(tiny, propose_roles(tiny, mode = "collaborate"), mode = "collaborate",
 ```
 
 Local mode warns instead. Kept, aliased and dropped columns are not
-re-simulated, and categorical noise draws codes only, so a short lookup
-table of site codes masks in any mode.
+re-simulated, and factor and character noise draws codes only, so a short
+lookup table of site codes masks in any mode. A logical noise column
+counts towards the floor, because it is drawn over the values it holds.
 Five rows is a floor, not a guarantee. A column of a few dozen rows still
 carries values close to the real ones, and jitter within a measurement
 step does little to hide them. The same applies to small strata of a

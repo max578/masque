@@ -5,9 +5,11 @@
 * The default clone now carries no information beyond the design. A new
   mode, `"null"`, is the default of `propose_roles()`, `mask()`,
   `mask_set()` and `masque()`. By default, every outcome and covariate is
-  simulated independently. Each numeric column keeps only its approximate
-  range and shape. Only the experimental design and the pattern of missing
-  values are kept exactly, and labels are replaced by codes. Identifier,
+  simulated independently. Each numeric column keeps only an eleven-point
+  summary: its 1st percentile, deciles and 99th percentile. Only the
+  experimental design and the pattern of missing values are kept exactly,
+  category labels are replaced by codes, and numeric design columns are
+  kept. Identifier,
   free-text and unsupported columns are dropped.
 * Code that relied on the old default gets a different clone after
   upgrading. To keep the 0.17.1 behaviour, pass `mode = "local"` to
@@ -26,7 +28,12 @@
 * New argument `noise` in `mask()` and `mask_set()` picks the draw.
   `"summary"` (the default) draws each numeric or date column from its 1st
   percentile, deciles and 99th percentile, interpolated linearly, and keeps
-  whole numbers whole. `"standard"` reads only the column's type and draws
+  whole numbers whole (the rounding can take a value just outside those
+  percentiles). A column with fewer than 12 finite values, which its
+  eleven points would give back exactly, takes the standard draw instead,
+  with a `masque_noise_small_sample` warning; for a column constant within
+  a design unit the count is of observed units. `"standard"` reads only
+  the column's type and draws
   on a fixed scale. Categorical columns are drawn uniformly over their
   levels, which are replaced by codes, either way.
 * Null-mode clones are audited at mask time and graded like collaborate
@@ -34,13 +41,22 @@
 * `mask_set()` in null mode does not link a column drawn as noise across
   tables unless it is named in `links`, since a shared code map would carry
   its real values. Keys such as identifiers still link.
-* A table of fewer than five rows with a numeric or date noise column is
-  refused in null mode, as a scrambled one is in collaborate mode: its
-  summary would be close to the values themselves.
+* A table of fewer than five rows with a numeric, date or logical noise
+  column is refused in null mode, as a scrambled one is in collaborate
+  mode: its summary would be close to the values themselves.
+* A noise column with one observed value is that value in the clone, and
+  `mask()` warns with `masque_noise_single_value`. A logical stays logical.
+* An `integer64` column that would be read is refused with
+  `masque_integer64_refusal`; convert it with `as.numeric()` or
+  `as.character()` first.
+* Null mode draws from a random stream of its own, so a null clone and a
+  local or collaborate clone made with the same seed are not paired.
 * `conditional = TRUE` needs `mode = "local"` or `mode = "collaborate"`. In
   null mode it is refused with `masque_null_conditional_refusal`.
 * Declared event times (`events =`) and known-truth controls accept noise
-  columns.
+  columns. A declared event series is re-simulated as in the other modes,
+  not drawn from a summary: it keeps each status pattern's count and caps
+  time at the longest observed follow-up.
 
 ## Bug fixes
 

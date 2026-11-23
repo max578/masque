@@ -31,7 +31,9 @@
 #' @param links Optional override for link detection: a character vector
 #'   of column names to treat as cross-table links, or `FALSE` to disable
 #'   linking entirely (each table masked independently). When `NULL`
-#'   (default), links are detected automatically.
+#'   (default), links are detected automatically. A character vector
+#'   replaces the automatic links, so a key must be named too, and a noise
+#'   column named there is aliased from its real values instead of drawn.
 #' @param mode One of `"null"`, `"local"` or `"collaborate"`. When omitted
 #'   and `roles` are supplied, inherit their common mode. Tables prepared for
 #'   different modes must be reconciled explicitly. Otherwise default to

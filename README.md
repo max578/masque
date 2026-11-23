@@ -17,7 +17,8 @@ the codes in the copy back to the real labels.
 
 By default, every outcome and covariate is simulated independently, with no
 link to other columns or to the real rows. Each numeric column keeps only
-its approximate range and shape. The experimental design and the pattern of
+an eleven-point summary: its 1st percentile, deciles and 99th percentile.
+The experimental design and the pattern of
 missing values are kept exactly, and category labels are replaced by codes.
 When the code needs correlations between columns, use
 `mode = "collaborate"`, or `mode = "local"` if the copy will not leave the

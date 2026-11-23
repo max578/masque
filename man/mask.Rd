@@ -50,9 +50,10 @@ outcome, date or text column, a numeric or date noise column, or an
 \code{events} spec) is refused in null and collaborate mode with
 \code{masque_too_few_rows_refusal}, because such a clone is the original
 values resampled, or drawn from a summary that is close to them; local
-mode warns with \code{masque_too_few_rows}. Kept, aliased and dropped columns
-are not re-simulated, and categorical noise draws codes only, so a short
-lookup table of those masks in any mode.}
+mode warns with \code{masque_too_few_rows}. A logical noise column counts,
+since it is drawn over the values it holds. Kept, aliased and dropped
+columns are not re-simulated, and factor and character noise draws
+codes only, so a short lookup table of those masks in any mode.}
 
 \item{seed}{Optional integer for reproducibility.}
 
@@ -229,12 +230,17 @@ the recipe. Null mode grades it the same way; local mode is unaffected.}
 \item{noise}{The draw behind the \code{noise} action: \code{"summary"} (default)
 draws each numeric or date column independently from its 1st
 percentile, deciles and 99th percentile, interpolated linearly, so every
-value lies between the 1st and 99th percentiles; whole numbers stay
-whole. \code{"standard"} reads only the column's type and draws on a fixed
+draw lies between the 1st and 99th percentiles. Whole numbers stay
+whole, and the rounding can take a value just outside those
+percentiles. A column with fewer than 12 finite values takes the
+standard draw (see Details). \code{"standard"} reads only the column's type
+and draws on a fixed
 scale: a proportion from Beta(2, 2), a non-negative number from
 Gamma(2, 1), other numbers from N(0, 1), 0/1 values from Bernoulli(0.5),
 counts from Poisson(5) and dates uniformly within the year 2000.
-Categorical columns are drawn uniformly over their levels either way.}
+Columns with the same type flags draw the same values under one seed,
+whatever their means. Categorical columns are drawn uniformly over their
+levels either way.}
 
 \item{quiet}{Single logical. \code{TRUE} silences the \code{masque_mode_downgrade}
 warning raised when a roles table prepared for \code{"null"} or
@@ -266,9 +272,10 @@ a synthetic clone according to each column's \code{action}. Returns a
 }
 \details{
 By default (\code{mode = "null"}), every outcome and covariate is simulated
-independently. Each numeric column keeps only its approximate range and
-shape. Only the experimental design and the pattern of missing values are
-kept exactly, and labels are replaced by codes. Identifier, free-text and
+independently. Each numeric column keeps only an eleven-point summary:
+its 1st percentile, deciles and 99th percentile. Only the experimental
+design and the pattern of missing values are kept exactly, and category
+labels are replaced by codes. Identifier, free-text and
 unsupported columns are dropped. The clone carries no relationship between
 columns, so it suits writing and testing code, not estimating effects.
 
@@ -317,12 +324,28 @@ tables becomes \verb{<col>_KNNN}. \code{NNN} has at least three digits.}
 replaced by independent draws, row by row, that use nothing from its
 values except a coarse summary (see \code{noise}). Categorical columns are
 drawn uniformly over their levels, which are replaced by codes
-\verb{<col>_LNNN}. A column constant within a design unit gets one draw per
-unit. The default for these roles in null mode.}
+\verb{<col>_LNNN}. A logical column stays logical and is drawn uniformly
+over the values it holds, so a logical that is always \code{TRUE} stays
+\code{TRUE} (with a \code{masque_noise_single_value} warning, as for a numeric
+column with one observed value). A column constant within a design
+unit gets one draw per unit. The default for these roles in null
+mode.}
 }
 
-The NA mask of every retained column is preserved cell-by-cell. RNG
-state is preserved across the call.
+Summary noise needs at least 12 finite values, since eleven or fewer are
+recovered exactly from the eleven summary points. A shorter numeric, date
+or logical noise column takes the standard draw instead, with a
+\code{masque_noise_small_sample} warning; for a column constant within a
+design unit the count is of units with an observed value.
+
+The NA mask of every retained column is preserved cell-by-cell, and
+\code{NaN}, \code{Inf} and \code{-Inf} cells are kept in place like the missing cells.
+A \code{POSIXlt} column is returned as \code{POSIXct}. An \code{integer64} column that
+would be read (any action other than \code{keep} or \code{drop}) is refused with
+\code{masque_integer64_refusal}; convert it with \code{as.numeric()} or
+\code{as.character()} first. RNG state is preserved across the call. Null
+mode draws from a stream of its own, so a null clone and a local or
+collaborate clone made with the same seed are not paired row by row.
 }
 
 \examples{
