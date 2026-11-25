@@ -3,9 +3,9 @@
 Writes the recipe to a single `.rds` file. The default is
 **runtime-minimal**: no simulator state (copula covariance, raw margins)
 is written, only the translation maps, factor metadata, storage classes,
-integrity fingerprint, and warnings. This keeps the saved artefact small
-and reduces the information that would leak if the recipe file alone
-were shared.
+integrity fingerprints, the key behind the owner's controls, and
+warnings. This keeps the saved artefact small and reduces the
+information that would leak if the recipe file alone were shared.
 
 ## Usage
 
@@ -58,7 +58,11 @@ r <- propose_roles(iris)
 r$role[r$col == "Sepal.Length"] <- "outcome"
 m <- mask(iris, r, mode = "collaborate", seed = 1)
 #> Re-resolved default actions for mode "collaborate" (explicit edits always win):
-#> • Species: scramble -> alias
+#> • Sepal.Length: noise -> scramble
+#> • Sepal.Width: noise -> scramble
+#> • Petal.Length: noise -> scramble
+#> • Petal.Width: noise -> scramble
+#> • Species: noise -> alias
 tmp <- tempfile(fileext = ".rds")
 save_recipe(recipe(m), tmp)
 rec2 <- read_recipe(tmp)

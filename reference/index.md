@@ -43,10 +43,10 @@ check them.
 
 ## Masking
 
-Produce a structurally faithful synthetic clone of one or many tables.
+Make synthetic copies of one or many tables.
 
-- [`mask()`](https://max578.github.io/masque/reference/mask.md) : Mask a
-  tabular dataset into a structurally faithful development surrogate
+- [`mask()`](https://max578.github.io/masque/reference/mask.md) : Make a
+  synthetic copy of one table
 - [`mask_set()`](https://max578.github.io/masque/reference/mask_set.md)
   : Mask a multi-table set with cross-table-consistent aliasing
 - [`read_set()`](https://max578.github.io/masque/reference/read_set.md)
@@ -85,6 +85,32 @@ Check a synthetic for residual structural leakage.
 - [`audit_mask()`](https://max578.github.io/masque/reference/audit_mask.md)
   : Audit a masque object for leakage and shareability risks
 
+## Known-truth controls
+
+Null, negative and positive control datasets derived from a table by a
+declared spec.
+
+- [`control_spec()`](https://max578.github.io/masque/reference/control_spec.md)
+  : Declare the controls to derive from a table
+- [`controls()`](https://max578.github.io/masque/reference/controls.md)
+  : Derive null, negative and positive controls from a table
+- [`control_table()`](https://max578.github.io/masque/reference/control_table.md)
+  : Produce one control dataset
+
+## Plan and handover
+
+Roles and named specs in one object, and what an analyst receives.
+
+- [`masque_plan()`](https://max578.github.io/masque/reference/masque_plan.md)
+  : A masking plan: roles and named specs in one object
+- [`clone_plan()`](https://max578.github.io/masque/reference/clone_plan.md)
+  : The plan in clone vocabulary, for the analyst
+- [`save_plan()`](https://max578.github.io/masque/reference/save_plan.md)
+  [`read_plan()`](https://max578.github.io/masque/reference/save_plan.md)
+  : Save and read a masking plan as YAML
+- [`handover()`](https://max578.github.io/masque/reference/handover.md)
+  : Hand a clone to an analyst
+
 ## Geospatial post-processing
 
 Coarsen or re-anchor synthetic coordinates while keeping them on land
@@ -99,5 +125,4 @@ and plausible.
 ## Package
 
 - [`masque-package`](https://max578.github.io/masque/reference/masque-package.md)
-  : masque: Structurally Faithful Development Surrogates for Tabular
-  Data
+  : masque: Synthetic Copies of Confidential Data Tables

@@ -41,23 +41,21 @@ m <- mask(iris, r, seed = 1)
 recipe(m)
 #> 
 #> ── masque_recipe ───────────────────────────────────────────────────────────────
-#> • Created: 2026-10-30 23:38:12 UTC
-#> • Mode: local
-#> • Clone fidelity: marginal / structural (global copula)
+#> • Created: 2026-11-25 05:55:25 UTC
+#> • Mode: null
+#> • Clone fidelity: null (independent draws; design and missing-value pattern
+#>   exact)
 #> • Seed: present (redacted)
-#> • masque version: 0.16.0
+#> • masque version: 0.18.0
 #> • Integrity fingerprint: 62a4affb7e41...
 #> 
-#> ── Columns (5 total; 0 level maps; 0 column-name maps) ──
+#> ── Columns (5 total; 1 level map; 0 column-name maps) ──
 #> 
-#>   = outcome   scramble  Sepal.Length                  (numeric)
-#>   = covariate scramble  Sepal.Width                   (numeric)
-#>   = covariate scramble  Petal.Length                  (numeric)
-#>   = covariate scramble  Petal.Width                   (numeric)
-#>   = covariate scramble  Species                       (factor)
-#> ── Warnings ──
-#> 
-#> ! local mode: synthetic data is for owner development only, not external sharing.
+#>   = outcome   noise     Sepal.Length                  (numeric)
+#>   = covariate noise     Sepal.Width                   (numeric)
+#>   = covariate noise     Petal.Length                  (numeric)
+#>   = covariate noise     Petal.Width                   (numeric)
+#>   * covariate noise     Species                       (factor)
 #> 
 #> ✖ PRIVATE - never share this recipe alongside the synthetic.
 #> Use `reveal_maps(rec)` to inspect level maps explicitly.

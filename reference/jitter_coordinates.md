@@ -73,6 +73,10 @@ jitter_coordinates(
   (requires the `maps` package). A function `function(lon, lat)`
   returning a logical vector supplies your own test (for example an
   `sf`-based high-resolution coastline). `FALSE` applies no constraint.
+  The test conditions the annulus: near a coast the accepted directions
+  are the ones on land, so the mean displacement points inland and the
+  median distance can move by kilometres, while no point falls inside
+  `min_km`. A site that cannot reach land is missing.
 
 - max_tries:
 
@@ -120,10 +124,10 @@ farm – therefore comes back with one masked coordinate per place,
 exactly as the source table has one true coordinate per place. `by`
 chooses how a site is identified:
 
-- `by = NULL` (default) treats rows that share an identical input
-  coordinate pair as one site. This needs no user action and cannot
-  alter genuinely point-level data, where every input pair is already
-  distinct.
+- `by = NULL` (default) treats rows that share an input coordinate pair,
+  to nine decimal places, as one site. This needs no user action and
+  cannot alter genuinely point-level data, where every input pair is
+  already distinct.
 
 - `by = c("trial")` (one or more column names) treats rows sharing those
   values as one site, for the case where a site's recorded coordinates
@@ -131,15 +135,19 @@ chooses how a site is identified:
   distinct input coordinate, the group's row-weighted centroid is used
   and the consolidation is reported.
 
-- `by = FALSE` restores the pre-0.10.0 behaviour of displacing every row
-  independently, and warns if the input carries repeated coordinate
-  pairs. It exists only so a table masked by an earlier version can be
-  reproduced.
+- `by = FALSE` displaces every row independently, as versions before
+  0.10.0 did, and warns if the input carries repeated coordinate pairs.
+  The draw follows the row's position, so shuffled rows move
+  differently.
+
+The draw is a function of the seed, the two column names and the site's
+value: its coordinates, or its `by` values. Row order and the other
+sites in the table play no part.
 
 Displacing each row of a repeated coordinate separately leaks the site.
 Donut displacement is isotropic, so the mean of many independent draws
 around one true site converges on that site: averaging the 360 rows of a
-single trial recovers the true position to a median 0.58 km, against the
+single trial recovers the true position to a median 0.64 km, against the
 5 km floor the donut was asked for. One draw per site removes the
 estimator and leaves the full displacement in place.
 
@@ -154,18 +162,31 @@ default:
 |               |                       |
 |---------------|-----------------------|
 | Rebuilds kept | Median recovery error |
-| 1             | 14.2 km               |
-| 2             | 10.1 km               |
-| 4             | 6.4 km                |
-| 8             | 4.5 km                |
+| 1             | 14.6 km               |
+| 2             | 9.4 km                |
+| 4             | 6.3 km                |
+| 8             | 4.4 km                |
 | 16            | 3.1 km                |
 
-Eight kept rebuilds fall below the 5 km floor the donut was asked for.
+Seven kept rebuilds fall below the 5 km floor the donut was asked for.
 
-The remedy is to **reuse the seed**. The same `seed` reproduces the same
-displacement for the same sites, so any number of rebuilds yields one
-point and nothing to average. Draw a fresh seed only when you intend to
-supersede every earlier version, and retire the ones you replace.
+A known region also cuts the annulus. Someone who knows a site lies in a
+square a few times `max_km` wide or smaller can discard the part of the
+annulus around the released point that falls outside it, with no second
+release needed.
+
+The remedy is to **reuse the seed**. The same `seed` gives a site the
+same displacement in every rebuild, even when rows are shuffled, added
+or removed, so any number of rebuilds yields one point and nothing to
+average. Three things start a new draw for a site: a different seed, a
+changed site value (a corrected coordinate, a renamed `by` label) and
+renamed coordinate columns. A clone built before version 0.17.0 used a
+different draw, so a rebuild under 0.17.0 is a new release of those
+sites even with the same seed. Treat each of these as a fresh seed:
+retire the versions it replaces. The seed reveals every displacement, so
+it stays as confidential as the recipe. A seed has 31 bits: where a
+clone shows site labels and holds two pairs at one place, it can be
+found by search, so alias the label or declare one pair.
 
 Choose the unit carefully. It is the finest grouping that denotes **one
 physical place at one time**. For a multi-year trial series that is

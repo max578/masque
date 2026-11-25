@@ -26,9 +26,11 @@ apply_recipe(original, rec, check_integrity = TRUE)
 - check_integrity:
 
   Logical. When `TRUE` (default), verifies that the NA mask of
-  `original` matches the recipe's recorded `integrity_fp`. Mismatches
-  error with guidance. Pass `FALSE` to bypass when the missingness has
-  legitimately changed since the recipe was built.
+  `original` matches the recipe's recorded `integrity_fp` and that its
+  values match the recipe's fingerprint of them, numbers to within the
+  rounding of a file. A mismatch is an error with guidance. Pass `FALSE`
+  to run on a table that has legitimately changed since the recipe was
+  built; a label the recipe has never seen is still refused.
 
 ## Value
 
@@ -45,8 +47,8 @@ Operations applied (in order):
     [`conform_table()`](https://max578.github.io/masque/reference/conform_table.md)
     when the clone was built on a conformance object.
 
-2.  **Verify integrity** by comparing the NA mask of `original` to the
-    SHA-256 fingerprint stored on the recipe (controlled by
+2.  **Verify integrity** by comparing the NA mask and the values of
+    `original` with the fingerprints stored on the recipe (controlled by
     `check_integrity`).
 
 3.  **Drop** every column whose resolved `action` was `"drop"` on the
@@ -84,7 +86,11 @@ r$role[r$col == "Sepal.Length"] <- "outcome"
 r$role[r$col == "Species"] <- "covariate"
 m <- mask(iris, r, mode = "collaborate", seed = 1)
 #> Re-resolved default actions for mode "collaborate" (explicit edits always win):
-#> • Species: scramble -> alias
+#> • Sepal.Length: noise -> scramble
+#> • Sepal.Width: noise -> scramble
+#> • Petal.Length: noise -> scramble
+#> • Petal.Width: noise -> scramble
+#> • Species: noise -> alias
 rec <- recipe(m)
 iris_in_synth_space <- apply_recipe(iris, rec)
 head(iris_in_synth_space)

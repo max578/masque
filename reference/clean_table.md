@@ -1,12 +1,12 @@
 # Tidy a dirty table's column names and category labels before masking
 
-Real custodian tables arrive with column names that are not valid R
-names (`"Yield (t/ha)"`, `"Site Name"`), leading or trailing whitespace
-in names and factor / character values, and the occasional
-near-duplicate label (`"north"` vs `"North"` vs `" north"`).
-`clean_table()` legalises names and trims whitespace, and reports each
-fix. Near-duplicate labels are only reported, since merging labels that
-look alike is a judgement call;
+Real tables often arrive with column names that are not valid R names
+(`"Yield (t/ha)"`, `"Site Name"`), leading or trailing whitespace in
+names and factor / character values, and the occasional near-duplicate
+label (`"north"` vs `"North"` vs `" north"`). `clean_table()` legalises
+names and trims whitespace, and reports each fix. Near-duplicate labels
+are only reported, since merging labels that look alike is a judgement
+call;
 [`conform_table()`](https://max578.github.io/masque/reference/conform_table.md)
 makes it.
 

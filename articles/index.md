@@ -10,3 +10,5 @@
   model](https://max578.github.io/masque/articles/confidentiality.md):
 - [What a conditional clone keeps of the
   design](https://max578.github.io/masque/articles/design_preservation.md):
+- [Known-truth
+  controls](https://max578.github.io/masque/articles/controls.md):

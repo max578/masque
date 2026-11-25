@@ -16,7 +16,7 @@ mask_set(
   input,
   roles = NULL,
   links = NULL,
-  mode = c("local", "collaborate"),
+  mode = c("null", "local", "collaborate"),
   seed = NULL,
   clean = c("auto", "report", "off"),
   alias_names = FALSE,
@@ -24,6 +24,7 @@ mask_set(
   ladder = c("hierarchy", "levels"),
   grain = TRUE,
   allow_kept_outcome = FALSE,
+  noise = c("summary", "standard"),
   quiet = FALSE,
   sheets = NULL,
   info = NULL,
@@ -56,13 +57,17 @@ mask_set(
   Optional override for link detection: a character vector of column
   names to treat as cross-table links, or `FALSE` to disable linking
   entirely (each table masked independently). When `NULL` (default),
-  links are detected automatically.
+  links are detected automatically. A character vector replaces the
+  automatic links, so a key must be named too, and a noise column named
+  there is aliased from its real values instead of drawn.
 
 - mode:
 
-  Either `"local"` or `"collaborate"`. When omitted and `roles` are
-  supplied, inherit their common mode. Tables prepared for different
-  modes must be reconciled explicitly. Otherwise default to `"local"`.
+  One of `"null"`, `"local"` or `"collaborate"`. When omitted and
+  `roles` are supplied, inherit their common mode. Tables prepared for
+  different modes must be reconciled explicitly. Otherwise default to
+  `"null"`. In null mode a column drawn as noise is not linked across
+  tables unless it is named in `links`.
 
 - seed:
 
@@ -82,7 +87,8 @@ mask_set(
 
 - conditional:
 
-  Logical scalar (default `FALSE`). Passed through to each per-table
+  `FALSE` (default), `TRUE` or `"design"`. Passed through to each
+  per-table
   [`mask()`](https://max578.github.io/masque/reference/mask.md) call:
   when `TRUE`, every table's numeric block is re-simulated within its
   own treatment-by-design strata so the treatment-to-outcome
@@ -106,7 +112,14 @@ mask_set(
 
   Single logical, passed to each
   [`mask()`](https://max578.github.io/masque/reference/mask.md) call:
-  `TRUE` allows a kept outcome in a collaborate clone and records it.
+  `TRUE` allows a kept outcome in a null or collaborate clone and
+  records it.
+
+- noise:
+
+  The draw behind the `noise` action, `"summary"` (default) or
+  `"standard"`; passed to each
+  [`mask()`](https://max578.github.io/masque/reference/mask.md) call.
 
 - quiet:
 

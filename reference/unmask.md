@@ -63,7 +63,11 @@ r <- propose_roles(iris)
 r$role[r$col == "Species"] <- "treatment"
 m <- mask(iris, r, mode = "collaborate", seed = 1)
 #> Re-resolved default actions for mode "collaborate" (explicit edits always win):
-#> • Species: scramble -> alias
+#> • Sepal.Length: noise -> scramble
+#> • Sepal.Width: noise -> scramble
+#> • Petal.Length: noise -> scramble
+#> • Petal.Width: noise -> scramble
+#> • Species: noise -> alias
 synth <- synthetic(m)
 rec <- recipe(m)
 # round-trip a synthetic-namespace value back to its original label

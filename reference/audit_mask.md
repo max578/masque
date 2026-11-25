@@ -1,12 +1,14 @@
 # Audit a masque object for leakage and shareability risks
 
 Returns a per-column audit data.table, with table-level checks attached,
-and prints a severity-grouped report. Auto-runs in
+and prints a severity-grouped report. Auto-runs in `mode = "null"` and
 `mode = "collaborate"` at
 [`mask()`](https://max578.github.io/masque/reference/mask.md) time and
 stores the result on the masque object (`m@audit`); for local-mode
 audits or explicit re-audits, pass the original data frame via
-`original`.
+`original`. A null-mode clone is graded on the same scale as a
+collaborate clone: wherever a rule below names collaborate mode, it
+applies to null mode too.
 
 ## Usage
 
@@ -141,6 +143,12 @@ A column constant within a design unit that was synthesised row by row
 (`grain = FALSE`, or a collaborate grain with fewer than five units)
 carries a note saying the clone does not keep that grain.
 
+The grade of a re-simulated number compares rows. A shift on a design
+level of three or four rows, with within-level noise as large as the
+signal, can grade low while the correlation of the level means stays
+near 0.85. A low class means the rows are not copies. It does not mean
+the level means are hidden.
+
 As a reference point, a collaborate-mode clone of
 [`agridat::besag.met`](https://kwstat.github.io/agridat/reference/besag.met.html)
 (yield as the outcome, design columns kept) scores `low` on every
@@ -158,7 +166,11 @@ r$role[r$col == "Sepal.Length"] <- "outcome"
 r$role[r$col == "Species"] <- "covariate"
 m <- mask(iris, r, mode = "collaborate", seed = 1)
 #> Re-resolved default actions for mode "collaborate" (explicit edits always win):
-#> • Species: scramble -> alias
+#> • Sepal.Length: noise -> scramble
+#> • Sepal.Width: noise -> scramble
+#> • Petal.Length: noise -> scramble
+#> • Petal.Width: noise -> scramble
+#> • Species: noise -> alias
 audit_mask(m)
 #> 
 #> ── masque audit (mode = collaborate) ───────────────────────────────────────────

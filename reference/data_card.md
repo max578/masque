@@ -161,8 +161,8 @@ path <- tempfile(fileext = ".yaml")
 data_card(m, file = path)
 head(readLines(path), 12)
 #>  [1] "card_version: \"0.1\""     "produced_by:"             
-#>  [3] "  package: \"masque\""     "  version: \"0.16.0\""    
-#>  [5] "  mode: \"local\""         "table:"                   
+#>  [3] "  package: \"masque\""     "  version: \"0.18.0\""    
+#>  [5] "  mode: \"null\""          "table:"                   
 #>  [7] "  name: \"clone\""         "  source: \"clone\""      
 #>  [9] "  n_rows: 150"             "  n_cols: 5"              
 #> [11] "  provenance:"             "    n_rows: \"structure\""

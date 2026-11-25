@@ -161,6 +161,21 @@ If you depend on `masque` before 1.0, set a version floor in
 `DESCRIPTION` (`Imports: masque (>= 0.14.0)`) and record the exact
 version with `renv` (`renv::snapshot()`).
 
+- `0.17.0`: new exports
+  [`control_spec()`](https://max578.github.io/masque/reference/control_spec.md),
+  [`controls()`](https://max578.github.io/masque/reference/controls.md),
+  [`control_table()`](https://max578.github.io/masque/reference/control_table.md),
+  [`masque_plan()`](https://max578.github.io/masque/reference/masque_plan.md),
+  [`clone_plan()`](https://max578.github.io/masque/reference/clone_plan.md),
+  [`save_plan()`](https://max578.github.io/masque/reference/save_plan.md),
+  [`read_plan()`](https://max578.github.io/masque/reference/save_plan.md),
+  [`handover()`](https://max578.github.io/masque/reference/handover.md).
+  `mask(conditional = )` also takes `"design"` or column names, and
+  `roles` also takes a plan. **A site’s coordinate displacement changes
+  under the same seed**, because the draw is now keyed on the site’s
+  value, so a rebuild is a new release of those sites. No signature
+  breaks.
+
 ## 1.0 and after
 
 From `1.0.0`, `masque` adopts a **frozen API**:

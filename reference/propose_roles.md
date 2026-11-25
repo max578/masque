@@ -12,7 +12,7 @@ before passing it to
 ## Usage
 
 ``` r
-propose_roles(df, mode = c("local", "collaborate"), detect = TRUE)
+propose_roles(df, mode = c("null", "local", "collaborate"), detect = TRUE)
 ```
 
 ## Arguments
@@ -23,9 +23,9 @@ propose_roles(df, mode = c("local", "collaborate"), detect = TRUE)
 
 - mode:
 
-  The masking mode the table is being prepared for: `"local"` (default)
-  or `"collaborate"`. Stored as `attr(roles, "mode")` and used to
-  resolve default actions.
+  The masking mode the table is being prepared for: `"null"` (default),
+  `"local"` or `"collaborate"`. Stored as `attr(roles, "mode")` and used
+  to resolve default actions.
 
 - detect:
 
@@ -94,7 +94,13 @@ synthesis:
 
 - `keep`:
 
-  Byte-identical pass-through, both modes.
+  Byte-identical pass-through, in every mode.
+
+- `noise`:
+
+  Outcome, covariate and date columns: replace the values with
+  independent draws that use only a coarse summary of the column;
+  categorical levels become codes. The default in null mode.
 
 - `scramble`:
 
@@ -108,7 +114,7 @@ synthesis:
 
 - `drop`:
 
-  Column excluded from the synthetic, both modes.
+  Column excluded from the synthetic, in every mode.
 
 The proposed `action` column is resolved for `mode`, so the table you
 edit shows the actual masking plan. Re-assigning a column's role with
@@ -120,10 +126,16 @@ the default).
 
 ## Default classification rules, applied in order
 
+The actions below are those of `"local"` and `"collaborate"` mode. In
+the default `"null"` mode every outcome, covariate and date column takes
+`noise`, categorical design columns and treatments take `alias`, numeric
+design columns take `keep`, and id, text and unsupported columns take
+`drop`.
+
 1.  PII-pattern column names (`contact`, `email`, `phone`, `gps`,
     `latitude` / `longitude`, `postcode`, `ssn`, `password`, `owner`,
     `farmer`, `operator`, etc., case-insensitive substring) -\>
-    `pii_suspected = TRUE` and action `drop` in **both** modes. Re-role
+    `pii_suspected = TRUE` and action `drop` in **every** mode. Re-role
     deliberately if the column must survive.
 
 2.  Date / POSIXct / POSIXlt / difftime columns -\> role `date`, action
@@ -178,11 +190,11 @@ and the reason.
 Since masque 0.9.1, high-confidence environment columns detected by
 [`detect_design()`](https://max578.github.io/masque/reference/detect_design.md)
 are promoted to role `design`. In local mode their values remain
-byte-identical. In collaborate mode categorical environment labels
-default to `alias`, which preserves row assignment and factor codes
-while hiding the vocabulary. Numeric environment columns default to
-`keep` and raise a `masque_environment_disclosure` warning for explicit
-review.
+byte-identical. In null and collaborate mode categorical environment
+labels default to `alias`, which preserves row assignment and factor
+codes while hiding the vocabulary. Numeric environment columns default
+to `keep` and raise a `masque_environment_disclosure` warning for
+explicit review.
 
 Weak or competing environment candidates never change roles
 automatically. Inspect `attr(roles, "design")` and use
@@ -204,6 +216,21 @@ for the fail-closed validation applied at
 
 ``` r
 propose_roles(iris)
+#>             col      role action    kind freq_or_range pii_suspected
+#>          <char>    <char> <char>  <char>        <char>        <lgcl>
+#> 1: Sepal.Length covariate  noise numeric    [4.3, 7.9]         FALSE
+#> 2:  Sepal.Width covariate  noise numeric      [2, 4.4]         FALSE
+#> 3: Petal.Length covariate  noise numeric      [1, 6.9]         FALSE
+#> 4:  Petal.Width covariate  noise numeric    [0.1, 2.5]         FALSE
+#> 5:      Species covariate  noise  factor    n=3 levels         FALSE
+#>                                                                                                    notes
+#>                                                                                                   <char>
+#> 1: Default -> covariate; re-role to outcome if response variable, or set action keep to leave untouched.
+#> 2: Default -> covariate; re-role to outcome if response variable, or set action keep to leave untouched.
+#> 3: Default -> covariate; re-role to outcome if response variable, or set action keep to leave untouched.
+#> 4: Default -> covariate; re-role to outcome if response variable, or set action keep to leave untouched.
+#> 5: Default -> covariate; re-role to outcome if response variable, or set action keep to leave untouched.
+propose_roles(iris, mode = "local")
 #>             col      role   action    kind freq_or_range pii_suspected
 #>          <char>    <char>   <char>  <char>        <char>        <lgcl>
 #> 1: Sepal.Length covariate scramble numeric    [4.3, 7.9]         FALSE

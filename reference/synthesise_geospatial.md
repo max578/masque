@@ -131,9 +131,10 @@ roles$role[roles$col %in% c("lat", "lon")] <- "covariate"
 roles$role[roles$col == "state"] <- "design"
 m <- mask(df, roles, mode = "collaborate", seed = 1L)
 #> Re-resolved default actions for mode "collaborate" (explicit edits always win):
-#> • state: scramble -> keep
+#> • state: noise -> keep
 #> • lat: drop -> scramble
 #> • lon: drop -> scramble
+#> • y: noise -> scramble
 #> Warning: audit_mask() flagged HIGH leakage on columns: lat, lon
 centroids <- list(
   NSW = c(lat = -32.5, lon = 147),

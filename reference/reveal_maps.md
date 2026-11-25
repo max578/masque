@@ -53,7 +53,11 @@ r$role[r$col == "Sepal.Length"] <- "outcome"
 r$role[r$col == "Species"] <- "covariate"
 m <- mask(iris, r, mode = "collaborate", seed = 1)
 #> Re-resolved default actions for mode "collaborate" (explicit edits always win):
-#> • Species: scramble -> alias
+#> • Sepal.Length: noise -> scramble
+#> • Sepal.Width: noise -> scramble
+#> • Petal.Length: noise -> scramble
+#> • Petal.Width: noise -> scramble
+#> • Species: noise -> alias
 rec <- recipe(m)
 reveal_maps(rec)
 #> ! Revealing sensitive level maps. Proceed at your discretion.

@@ -28,9 +28,9 @@ roles_validate(roles, df = NULL, mode = NULL)
 
 - mode:
 
-  Optional mode (`"local"` or `"collaborate"`) used to resolve `NA`
-  actions and to upgrade v1 tables. Defaults to `attr(roles, "mode")`,
-  falling back to `"local"`.
+  Optional mode (`"null"`, `"local"` or `"collaborate"`) used to resolve
+  `NA` actions and to upgrade v1 tables. Defaults to
+  `attr(roles, "mode")`, falling back to `"null"`.
 
 ## Value
 
@@ -43,7 +43,7 @@ vocabulary with `keep` / `ignore` roles and the optional `mask_levels`
 column) are upgraded in place with a deprecation warning. The upgrade
 preserves the v1 semantics exactly: v1 `keep` becomes action `keep`; v1
 `ignore` becomes role `id` / `text` / `other` with action `keep` in
-local mode and `drop` in collaborate mode; v1 treatment
+local mode and `drop` in null and collaborate mode; v1 treatment
 `mask_levels = "permute"` becomes action `scramble`.
 
 Hard errors:
@@ -52,7 +52,7 @@ Hard errors:
 
 - unknown role (not in `design`, `treatment`, `outcome`, `covariate`,
   `date`, `id`, `text`, `other`) or unknown action (not in `keep`,
-  `scramble`, `alias`, `drop`);
+  `noise`, `scramble`, `alias`, `drop`);
 
 - any `NA` role (an `NA` *action* is allowed - it resolves to the
   default for the row's role and kind);
@@ -72,7 +72,14 @@ Loud advisories (warnings, not errors):
   byte-for-byte;
 
 - the table was proposed for one mode but is being validated for another
-  (actions are taken as-is; defaults are not re-resolved).
+  and holds no record of its proposed actions (a hand-built table): its
+  actions are taken as-is.
+
+A table proposed for one mode and validated for another is re-resolved:
+each action still on its proposed default takes the new mode's default,
+an edited action is kept, and the changes are listed in a message.
+Moving from `"null"` or `"collaborate"` to `"local"` also warns with
+`masque_mode_downgrade`.
 
 ## See also
 

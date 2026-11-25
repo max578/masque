@@ -35,18 +35,22 @@ r <- propose_roles(iris)
 r$role[r$col == "Sepal.Length"] <- "outcome"
 m <- mask(iris, r, mode = "collaborate", seed = 1)
 #> Re-resolved default actions for mode "collaborate" (explicit edits always win):
-#> • Species: scramble -> alias
+#> • Sepal.Length: noise -> scramble
+#> • Sepal.Width: noise -> scramble
+#> • Petal.Length: noise -> scramble
+#> • Petal.Width: noise -> scramble
+#> • Species: noise -> alias
 tmp <- tempfile(fileext = ".rds")
 save_recipe(recipe(m), tmp)
 rec2 <- read_recipe(tmp)
 rec2
 #> 
 #> ── masque_recipe ───────────────────────────────────────────────────────────────
-#> • Created: 2026-10-30 23:38:11 UTC
+#> • Created: 2026-11-25 05:55:24 UTC
 #> • Mode: collaborate
 #> • Clone fidelity: marginal / structural (global copula)
 #> • Seed: present (redacted)
-#> • masque version: 0.16.0
+#> • masque version: 0.18.0
 #> • Integrity fingerprint: 62a4affb7e41...
 #> 
 #> ── Columns (5 total; 1 level map; 0 column-name maps) ──

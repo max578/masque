@@ -1,0 +1,425 @@
+# Known-truth controls
+
+``` r
+
+library(masque)
+```
+
+## Why
+
+`masque` gives an analyst the structure of a confidential table without
+its values. A control is a copy of a table in which part of the answer
+is fixed by construction, so a pipeline can be run where the right
+reading is known.
+
+- The **null** control permutes every analysed column, so no analysed
+  column is associated with another or with the treatment. It is a smoke
+  test. A pipeline that finds strong signal on it has built that signal
+  itself, from the outcome or from a column the shuffle left alone. A
+  leak that sits in the table, such as a covariate that copies the
+  outcome, is shuffled away with everything else, so a quiet null does
+  not clear a pipeline.
+- The **negative** control permutes one declared column, by default the
+  treatment, within the design strata. Its allocation is random within
+  them and everything else is as it was, the outcome included. It is a
+  sham assignment: the permuted column is unrelated to the outcome, and
+  any real effect it had stays in the outcome as extra noise. Over many
+  replicates the share of negatives on which a pipeline rejects is its
+  false-positive rate on this table under this allocation. On a
+  randomised experiment, the rank of the real result among them is a
+  randomisation p-value.
+- The **positive** control adds a declared shift per level to the
+  negative. The share of positives on which a pipeline finds it is its
+  sensitivity to a clean shift of that size on this table.
+
+In epidemiology a negative control is a variable chosen to share the
+bias of the question. These controls are null by permutation and share
+no bias, so none of them can show confounding.
+
+Nothing is re-simulated. Each control is a permutation of the table it
+was built from, with a shift added for the positive. The design columns
+and the missing cells are those of the input, and every column keeps its
+set of values, apart from the shifted target of a positive.
+
+## A clone and a declaration
+
+The example is the alpha-design trial shipped with the package: 24
+genotypes in 72 plots, three replicates, six blocks of four plots within
+each replicate. The clone is made with `mode = "local"`, because the
+plan in the last section asks for a conditional clone, which the default
+mode (`"null"`) refuses. A local clone stays with the data owner. Here
+it stands in for the default or collaborate clone an analyst would
+receive.
+
+``` r
+
+trial <- read.csv(system.file("extdata", "john_alpha.csv", package = "masque"))
+r <- propose_roles(trial, mode = "local", detect = FALSE)
+r <- set_role(r, c("rep", "block"), role = "design", action = "keep")
+r <- set_role(r, "gen", role = "treatment", action = "keep")
+r <- set_role(r, "yield", role = "outcome", action = "scramble")
+r <- set_role(r, c("plot", "row", "col"), role = "id", action = "keep")
+m <- mask(trial, r, mode = "local", seed = 1L)
+clone <- synthetic(m)
+```
+
+The control spec is declared once, before any control exists. It names
+the column to permute, the strata to permute it within, the outcome to
+plant an effect on, the effect per genotype in units of the outcome’s
+standard deviation, the number of replicates and the seed. Here the
+planted genotype effects are drawn from a normal distribution with
+standard deviation 0.5, under the spec’s seed, so the same vector is
+planted on every table the spec meets.
+
+``` r
+
+spec <- control_spec(
+  on = "gen",
+  target = "yield",
+  effect = list(sd = 0.5),
+  strata = "rep",
+  n = 19L,
+  seed = 2026L
+)
+spec
+#> 
+#> ── masque_control_spec ─────────────────────────────────────────────────────────────────────────────
+#> • Permuted column (on): gen
+#> • Planted-effect target: yield
+#> • Effect (target-SD units): one shift per level drawn from N(0, 0.5^2) when the spec meets a table
+#> • Strata: rep
+#> • Unit of on: row
+#> • Unit-grained columns: none declared
+#> • Replicates: 19
+#> • Seed: present
+```
+
+## The analyst’s side: controls from the clone
+
+The analyst holds the clone and its role table, and nothing else. The
+controls are derived from the clone, so they disclose nothing the clone
+does not.
+
+``` r
+
+ctl <- controls(clone, roles(m), spec)
+ctl
+#> 
+#> ── masque_controls ─────────────────────────────────────────────────────────────────────────────────
+#> • Table: 72 rows, 7 columns; 1 analysed column
+#> • Permuted column (on): gen
+#> • Strata: rep (3 strata; on constant in 0% of them)
+#> • Unit of on: row
+#> • Datasets: 1 null, 19 negative, 19 positive
+#> • Seeds: present
+#> 
+#> ── Planted truth (positive minus negative, per level of on) ──
+#> 
+#>     target  level   effect_sd      sd_y sd_within_strata shift_realised
+#>     <char> <char>       <num>     <num>            <num>          <num>
+#>  1:  yield    G01 -0.03745223 0.5557301        0.5517536   -0.020813331
+#>  2:  yield    G02  0.56766062 0.5557301        0.5517536    0.315466110
+#>  3:  yield    G03 -0.21139985 0.5557301        0.5517536   -0.117481263
+#>  4:  yield    G04  0.89984969 0.5557301        0.5517536    0.500073581
+#>  5:  yield    G05 -0.83607365 0.5557301        0.5517536   -0.464631317
+#>  6:  yield    G06 -0.42709968 0.5557301        0.5517536   -0.237352160
+#>  7:  yield    G07 -0.71390819 0.5557301        0.5517536   -0.396740287
+#>  8:  yield    G08  0.05738311 0.5557301        0.5517536    0.031889525
+#>  9:  yield    G09 -0.17170680 0.5557301        0.5517536   -0.095422642
+#> 10:  yield    G10 -0.09379528 0.5557301        0.5517536   -0.052124866
+#> 11:  yield    G11  0.58356951 0.5557301        0.5517536    0.324307161
+#> 12:  yield    G12  0.01544342 0.5557301        0.5517536    0.008582376
+#> 13:  yield    G13 -0.82322128 0.5557301        0.5517536   -0.457488867
+#> 14:  yield    G14  0.79197658 0.5557301        0.5517536    0.440125245
+#> 15:  yield    G15 -0.89720309 0.5557301        0.5517536   -0.498602789
+#> 16:  yield    G16 -0.39186317 0.5557301        0.5517536   -0.217770170
+#> 17:  yield    G17 -0.08066037 0.5557301        0.5517536   -0.044825398
+#> 18:  yield    G18  0.04951500 0.5557301        0.5517536    0.027516978
+#> 19:  yield    G19  0.18612377 0.5557301        0.5517536    0.103434586
+#> 20:  yield    G20 -0.11157845 0.5557301        0.5517536   -0.062007508
+#> 21:  yield    G21 -0.20408017 0.5557301        0.5517536   -0.113413499
+#> 22:  yield    G22  0.11109054 0.5557301        0.5517536    0.061736362
+#> 23:  yield    G23  0.31921234 0.5557301        0.5517536    0.177395913
+#> 24:  yield    G24 -0.24466831 0.5557301        0.5517536   -0.135969553
+#>     target  level   effect_sd      sd_y sd_within_strata shift_realised
+#>     <char> <char>       <num>     <num>            <num>          <num>
+```
+
+The print shows the resolved declaration and the planted truth: for each
+genotype, the shift in standard-deviation units and the shift in yield
+units that the positive control adds to that genotype’s plots. The
+`@truth` table holds the same, and `@manifest` lists every dataset with
+its seed.
+
+A small pipeline stands in for the analyst’s: an analysis of variance of
+yield on replicate, block within replicate and genotype, returning the
+p-value of the genotype term.
+
+``` r
+
+genotype_p <- function(d) {
+  blocks <- interaction(d$rep, d$block, drop = TRUE)
+  fit <- stats::lm(yield ~ blocks + gen, data = d)
+  stats::anova(fit)["gen", "Pr(>F)"]
+}
+```
+
+On the clone itself the genotype term is not expected to show, because
+the clone re-simulates yield without a genotype effect. On the null it
+should not show beyond chance. On the negatives it shows at the
+pipeline’s false-positive rate. On the positives it shows at the rate
+the pipeline finds the planted shift.
+
+``` r
+
+p_clone <- genotype_p(clone)
+p_null <- genotype_p(control_table(ctl, "null"))
+p_neg <- vapply(seq_len(spec@n), function(i) {
+  genotype_p(control_table(ctl, "negative", i))
+}, numeric(1))
+p_pos <- vapply(seq_len(spec@n), function(i) {
+  genotype_p(control_table(ctl, "positive", i))
+}, numeric(1))
+data.frame(
+  dataset = c("clone", "null"),
+  p_value = round(c(p_clone, p_null), 3)
+)
+#>   dataset p_value
+#> 1   clone   0.563
+#> 2    null   0.058
+data.frame(
+  controls = c("negative (19)", "positive (19)"),
+  share_below_0.05 = round(c(mean(p_neg < 0.05), mean(p_pos < 0.05)), 2)
+)
+#>        controls share_below_0.05
+#> 1 negative (19)             0.11
+#> 2 positive (19)             0.21
+```
+
+The negatives give the pipeline’s false-positive rate, and the positives
+the rate at which it finds the planted shift. Both describe this
+pipeline on this table under these permutations, learned without a
+single real yield. Another table with the same design can give other
+rates.
+
+The construction can be checked as well. The genotype means on a
+positive replicate, less those on its negative replicate, are the
+planted shifts exactly, because the two share one permutation. This
+checks the controls, not the pipeline: raw genotype means recover the
+shifts by construction, so only an adjusted estimate can show a fault in
+the pipeline.
+
+``` r
+
+neg <- control_table(ctl, "negative", 1L)
+pos <- control_table(ctl, "positive", 1L)
+recovered <- tapply(pos$yield, pos$gen, mean) - tapply(neg$yield, neg$gen, mean)
+planted <- ctl@truth$shift_realised[match(names(recovered), ctl@truth$level)]
+all.equal(as.numeric(recovered), planted)
+#> [1] TRUE
+```
+
+The planted size is in units of the yield’s standard deviation in the
+table at hand. That standard deviation holds the block variance and any
+real genotype effect, so on the original a size of 0.5 is not half the
+noise the pipeline sees. On the clone, which keeps no block structure,
+the two nearly coincide. Read the size against the residual of the
+pipeline’s own model:
+
+``` r
+
+residual_sd <- function(d) {
+  blocks <- interaction(d$rep, d$block, drop = TRUE)
+  summary(stats::lm(yield ~ blocks + gen, data = d))$sigma
+}
+0.5 * ctl@truth$sd_y[1] / residual_sd(clone)
+#> [1] 0.5109373
+```
+
+## The owner’s side: the same spec on the original
+
+The owner runs the pipeline the analyst handed back on the original
+table, and on controls derived from the original with the same spec. One
+thing changes: the permutations are drawn privately. Here that is an
+integer given as `seed`, which overrides the spec’s seed. The plan route
+below uses a 256-bit key instead. The planted vector still comes from
+the spec’s seed, so the truth is the same on both sides. A public seed
+would let anyone who knows the design, which the clone shares, rebuild
+every permutation and read the original outcome out of per-replicate
+results. An integer has at most 31 bits, so it hides the permutations
+only while nothing per-replicate is released.
+
+``` r
+
+ctl_owner <- controls(trial, r, spec, seed = 40371L)
+p_real <- genotype_p(trial)
+p_neg_owner <- vapply(seq_len(spec@n), function(i) {
+  genotype_p(control_table(ctl_owner, "negative", i))
+}, numeric(1))
+p_pos_owner <- vapply(seq_len(spec@n), function(i) {
+  genotype_p(control_table(ctl_owner, "positive", i))
+}, numeric(1))
+```
+
+Before the owner’s usual output checking, each reading is classed by
+what it estimates. The false-positive rate over the negatives describes
+the pipeline under sham assignment. For a test whose null distribution
+does not depend on the yields, it says little about them. The rate at
+which the positives find the shift depends on the residual variance, so
+it tells something about the scale of the real noise. The permutation
+p-value, the share of negatives whose p-value is at or below the real
+one, is the result of the analyst’s test on the real table, and it goes
+through output checking like any other result.
+
+``` r
+
+data.frame(
+  reading = c(
+    "false-positive rate (negatives)", "planted shift found (positives)",
+    "permutation p-value of the real result"
+  ),
+  value = c(
+    mean(p_neg_owner < 0.05), mean(p_pos_owner < 0.05),
+    (sum(p_neg_owner <= p_real) + 1) / (spec@n + 1)
+  )
+)
+#>                                  reading      value
+#> 1        false-positive rate (negatives) 0.05263158
+#> 2        planted shift found (positives) 0.52631579
+#> 3 permutation p-value of the real result 0.05000000
+```
+
+The owner’s readings describe the pipeline on the real table, and they
+are the ones that answer the analyst. The clone’s readings are a
+rehearsal. Here the false-positive rates are 0.11 on the clone and 0.05
+on the original, and the positives find the shift at 0.21 and 0.53. The
+clone re-simulates yield without the block structure, so its residual
+variance differs from the original’s and the positives differ with it. A
+gap between the readings is a statement about the clone. Agreement is
+not a check on the pipeline, and a rate of zero on both sides agrees
+while saying nothing. The same planted 0.5 is 1.06 residual standard
+deviations of the pipeline’s model on the original and 0.51 on the
+clone.
+
+The control tables built from the original hold the real values and
+never leave. Per-replicate results do not leave either: each replicate
+is one more query against the original, and with the permutations known
+they are linear equations in the real outcome. The replicate count in
+the spec bounds the queries for one pipeline, and every further pipeline
+or spec run on the original is another set of them.
+
+## Carrying the spec in a plan
+
+So far the spec has been a separate object. A plan fixes it in advance,
+with the roles.
+[`mask()`](https://max578.github.io/masque/reference/mask.md) resolves
+it on the original and records it on the recipe. Where the unit or the
+strata are not declared, the plan picks them: here the replicate, since
+each replicate holds every genotype and a block does not. The clone is
+unchanged by the spec. Its conditional stratum is coarsened to the
+replicate, and the classed warning that says so is muffled here.
+
+``` r
+
+r_plan <- set_role(r, "gen", role = "treatment", action = "alias")
+plan <- masque_plan(
+  r_plan,
+  conditional = "design",
+  controls = control_spec(
+    on = "gen", target = "yield", effect = list(sd = 0.5), n = 19L, seed = 2026L
+  )
+)
+m_plan <- withCallingHandlers(
+  mask(trial, plan, mode = "local", seed = 1L),
+  masque_conditional_degraded = function(w) invokeRestart("muffleWarning")
+)
+recipe(m_plan)@plan@controls$default@strata
+#> [1] "rep"
+```
+
+`conditional = "design"` keeps the design means and block variance and
+carries no genotype effect. A real effect moves into the residual, as it
+does when the owner permutes genotype for a negative control, so the
+clone stands in for those negatives. A fit on this clone does not show
+the residual of a fit on the original.
+
+The analyst gets the plan in the clone’s own names and labels.
+[`handover()`](https://max578.github.io/masque/reference/handover.md)
+writes it to a folder with a default or collaborate clone, the data card
+and a note, and leaves the recipe out. From there the analyst rebuilds
+the declared controls.
+
+``` r
+
+analyst_plan <- clone_plan(m_plan)
+ctl_analyst <- controls(synthetic(m_plan), analyst_plan)
+ctl_analyst@spec@strata
+#> [1] "rep"
+```
+
+The owner passes the same plan with the recipe and the real table.
+Cleaning is replayed, a table that does not match the recipe is refused,
+a spec changed since
+[`mask()`](https://max578.github.io/masque/reference/mask.md) is
+refused, and the permutations come from the digest of a key on the
+recipe, with no integer seed to search, so the analyst cannot rebuild
+them.
+
+``` r
+
+ctl_owner_plan <- controls(trial, analyst_plan, recipe = recipe(m_plan))
+identical(ctl_owner_plan@seeds, ctl_analyst@seeds)
+#> [1] FALSE
+```
+
+## What a control cannot tell you
+
+- A kept column is structure and is never permuted. Leakage through kept
+  columns, ids or row order passes the null.
+- The strata should let every level of the column reach every stratum,
+  as complete replicates do. Permuting within incomplete blocks leaves
+  each block with its own set of genotypes, so part of the real genotype
+  signal survives on the negatives, and the false-positive rate reads
+  high or low depending on the layout.
+- A sequential test depends on the order of its terms. A treatment
+  entered before the blocks carries their variance, and its
+  false-positive rate on this design is well above nominal. The
+  negatives show this, as they should.
+- The negative control reassigns one column under exchangeable
+  allocation within the strata. The outcome is unchanged, so a large
+  real effect of that column makes the residual on a negative larger
+  than on the original. It cannot detect confounding, and on
+  observational data it is a permutation test with no randomisation
+  guarantee behind it.
+- A planted effect is clean: the same shift for every plot of a
+  genotype, no confounding, no interaction. The positives measure
+  sensitivity to a clean shift of the declared size, not power against
+  the real effect, and a pipeline that is biased under confounding still
+  finds it.
+- A shift is added in units of the outcome’s standard deviation in the
+  table at hand. That standard deviation includes the design variance
+  and any real effect, so the same spec plants the same nominal size on
+  the clone and on the original while the shift relative to the residual
+  may differ. The `@truth` table records the standard deviation used
+  and, as `sd_within_strata`, the standard deviation left after the
+  stratum means are removed. That figure still holds the effect of `on`
+  and any variance within the strata, so it is larger than the residual
+  of a model that fits them.
+- Nothing is clipped. A negative shift can take a non-negative outcome
+  below zero, and
+  [`control_table()`](https://max578.github.io/masque/reference/control_table.md)
+  warns when it does. On a count the shift is added, not a change of
+  rate.
+- A negative control estimates the size of a test that uses
+  within-stratum contrasts, so fit the strata. On this design, with
+  replicate strata, `yield ~ rep + gen` rejects near 5 per cent and
+  `yield ~ gen` rejects almost never, because the replicate variance
+  stays in its residual. A shared rate on both sides is agreement
+  between them, and zero on both says nothing about calibration.
+- The null permutes the outcome across the whole table, so block and
+  replicate means vanish and a mixed model sees a different variance
+  structure. Calibrate false positives on the negative control, not on
+  the null.
+- A pipeline adjusted until its controls read well has been fitted to
+  this null and this planted shift. It can still be wrong for every
+  other question.

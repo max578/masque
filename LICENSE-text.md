@@ -1,4 +1,4 @@
 # License
 
     YEAR: 2026
-    COPYRIGHT HOLDER: Max Moldovan
+    COPYRIGHT HOLDER: masque authors

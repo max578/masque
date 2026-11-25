@@ -3,10 +3,11 @@ pkgdown: 2.2.1
 pkgdown_sha: ~
 articles:
   confidentiality: confidentiality.html
+  controls: controls.html
   design_preservation: design_preservation.html
   getting_started: getting_started.html
   recipe_anatomy: recipe_anatomy.html
-last_built: 2026-10-30T23:38Z
+last_built: 2026-11-25T05:55Z
 urls:
   reference: https://max578.github.io/masque/reference
   article: https://max578.github.io/masque/articles

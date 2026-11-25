@@ -10,10 +10,12 @@ library(masque)
 A biometrician developing a yield model on a synthetic clone of a
 multi-environment variety trial needs to know which parts of the
 experiment are still in the clone. The allocation (every design column
-and the treatment labels) is returned as it was (here in local mode,
-with design and treatment columns kept), and the outcomes are
+and the treatment labels) is returned unchanged, and the outcomes are
 re-simulated. What matters is whether a model fitted on those outcomes
-still finds the treatment, block and environment effects.
+still finds the treatment, block and environment effects. Every clone
+here is made with `mode = "local"`, because the default mode (`"null"`)
+draws outcomes independently, keeps none of these effects and refuses
+`conditional = TRUE`.
 
 This vignette checks eight design classes, with a public exemplar of
 each from the `agridat` package. Each is masked as a conditional clone
@@ -22,24 +24,25 @@ and on every clone, and one pass rule is applied to all eight.
 
 ## What
 
-`mask(conditional = TRUE)` re-simulates the numeric block through a
-Gaussian copula fitted within each treatment-by-design stratum. When a
-stratum holds fewer than five rows, design columns are dropped from it
-one at a time, each drop a rung of a ladder, until every cell is large
-enough; rows still in cells that are too small at the last rung are
-pooled into one fallback stratum. Two ladders are available.
+`mask(conditional = TRUE)` re-simulates the numeric outcome and
+covariate columns through a Gaussian copula fitted within each
+treatment-by-design stratum. When a stratum holds fewer than five rows,
+design columns are dropped from it one at a time, each drop a rung of a
+ladder, until every cell is large enough. Rows still in cells that are
+too small at the last rung are pooled into one fallback stratum. Two
+ladders are available.
 
 The default, `ladder = "hierarchy"`, drops plot coordinates first, then
-blocking columns, then environment columns, so a county is never dropped
-before the replicates inside it. Each dropped column, and each pair of
-dropped blocking or environment columns, is carried into the clone as an
-additive shift, and rows in the fallback stratum keep the treatment
-means the same way. A level with a single row is pooled with the other
-singletons before any effect is estimated, so no row’s own outcome is
-carried. A term that is noise is shrunk to nothing; a strong one is
-carried in full. On the recipe, `conditioning_used` is the stratum kept,
-`conditioning_dropped` the columns dropped and `conditioning_shifted`
-the terms carried as shifts.
+blocking columns, then environment columns, so an environment such as a
+county is never dropped before the replicates inside it. Each dropped
+column, and each pair of dropped blocking or environment columns, is
+carried into the clone as an additive shift, and rows in the fallback
+stratum keep the treatment means the same way. A level with a single row
+is pooled with the other singletons before any effect is estimated, so
+no row’s own outcome is carried. Each shift is shrunk towards zero, the
+more so the less its column explains. On the recipe, `conditioning_used`
+is the stratum kept, `conditioning_dropped` the columns dropped and
+`conditioning_shifted` the terms carried as shifts.
 
 `ladder = "levels"` reproduces clones made with masque 0.11.1 to 0.12.0:
 it drops the column with the most distinct values first and keeps
@@ -56,12 +59,14 @@ For each design, over twenty seeds:
 - **Blocking and environment terms.** For each such term the original
   can detect (F at or above 2), the median F over the clones is at least
   half the original’s.
-- **Treatment.** Over the treatment levels with two or more plots, the
-  median correlation between the clone’s level means and the original’s
-  is at least 0.7 when the original detects the treatment (F at or above
-  2); a two-level treatment keeps the same top level in most seeds; and
-  the spread of the level means stays within a factor of two of the
-  original in every case.
+- **Treatment.** Over the treatment levels with two or more plots:
+  1.  When the original detects the treatment (F at or above 2), the
+      median correlation between the clone’s level means and the
+      original’s is at least 0.7.
+  2.  A two-level treatment keeps the same top level in most seeds.
+  3.  Whether or not the treatment is detected, the median ratio of the
+      standard deviations of the level means, clone over original, lies
+      between 0.5 and 2.
 
 ## Example
 
@@ -138,19 +143,19 @@ checks are fixed levels and every unreplicated entry is one class,
 `new`. A clone cannot carry an unreplicated entry’s own value, so only
 the checks and the `new` class are compared.
 
-The RCBD exemplar records its three complete blocks as the column of the
-field; the block factor is made from it and the column kept as a
-coordinate.
+In the RCBD exemplar the three blocks are the three field columns, so
+`block` is built from `col` and `col` is also kept as a coordinate.
 
 ### Masking and measuring
 
-The roles are the ones a custodian would set: the outcome, the treatment
-columns kept as they are, and every design column kept as it is. Local
-mode keeps the treatment labels, so the allocation check is a byte
-comparison. Every clone here coarsens its stratum, so each
+The roles are the ones a data owner would set: the outcome, the
+treatment columns kept as they are, and every design column kept as it
+is. Local mode keeps the treatment labels, so the allocation check is a
+byte comparison. Every clone here coarsens its stratum, so each
 [`mask()`](https://max578.github.io/masque/reference/mask.md) call
-raises the `masque_conditional_degraded` warning. The runner muffles
-that one class; the tables below report the stratum each design reached.
+raises the `masque_conditional_degraded` warning. `design_run()` muffles
+that one class, and the tables below report the stratum each design
+reached.
 
 ``` r
 
@@ -270,6 +275,9 @@ knitr::kable(summary_tbl)
 | MET | 1188 | gen | row, col, block, rep, county, block:rep, block:county, rep:county | TRUE | TRUE | TRUE | TRUE | pass |
 | repeated measures | 660 | trt x day | animal | TRUE | TRUE | TRUE | TRUE | pass |
 
+A treatment listed under *carried* had rows in the fallback stratum,
+which keep their treatment means as a shift.
+
 ``` r
 
 term_tbl <- do.call(rbind, lapply(names(specs), function(nm) {
@@ -364,39 +372,41 @@ ggplot2::ggplot(plot_df, ggplot2::aes(x = ratio, y = label, colour = ladder)) +
   )
 ```
 
-![Dot plot of clone-to-original F ratios for every design term, two
-ladders side by
-side.](design_preservation_files/figure-html/figure-1.png)
+![Dot plot of the clone-to-original F ratio of each model term whose F
+on the original is at least 2, one row per term, coloured by ladder and
+grouped by term
+kind.](design_preservation_files/figure-html/figure-1.png)
 
 F statistic of each model term on the clone as a share of the original,
 median over twenty seeds, by ladder. Points on the dashed line are terms
-the clone reproduces exactly; the dotted line is the pass floor of one
-half. The levels ladder loses most of every blocking and environment
-term; the hierarchy ladder keeps them.
+with the same F on clone and original, and the dotted line is the pass
+floor of one half. The levels ladder loses most of every blocking and
+environment term; the hierarchy ladder keeps them.
 
 ## Results
 
-All 8 of the 8 designs pass the rule under the hierarchy ladder. The
+All eight designs pass the rule under the hierarchy ladder. The
 allocation and the NA mask come back identical in every clone of every
 design, under both ladders. The ladder decides what a model finds.
 
 The multi-environment trial is the case the hierarchy ladder was built
-for. Its county effect has an F of 987 on the original; the levels
-ladder drops `county` before `rep`, and the clone’s county F is 1. The
-hierarchy ladder conditions on genotype alone and carries the plot
+for. Its county effect has an F of 987.12 on the original. The levels
+ladder drops `county` before `rep`, and the clone’s county F is 0.99.
+The hierarchy ladder conditions on genotype alone and carries the plot
 coordinates, `county`, `rep`, `block` and their pairs as shifts. Under
-it the clone’s county F is 952, and the nested `county:rep` term is at
-28.3 against 32.7. The genotype means correlate at 0.9 with the
+it the clone’s county F is 952.10, and the nested `county:rep` term is
+at 28.27 against 32.72. The genotype means correlate at 0.90 with the
 original, against 0.68 under the levels ladder.
 
-Yates’ oats shows the same thing on a single trial: the block F is 0.8
-under the levels ladder and 11.3 under the hierarchy ladder, against
-13.2 on the original, while the nitrogen response is kept by both.
+The split-plot (Yates’ oats) shows the same thing on a single trial: the
+block F is 0.79 under the levels ladder and 11.35 under the hierarchy
+ladder, against 13.25 on the original, while the nitrogen response is
+kept by both.
 
 The alpha lattice and the RCBD are three-replicate variety trials, and
 there the treatment-only rung is itself below the floor of five rows:
 every row is pooled. Under the levels ladder that clone is the marginal
-clone, with a genotype correlation near zero; under the hierarchy ladder
+clone, with a genotype correlation near zero. Under the hierarchy ladder
 the genotype means are carried as a shift and the correlation is 0.93 on
 the lattice and 0.89 on the RCBD.
 
@@ -411,30 +421,32 @@ entries’ values.
 The rule tests fixed-effects F statistics from
 [`lm()`](https://rdrr.io/r/stats/lm.html). A split-plot or a
 repeated-measures analysis would normally use a mixed model with the
-right error strata; the F ratios here compare the same fixed-effects
+right error strata. The F ratios here compare the same fixed-effects
 model on both sides and say nothing about variance components. The
 treatment check compares level means over replicated levels, so it does
-not see a treatment-by-environment interaction, which the clone does not
-preserve: the copula is fitted within the stratum the ladder reached,
-and once `county` has been dropped the genotype-by-county pattern is
-gone. What the clone carries of a dropped column is an additive main
-effect, shrunk toward zero when the column explains little; a spatial
-trend recorded only as row and column numbers is carried as row and
-column means, not as a surface. The floors in the rule (half the
-original F, a correlation of 0.7, a spread within a factor of two) are
-the tolerances this vignette states, not properties of the method;
-tighten them and re-run the chunk for a stricter test.
+not see a treatment-by-environment interaction. The clone does not keep
+one: once `county` is dropped, the genotype-by-county pattern is gone.
+What the clone carries of a dropped column is an additive main effect,
+shrunk towards zero when the column explains little. A spatial trend
+recorded only as row and column numbers is carried as row and column
+means, not as a surface. The rule never tests a term the original does
+not detect, and the clone can inflate one: on the Latin square and the
+augmented design, an undetected term has a larger F on the clone than on
+the original. The floors in the rule (half the original F, a correlation
+of 0.7, a spread within a factor of two) are the tolerances this
+vignette states, not properties of the method. Pass stricter `f_floor`
+and `corr_floor` to `design_verdict()` for a stricter test.
 
 ## What to read next
 
 *Confidentiality and the threat model* lists what carrying a level mean
 into the clone discloses: a level with only a few plots reveals close to
-its real mean. *Getting started with masque* is the custodian’s path
+its real mean. *Getting started with masque* is the data owner’s path
 from a table to a synthetic and a recipe.
 
 ## Reproduce
 
-`set.seed(1)` is set once for the document; every
+`set.seed(1)` is set once for the document, and every
 [`mask()`](https://max578.github.io/masque/reference/mask.md) call
 passes its own `seed`, one to twenty, so each clone is reproducible on
 its own. Package versions follow.
@@ -444,11 +456,11 @@ its own. Package versions follow.
 sessionInfo()
 #> R version 4.6.2 (2026-10-29)
 #> Platform: x86_64-pc-linux-gnu
-#> Running under: Ubuntu 24.04.5 LTS
+#> Running under: Ubuntu 26.04.1 LTS
 #> 
 #> Matrix products: default
 #> BLAS:   /usr/lib/x86_64-linux-gnu/openblas-pthread/libblas.so.3 
-#> LAPACK: /usr/lib/x86_64-linux-gnu/openblas-pthread/libopenblasp-r0.3.26.so;  LAPACK version 3.12.0
+#> LAPACK: /usr/lib/x86_64-linux-gnu/openblas-pthread/libopenblasp-r0.3.32.so;  LAPACK version 3.12.0
 #> 
 #> locale:
 #>  [1] LC_CTYPE=C.UTF-8       LC_NUMERIC=C           LC_TIME=C.UTF-8        LC_COLLATE=C.UTF-8    
@@ -462,17 +474,17 @@ sessionInfo()
 #> [1] stats     graphics  grDevices utils     datasets  methods   base     
 #> 
 #> other attached packages:
-#> [1] masque_0.16.0
+#> [1] masque_0.18.0
 #> 
 #> loaded via a namespace (and not attached):
 #>  [1] vctrs_0.7.3         cli_3.6.6           knitr_1.52          rlang_1.3.0        
-#>  [5] xfun_0.62           otel_0.2.0          S7_0.2.2            textshaping_1.0.5  
+#>  [5] xfun_0.62           otel_0.3.0          S7_1.0.0            textshaping_1.1.0  
 #>  [9] data.table_1.18.6.1 jsonlite_2.0.0      glue_1.8.1          htmltools_0.5.9    
-#> [13] ragg_1.5.2          sass_0.4.10         scales_1.4.0        rmarkdown_2.32     
+#> [13] ragg_1.5.2          sass_0.5.0          scales_1.4.0        rmarkdown_2.32     
 #> [17] grid_4.6.2          evaluate_1.0.5      jquerylib_0.1.4     fastmap_1.2.0      
 #> [21] yaml_2.3.12         lifecycle_1.0.5     compiler_4.6.2      RColorBrewer_1.1-3 
-#> [25] fs_2.1.0            farver_2.1.2        systemfonts_1.3.2   digest_0.6.39      
+#> [25] fs_2.1.0            farver_2.1.2        systemfonts_1.3.4   digest_0.6.39      
 #> [29] R6_2.6.1            bslib_0.12.0        withr_3.0.3         tools_4.6.2        
-#> [33] gtable_0.3.6        agridat_1.26        pkgdown_2.2.1       ggplot2_4.0.3      
+#> [33] gtable_0.3.6        agridat_1.27        pkgdown_2.2.1       ggplot2_4.0.4      
 #> [37] cachem_1.1.0        desc_1.4.3
 ```

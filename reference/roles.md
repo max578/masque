@@ -51,11 +51,11 @@ r <- propose_roles(iris)
 r <- set_role(r, "Sepal.Length", role = "outcome")
 m <- mask(iris, r, seed = 1)
 roles(m)
-#>             col      role   action    kind
-#>          <char>    <char>   <char>  <char>
-#> 1: Sepal.Length   outcome scramble numeric
-#> 2:  Sepal.Width covariate scramble numeric
-#> 3: Petal.Length covariate scramble numeric
-#> 4:  Petal.Width covariate scramble numeric
-#> 5:      Species covariate scramble  factor
+#>             col      role action    kind
+#>          <char>    <char> <char>  <char>
+#> 1: Sepal.Length   outcome  noise numeric
+#> 2:  Sepal.Width covariate  noise numeric
+#> 3: Petal.Length covariate  noise numeric
+#> 4:  Petal.Width covariate  noise numeric
+#> 5:      Species covariate  noise  factor
 ```

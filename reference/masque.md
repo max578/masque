@@ -16,7 +16,7 @@ masque(
   input,
   roles = NULL,
   out = NULL,
-  mode = c("local", "collaborate"),
+  mode = c("null", "local", "collaborate"),
   seed = NULL,
   clean = c("auto", "report", "off"),
   alias_names = FALSE,
@@ -54,14 +54,20 @@ masque(
 
 - mode:
 
-  Either `"local"` or `"collaborate"`. `"local"` makes an owner-only
-  development copy (real labels may remain); `"collaborate"` makes a
-  copy meant to be shared, with labels aliased, numbers jittered, free
-  text dropped and the leakage audit run. When omitted and `roles` are
-  supplied, the mode the roles were proposed for is used, exactly as in
+  One of `"null"` (default), `"local"` or `"collaborate"`. `"null"`
+  keeps the design and the missing-value pattern, codes the labels and
+  draws every outcome and covariate independently. `"local"` makes an
+  owner-only development copy that keeps structure (real labels may
+  remain); `"collaborate"` keeps structure in a copy meant to be shared,
+  with labels aliased, numbers jittered, free text dropped and the
+  leakage audit run. When omitted and `roles` are supplied, the mode the
+  roles were proposed for is used, exactly as in
   [`mask()`](https://max578.github.io/masque/reference/mask.md) and
   [`mask_set()`](https://max578.github.io/masque/reference/mask_set.md);
-  with no `roles`, the proposal is made for `"local"`.
+  with no `roles`, the proposal is made for `"null"`. The `noise`
+  argument of
+  [`mask()`](https://max578.github.io/masque/reference/mask.md) passes
+  through `...`.
 
 - seed:
 
@@ -81,8 +87,8 @@ masque(
 
 - conditional:
 
-  Logical scalar (default `FALSE`). The conditional clone mode passed
-  through to
+  `FALSE` (default), `TRUE`, `"design"` or column names. The conditional
+  clone mode passed through to
   [`mask()`](https://max578.github.io/masque/reference/mask.md) /
   [`mask_set()`](https://max578.github.io/masque/reference/mask_set.md):
   when `TRUE`, numeric columns are re-simulated within each
@@ -116,8 +122,8 @@ masque(
 
 - allow_high:
 
-  Logical (default `FALSE`). When `out` is set and the collaborate-mode
-  audit flagged HIGH leakage, the write is refused. Pass `TRUE` to write
+  Logical (default `FALSE`). When `out` is set and the mask-time audit
+  flagged HIGH leakage, the write is refused. Pass `TRUE` to write
   anyway after your own review; the override raises a
   `masque_high_override` warning and is recorded in the recipe's
   warnings, so the exception stays auditable.
@@ -186,9 +192,10 @@ can do with those you can do with the result here.
 
 4.  **Mask** the data in the chosen `mode`.
 
-5.  **Audit** - in `collaborate` mode the leakage audit runs and its
-    headline is printed. A HIGH finding surfaces as a classed warning
-    (`masque_high_leakage`) - it is never silenced by the guided flow.
+5.  **Audit** - in `null` and `collaborate` mode the leakage audit runs
+    and its headline is printed. A HIGH finding surfaces as a classed
+    warning (`masque_high_leakage`) - it is never silenced by the guided
+    flow.
 
 6.  **Write** - if `out` is set, the masked data is written there
     (mirroring the input format), *unless* the audit left unresolved
@@ -224,12 +231,12 @@ r <- propose_roles(iris)
 r <- set_role(r, "Sepal.Length", role = "outcome")
 m <- masque(iris, roles = r, seed = 1, ask = FALSE, quiet = TRUE)
 head(synthetic(m))
-#>    Sepal.Length Sepal.Width Petal.Length Petal.Width    Species
-#>           <num>       <num>        <num>       <num>     <fctr>
-#> 1:          5.1         3.2          4.0         1.5 versicolor
-#> 2:          6.0         3.0          3.7         0.4  virginica
-#> 3:          5.0         3.0          4.6         1.1     setosa
-#> 4:          7.2         2.6          5.8         1.7 versicolor
-#> 5:          6.1         2.4          5.8         1.5  virginica
-#> 6:          5.0         2.7          4.5         1.4 versicolor
+#>    Sepal.Length Sepal.Width Petal.Length Petal.Width      Species
+#>           <num>       <num>        <num>       <num>       <fctr>
+#> 1:     5.959447    2.644060     4.539749   0.1717018 Species_L002
+#> 2:     5.078844    3.419512     4.415627   0.3068617 Species_L003
+#> 3:     5.483718    3.028314     4.020137   2.4938487 Species_L003
+#> 4:     4.655556    3.457193     1.166039   0.2856854 Species_L002
+#> 5:     7.314096    3.000000     3.249417   1.6197431 Species_L001
+#> 6:     6.716410    2.600369     4.376526   2.2166632 Species_L003
 ```
