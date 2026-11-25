@@ -4,13 +4,13 @@
 \alias{propose_roles}
 \title{Propose role and action classifications for the columns of a data frame}
 \usage{
-propose_roles(df, mode = c("local", "collaborate"), detect = TRUE)
+propose_roles(df, mode = c("null", "local", "collaborate"), detect = TRUE)
 }
 \arguments{
 \item{df}{A data frame. Must have at least one column.}
 
 \item{mode}{The masking mode the table is being prepared for:
-\code{"local"} (default) or \code{"collaborate"}. Stored as
+\code{"null"} (default), \code{"local"} or \code{"collaborate"}. Stored as
 \code{attr(roles, "mode")} and used to resolve default actions.}
 
 \item{detect}{Logical scalar (default \code{TRUE}). When \code{TRUE}, run
@@ -64,13 +64,16 @@ exotic S4, ...). Keep or drop only.}
 \code{action} sets the masking depth per column:
 
 \describe{
-\item{\code{keep}}{Byte-identical pass-through, both modes.}
+\item{\code{keep}}{Byte-identical pass-through, in every mode.}
+\item{\code{noise}}{Outcome, covariate and date columns: replace the values
+with independent draws that use only a coarse summary of the column;
+categorical levels become codes. The default in null mode.}
 \item{\code{scramble}}{Re-simulate (numeric) or row-permute
 (categorical / date / text); original label vocabulary remains
 visible.}
 \item{\code{alias}}{Scramble where applicable, plus opaque label
 substitution - the vocabulary itself is hidden.}
-\item{\code{drop}}{Column excluded from the synthetic, both modes.}
+\item{\code{drop}}{Column excluded from the synthetic, in every mode.}
 }
 
 The proposed \code{action} column is resolved for \code{mode}, so the table you
@@ -82,11 +85,17 @@ with \code{\link[=set_role]{set_role()}} re-resolves its default action; a direc
 
 \section{Default classification rules, applied in order}{
 
+
+The actions below are those of \code{"local"} and \code{"collaborate"} mode. In the
+default \code{"null"} mode every outcome, covariate and date column takes
+\code{noise}, categorical design columns and treatments take \code{alias}, numeric
+design columns take \code{keep}, and id, text and unsupported columns take
+\code{drop}.
 \enumerate{
 \item PII-pattern column names (\code{contact}, \code{email}, \code{phone}, \code{gps},
 \code{latitude} / \code{longitude}, \code{postcode}, \code{ssn}, \code{password}, \code{owner},
 \code{farmer}, \code{operator}, etc., case-insensitive substring) ->
-\code{pii_suspected = TRUE} and action \code{drop} in \strong{both} modes.
+\code{pii_suspected = TRUE} and action \code{drop} in \strong{every} mode.
 Re-role deliberately if the column must survive.
 \item Date / POSIXct / POSIXlt / difftime columns -> role \code{date},
 action \code{scramble} (row permutation).
@@ -134,9 +143,9 @@ are listed in \code{attr(roles, "design")@recommended_roles} with
 
 Since masque 0.9.1, high-confidence environment columns detected by
 \code{\link[=detect_design]{detect_design()}} are promoted to role \code{design}. In local mode their values
-remain byte-identical. In collaborate mode categorical environment labels
-default to \code{alias}, which preserves row assignment and factor codes while
-hiding the vocabulary. Numeric environment columns default to \code{keep} and
+remain byte-identical. In null and collaborate mode categorical
+environment labels default to \code{alias}, which preserves row assignment and
+factor codes while hiding the vocabulary. Numeric environment columns default to \code{keep} and
 raise a \code{masque_environment_disclosure} warning for explicit review.
 
 Weak or competing environment candidates never change roles automatically.
@@ -150,6 +159,7 @@ design-role promotion.
 
 \examples{
 propose_roles(iris)
+propose_roles(iris, mode = "local")
 propose_roles(iris, mode = "collaborate")
 
 met <- expand.grid(

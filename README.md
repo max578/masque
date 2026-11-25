@@ -8,22 +8,28 @@
 [![pkgdown](https://github.com/max578/masque/actions/workflows/pkgdown.yaml/badge.svg)](https://max578.github.io/masque/)
 <!-- badges: end -->
 
-> Structurally faithful development surrogates for tabular data.
+> Synthetic copies of confidential data tables, for writing analysis code without the real data.
 
-`masque` makes a synthetic copy of a confidential table that keeps its
-design, missing values and correlations. Analysts write and test code on
-the copy. The data custodian then runs the finished code on the real data,
-using a private recipe that translates names and labels.
+`masque` makes a synthetic copy of a confidential table. Analysts write and
+test code on the copy without seeing the real values. The data owner then
+runs the finished code on the real data, using a private recipe that maps
+the codes in the copy back to the real labels.
 
-It is for custodians of confidential research data who want an outside
-analyst to build the analysis without seeing the data, and for the analysts
+By default, every outcome and covariate is simulated independently, with no
+link to other columns or to the real rows. Each numeric column keeps only
+an eleven-point summary: its 1st percentile, deciles and 99th percentile.
+The experimental design and the pattern of
+missing values are kept exactly, and category labels are replaced by codes.
+When the code needs correlations between columns, use
+`mode = "collaborate"`, or `mode = "local"` if the copy will not leave the
+data owner. Treatment effects can also be mimicked by setting
+`conditional = TRUE`. Each step discloses more about the real data, and
+masque gives no formal privacy guarantee.
+
+It is for owners of confidential research data who want an outside analyst
+to build the analysis without seeing the real values, and for the analysts
 who build it. The input can be a single table, a folder of files or a
 multi-sheet workbook.
-
-**Security note.** Clones made with masque 0.13.0 or earlier can reveal
-which alias stands for which label. If you shared one, make it again with
-0.14.0 and share the new clone instead. The same seed gives the same
-values.
 
 The [changelog](https://max578.github.io/masque/news/index.html) lists
 what changed in each release.
@@ -63,8 +69,9 @@ df <- read.csv(f, stringsAsFactors = TRUE)
 
 # One guided call: read -> propose roles -> (review) -> mask -> audit.
 # In an interactive session it pauses to let you review the plan;
-# ask = FALSE skips the pause.
-m <- masque(df, mode = "collaborate", seed = 1L)
+# ask = FALSE skips the pause. The default copy keeps the design and the
+# missing values; every other value is drawn independently.
+m <- masque(df, seed = 1L)
 
 synth <- synthetic(m)   # hand this to the analyst
 rec   <- recipe(m)      # keep this private
@@ -72,7 +79,7 @@ rec   <- recipe(m)      # keep this private
 # Analyst builds a pipeline against the synthetic namespace ...
 fit <- lm(yield ~ gen + rep, data = synth)
 
-# ... and the custodian re-targets it to the original data.
+# ... and the data owner re-targets it to the original data.
 preds <- predict(fit, newdata = apply_recipe(df, rec))
 
 # A description of the clone the analyst can plan with: sizes, roles and
@@ -91,36 +98,76 @@ and sets column types, reporting each change.
 ### Multi-environment trials
 
 `detect_design()` recognises environment columns, such as site or year, and
-the design within each environment. In collaborate mode the environment
-labels are aliased and every row stays in its environment. The clone does
+the design within each environment. By default, and in collaborate mode,
+the environment labels are replaced by codes and every row stays in its
+environment. The clone does
 not keep genotype-by-environment effects, so it is no substitute for the
 real data in scientific inference.
 
 ---
 
+### Known-truth controls
+
+A pipeline developed on the clone can be checked against datasets in which
+the answer is known. A control spec, declared once, names the column to
+reassign, the design strata it is permuted within, the outcome an
+effect is planted on and the size of that effect. From it, `controls()`
+derives a null (every analysed column permuted), negative replicates (one
+column permuted within strata) and positive replicates (the negative plus
+the planted shift), by permutation alone. The same spec runs on the clone
+for the analyst and, with a private seed, on the original for the owner,
+who returns a verdict about the pipeline rather than a dataset.
+
+```r
+spec <- control_spec(on = "gen", target = "yield", effect = list(sd = 0.5),
+                     strata = "rep", n = 19L, seed = 2026L)
+ctl <- controls(synthetic(m), roles(m), spec)
+control_table(ctl, "positive", 1L)
+```
+
+A `masque_plan()` holds the roles and the spec together, so the spec is fixed
+before any real result exists. `mask(df, plan)` resolves it on the source,
+`handover()` gives the analyst the clone and the plan in clone vocabulary, and
+`controls(real, plan, recipe = rec)` runs it on the owner's side.
+
 ## Threat model
 
-`masque` is **not** a privacy-preserving or differential-privacy tool. It is a
-**structurally faithful development surrogate** with explicit confidentiality
-guardrails. Read
+`masque` gives no formal privacy guarantee such as differential privacy. It
+makes copies for writing analysis code, with explicit confidentiality
+safeguards. Read
 [Confidentiality and the threat model](https://max578.github.io/masque/articles/confidentiality.html)
 before using it.
 
 **What `masque` does**
 
 - Preserves enough structure for pipelines to run unchanged.
-- Provides two explicit modes: `local` for owner-only realistic surrogates,
-  and `collaborate` for controlled sharing with opaque aliasing (numeric
-  doses included), numeric jitter, and an automatic leakage audit.
-  Collaborate mode drops identifiers and free text (character columns in
-  which most values are distinct), and refuses to re-simulate a table of
-  fewer than five rows.
+- Provides three modes.
+  - `null`, the default, keeps the design and the missing values exactly.
+    It draws each numeric value from its column's 1st percentile, deciles
+    and 99th percentile, and each categorical value uniformly over the
+    column's levels, which are renamed to codes.
+  - `local` keeps the real structure (correlations, and real labels unless
+    you code them). It keeps identifiers and free text and runs no audit,
+    so its output is for the data owner only.
+  - `collaborate` keeps the correlations, replaces treatment and category
+    labels with codes (numeric treatment levels included), adds small
+    random noise within each value's measurement resolution, and runs the
+    leakage audit.
+- In the null and collaborate modes, columns that look like identifiers or
+  free text are dropped. They are found by name (such as `id`, `email` or
+  `farmer`) or by mostly distinct character values, so a numeric identifier
+  with an ordinary name can pass: review the proposed roles. A column that
+  would be resampled from a table of fewer than five rows is refused.
+- The leakage audit compares the copy with the original, column by column
+  and for the table as a whole. A HIGH finding raises a warning and blocks
+  masque's own writers until it is resolved or overridden.
 - Synthesises a column that is constant within a trial or site once per
   unit, so the clone keeps one value per trial, and keeps linked event
   times in order (`events =`).
 - Keeps treatment, block and environment means on request
-  (`conditional = TRUE`). Treatment means on the clone then track those of
-  the real data, and block and environment effects stay detectable.
+  (`conditional = TRUE`, in local or collaborate mode). Treatment means on
+  the clone then track those of the real data, and block and environment
+  effects stay detectable.
   [What a conditional clone keeps of the design](https://max578.github.io/masque/articles/design_preservation.html)
   tests this on eight field designs.
 - Records every translation (column names, factor levels) in a private
@@ -164,7 +211,7 @@ crosses the trust boundary.
   disclosure risk.
 
 Both produce data meant to be analysed in place of the original. masque
-produces a development copy: analysts write code on it and the custodian
+produces a development copy: analysts write code on it and the data owner
 runs that code on the real data through the private recipe. It keeps the
 experimental design (treatments, blocks, plots), and a conditional clone
 (`conditional = TRUE`) also keeps the treatment means of the outcome.
@@ -181,7 +228,7 @@ Articles, in reading order:
    what a recipe holds and how a pipeline built on the synthetic runs on
    the original.
 3. [Confidentiality and the threat model](https://max578.github.io/masque/articles/confidentiality.html):
-   what a clone protects, the two modes, and the depth controls.
+   what a clone protects, the three modes, and the depth controls.
 4. [What a conditional clone keeps of the design](https://max578.github.io/masque/articles/design_preservation.html):
    eight classic field designs tested against one pass rule.
 
@@ -210,6 +257,14 @@ citation("masque")
 ```
 
 The package also ships a `CITATION.cff` file.
+
+---
+
+## Acknowledgement
+
+masque is developed within Analytics for the Australian Grains Industry
+(AAGI), funded by the Grains Research and Development Corporation (GRDC) under
+project UOA2301-005OPX.
 
 ---
 

@@ -39,6 +39,14 @@ test_that("synthesise_numeric_collaborate stays within half a step of range", {
   expect_true(all(out >= min(x_obs) - half) && all(out <= max(x_obs) + half))
 })
 
+test_that("a whole-numbered column can reach one full step past the range", {
+  set.seed(1)
+  x_obs <- rep(0:20, 10L)
+  out <- masque:::synthesise_numeric_collaborate(x_obs, rep(0, length(x_obs)))
+  expect_identical(min(out), -1L)
+  expect_true(all(out >= -1L))
+})
+
 test_that("synthesise_numeric_collaborate preserves integer class", {
   set.seed(1)
   x_obs <- sample(1L:20L, 200, replace = TRUE)
@@ -72,11 +80,13 @@ test_that("Collaborate mode lowers numeric exact-match in mask()", {
     cov_n = rnorm(n),
     stringsAsFactors = FALSE
   )
-  r <- propose_roles(df)
+  r <- propose_roles(df, mode = "local")
   r$role[r$col == "yield"] <- "outcome"
 
-  # Rep stays a kept design column (graded low), so no HIGH warning.
-  m <- mask(df, r, mode = "collaborate", seed = 1)
+  # Rep stays a kept design column (graded low), so no HIGH warning. The seed
+  # differs from the one that made the data: an equal seed draws the same
+  # normals, and the clone then tracks the table.
+  m <- mask(df, r, mode = "collaborate", seed = 2)
   audit <- audit_mask(m, print = FALSE)
 
   # Continuous outcome: exact_match_pct < 1
@@ -96,7 +106,7 @@ test_that("Local mode is untouched by jitter (collaborate-only behaviour)", {
     yield = rnorm(100),
     stringsAsFactors = FALSE
   )
-  r <- propose_roles(df)
+  r <- propose_roles(df, mode = "local")
   r$role[r$col == "yield"] <- "outcome"
 
   m1 <- suppressWarnings(mask(df, r, mode = "local", seed = 1))
@@ -113,7 +123,7 @@ test_that("Mask() RNG hygiene holds with jitter in collaborate", {
     cov_n = rnorm(100),
     stringsAsFactors = FALSE
   )
-  r <- propose_roles(df)
+  r <- propose_roles(df, mode = "local")
   r$role[r$col == "yield"] <- "outcome"
 
   # Capture seed AFTER setup (propose_roles and table setup may have
@@ -135,7 +145,7 @@ test_that("Collaborate mode preserves integer storage on int outcome columns", {
     stringsAsFactors = FALSE
   )
   expect_type(df$grain_count, "integer")
-  r <- propose_roles(df)
+  r <- propose_roles(df, mode = "local")
   r$role[r$col == "grain_count"] <- "outcome"
 
   m <- mask(df, r, mode = "collaborate", seed = 1)
@@ -189,7 +199,7 @@ test_that("collaborate mask() keeps whole-day and 0/1 double outcomes whole", {
     cov_n = rnorm(n),
     stringsAsFactors = FALSE
   )
-  r <- propose_roles(df)
+  r <- propose_roles(df, mode = "local")
   r$role[r$col %in% c("days", "flag")] <- "outcome"
   m <- suppressWarnings(mask(df, r, mode = "collaborate", seed = 1))
   s <- synthetic(m)

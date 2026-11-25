@@ -47,7 +47,7 @@ test_that("detect_design() classifies ToothGrowth as factorial", {
 
 test_that("detect_design() respects user roles for treatment override", {
   d <- iris
-  roles <- propose_roles(d, detect = FALSE)
+  roles <- propose_roles(d, detect = FALSE, mode = "local")
   # Force a different treatment than detection would pick.
   roles$role[roles$col == "Sepal.Width"] <- "treatment"
   ds <- detect_design(d, roles = roles)

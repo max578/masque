@@ -1,5 +1,5 @@
 make_valid_roles <- function() {
-  r <- propose_roles(iris)
+  r <- propose_roles(iris, mode = "local")
   r$role[r$col == "Sepal.Length"] <- "outcome"
   r
 }
@@ -47,7 +47,7 @@ test_that("roles_validate errors on unknown role string", {
 
 test_that("roles_validate accepts a table with no outcome", {
   # Two-axis model: no outcome is required; numeric covariates scramble.
-  r <- propose_roles(iris)
+  r <- propose_roles(iris, mode = "local")
   expect_true(all(r$role != "outcome"))
   expect_invisible(roles_validate(r))
 })
@@ -79,7 +79,7 @@ test_that("roles_validate errors when unsupported columns are covariates", {
     payload = I(list(list(a = 1), list(a = 2), list(a = 3))),
     yield = c(1.0, 2.0, 3.0)
   )
-  r <- propose_roles(df, detect = FALSE)
+  r <- propose_roles(df, detect = FALSE, mode = "local")
   r$role[r$col == "yield"] <- "outcome"
   r <- set_role(r, "payload", role = "covariate", action = "scramble")
   expect_error(roles_validate(r, df), "unsupported|cannot")

@@ -41,7 +41,7 @@ pairs and the count, and a recipe keeps the same;
 }
 }
 \description{
-Real custodian tables arrive with column names that are not valid R
+Real tables often arrive with column names that are not valid R
 names (\code{"Yield (t/ha)"}, \code{"Site Name"}), leading or trailing
 whitespace in names and factor / character values, and the
 occasional near-duplicate label (\code{"north"} vs \code{"North"} vs

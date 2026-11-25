@@ -120,7 +120,7 @@ test_that("equivalent environment encodings suppress false treatment hints", {
 
 test_that("explicitly edited actions remain pinned during overlay", {
   d <- met_county_fixture()
-  roles <- propose_roles(d, detect = FALSE)
+  roles <- propose_roles(d, detect = FALSE, mode = "local")
   roles$action[roles$col == "county"] <- "drop"
   ds <- detect_design(d)
 

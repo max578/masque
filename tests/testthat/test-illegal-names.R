@@ -23,7 +23,7 @@ illegal_numeric_cols <- c(
 
 test_that("mask() warns (classed) and records the name repair on the recipe", {
   d <- illegal_frame()
-  r <- propose_roles(d, detect = FALSE)
+  r <- propose_roles(d, detect = FALSE, mode = "local")
   expect_warning(mask(d, r, seed = 1), class = "masque_name_repaired")
   m <- suppressWarnings(mask(d, r, seed = 1))
   expect_true(any(grepl("R does not accept", recipe(m)@warnings)))
@@ -32,7 +32,7 @@ test_that("mask() warns (classed) and records the name repair on the recipe", {
 test_that("illegal names legalise without duplication or leak, in every mode", {
   d <- illegal_frame()
   for (cm in c("auto", "report", "off")) {
-    r <- propose_roles(d, detect = FALSE)
+    r <- propose_roles(d, detect = FALSE, mode = "local")
     m <- suppressWarnings(mask(d, r, seed = 1, clean = cm))
     s <- as.data.frame(synthetic(m))
     nm_map <- recipe(m)@cleaning$name_map
@@ -54,7 +54,7 @@ test_that("illegal names legalise without duplication or leak, in every mode", {
 
 test_that("the name repair round-trips both directions", {
   d <- illegal_frame()
-  r <- propose_roles(d, detect = FALSE)
+  r <- propose_roles(d, detect = FALSE, mode = "local")
   m <- suppressWarnings(mask(d, r, seed = 1))
 
   # unmask() restores the original (pre-legalisation) names.
@@ -70,7 +70,7 @@ test_that(
   "a collision with an already-legal name is uniquified and reversible",
   {
   d <- illegal_frame()
-  r <- propose_roles(d, detect = FALSE)
+  r <- propose_roles(d, detect = FALSE, mode = "local")
   m <- suppressWarnings(mask(d, r, seed = 1))
   s <- synthetic(m)
   nm_map <- recipe(m)@cleaning$name_map

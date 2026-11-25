@@ -28,7 +28,7 @@
 #'    scriptable path. With `ask = FALSE` (the default in
 #'    non-interactive use) the proposed plan is used as-is, with a note.
 #' 4. **Mask** the data in the chosen `mode`.
-#' 5. **Audit** - in `collaborate` mode the leakage audit runs and its
+#' 5. **Audit** - in `null` and `collaborate` mode the leakage audit runs and its
 #'    headline is printed. A HIGH finding surfaces as a classed warning
 #'    (`masque_high_leakage`) - it is never silenced by the guided flow.
 #' 6. **Write** - if `out` is set, the masked data is written there
@@ -49,18 +49,22 @@
 #' @param out Optional output path. For a single table, a `.csv` file (or
 #'   `.xlsx` with `writexl`). For a set, a folder (one CSV per table) or
 #'   an `.xlsx` workbook. When `NULL` (default) nothing is written.
-#' @param mode Either `"local"` or `"collaborate"`. `"local"` makes an
-#'   owner-only development copy (real labels may remain); `"collaborate"`
-#'   makes a copy meant to be shared, with labels aliased, numbers jittered,
-#'   free text dropped and the leakage audit run. When omitted and `roles`
+#' @param mode One of `"null"` (default), `"local"` or `"collaborate"`.
+#'   `"null"` keeps the design and the missing-value pattern, codes the labels
+#'   and draws every outcome and covariate independently. `"local"` makes an
+#'   owner-only development copy that keeps structure (real labels may
+#'   remain); `"collaborate"` keeps structure in a copy meant to be shared,
+#'   with labels aliased, numbers jittered, free text dropped and the
+#'   leakage audit run. When omitted and `roles`
 #'   are supplied, the mode the roles were proposed for is used, exactly as
 #'   in [mask()] and [mask_set()]; with no `roles`, the proposal is made for
-#'   `"local"`.
+#'   `"null"`. The `noise` argument of [mask()] passes through `...`.
 #' @param seed Optional integer for reproducibility.
 #' @param clean Hygiene mode passed to [clean_table()] (`"auto"`,
 #'   `"report"`, `"off"`).
 #' @param alias_names Hide column names; see [mask()] / [mask_set()].
-#' @param conditional Logical scalar (default `FALSE`). The conditional
+#' @param conditional `FALSE` (default), `TRUE`, `"design"` or column names.
+#'   The conditional
 #'   clone mode passed through to [mask()] / [mask_set()]: when `TRUE`,
 #'   numeric columns are re-simulated within each treatment-by-design
 #'   stratum so the treatment-to-outcome relationship survives the clone.
@@ -74,7 +78,7 @@
 #' @param quiet Suppress progress messages. Warnings - including the
 #'   HIGH-leakage finding - are never suppressed.
 #' @param allow_high Logical (default `FALSE`). When `out` is set and
-#'   the collaborate-mode audit flagged HIGH leakage, the write is
+#'   the mask-time audit flagged HIGH leakage, the write is
 #'   refused. Pass `TRUE` to write anyway after your own review; the
 #'   override raises a `masque_high_override` warning and is recorded in
 #'   the recipe's warnings, so the exception stays auditable.
@@ -108,7 +112,7 @@
 masque <- function(input,
                    roles = NULL,
                    out = NULL,
-                   mode = c("local", "collaborate"),
+                   mode = c("null", "local", "collaborate"),
                    seed = NULL,
                    clean = c("auto", "report", "off"),
                    alias_names = FALSE,
@@ -127,6 +131,12 @@ masque <- function(input,
   clean <- match.arg(clean)
   ladder <- match.arg(ladder)
 
+  if (S7::S7_inherits(roles, .plan_class)) {
+    .plan_refuse(
+      "{.fn masque} does not take a plan yet. Call {.code mask(df, plan)}.",
+      "unsupported"
+    )
+  }
   is_set <- .masque_is_set(input)
   if (!is_set && (!is.null(sheets) || !is.null(info))) {
     cli::cli_abort(c(
@@ -194,7 +204,7 @@ masque <- function(input,
   }
   if (is.null(roles)) {
     tab <- if (inherits(df, "masque_conformance")) df$data else df
-    roles <- propose_roles(tab, mode = mode %||% "local", detect = detect)
+    roles <- propose_roles(tab, mode = mode %||% "null", detect = detect)
     roles <- .masque_review(roles, ask, quiet, label = NULL)
   }
   .with_mode(
@@ -218,7 +228,7 @@ masque <- function(input,
         clean_table(tables[[nm]], clean = clean, quiet = TRUE),
         masque_name_repaired = function(w) invokeRestart("muffleWarning")
       )
-      r <- propose_roles(cl$data, mode = mode %||% "local", detect = detect)
+      r <- propose_roles(cl$data, mode = mode %||% "null", detect = detect)
       .masque_review(r, ask, quiet, label = nm)
     })
     names(roles) <- to_mask
@@ -482,12 +492,15 @@ masque <- function(input,
     return(invisible(m))
   }
 
-  if (identical(m@mode, "collaborate")) {
+  if (.shareable_mode(m@mode)) {
     cli::cli_alert_info(paste0(
       "Recipe is private - keep it. Review {.code audit_mask(m)} before ",
       "any release decision; masque informs that decision, it does not ",
       "make it."
     ))
+    cli::cli_alert_info(
+      "Use the clone to write and run a pipeline, not to tune one."
+    )
   } else {
     cli::cli_alert_info(
       "Local development copy - owner use only, not for external sharing."

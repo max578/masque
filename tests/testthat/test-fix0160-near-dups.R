@@ -47,7 +47,7 @@ test_that("the recipe keeps the count and 20 pairs as a plain data frame", {
 
   path <- withr::local_tempfile(fileext = ".rds")
   saveRDS(rec, path)
-  expect_identical(readRDS(path), rec)
+  expect_identical(recipe_as_data(readRDS(path)), recipe_as_data(rec))
 })
 
 test_that("conform_table never merges codes that differ inside a digit run", {

@@ -1,16 +1,31 @@
 cff-version: 1.2.0
 message: "If you use masque in published work, please cite it as below."
 type: software
-title: "masque: Structurally Faithful Development Surrogates for Tabular Data"
+title: "masque: Synthetic Copies of Confidential Data Tables"
 abstract: >-
-  masque turns a single tabular dataset into a structurally faithful
-  synthetic clone suitable for pipeline development. Experimental-design
-  allocation, explicitly kept columns, and the NA pattern are preserved
-  exactly; categorical design, treatment, and covariate vocabularies can
-  be reversibly aliased; outcome and numeric-covariate values are
-  re-simulated via a Gaussian copula that preserves the global covariance
-  structure. A private recipe object round-trips a pipeline written
-  against the synthetic clone onto the original data.
+  Creates a synthetic copy of a confidential data table, so that
+  analysis code can be written and tested without the real values. By
+  default, every outcome and covariate is simulated independently, with
+  no link to other columns or to the real rows. Each numeric column
+  keeps only its approximate range and shape. The experimental design
+  and the pattern of missing values are kept exactly, and category
+  labels, including those of the design and the treatments, are replaced
+  by codes. Columns that look like identifiers or free text are left
+  out. More of the real structure can be kept on request, at the cost of
+  disclosing more about the real data. With mode = "local" (for the data
+  owner's own use) or mode = "collaborate" (for sharing), numeric
+  columns are simulated from a Gaussian copula, which approximately
+  preserves each column's distribution and the correlations between
+  them. In those modes, treatment effects can also be mimicked by
+  setting conditional = TRUE in mask(). A folder of files or a
+  multi-sheet workbook can be masked together. Keys shared by the tables
+  get the same codes in every table, so the synthetic tables still join.
+  Each run also returns a recipe, which maps the codes back to the real
+  labels. The recipe is as confidential as the data and should stay with
+  the data owner. apply_recipe() converts the real data into the names
+  and codes of the copy, so code written on the copy runs on it
+  unchanged, and unmask() converts results back to the real labels. The
+  package gives no formal privacy guarantee.
 authors:
   - family-names: Moldovan
     given-names: Max
@@ -20,7 +35,7 @@ authors:
 repository-code: "https://github.com/max578/masque"
 url: "https://max578.github.io/masque/"
 license: MIT
-version: 0.16.0
+version: 0.18.0
 keywords:
   - synthetic-data
   - data-masking

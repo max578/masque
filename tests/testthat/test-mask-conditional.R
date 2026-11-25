@@ -13,7 +13,7 @@ make_effect_fixture <- function(n = 600, effect = 5, sd = 2, seed = 42) {
     cov_n = cov_n,
     stringsAsFactors = FALSE
   )
-  r <- propose_roles(df, detect = FALSE)
+  r <- propose_roles(df, detect = FALSE, mode = "local")
   r$role[r$col == "Genotype"] <- "treatment"
   r$role[r$col == "yield"] <- "outcome"
   r$role[r$col == "cov_n"] <- "covariate"
@@ -122,7 +122,7 @@ test_that(
     y = stats::rnorm(80),
     z = stats::rnorm(80)
   )
-  r <- propose_roles(df, detect = FALSE)
+  r <- propose_roles(df, detect = FALSE, mode = "local")
   r$role[r$col == "y"] <- "outcome"
   r$role[r$col == "z"] <- "covariate"
   # A routine local-mode warning fires alongside the advisory.
@@ -162,7 +162,7 @@ test_that("conditional conditions on design strata, not only treatment", {
   site_mean <- c(S1 = 5, S2 = 15, S3 = 25, S4 = 35)
   yield <- site_mean[as.character(site)] + stats::rnorm(n, sd = 2)
   df <- data.frame(site = site, yield = as.numeric(yield))
-  r <- propose_roles(df, detect = FALSE)
+  r <- propose_roles(df, detect = FALSE, mode = "local")
   r$role[r$col == "site"] <- "design"
   r$action[r$col == "site"] <- "keep"
   r$role[r$col == "yield"] <- "outcome"
@@ -199,7 +199,7 @@ test_that(
     bv = dat$bv,
     stringsAsFactors = FALSE
   )
-  r <- propose_roles(df, detect = FALSE)
+  r <- propose_roles(df, detect = FALSE, mode = "local")
   r$role[r$col == "rep"] <- "design"
   r$action[r$col == "rep"] <- "keep"
   r$role[r$col == "nf"] <- "treatment"

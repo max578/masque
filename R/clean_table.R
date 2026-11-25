@@ -1,6 +1,6 @@
 #' Tidy a dirty table's column names and category labels before masking
 #'
-#' Real custodian tables arrive with column names that are not valid R
+#' Real tables often arrive with column names that are not valid R
 #' names (`"Yield (t/ha)"`, `"Site Name"`), leading or trailing
 #' whitespace in names and factor / character values, and the
 #' occasional near-duplicate label (`"north"` vs `"North"` vs

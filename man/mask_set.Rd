@@ -8,7 +8,7 @@ mask_set(
   input,
   roles = NULL,
   links = NULL,
-  mode = c("local", "collaborate"),
+  mode = c("null", "local", "collaborate"),
   seed = NULL,
   clean = c("auto", "report", "off"),
   alias_names = FALSE,
@@ -16,6 +16,7 @@ mask_set(
   ladder = c("hierarchy", "levels"),
   grain = TRUE,
   allow_kept_outcome = FALSE,
+  noise = c("summary", "standard"),
   quiet = FALSE,
   sheets = NULL,
   info = NULL,
@@ -36,11 +37,15 @@ control.}
 \item{links}{Optional override for link detection: a character vector
 of column names to treat as cross-table links, or \code{FALSE} to disable
 linking entirely (each table masked independently). When \code{NULL}
-(default), links are detected automatically.}
+(default), links are detected automatically. A character vector
+replaces the automatic links, so a key must be named too, and a noise
+column named there is aliased from its real values instead of drawn.}
 
-\item{mode}{Either \code{"local"} or \code{"collaborate"}. When omitted and \code{roles}
-are supplied, inherit their common mode. Tables prepared for different
-modes must be reconciled explicitly. Otherwise default to \code{"local"}.}
+\item{mode}{One of \code{"null"}, \code{"local"} or \code{"collaborate"}. When omitted
+and \code{roles} are supplied, inherit their common mode. Tables prepared for
+different modes must be reconciled explicitly. Otherwise default to
+\code{"null"}. In null mode a column drawn as noise is not linked across
+tables unless it is named in \code{links}.}
 
 \item{seed}{Optional integer for reproducibility.}
 
@@ -51,7 +56,7 @@ modes must be reconciled explicitly. Otherwise default to \code{"local"}.}
 \code{TRUE} aliases every non-link column (linked join keys keep their
 names so the synthetic set stays joinable).}
 
-\item{conditional}{Logical scalar (default \code{FALSE}). Passed through to
+\item{conditional}{\code{FALSE} (default), \code{TRUE} or \code{"design"}. Passed through to
 each per-table \code{\link[=mask]{mask()}} call: when \code{TRUE}, every table's numeric
 block is re-simulated within its own treatment-by-design strata so
 the treatment-to-outcome relationship survives the clone. See
@@ -64,7 +69,11 @@ or \code{"levels"}; passed through to each \code{\link[=mask]{mask()}} call.}
 \code{\link[=mask]{mask()}} call, which synthesises a unit-constant column once per unit.}
 
 \item{allow_kept_outcome}{Single logical, passed to each \code{\link[=mask]{mask()}} call:
-\code{TRUE} allows a kept outcome in a collaborate clone and records it.}
+\code{TRUE} allows a kept outcome in a null or collaborate clone and records
+it.}
+
+\item{noise}{The draw behind the \code{noise} action, \code{"summary"} (default) or
+\code{"standard"}; passed to each \code{\link[=mask]{mask()}} call.}
 
 \item{quiet}{Logical; suppress the link / hygiene report, including the
 hint that a table looks like documentation.}

@@ -1,5 +1,5 @@
 make_outcome_roles <- function(df, outcome_col) {
-  r <- propose_roles(df)
+  r <- propose_roles(df, mode = "local")
   r$role[r$col == outcome_col] <- "outcome"
   r
 }

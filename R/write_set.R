@@ -27,9 +27,11 @@
 #' @return `path`, invisibly.
 #'
 #' @examples
+#' sites <- c("A", "B", "C", "D", "E", "F")
 #' tables <- list(
-#'   plots = data.frame(site = c("A", "B"), yield = c(3.1, 4.2)),
-#'   sites = data.frame(site = c("A", "B"), rain = c(420, 560))
+#'   plots = data.frame(site = rep(sites, 2), yield = c(3.1, 4.2, 3.8, 4.0,
+#'     3.5, 4.4, 3.3, 4.1, 3.9, 3.6, 4.3, 3.7)),
+#'   sites = data.frame(site = sites, rain = c(420, 560, 480, 510, 450, 530))
 #' )
 #' m <- mask_set(tables, seed = 1, quiet = TRUE)
 #' dir <- file.path(tempdir(), "masked_set")
@@ -47,7 +49,10 @@ write_set <- function(m, path, overwrite = FALSE, allow_high = FALSE) {
   if (!is.character(path) || length(path) != 1L || !nzchar(path)) {
     cli::cli_abort("`path` must be a single non-empty string.")
   }
-  .gate_release(m, allow_high)
+  .gate_release(
+    m, allow_high,
+    "the override is only in that warning, so keep your own record"
+  )
   .write_set_dispatch(m@synthetic, path, overwrite)
   invisible(path)
 }

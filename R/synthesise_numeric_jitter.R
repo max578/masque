@@ -8,7 +8,8 @@
 #' clone; a value can fall up to half a resolution step outside it.
 #' Whole-numbered columns (integer class, or a double whose observed values
 #' are all whole) get stochastic rounding, so the output stays
-#' whole-numbered in its original storage class. A column with at most two
+#' whole-numbered in its original storage class and can fall one full step
+#' outside the range. A column with at most two
 #' distinct observed values is
 #' left as drawn: the local copula draw already returns observed values,
 #' and jitter followed by rounding would flip a share of them.

@@ -1,7 +1,8 @@
 # Release gate ---------------------------------------------------------------
 #
-# Generation never implies release: package writers refuse a collaborate-mode
-# object with unresolved HIGH findings unless `allow_high = TRUE`.
+# Generation never implies release: package writers refuse a null- or
+# collaborate-mode object with unresolved HIGH findings unless
+# `allow_high = TRUE`.
 
 # Findings flagged HIGH at mask time: columns, then table-level checks named
 # "[<check>]". For a masque_set, each is prefixed "<table>$".
@@ -74,7 +75,7 @@
 # Release status from the mask-time audit: "local" (never gated), "blocked",
 # "review" or "clear".
 .release_status <- function(m) {
-  if (!identical(m@mode, "collaborate")) {
+  if (!.shareable_mode(m@mode)) {
     return("local")
   }
   tally <- .audit_tally(m)
@@ -92,8 +93,9 @@
 
 # Gate a package-managed write: abort ("masque_blocked_write") on unresolved
 # HIGH findings, or warn ("masque_high_override") under `allow_high = TRUE`.
-.gate_release <- function(m, allow_high = FALSE) {
-  high <- if (identical(m@mode, "collaborate")) {
+.gate_release <- function(m, allow_high = FALSE,
+                          record = "the override is recorded on the recipe") {
+  high <- if (.shareable_mode(m@mode)) {
     .audit_high_cols(m)
   } else {
     character()
@@ -113,7 +115,7 @@
         i = "Re-role, alias, or drop each flagged column, then mask again.",
         i = paste0(
           "Or pass `allow_high = TRUE` to write anyway after your own ",
-          "review - the override is recorded."
+          "review - {record}."
         )
       ),
       class = "masque_blocked_write"

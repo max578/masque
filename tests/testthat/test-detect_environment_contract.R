@@ -225,7 +225,7 @@ test_that("automatic scope does not depend on outcome values", {
 
 test_that("explicit user roles can exclude a name-matched candidate", {
   d <- met_complete_fixture()
-  roles <- propose_roles(d, detect = FALSE)
+  roles <- propose_roles(d, detect = FALSE, mode = "local")
   roles$role[roles$col == "env"] <- "outcome"
   roles$action[roles$col == "env"] <- "scramble"
   ds <- detect_design(d, roles = roles)
@@ -247,7 +247,7 @@ test_that("near-unique exact environment names fail the validity gate", {
 
 test_that("multiple user-roled treatments support incidence diagnostics", {
   d <- met_multiple_treatment_fixture()
-  roles <- propose_roles(d, detect = FALSE)
+  roles <- propose_roles(d, detect = FALSE, mode = "local")
   roles$role[roles$col %in% c("genotype", "dose")] <- "treatment"
   ds <- detect_design(d, roles = roles, env = "env")
 

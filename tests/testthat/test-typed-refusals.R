@@ -13,7 +13,7 @@
 # --- mask() ------------------------------------------------------------
 
 test_that("mask() refuses an unused/misspelled argument", {
-  r <- propose_roles(iris, detect = FALSE)
+  r <- propose_roles(iris, detect = FALSE, mode = "local")
   .expect_refusal(
     mask(iris, r, seed = 1, boggle = TRUE),
     "masque_unused_arg_refusal"
@@ -21,12 +21,12 @@ test_that("mask() refuses an unused/misspelled argument", {
 })
 
 test_that("mask() refuses a non-data-frame `df`", {
-  r <- propose_roles(iris, detect = FALSE)
+  r <- propose_roles(iris, detect = FALSE, mode = "local")
   .expect_refusal(mask(list(), r), "masque_bad_df_refusal")
 })
 
 test_that("mask() refuses a non-scalar-logical `conditional`", {
-  r <- propose_roles(iris, detect = FALSE)
+  r <- propose_roles(iris, detect = FALSE, mode = "local")
   .expect_refusal(
     mask(iris, r, seed = 1, conditional = c(TRUE, FALSE)),
     "masque_bad_conditional_refusal"
@@ -34,7 +34,7 @@ test_that("mask() refuses a non-scalar-logical `conditional`", {
 })
 
 test_that("mask() refuses a non-scalar-logical `allow_unmasked_coords`", {
-  r <- propose_roles(iris, detect = FALSE)
+  r <- propose_roles(iris, detect = FALSE, mode = "local")
   .expect_refusal(
     mask(iris, r, seed = 1, allow_unmasked_coords = c(TRUE, FALSE)),
     "masque_bad_allow_unmasked_coords_refusal"
@@ -42,7 +42,7 @@ test_that("mask() refuses a non-scalar-logical `allow_unmasked_coords`", {
 })
 
 test_that("mask() refuses `alias_names` naming an unknown column", {
-  r <- propose_roles(iris, detect = FALSE)
+  r <- propose_roles(iris, detect = FALSE, mode = "local")
   .expect_refusal(
     mask(iris, r, seed = 1, alias_names = "not_a_column"),
     "masque_bad_alias_names_refusal"
@@ -50,7 +50,7 @@ test_that("mask() refuses `alias_names` naming an unknown column", {
 })
 
 test_that("mask() refuses an `alias_names` of the wrong type", {
-  r <- propose_roles(iris, detect = FALSE)
+  r <- propose_roles(iris, detect = FALSE, mode = "local")
   .expect_refusal(
     mask(iris, r, seed = 1, alias_names = 1L),
     "masque_bad_alias_names_refusal"
@@ -117,12 +117,12 @@ test_that("mode provenance is still read from a well-formed roles table", {
     m <- mask(iris, roles = r, seed = 1),
     class = "masque_mode_unset"
   )
-  expect_identical(m@mode, "local")
+  expect_identical(m@mode, "null")
 })
 
 test_that("mask_set() refuses a `roles` missing a table", {
   s <- .link_set()
-  roles <- list(trials = propose_roles(s$trials, detect = FALSE))
+  roles <- list(trials = propose_roles(s$trials, detect = FALSE, mode = "local"))
   .expect_refusal(
     mask_set(s, roles = roles, seed = 1, quiet = TRUE),
     "masque_roles_missing_table_refusal"
@@ -132,7 +132,7 @@ test_that("mask_set() refuses a `roles` missing a table", {
 test_that("mask_set() refuses `links` naming a column not shared across tables", {
   s <- .link_set()
   .expect_refusal(
-    mask_set(s, links = "yield", seed = 1, quiet = TRUE),
+    mask_set(s, links = "yield", seed = 1, quiet = TRUE, mode = "local"),
     "masque_bad_links_refusal"
   )
 })
@@ -147,7 +147,7 @@ test_that("mask_set() refuses `links` naming a column not shared across tables",
     yield = rnorm(100, mean = 10, sd = 2),
     stringsAsFactors = FALSE
   )
-  r <- propose_roles(df, detect = FALSE)
+  r <- propose_roles(df, detect = FALSE, mode = "local")
   r$role[r$col == "yield"] <- "outcome"
   r$role[r$col == "Genotype"] <- "treatment"
   m <- mask(df, r, mode = "collaborate", seed = 1)
@@ -173,7 +173,7 @@ test_that("unmask() refuses a categorical atomic vector when the recipe holds no
     yield = rnorm(100, mean = 10, sd = 2),
     stringsAsFactors = FALSE
   )
-  r <- propose_roles(df, detect = FALSE)
+  r <- propose_roles(df, detect = FALSE, mode = "local")
   r$role[r$col == "yield"] <- "outcome"
   m <- mask(df, r, mode = "collaborate", seed = 1)
   rec <- recipe(m)
@@ -193,7 +193,7 @@ test_that("unmask() refuses ambiguous atomic input with multiple level maps and 
     yield = rnorm(100, mean = 10, sd = 2),
     stringsAsFactors = FALSE
   )
-  r <- propose_roles(df, detect = FALSE)
+  r <- propose_roles(df, detect = FALSE, mode = "local")
   r$role[r$col == "yield"] <- "outcome"
   r$role[r$col == "Genotype"] <- "treatment"
   r$role[r$col == "cov_c"] <- "covariate"
@@ -226,7 +226,7 @@ test_that("audit_mask() refuses an `m` that is not a masque object", {
 })
 
 test_that("audit_mask() refuses a local-mode masque with no stored audit and no `original`", {
-  r <- propose_roles(iris, detect = FALSE)
+  r <- propose_roles(iris, detect = FALSE, mode = "local")
   r$role[r$col == "Sepal.Length"] <- "outcome"
   m <- mask(iris, r, mode = "local", seed = 1)
   .expect_refusal(audit_mask(m), "masque_audit_missing_refusal")
@@ -243,7 +243,7 @@ test_that("mask() takes a conformance record and masks its data", {
     stringsAsFactors = FALSE
   )
   cf <- conform_table(df, merge_labels = "auto", types = "auto", quiet = TRUE)
-  r <- propose_roles(cf$data, detect = FALSE)
+  r <- propose_roles(cf$data, detect = FALSE, mode = "local")
   r$role[r$col == "yield"] <- "outcome"
   m <- mask(cf, r, seed = 1L)
   expect_identical(names(synthetic(m)), names(cf$data))

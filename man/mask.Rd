@@ -2,12 +2,12 @@
 % Please edit documentation in R/mask.R
 \name{mask}
 \alias{mask}
-\title{Mask a tabular dataset into a structurally faithful development surrogate}
+\title{Make a synthetic copy of one table}
 \usage{
 mask(
   df,
   roles,
-  mode = c("local", "collaborate"),
+  mode = c("null", "local", "collaborate"),
   seed = NULL,
   clean = c("auto", "report", "off"),
   alias_names = FALSE,
@@ -18,6 +18,7 @@ mask(
   grain = TRUE,
   allow_unmasked_coords = FALSE,
   allow_kept_outcome = FALSE,
+  noise = c("summary", "standard"),
   quiet = FALSE,
   .shared_maps = list(),
   .cleaning = NULL,
@@ -30,20 +31,29 @@ mask(
 record and its merges and type changes go on the recipe, so
 \code{\link[=apply_recipe]{apply_recipe()}} replays them; \code{clean} is not applied a second time.}
 
-\item{roles}{A roles table from \code{\link[=propose_roles]{propose_roles()}} (possibly edited).
+\item{roles}{A roles table from \code{\link[=propose_roles]{propose_roles()}} (possibly edited), or a
+\code{\link[=masque_plan]{masque_plan()}}. A plan supplies \code{coords}, \code{events}, \code{conditional},
+\code{ladder}, \code{grain} and \code{alias_names} where the call leaves them out, and its
+control specs are resolved on \code{df} and written back to the recipe.
 Tables from masque <= 0.5.0 are upgraded with a deprecation
 warning; see \code{\link[=roles_validate]{roles_validate()}}.}
 
-\item{mode}{Either \code{"local"} or \code{"collaborate"}. When omitted, inherit
-\code{attr(roles, "mode")}, falling back to \code{"local"} for a roles table with
-no mode provenance. An explicit collaborate-to-local downgrade raises a
+\item{mode}{One of \code{"null"}, \code{"local"} or \code{"collaborate"}. When omitted,
+inherit \code{attr(roles, "mode")}, falling back to \code{"null"} (with a
+\code{masque_mode_unset} warning) for a roles table with no mode provenance.
+A conditional clone needs \code{"local"} or \code{"collaborate"}; under \code{"null"}
+it is refused with \code{masque_null_conditional_refusal}. An explicit
+downgrade from \code{"null"} or \code{"collaborate"} to \code{"local"} raises a
 classed \code{masque_mode_downgrade} warning. A table of fewer than five rows
 in which any column would be re-simulated (a scrambled covariate,
-outcome, date or text column, or an \code{events} spec) is refused in
-collaborate mode with \code{masque_too_few_rows_refusal}, because such a
-clone is the original values resampled; local mode warns with
-\code{masque_too_few_rows}. Kept, aliased and dropped columns are not
-re-simulated, so a short lookup table of those masks in either mode.}
+outcome, date or text column, a numeric or date noise column, or an
+\code{events} spec) is refused in null and collaborate mode with
+\code{masque_too_few_rows_refusal}, because such a clone is the original
+values resampled, or drawn from a summary that is close to them; local
+mode warns with \code{masque_too_few_rows}. A logical noise column counts,
+since it is drawn over the values it holds. Kept, aliased and dropped
+columns are not re-simulated, and factor and character noise draws
+codes only, so a short lookup table of those masks in any mode.}
 
 \item{seed}{Optional integer for reproducibility.}
 
@@ -66,8 +76,9 @@ original-to-alias map is stored in the recipe and inverted by
 aliased synthetic round-trips. Alias the names when the schema itself
 is sensitive.}
 
-\item{conditional}{Logical scalar (default \code{FALSE}). The
-\emph{collaborate-grade conditional clone}. When \code{FALSE}, scrambled
+\item{conditional}{\code{FALSE} (default), \code{TRUE}, \code{"design"}, or a character
+vector of column names. The \emph{collaborate-grade conditional clone}.
+When \code{FALSE}, scrambled
 numeric columns are re-simulated from one global Gaussian copula -
 marginals and global covariance survive, but the treatment-to-outcome
 relationship does not, so a causal model fitted on the clone recovers
@@ -89,7 +100,19 @@ into a global fallback. The rung reached is recorded on the recipe as
 the pooled share as \code{fallback_frac}, and any coarsening or residual
 pooling raises a classed \code{masque_conditional_degraded} warning --
 including the case where no treatment or design column survives at
-all, in which case the clone is the pooled copula.}
+all, in which case the clone is the pooled copula.
+
+\code{"design"} conditions on the retained design columns alone. The clone
+keeps the design means, block and environment variance, while a treatment
+effect is not carried: a real effect moves into the residual, as it does
+when an owner permutes the treatment for a negative control, so the clone
+stands in for those negatives. The residual is not the one a real fit has.
+Linked \code{events} are stratified only by treatment columns of the partition,
+so \code{"design"} and a design-only partition do not keep their design means.
+A character vector of names gives the partition explicitly, from the
+retained design and treatment columns, and runs through the same ladder;
+treatment columns are still never dropped. The single word \code{"design"}
+always means this option, even where a column has that name.}
 
 \item{ladder}{How the coarsening ladder orders the design columns it may
 drop, and what it keeps of a dropped one. \code{"hierarchy"} (the default)
@@ -109,7 +132,12 @@ stratum keep the stratum columns' main effects the same way, which is
 how a three-replicate variety trial keeps its genotype means. A level
 with a single row is pooled with the other singletons before the fit,
 so no row's own outcome is carried. The terms carried are recorded on
-the recipe as \code{conditioning_shifted}. \code{"levels"}
+the recipe as \code{conditioning_shifted}. The interaction of a dropped column
+with a kept treatment is not carried, so a multi-environment clone can keep
+its genotype and environment means and lose the genotype-by-environment
+pattern. Shrinkage of a shift uses the mean level size, so on unbalanced
+columns the small levels are shrunk less than their own size would give.
+\code{"levels"}
 is the ladder of masque 0.11.1 to 0.12.0: columns are dropped in
 decreasing order of distinct values and a dropped column leaves no
 trace in the clone.}
@@ -131,7 +159,8 @@ survives masking, coarsened; the recipe records the parameters and the site
 grouping it was coarsened under, and \code{\link[=apply_recipe]{apply_recipe()}} retargets to the real
 coordinates. Several published jitters of the same point average toward
 it: keep the seed, which the recipe records, and do not publish more than
-one jittered release of the same sites.}
+one jittered release of the same sites. A seed has 31 bits: where a clone
+shows site labels and holds two pairs at one place, it can be found by search.}
 
 \item{events}{Optional linked time-to-event outcomes. One spec per group of
 linked events, \code{list(time = c(...), status = c(...))}, with the time and
@@ -196,13 +225,28 @@ with the action \code{keep} carries its real values beside the re-simulated
 columns, so \code{\link[=audit_mask]{audit_mask()}} grades it HIGH and the collaborate write gate
 stops it. Having decided the real outcome may be shared, set this to
 \code{TRUE}: the column is then graded medium and the choice is recorded on
-the recipe. Local mode is unaffected.}
+the recipe. Null mode grades it the same way; local mode is unaffected.}
+
+\item{noise}{The draw behind the \code{noise} action: \code{"summary"} (default)
+draws each numeric or date column independently from its 1st
+percentile, deciles and 99th percentile, interpolated linearly, so every
+draw lies between the 1st and 99th percentiles. Whole numbers stay
+whole, and the rounding can take a value just outside those
+percentiles. A column with fewer than 12 finite values takes the
+standard draw (see Details). \code{"standard"} reads only the column's type
+and draws on a fixed
+scale: a proportion from Beta(2, 2), a non-negative number from
+Gamma(2, 1), other numbers from N(0, 1), 0/1 values from Bernoulli(0.5),
+counts from Poisson(5) and dates uniformly within the year 2000.
+Columns with the same type flags draw the same values under one seed,
+whatever their means. Categorical columns are drawn uniformly over their
+levels either way.}
 
 \item{quiet}{Single logical. \code{TRUE} silences the \code{masque_mode_downgrade}
-warning raised when a roles table prepared for \code{"collaborate"} is used
-in \code{"local"} mode, for a plan that is deliberately shared across both
-modes. No other warning is affected; a HIGH-leakage finding is always
-raised.}
+warning raised when a roles table prepared for \code{"null"} or
+\code{"collaborate"} is used in \code{"local"} mode, for a plan that is
+deliberately shared across modes. No other warning is affected; a
+HIGH-leakage finding is always raised.}
 
 \item{.shared_maps}{Internal. A named list of pre-computed
 \code{original -> alias} level maps for cross-table linked columns, set
@@ -227,11 +271,23 @@ a synthetic clone according to each column's \code{action}. Returns a
 \code{masque_recipe}.
 }
 \details{
-\code{mode = "local"} marks the synthetic for owner development only; the
-reminder is recorded on the recipe and shown when the object prints.
-\code{mode = "collaborate"} additionally jitters re-simulated numerics
+By default (\code{mode = "null"}), every outcome and covariate is simulated
+independently. Each numeric column keeps only an eleven-point summary:
+its 1st percentile, deciles and 99th percentile. Only the experimental
+design and the pattern of missing values are kept exactly, and category
+labels are replaced by codes. Identifier, free-text and
+unsupported columns are dropped. The clone carries no relationship between
+columns, so it suits writing and testing code, not estimating effects.
+
+\code{mode = "local"} keeps structure (a Gaussian copula over the numeric
+columns, empirical marginals, real labels by default) and marks the
+synthetic for owner development only; the reminder is recorded on the
+recipe and shown when the object prints.
+\code{mode = "collaborate"} keeps that structure, hides labels, jitters
+re-simulated numerics
 within their measurement resolution (stochastically rounding
-integers) and runs \code{\link[=audit_mask]{audit_mask()}} automatically; a HIGH finding is
+integers) and runs \code{\link[=audit_mask]{audit_mask()}} automatically. Null mode runs the audit
+too. In both, a HIGH finding is
 raised as a classed warning (\code{masque_high_leakage}) and blocks the
 package-managed writers (\code{\link[=masque]{masque()}}'s \code{out}, \code{\link[=write_set]{write_set()}}) until it
 is resolved or explicitly overridden. Which columns are aliased,
@@ -239,16 +295,16 @@ kept, or dropped is decided by the \code{action} column of \code{roles} -
 \code{\link[=propose_roles]{propose_roles()}} resolves mode-appropriate defaults, so the table
 you reviewed is the plan that runs.
 
-Collaborate mode changes the transformations and runs the audit.
+The mode changes the transformations and decides whether the audit runs.
 Whether a synthetic table is appropriate for a given collaborator,
 environment or jurisdiction is a release decision for the data
-custodian; masque informs that decision, it does not make it.
+owner. masque informs that decision. It does not make it.
 }
 \section{Behaviour by action}{
 
 
 \describe{
-\item{\code{keep}}{Byte-identical pass-through, both modes.}
+\item{\code{keep}}{Byte-identical pass-through, in every mode.}
 \item{\code{scramble}}{Numeric outcome / covariate columns are
 re-simulated jointly via a Gaussian copula on the global Pearson
 covariance, with empirical-quantile marginals. Categorical, date,
@@ -263,11 +319,33 @@ covariates \verb{<col>_LNNN}, design labels \verb{<col>_DNNN} (in place -
 structure intact), ids \verb{<col>_INNN} (in place - row linkage
 intact), text values \verb{<col>_TNNN}. A key \code{\link[=mask_set]{mask_set()}} shares across
 tables becomes \verb{<col>_KNNN}. \code{NNN} has at least three digits.}
-\item{\code{drop}}{Column excluded from the synthetic, both modes.}
+\item{\code{drop}}{Column excluded from the synthetic, in every mode.}
+\item{\code{noise}}{Outcome, covariate and date columns only. The column is
+replaced by independent draws, row by row, that use nothing from its
+values except a coarse summary (see \code{noise}). Categorical columns are
+drawn uniformly over their levels, which are replaced by codes
+\verb{<col>_LNNN}. A logical column stays logical and is drawn uniformly
+over the values it holds, so a logical that is always \code{TRUE} stays
+\code{TRUE} (with a \code{masque_noise_single_value} warning, as for a numeric
+column with one observed value). A column constant within a design
+unit gets one draw per unit. The default for these roles in null
+mode.}
 }
 
-The NA mask of every retained column is preserved cell-by-cell. RNG
-state is preserved across the call.
+Summary noise needs at least 12 finite values, since eleven or fewer are
+recovered exactly from the eleven summary points. A shorter numeric, date
+or logical noise column takes the standard draw instead, with a
+\code{masque_noise_small_sample} warning; for a column constant within a
+design unit the count is of units with an observed value.
+
+The NA mask of every retained column is preserved cell-by-cell, and
+\code{NaN}, \code{Inf} and \code{-Inf} cells are kept in place like the missing cells.
+A \code{POSIXlt} column is returned as \code{POSIXct}. An \code{integer64} column that
+would be read (any action other than \code{keep} or \code{drop}) is refused with
+\code{masque_integer64_refusal}; convert it with \code{as.numeric()} or
+\code{as.character()} first. RNG state is preserved across the call. Null
+mode draws from a stream of its own, so a null clone and a local or
+collaborate clone made with the same seed are not paired row by row.
 }
 
 \examples{
@@ -275,6 +353,11 @@ r <- propose_roles(iris)
 r <- set_role(r, "Sepal.Length", role = "outcome")
 m <- mask(iris, r, seed = 1)
 head(synthetic(m))
+
+# Structure (a copula over the numeric columns) is opt-in.
+r_local <- propose_roles(iris, mode = "local")
+m_local <- mask(iris, r_local, seed = 1)
+head(synthetic(m_local))
 
 }
 \seealso{

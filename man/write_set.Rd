@@ -40,9 +40,11 @@ explicitly overridden with \code{allow_high = TRUE}, which raises a
 \code{masque_high_override} warning so the exception stays visible.
 }
 \examples{
+sites <- c("A", "B", "C", "D", "E", "F")
 tables <- list(
-  plots = data.frame(site = c("A", "B"), yield = c(3.1, 4.2)),
-  sites = data.frame(site = c("A", "B"), rain = c(420, 560))
+  plots = data.frame(site = rep(sites, 2), yield = c(3.1, 4.2, 3.8, 4.0,
+    3.5, 4.4, 3.3, 4.1, 3.9, 3.6, 4.3, 3.7)),
+  sites = data.frame(site = sites, rain = c(420, 560, 480, 510, 450, 530))
 )
 m <- mask_set(tables, seed = 1, quiet = TRUE)
 dir <- file.path(tempdir(), "masked_set")

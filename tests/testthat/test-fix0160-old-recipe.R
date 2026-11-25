@@ -1,16 +1,18 @@
 # Objects as masque 0.15.0 wrote them: the class definition each one carries
-# lacks the properties added in 0.16.0, and their attributes are absent.
-.age_s7 <- function(x, drop) {
-  cls <- attr(x, "S7_class")
+# lacks the properties added in 0.16.0. The old object is built with S7's
+# exported functions only, so the helper does not depend on how an S7 release
+# stores class metadata.
+.age_s7 <- function(x, name, drop) {
+  keep <- setdiff(S7::prop_names(x), drop)
   old_cls <- S7::new_class(
-    cls@name, package = "masque",
-    properties = cls@properties[setdiff(names(cls@properties), drop)]
+    name, package = "masque",
+    properties = stats::setNames(rep(list(S7::class_any), length(keep)), keep)
   )
-  for (p in drop) attr(x, p) <- NULL
-  attr(x, "S7_class") <- old_cls
-  x
+  do.call(old_cls, S7::props(x, keep))
 }
-.age_recipe <- function(rec) .age_s7(rec, c("conform", "events", "grain"))
+.age_recipe <- function(rec) {
+  .age_s7(rec, "masque_recipe", c("conform", "events", "grain"))
+}
 
 .old_fixture <- function() {
   withr::with_seed(2L, {
@@ -87,7 +89,7 @@ test_that("a 0.15.0 recipe bundle prints, applies, unmasks, audits and reads bac
     mask_set(tables, roles = roles, mode = "collaborate", seed = 5L, quiet = TRUE)
   )
   rs <- recipe(ms)
-  old <- .age_s7(rs, "info")
+  old <- .age_s7(rs, "masque_recipe_set", "info")
   old@recipes <- lapply(rs@recipes, .age_recipe)
   expect_false(S7::prop_exists(old, "info"))
 
@@ -106,4 +108,22 @@ test_that("a 0.15.0 recipe bundle prints, applies, unmasks, audits and reads bac
   saveRDS(old, path)
   expect_identical(apply_recipe(tables, read_recipe(path)),
                    apply_recipe(tables, rs))
+})
+
+# A file as the CRAN release wrote it, not an object built in the test. The
+# fixture and the script that made it are in fixtures/.
+test_that("a recipe file written by masque 0.16.0 reads and round-trips", {
+  want <- readRDS(test_path("fixtures", "recipe-0.16.0-expected.rds"))
+  rec <- suppressMessages(
+    read_recipe(test_path("fixtures", "recipe-0.16.0.rds"))
+  )
+  expect_identical(rec@masque_version, "0.16.0")
+  expect_no_error(utils::capture.output(print(rec), type = "message"))
+
+  forward <- apply_recipe(want$original, rec)
+  back <- unmask(forward, rec)
+  for (col in names(want$translated)) {
+    expect_identical(as.character(forward[[col]]), want$translated[[col]])
+    expect_identical(as.character(back[[col]]), want$original[[col]])
+  }
 })

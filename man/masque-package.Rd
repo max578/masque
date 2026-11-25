@@ -3,17 +3,31 @@
 \docType{package}
 \name{masque-package}
 \alias{masque-package}
-\title{masque: Structurally Faithful Development Surrogates for Tabular Data}
+\title{masque: Synthetic Copies of Confidential Data Tables}
 \description{
-\code{masque} turns a confidential tabular dataset -- a single table, a
-folder of files, or a multi-sheet workbook -- into a structurally
-faithful synthetic clone suitable for pipeline development.
-Experimental-design columns and the NA pattern are preserved exactly;
-treatment and categorical-covariate level vocabularies are optionally
-aliased; outcome and numeric-covariate values are re-simulated via a
-Gaussian copula that preserves the global covariance structure. A
-private \code{recipe} round-trips a pipeline written against the synthetic
-clone onto the original data.
+Creates a synthetic copy of a confidential data table, so that analysis
+code can be written and tested without the real values. By default, every
+outcome and covariate is simulated independently, with no link to other
+columns or to the real rows. Each numeric column keeps only an
+eleven-point summary: its 1st percentile, deciles and 99th percentile.
+The experimental design and the pattern of
+missing values are kept exactly, and category labels, including those of
+the design and the treatments, are replaced by codes. Columns that look
+like identifiers or free text are left out. More of the real structure can
+be kept on request, at the cost of disclosing more about the real data.
+With \code{mode = "local"} (for the data owner's own use) or
+\code{mode = "collaborate"} (for sharing), numeric columns are simulated from a
+Gaussian copula, which approximately preserves each column's distribution
+and the correlations between them. In those modes, treatment effects can
+also be mimicked by setting \code{conditional = TRUE} in \code{\link[=mask]{mask()}}. A folder of
+files or a multi-sheet workbook can be masked together. Keys shared by the
+tables get the same codes in every table, so the synthetic tables still
+join. Each run also returns a recipe, which maps the codes back to the
+real labels. The recipe is as confidential as the data and should stay
+with the data owner. \code{\link[=apply_recipe]{apply_recipe()}} converts the real data into the
+names and codes of the copy, so code written on the copy runs on it
+unchanged, and \code{\link[=unmask]{unmask()}} converts results back to the real labels. The
+package gives no formal privacy guarantee.
 }
 \section{Getting started}{
 
@@ -31,16 +45,21 @@ listing any value.
 
 \section{Scope and limits}{
 
-\code{masque} is \strong{not} a differential-privacy or anonymisation tool. Its outputs
-are development surrogates: faithful enough to the structure that pipeline
-code runs unchanged, and in collaborate mode the raw values are not
-exposed. See \code{vignette("confidentiality", package = "masque")} for
-the full threat model and limitations.
+\code{masque} gives no formal privacy guarantee such as differential privacy.
+A default copy is drawn from a coarse summary of each column and keeps no
+relationship between columns. A local or collaborate copy keeps more of
+the real structure, and in collaborate mode no real value appears in it.
+See \code{vignette("confidentiality", package = "masque")} for the full threat
+model and limitations.
 }
 
-\section{Two modes}{
+\section{Three modes}{
 
 \itemize{
+\item \code{mode = "null"} (default): design and missing-value pattern exact;
+labels coded; every outcome, covariate and date drawn independently
+from a coarse summary of its column; ids and free text dropped;
+\code{audit_mask()} auto-runs at construction.
 \item \code{mode = "local"}: owner's realistic dev surrogate; preserves names and
 level vocabularies; may emit observed values; not for external sharing.
 \item \code{mode = "collaborate"}: opaque aliasing for treatment and
@@ -65,6 +84,11 @@ Useful links:
 Authors:
 \itemize{
   \item Max Moldovan \email{max.moldovan@gmail.com} (\href{https://orcid.org/0000-0001-9680-8474}{ORCID}) (affiliation: Adelaide University)
+}
+
+Other contributors:
+\itemize{
+  \item Grains Research and Development Corporation (\href{https://ror.org/02xwr1996}{ROR}) (GRDC Project UOA2301-005OPX (AAGI-AU)) [funder, copyright holder]
 }
 
 }

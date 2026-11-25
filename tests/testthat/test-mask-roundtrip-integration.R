@@ -8,7 +8,7 @@ test_that("Round-trip: lm on synthetic, applied to original via recipe", {
     cov_n = rnorm(n),
     stringsAsFactors = FALSE
   )
-  r <- propose_roles(df)
+  r <- propose_roles(df, mode = "local")
   r$role[r$col == "yield"] <- "outcome"
 
   m <- mask(df, r, mode = "collaborate", seed = 1)
@@ -36,7 +36,7 @@ test_that("Round-trip: classifier predicts treatment, unmask restores labels", {
     yield = rnorm(n, mean = 10, sd = 2),
     stringsAsFactors = FALSE
   )
-  r <- propose_roles(df)
+  r <- propose_roles(df, mode = "local")
   r$role[r$col == "yield"] <- "outcome"
 
   m <- mask(df, r, mode = "collaborate", seed = 1)
@@ -60,7 +60,7 @@ test_that("Round-trip: save then read then apply recipe (cross-process)", {
     yield = rnorm(100),
     stringsAsFactors = FALSE
   )
-  r <- propose_roles(df)
+  r <- propose_roles(df, mode = "local")
   r$role[r$col == "yield"] <- "outcome"
 
   m <- mask(df, r, mode = "collaborate", seed = 1)
@@ -86,7 +86,7 @@ test_that("Round-trip on MET tab_04 (skip if .fst fixture absent)", {
   df <- fst::read_fst(fpath, as.data.table = FALSE)
   # detect = FALSE keeps a single treatment (Cultivar_Habit demoted) for the
   # `trt_001` check below.
-  r <- propose_roles(df, detect = FALSE)
+  r <- propose_roles(df, detect = FALSE, mode = "local")
   r$role[r$col == "G_Yield_Tn_ha"] <- "outcome"
   r$role[r$col == "Cultivar_Habit"] <- "covariate"
 

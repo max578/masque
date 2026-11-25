@@ -1,5 +1,5 @@
 test_that("every exported table comes back as a data.table", {
-  roles <- propose_roles(iris)
+  roles <- propose_roles(iris, mode = "local")
   m <- mask(iris, roles, seed = 1L)
 
   expect_s3_class(roles, "data.table")
@@ -48,13 +48,13 @@ test_that("editing an extracted table by reference leaves the masque intact", {
 })
 
 test_that("a := edit on a returned table never reaches the input", {
-  roles <- propose_roles(iris)
+  roles <- propose_roles(iris, mode = "local")
   r2 <- set_role(roles, "Species", action = "drop")
   data.table::set(r2, i = 1L, j = "role", value = "outcome")
   expect_false(identical(roles$role[1L], "outcome"))
 
   dt <- data.table::as.data.table(iris)
-  m <- mask(dt, propose_roles(dt), seed = 1L)
+  m <- mask(dt, propose_roles(dt, mode = "local"), seed = 1L)
   out <- apply_recipe(dt, recipe(m))
   data.table::set(out, i = 1L, j = 1L, value = -1)
   expect_false(dt[[1L]][1L] == -1)

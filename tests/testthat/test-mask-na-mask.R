@@ -13,7 +13,7 @@ test_that("NA mask is preserved cell-by-cell on numeric outcomes/covariates", {
   df$cov1[c(2, 25, 75)] <- NA
   df$cov2[c(7, 33, 60, 99)] <- NA
 
-  r <- propose_roles(df)
+  r <- propose_roles(df, mode = "local")
   r$role[r$col == "yield"] <- "outcome"
 
   m <- suppressWarnings(mask(df, r, seed = 1))
@@ -30,7 +30,7 @@ test_that("NA mask preserved on categorical covariates too", {
   )
   df$cat1[c(5, 15, 50, 99)] <- NA
 
-  r <- propose_roles(df)
+  r <- propose_roles(df, mode = "local")
   r$role[r$col == "yield"] <- "outcome"
 
   m <- suppressWarnings(mask(df, r, seed = 1))
@@ -45,7 +45,7 @@ test_that("All-NA column survives mask without error", {
     all_na = NA_real_,
     stringsAsFactors = FALSE
   )
-  r <- propose_roles(df)
+  r <- propose_roles(df, mode = "local")
   r$role[r$col == "yield"] <- "outcome"
 
   expect_no_error(m <- suppressWarnings(mask(df, r, seed = 1)))

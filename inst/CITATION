@@ -2,7 +2,7 @@ citHeader("To cite the masque package in publications, use:")
 
 bibentry(
   bibtype = "Manual",
-  title   = "{masque}: Structurally Faithful Development Surrogates for Tabular Data",
+  title   = "{masque}: Synthetic Copies of Confidential Data Tables",
   author  = person("Max", "Moldovan",
                    email = "max.moldovan@gmail.com",
                    comment = c(ORCID = "0000-0001-9680-8474")),

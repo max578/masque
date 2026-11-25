@@ -10,8 +10,8 @@
 #' `mask_levels` column) are upgraded in place with a deprecation
 #' warning. The upgrade preserves the v1 semantics exactly: v1 `keep`
 #' becomes action `keep`; v1 `ignore` becomes role `id` / `text` /
-#' `other` with action `keep` in local mode and `drop` in collaborate
-#' mode; v1 treatment `mask_levels = "permute"` becomes action
+#' `other` with action `keep` in local mode and `drop` in null and
+#' collaborate mode; v1 treatment `mask_levels = "permute"` becomes action
 #' `scramble`.
 #'
 #' Hard errors:
@@ -20,7 +20,7 @@
 #'   \item missing required columns (`col`, `role`, `action`, `kind`);
 #'   \item unknown role (not in `design`, `treatment`, `outcome`,
 #'     `covariate`, `date`, `id`, `text`, `other`) or unknown action
-#'     (not in `keep`, `scramble`, `alias`, `drop`);
+#'     (not in `keep`, `noise`, `scramble`, `alias`, `drop`);
 #'   \item any `NA` role (an `NA` *action* is allowed - it resolves to
 #'     the default for the row's role and kind);
 #'   \item an incompatible (role, action, kind) combination, e.g.
@@ -37,17 +37,23 @@
 #'   \item every action is `keep` - the "synthetic" would equal the
 #'     original byte-for-byte;
 #'   \item the table was proposed for one mode but is being validated
-#'     for another (actions are taken as-is; defaults are not
-#'     re-resolved).
+#'     for another and holds no record of its proposed actions (a
+#'     hand-built table): its actions are taken as-is.
 #' }
+#'
+#' A table proposed for one mode and validated for another is re-resolved:
+#' each action still on its proposed default takes the new mode's default,
+#' an edited action is kept, and the changes are listed in a message.
+#' Moving from `"null"` or `"collaborate"` to `"local"` also warns with
+#' `masque_mode_downgrade`.
 #'
 #' @param roles A roles table from [propose_roles()] (possibly edited),
 #'   or a v1 roles table (deprecated, upgraded with a warning).
 #' @param df Optional data frame. If supplied, `roles` is checked for
 #'   one-to-one column-name correspondence with `df`.
-#' @param mode Optional mode (`"local"` or `"collaborate"`) used to
+#' @param mode Optional mode (`"null"`, `"local"` or `"collaborate"`) used to
 #'   resolve `NA` actions and to upgrade v1 tables. Defaults to
-#'   `attr(roles, "mode")`, falling back to `"local"`.
+#'   `attr(roles, "mode")`, falling back to `"null"`.
 #'
 #' @return The validated (and possibly upgraded / resolved) roles
 #'   table, invisibly.
@@ -67,10 +73,12 @@ roles_validate <- function(roles, df = NULL, mode = NULL) {
     )
   }
   if (is.null(mode)) {
-    mode <- attr(roles, "mode") %||% "local"
+    mode <- attr(roles, "mode") %||% "null"
   }
-  if (!(mode %in% c("local", "collaborate"))) {
-    cli::cli_abort("`mode` must be {.val local} or {.val collaborate}.")
+  if (!(mode %in% .modes())) {
+    cli::cli_abort(
+      "`mode` must be {.val null}, {.val local} or {.val collaborate}."
+    )
   }
 
   required <- c("col", "role")
@@ -221,14 +229,14 @@ roles_validate <- function(roles, df = NULL, mode = NULL) {
     return(roles)
   }
 
-  if (identical(proposed_mode, "collaborate") && identical(mode, "local")) {
+  if (.shareable_mode(proposed_mode) && identical(mode, "local")) {
     cli::cli_warn(c(
       paste0(
-        "A roles table prepared for {.val collaborate} is being used in ",
+        "A roles table prepared for {.val {proposed_mode}} is being used in ",
         "{.val local} mode."
       ),
       "i" = paste0(
-        "Collaborate defaults may be downgraded to values that expose real ",
+        "Its defaults may be downgraded to values that expose real ",
         "labels. Confirm this mode change before sharing output."
       )
     ), class = "masque_mode_downgrade")
@@ -239,7 +247,8 @@ roles_validate <- function(roles, df = NULL, mode = NULL) {
     cli::cli_warn(c(
       paste0(
         "`roles` was prepared for mode {.val {proposed_mode}} but is ",
-        "being used with mode {.val {mode}}; actions are taken as-is."
+        "being used with mode {.val {mode}} and holds no record of its ",
+        "proposed actions, so they are taken as-is."
       ),
       i = paste0(
         "Re-run {.code propose_roles(df, mode = \"{mode}\")} if you ",

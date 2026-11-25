@@ -18,7 +18,7 @@ make_factorial_fixture <- function(reps = 6, seed = 0) {
     cov_n = rnorm(n),
     stringsAsFactors = FALSE
   )
-  r <- propose_roles(df)
+  r <- propose_roles(df, mode = "local")
   r$role[r$col == "yield"] <- "outcome"
   r$role[r$col == "variety"] <- "treatment"
   r$role[r$col == "nitrogen"] <- "treatment"

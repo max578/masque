@@ -1,4 +1,4 @@
-#' Mask a tabular dataset into a structurally faithful development surrogate
+#' Make a synthetic copy of one table
 #'
 #' Takes one data frame and a user-edited `roles` table (from
 #' [propose_roles()], possibly adjusted with [set_role()]) and produces
@@ -6,11 +6,23 @@
 #' `masque` S7 object holding the synthetic data and a private
 #' `masque_recipe`.
 #'
-#' `mode = "local"` marks the synthetic for owner development only; the
-#' reminder is recorded on the recipe and shown when the object prints.
-#' `mode = "collaborate"` additionally jitters re-simulated numerics
+#' By default (`mode = "null"`), every outcome and covariate is simulated
+#' independently. Each numeric column keeps only an eleven-point summary:
+#' its 1st percentile, deciles and 99th percentile. Only the experimental
+#' design and the pattern of missing values are kept exactly, and category
+#' labels are replaced by codes. Identifier, free-text and
+#' unsupported columns are dropped. The clone carries no relationship between
+#' columns, so it suits writing and testing code, not estimating effects.
+#'
+#' `mode = "local"` keeps structure (a Gaussian copula over the numeric
+#' columns, empirical marginals, real labels by default) and marks the
+#' synthetic for owner development only; the reminder is recorded on the
+#' recipe and shown when the object prints.
+#' `mode = "collaborate"` keeps that structure, hides labels, jitters
+#' re-simulated numerics
 #' within their measurement resolution (stochastically rounding
-#' integers) and runs [audit_mask()] automatically; a HIGH finding is
+#' integers) and runs [audit_mask()] automatically. Null mode runs the audit
+#' too. In both, a HIGH finding is
 #' raised as a classed warning (`masque_high_leakage`) and blocks the
 #' package-managed writers ([masque()]'s `out`, [write_set()]) until it
 #' is resolved or explicitly overridden. Which columns are aliased,
@@ -18,15 +30,15 @@
 #' [propose_roles()] resolves mode-appropriate defaults, so the table
 #' you reviewed is the plan that runs.
 #'
-#' Collaborate mode changes the transformations and runs the audit.
+#' The mode changes the transformations and decides whether the audit runs.
 #' Whether a synthetic table is appropriate for a given collaborator,
 #' environment or jurisdiction is a release decision for the data
-#' custodian; masque informs that decision, it does not make it.
+#' owner. masque informs that decision. It does not make it.
 #'
 #' @section Behaviour by action:
 #'
 #' \describe{
-#'   \item{`keep`}{Byte-identical pass-through, both modes.}
+#'   \item{`keep`}{Byte-identical pass-through, in every mode.}
 #'   \item{`scramble`}{Numeric outcome / covariate columns are
 #'     re-simulated jointly via a Gaussian copula on the global Pearson
 #'     covariance, with empirical-quantile marginals. Categorical, date,
@@ -41,29 +53,60 @@
 #'     structure intact), ids `<col>_INNN` (in place - row linkage
 #'     intact), text values `<col>_TNNN`. A key [mask_set()] shares across
 #'     tables becomes `<col>_KNNN`. `NNN` has at least three digits.}
-#'   \item{`drop`}{Column excluded from the synthetic, both modes.}
+#'   \item{`drop`}{Column excluded from the synthetic, in every mode.}
+#'   \item{`noise`}{Outcome, covariate and date columns only. The column is
+#'     replaced by independent draws, row by row, that use nothing from its
+#'     values except a coarse summary (see `noise`). Categorical columns are
+#'     drawn uniformly over their levels, which are replaced by codes
+#'     `<col>_LNNN`. A logical column stays logical and is drawn uniformly
+#'     over the values it holds, so a logical that is always `TRUE` stays
+#'     `TRUE` (with a `masque_noise_single_value` warning, as for a numeric
+#'     column with one observed value). A column constant within a design
+#'     unit gets one draw per unit. The default for these roles in null
+#'     mode.}
 #' }
 #'
-#' The NA mask of every retained column is preserved cell-by-cell. RNG
-#' state is preserved across the call.
+#' Summary noise needs at least 12 finite values, since eleven or fewer are
+#' recovered exactly from the eleven summary points. A shorter numeric, date
+#' or logical noise column takes the standard draw instead, with a
+#' `masque_noise_small_sample` warning; for a column constant within a
+#' design unit the count is of units with an observed value.
+#'
+#' The NA mask of every retained column is preserved cell-by-cell, and
+#' `NaN`, `Inf` and `-Inf` cells are kept in place like the missing cells.
+#' A `POSIXlt` column is returned as `POSIXct`. An `integer64` column that
+#' would be read (any action other than `keep` or `drop`) is refused with
+#' `masque_integer64_refusal`; convert it with `as.numeric()` or
+#' `as.character()` first. RNG state is preserved across the call. Null
+#' mode draws from a stream of its own, so a null clone and a local or
+#' collaborate clone made with the same seed are not paired row by row.
 #'
 #' @param df A data frame, or the `masque_conformance` object returned by
 #'   [conform_table()], whose `data` element is then masked. Its cleaning
 #'   record and its merges and type changes go on the recipe, so
 #'   [apply_recipe()] replays them; `clean` is not applied a second time.
-#' @param roles A roles table from [propose_roles()] (possibly edited).
+#' @param roles A roles table from [propose_roles()] (possibly edited), or a
+#'   [masque_plan()]. A plan supplies `coords`, `events`, `conditional`,
+#'   `ladder`, `grain` and `alias_names` where the call leaves them out, and its
+#'   control specs are resolved on `df` and written back to the recipe.
 #'   Tables from masque <= 0.5.0 are upgraded with a deprecation
 #'   warning; see [roles_validate()].
-#' @param mode Either `"local"` or `"collaborate"`. When omitted, inherit
-#'   `attr(roles, "mode")`, falling back to `"local"` for a roles table with
-#'   no mode provenance. An explicit collaborate-to-local downgrade raises a
+#' @param mode One of `"null"`, `"local"` or `"collaborate"`. When omitted,
+#'   inherit `attr(roles, "mode")`, falling back to `"null"` (with a
+#'   `masque_mode_unset` warning) for a roles table with no mode provenance.
+#'   A conditional clone needs `"local"` or `"collaborate"`; under `"null"`
+#'   it is refused with `masque_null_conditional_refusal`. An explicit
+#'   downgrade from `"null"` or `"collaborate"` to `"local"` raises a
 #'   classed `masque_mode_downgrade` warning. A table of fewer than five rows
 #'   in which any column would be re-simulated (a scrambled covariate,
-#'   outcome, date or text column, or an `events` spec) is refused in
-#'   collaborate mode with `masque_too_few_rows_refusal`, because such a
-#'   clone is the original values resampled; local mode warns with
-#'   `masque_too_few_rows`. Kept, aliased and dropped columns are not
-#'   re-simulated, so a short lookup table of those masks in either mode.
+#'   outcome, date or text column, a numeric or date noise column, or an
+#'   `events` spec) is refused in null and collaborate mode with
+#'   `masque_too_few_rows_refusal`, because such a clone is the original
+#'   values resampled, or drawn from a summary that is close to them; local
+#'   mode warns with `masque_too_few_rows`. A logical noise column counts,
+#'   since it is drawn over the values it holds. Kept, aliased and dropped
+#'   columns are not re-simulated, and factor and character noise draws
+#'   codes only, so a short lookup table of those masks in any mode.
 #' @param seed Optional integer for reproducibility.
 #' @param clean Label and column-name hygiene before masking, passed to
 #'   [clean_table()]: one of `"auto"` (default - trim whitespace and
@@ -82,8 +125,9 @@
 #'   [apply_recipe()] / [unmask()], so a pipeline written against the
 #'   aliased synthetic round-trips. Alias the names when the schema itself
 #'   is sensitive.
-#' @param conditional Logical scalar (default `FALSE`). The
-#'   *collaborate-grade conditional clone*. When `FALSE`, scrambled
+#' @param conditional `FALSE` (default), `TRUE`, `"design"`, or a character
+#'   vector of column names. The *collaborate-grade conditional clone*.
+#'   When `FALSE`, scrambled
 #'   numeric columns are re-simulated from one global Gaussian copula -
 #'   marginals and global covariance survive, but the treatment-to-outcome
 #'   relationship does not, so a causal model fitted on the clone recovers
@@ -106,6 +150,18 @@
 #'   pooling raises a classed `masque_conditional_degraded` warning --
 #'   including the case where no treatment or design column survives at
 #'   all, in which case the clone is the pooled copula.
+#'
+#'   `"design"` conditions on the retained design columns alone. The clone
+#'   keeps the design means, block and environment variance, while a treatment
+#'   effect is not carried: a real effect moves into the residual, as it does
+#'   when an owner permutes the treatment for a negative control, so the clone
+#'   stands in for those negatives. The residual is not the one a real fit has.
+#'   Linked `events` are stratified only by treatment columns of the partition,
+#'   so `"design"` and a design-only partition do not keep their design means.
+#'   A character vector of names gives the partition explicitly, from the
+#'   retained design and treatment columns, and runs through the same ladder;
+#'   treatment columns are still never dropped. The single word `"design"`
+#'   always means this option, even where a column has that name.
 #' @param ladder How the coarsening ladder orders the design columns it may
 #'   drop, and what it keeps of a dropped one. `"hierarchy"` (the default)
 #'   drops plot coordinates (`row`, `col`, `range`, `plot`) first, then
@@ -124,7 +180,12 @@
 #'   how a three-replicate variety trial keeps its genotype means. A level
 #'   with a single row is pooled with the other singletons before the fit,
 #'   so no row's own outcome is carried. The terms carried are recorded on
-#'   the recipe as `conditioning_shifted`. `"levels"`
+#'   the recipe as `conditioning_shifted`. The interaction of a dropped column
+#'   with a kept treatment is not carried, so a multi-environment clone can keep
+#'   its genotype and environment means and lose the genotype-by-environment
+#'   pattern. Shrinkage of a shift uses the mean level size, so on unbalanced
+#'   columns the small levels are shrunk less than their own size would give.
+#'   `"levels"`
 #'   is the ladder of masque 0.11.1 to 0.12.0: columns are dropped in
 #'   decreasing order of distinct values and a dropped column leaves no
 #'   trace in the clone.
@@ -146,7 +207,8 @@
 #'   grouping it was coarsened under, and [apply_recipe()] retargets to the real
 #'   coordinates. Several published jitters of the same point average toward
 #'   it: keep the seed, which the recipe records, and do not publish more than
-#'   one jittered release of the same sites.
+#'   one jittered release of the same sites. A seed has 31 bits: where a clone
+#'   shows site labels and holds two pairs at one place, it can be found by search.
 #' @param events Optional linked time-to-event outcomes. One spec per group of
 #'   linked events, `list(time = c(...), status = c(...))`, with the time and
 #'   status columns listed in the order the events occur; pass several specs
@@ -207,12 +269,26 @@
 #'   columns, so [audit_mask()] grades it HIGH and the collaborate write gate
 #'   stops it. Having decided the real outcome may be shared, set this to
 #'   `TRUE`: the column is then graded medium and the choice is recorded on
-#'   the recipe. Local mode is unaffected.
+#'   the recipe. Null mode grades it the same way; local mode is unaffected.
+#' @param noise The draw behind the `noise` action: `"summary"` (default)
+#'   draws each numeric or date column independently from its 1st
+#'   percentile, deciles and 99th percentile, interpolated linearly, so every
+#'   draw lies between the 1st and 99th percentiles. Whole numbers stay
+#'   whole, and the rounding can take a value just outside those
+#'   percentiles. A column with fewer than 12 finite values takes the
+#'   standard draw (see Details). `"standard"` reads only the column's type
+#'   and draws on a fixed
+#'   scale: a proportion from Beta(2, 2), a non-negative number from
+#'   Gamma(2, 1), other numbers from N(0, 1), 0/1 values from Bernoulli(0.5),
+#'   counts from Poisson(5) and dates uniformly within the year 2000.
+#'   Columns with the same type flags draw the same values under one seed,
+#'   whatever their means. Categorical columns are drawn uniformly over their
+#'   levels either way.
 #' @param quiet Single logical. `TRUE` silences the `masque_mode_downgrade`
-#'   warning raised when a roles table prepared for `"collaborate"` is used
-#'   in `"local"` mode, for a plan that is deliberately shared across both
-#'   modes. No other warning is affected; a HIGH-leakage finding is always
-#'   raised.
+#'   warning raised when a roles table prepared for `"null"` or
+#'   `"collaborate"` is used in `"local"` mode, for a plan that is
+#'   deliberately shared across modes. No other warning is affected; a
+#'   HIGH-leakage finding is always raised.
 #' @param .shared_maps Internal. A named list of pre-computed
 #'   `original -> alias` level maps for cross-table linked columns, set
 #'   by [mask_set()]. Not for direct use.
@@ -231,6 +307,11 @@
 #' m <- mask(iris, r, seed = 1)
 #' head(synthetic(m))
 #'
+#' # Structure (a copula over the numeric columns) is opt-in.
+#' r_local <- propose_roles(iris, mode = "local")
+#' m_local <- mask(iris, r_local, seed = 1)
+#' head(synthetic(m_local))
+#'
 #' @seealso [propose_roles()], [set_role()], [roles_validate()],
 #'   [synthetic()], [recipe()], [roles()], [reveal_maps()], [audit_mask()],
 #'   [data_card()].
@@ -238,7 +319,7 @@
 #' @export
 mask <- function(df,
                  roles,
-                 mode = c("local", "collaborate"),
+                 mode = c("null", "local", "collaborate"),
                  seed = NULL,
                  clean = c("auto", "report", "off"),
                  alias_names = FALSE,
@@ -249,6 +330,7 @@ mask <- function(df,
                  grain = TRUE,
                  allow_unmasked_coords = FALSE,
                  allow_kept_outcome = FALSE,
+                 noise = c("summary", "standard"),
                  quiet = FALSE,
                  .shared_maps = list(),
                  .cleaning = NULL,
@@ -273,6 +355,28 @@ mask <- function(df,
   # Undo any RNG change made inside mask() on exit, whichever path made it.
   withr::local_preserve_seed()
 
+  # A plan fills the arguments the call leaves out.
+  plan <- NULL
+  if (!missing(roles) && S7::S7_inherits(roles, .plan_class)) {
+    plan <- roles
+    if (!identical(plan@vocabulary, "source")) {
+      .plan_refuse(
+        c(
+          "This plan is in clone vocabulary.",
+          i = "It describes a clone for {.fn controls}, and cannot mask a table."
+        ),
+        "vocabulary"
+      )
+    }
+    roles <- plan@roles
+    if (missing(coords) && length(plan@coords)) coords <- plan@coords
+    if (missing(events) && length(plan@events)) events <- plan@events
+    if (missing(conditional)) conditional <- plan@conditional
+    if (missing(ladder)) ladder <- plan@ladder
+    if (missing(grain)) grain <- plan@grain
+    if (missing(alias_names)) alias_names <- plan@alias_names
+  }
+
   # A conformance object carries its own cleaning and the judged decisions;
   # both go on the recipe so apply_recipe() can replay them.
   conform_rec <- NULL
@@ -287,13 +391,7 @@ mask <- function(df,
       class = c("masque_bad_df_refusal", "orchestra_refusal")
     )
   }
-  if (!is.logical(conditional) || length(conditional) != 1L ||
-    is.na(conditional)) {
-    cli::cli_abort(
-      "`conditional` must be a single `TRUE` or `FALSE`.",
-      class = c("masque_bad_conditional_refusal", "orchestra_refusal")
-    )
-  }
+  .check_conditional_arg(conditional)
   if (!is.logical(grain) || length(grain) != 1L || is.na(grain)) {
     cli::cli_abort(
       "`grain` must be a single `TRUE` or `FALSE`.",
@@ -340,18 +438,31 @@ mask <- function(df,
           "provenance."
         ),
         "i" = paste0(
-          "Defaulting to {.val local}. If this table was prepared for ",
-          "{.val collaborate} or lost its attributes (for example via ",
-          "a {.fn data.table} copy or a CSV round-trip), pass ",
+          "Defaulting to {.val null}. If this table was prepared for ",
+          "{.val local} or {.val collaborate} or lost its attributes (for ",
+          "example via a {.fn data.table} copy or a CSV round-trip), pass ",
           "{.code mode =} explicitly."
         )
       ), class = "masque_mode_unset")
-      mode <- "local"
+      mode <- "null"
     } else {
       mode <- roles_mode
     }
   }
-  mode <- match.arg(mode, c("local", "collaborate"))
+  mode <- match.arg(mode, .modes())
+  noise <- .check_noise_arg(noise)
+  if (identical(mode, "null") && !isFALSE(conditional)) {
+    cli::cli_abort(c(
+      paste0(
+        "A conditional clone needs structure that {.val null} mode does ",
+        "not keep."
+      ),
+      i = paste0(
+        "Pass {.code mode = \"local\"} or {.code mode = \"collaborate\"} ",
+        "to condition re-simulated columns on the design."
+      )
+    ), class = c("masque_null_conditional_refusal", "orchestra_refusal"))
+  }
   clean <- match.arg(clean)
   warnings_acc <- character()
 
@@ -412,6 +523,7 @@ mask <- function(df,
       class = c("masque_bad_allow_kept_outcome_refusal", "orchestra_refusal")
     )
   }
+  .refuse_integer64(df, roles)
   warnings_acc <- c(
     warnings_acc, .check_row_floor(df, roles, mode, event_specs)
   )
@@ -422,22 +534,21 @@ mask <- function(df,
     .detect_grain(
       df, roles, exclude = c(coord_cols, event_cols, names(.shared_maps))
     ),
-    grain, mode
+    grain, mode, roles
   )
   warnings_acc <- c(warnings_acc, grain_res$lines)
 
   opts <- mode_defaults(mode)
 
   # With nothing to condition on, a conditional clone uses the global copula.
-  conditioning_cols <- if (isTRUE(conditional)) {
-    .conditioning_cols(roles)
-  } else {
-    character()
-  }
-  if (isTRUE(conditional) && !length(conditioning_cols)) {
+  conditioning_cols <- .resolve_conditioning(conditional, roles)
+  conditional_declared <- conditional
+  conditional <- !isFALSE(conditional)
+  if (conditional && !length(conditioning_cols)) {
     msg <- paste0(
-      "conditional = TRUE but no treatment or design column survives to ",
-      "condition on; numeric synthesis falls back to the global copula."
+      "A conditional clone was asked for but no treatment or design column ",
+      "of its partition survives; numeric synthesis falls back to the global ",
+      "copula."
     )
     # Classed, so a caller can catch the loss of conditional fidelity.
     warning(warningCondition(msg, class = "masque_conditional_degraded"))
@@ -445,10 +556,11 @@ mask <- function(df,
   }
 
   result <- with_rng_state(
-    seed,
+    if (identical(mode, "null")) .null_seed(seed) else seed,
     .mask_orchestrate(
-      df, roles, mode, opts, .shared_maps, conditional, ladder,
-      events = event_specs, grain = grain_res$groups
+      df, roles, mode, opts, .shared_maps, conditional, conditioning_cols,
+      ladder,
+      events = event_specs, grain = grain_res$groups, noise = noise
     )
   )
   synth <- result$synth
@@ -541,9 +653,10 @@ mask <- function(df,
     ))
   }
 
-  # Collaborate mode: auto-run audit and propagate high-leakage warnings
+  # Null and collaborate modes: auto-run audit and propagate high-leakage
+  # warnings.
   audit_tbl <- NULL
-  if (identical(mode, "collaborate")) {
+  if (.shareable_mode(mode)) {
     # Audit needs a temporary synthetic table + a temporary recipe with the
     # level_maps we collected so far.
     .tmp_rec <- masque_recipe(
@@ -554,6 +667,7 @@ mask <- function(df,
       roles           = .strip_roles_provenance(as.data.frame(roles)),
       conditional     = conditional,
       conditioning_used = conditioning_used,
+      conditioning_shifted = conditioning_shifted,
       column_name_map = NULL,
       level_maps      = level_maps,
       storage_classes = list(),
@@ -640,9 +754,24 @@ mask <- function(df,
     grain             = grain_res$groups,
     allow_unmasked_coords = isTRUE(allow_unmasked_coords),
     allow_kept_outcome = allow_kept_outcome,
+    noise             = noise,
     warnings          = warnings_acc,
+    content_fp        = .content_fingerprint(df),
     integrity_fp      = digest::digest(is.na(df), algo = "sha256")
   )
+  if (!is.null(plan)) {
+    rec@owner_key <- .new_owner_key()
+    if (!length(rec@owner_key)) {
+      warning(warningCondition(
+        "No system random source was found, so this recipe holds no key for the owner's controls. Install openssl, or pass a private `seed` to controls().",
+        class = "masque_owner_key_unavailable"
+      ))
+    }
+    rec@plan <- .plan_resolve(plan, df, roles, rec, list(
+      coords = coords, events = events, conditional = conditional_declared,
+      ladder = ladder, grain = grain, alias_names = alias_names
+    ))
+  }
 
   masque_obj(
     synthetic = .as_owned_dt(synth),
@@ -703,7 +832,7 @@ mask <- function(df,
   if (length(dropped)) {
     parts <- c(parts, sprintf(
       paste0(
-        "conditional = TRUE: cells of the finest conditioning stratum held ",
+        "Conditional clone: cells of the finest conditioning stratum held ",
         "fewer than %d rows, so the ladder coarsened it by dropping %s. ",
         "Conditioning on: %s."
       ),
@@ -718,7 +847,7 @@ mask <- function(df,
     shifted <- report$shifted
     if (length(shifted)) {
       parts <- c(parts, sprintf(
-        "The main effect of %s is carried into the clone as an additive shift.",
+        "The main effect of %s is carried into the clone as an additive shift; its interaction with a kept treatment is not.",
         paste(shifted, collapse = ", ")
       ))
     }
@@ -739,8 +868,11 @@ mask <- function(df,
 # Internal: per-action synthesis, with the RNG already seeded. The action
 # column decides what happens to each column; mode only adds numeric jitter.
 .mask_orchestrate <- function(df, roles, mode, opts, shared_maps = list(),
-                              conditional = FALSE, ladder = "hierarchy",
-                              events = list(), grain = list()) {
+                              conditional = FALSE,
+                              conditioning_cols = character(),
+                              ladder = "hierarchy",
+                              events = list(), grain = list(),
+                              noise = "summary") {
   synth <- df
   level_maps <- list()
   warnings <- character()
@@ -772,14 +904,15 @@ mask <- function(df,
     if (isTRUE(conditional)) {
       conditional_report <- .conditioning_ladder(
         df,
-        cond_cols    = .conditioning_cols(roles),
+        cond_cols    = conditioning_cols,
         protect_cols = roles$col[role == "treatment" & action != "drop"],
         min_stratum  = .MIN_STRATUM,
         ladder       = ladder,
         x_num        = x_num
       )
       shifts <- .design_shifts(
-        x_num, df, conditional_report$used, conditional_report$shifted
+        x_num, df, conditional_report$used, conditional_report$shifted,
+        treatment = roles$col[role == "treatment"]
       )
       shift <- shifts$shift
       conditional_report$shifted <- shifts$shifted
@@ -819,10 +952,24 @@ mask <- function(df,
     }
   }
 
+  # Noise columns: independent draws, one column at a time in column order.
+  noise_idx <- which(action == "noise" & !is_shared & !is_event & !is_grain)
+  for (j in noise_idx) {
+    col <- roles$col[j]
+    res <- .noise_column(df[[col]], noise,
+      prefix = paste0(col, "_L"), name = col
+    )
+    synth[[col]] <- res$x
+    if (!is.null(res$map)) level_maps[[col]] <- res$map
+    warnings <- c(warnings, res$note)
+  }
+
   # Linked events: status patterns permuted, gaps re-simulated per pattern.
   event_reports <- list()
   if (length(events)) {
-    trt_cols <- roles$col[role == "treatment" & action != "drop"]
+    trt_cols <- intersect(
+      roles$col[role == "treatment" & action != "drop"], conditioning_cols
+    )
     strata <- if (isTRUE(conditional) && length(trt_cols)) {
       do.call(paste, c(lapply(.cols(df, trt_cols), as.character), sep = "/"))
     }
@@ -902,12 +1049,13 @@ mask <- function(df,
   # Grained columns: one draw per unit, broadcast to the unit's rows.
   for (g in unit_groups) {
     res <- .synthesise_grain_group(
-      df, g, roles, jitter = isTRUE(opts$jitter_numeric)
+      df, g, roles, jitter = isTRUE(opts$jitter_numeric), noise = noise
     )
     for (col in names(res$columns)) {
       synth[[col]] <- res$columns[[col]]
     }
     level_maps[names(res$level_maps)] <- res$level_maps
+    warnings <- c(warnings, res$notes)
   }
 
   # Linked columns were aliased by the shared block and are never dropped.
@@ -954,16 +1102,22 @@ mask <- function(df,
 .MIN_STRATUM <- 5L
 
 # Internal: below .MIN_STRATUM rows a re-simulated column is the original
-# resampled. Collaborate refuses, local warns; returns the recipe line.
+# resampled, and a noise column's summary is close to the values themselves.
+# Null and collaborate refuse, local warns; returns the recipe line.
 .check_row_floor <- function(df, roles, mode, events = list()) {
   n <- nrow(df)
   if (n >= .MIN_STRATUM) {
     return(character())
   }
+  # Factor and character noise draws codes uniformly and discloses nothing;
+  # a logical is drawn over the values it holds, so it counts.
   resim <- roles$col[
-    roles$action == "scramble" &
-      !roles$role %in% c("treatment", "design") &
-      roles$kind %in% c(.numeric_kinds(), .categorical_kinds(), .date_kinds())
+    ((roles$action == "scramble" &
+      roles$kind %in%
+        c(.numeric_kinds(), .categorical_kinds(), .date_kinds())) |
+      (roles$action == "noise" &
+        roles$kind %in% c(.numeric_kinds(), .date_kinds(), "logical"))) &
+      !roles$role %in% c("treatment", "design")
   ]
   resim <- unique(c(resim, unlist(lapply(events, function(s) {
     c(s$time, s$status)
@@ -971,7 +1125,7 @@ mask <- function(df,
   if (!length(resim)) {
     return(character())
   }
-  if (identical(mode, "collaborate")) {
+  if (.shareable_mode(mode)) {
     cli::cli_abort(c(
       paste0(
         "{.arg df} has {n} row{?s}, fewer than {(.MIN_STRATUM)}, and ",
@@ -979,7 +1133,7 @@ mask <- function(df,
       ),
       x = paste0(
         "A re-simulated column this short is the original values resampled, ",
-        "so a collaborate clone would disclose them."
+        "so a clone meant to be shared would disclose them."
       ),
       i = paste0(
         "Keep, alias or drop {cli::qty(length(resim))}{?that column/those ",
@@ -998,6 +1152,29 @@ mask <- function(df,
   msg
 }
 
+# Internal: refuse an integer64 column that would be read. Its storage is
+# not a double, so a summary or a scramble would read a bit pattern.
+.refuse_integer64 <- function(df, roles) {
+  read <- roles$col[!roles$action %in% c("keep", "drop")]
+  bad <- read[vapply(read, function(cl) {
+    inherits(df[[cl]], "integer64")
+  }, logical(1L))]
+  if (!length(bad)) {
+    return(invisible(NULL))
+  }
+  cli::cli_abort(c(
+    "{.field {bad}} {cli::qty(length(bad))}{?is/are} {.cls integer64}.",
+    x = paste0(
+      "masque reads numbers as doubles, and an {.cls integer64} column ",
+      "stored as one would be read as a bit pattern."
+    ),
+    i = paste0(
+      "Convert with {.code as.numeric()} (values within double range) or ",
+      "{.code as.character()} first, or keep or drop the column."
+    )
+  ), class = c("masque_integer64_refusal", "orchestra_refusal"))
+}
+
 # Internal: relabel through a shared `original -> alias` map, keeping the
 # type. Numeric values are matched by their character form.
 .relabel_with_map <- function(x, map) {
@@ -1007,4 +1184,16 @@ mask <- function(df,
   }
   x_chr <- if (is.numeric(x)) as.character(x) else as.character(x)
   ifelse(is.na(x_chr), NA_character_, unname(map[x_chr]))
+}
+
+# Internal: validate `noise`, which picks the draw of the noise action.
+.check_noise_arg <- function(noise) {
+  if (is.character(noise) && length(noise) >= 1L && !anyNA(noise) &&
+    noise[1L] %in% c("summary", "standard")) {
+    return(noise[1L])
+  }
+  cli::cli_abort(
+    "`noise` must be {.val summary} or {.val standard}.",
+    class = c("masque_bad_noise_refusal", "orchestra_refusal")
+  )
 }

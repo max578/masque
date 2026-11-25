@@ -19,7 +19,7 @@ ladder_factorial <- function(n_block = 12L, effect = 4, sd = 1.5,
 }
 
 ladder_roles <- function(df) {
-  r <- propose_roles(df, detect = FALSE)
+  r <- propose_roles(df, detect = FALSE, mode = "local")
   r$role[r$col == "n_rate"] <- "treatment"
   r$action[r$col == "n_rate"] <- "keep"
   r$role[r$col == "variety"] <- "design"
@@ -123,7 +123,7 @@ test_that("a stratum that already holds enough rows is not degraded", {
     arm = factor(rep(c("ctrl", "treat"), each = n / 2L)),
     yield = 10 + 5 * rep(c(0, 1), each = n / 2L) + stats::rnorm(n, sd = 2)
   )
-  r <- propose_roles(d, detect = FALSE)
+  r <- propose_roles(d, detect = FALSE, mode = "local")
   r$role[r$col == "arm"] <- "treatment"
   r$action[r$col == "arm"] <- "keep"
   r$role[r$col == "yield"] <- "outcome"
@@ -163,7 +163,7 @@ ladder_met <- function(seed = 20260925L) {
 }
 
 ladder_met_roles <- function(d) {
-  r <- propose_roles(d, detect = FALSE)
+  r <- propose_roles(d, detect = FALSE, mode = "local")
   r$role[r$col == "trt"] <- "treatment"
   r$action[r$col == "trt"] <- "keep"
   r$role[r$col %in% c("rep", "site", "row")] <- "design"
@@ -260,7 +260,7 @@ test_that("rows in the pooled fallback keep the stratum's main effect", {
   g_eff <- stats::rnorm(20, sd = 3)
   d$yield <- 50 + g_eff[as.integer(d$gen)] +
     c(R1 = 0, R2 = 2, R3 = 4)[as.character(d$rep)] + stats::rnorm(nrow(d))
-  r <- propose_roles(d, detect = FALSE)
+  r <- propose_roles(d, detect = FALSE, mode = "local")
   r$role[r$col == "gen"] <- "treatment"
   r$action[r$col == "gen"] <- "keep"
   r$role[r$col == "rep"] <- "design"
@@ -293,7 +293,8 @@ test_that("mask(ladder = 'hierarchy') keeps the environment effect of a MET", {
   expect_identical(rec@ladder, "hierarchy")
   expect_identical(rec@conditioning_used, c("trt", "site"))
   expect_identical(rec@conditioning_dropped, c("row", "rep"))
-  expect_setequal(rec@conditioning_shifted, c("rep", "row"))
+  # `row` holds two rows a level here, below the floor for a design shift.
+  expect_identical(rec@conditioning_shifted, "rep")
   f_clone <- fit(as.data.frame(synthetic(m)))
   # Floor 0.4: the clone re-draws each cell's six-to-eight residuals, and
   # site:rep in the original is half replicate signal and half noise df.

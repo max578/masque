@@ -8,7 +8,7 @@ test_that("mask() returns an S7 masque object with synthetic + recipe", {
     cov_c = factor(sample(c("X", "Y"), 100, replace = TRUE)),
     stringsAsFactors = FALSE
   )
-  r <- propose_roles(df)
+  r <- propose_roles(df, mode = "local")
   r$role[r$col == "yield"] <- "outcome"
 
   m <- suppressWarnings(mask(df, r, seed = 42))
@@ -29,7 +29,7 @@ test_that("mask() keeps design + treatment; outcome stays in range", {
     yield = rnorm(100, mean = 10, sd = 2),
     stringsAsFactors = FALSE
   )
-  r <- propose_roles(df)
+  r <- propose_roles(df, mode = "local")
   r$role[r$col == "yield"] <- "outcome"
 
   m <- suppressWarnings(mask(df, r, seed = 42))
@@ -49,7 +49,7 @@ test_that("Categorical covariate frequencies are preserved", {
     cat_c = factor(rep(c("L1", "L2", "L3"), length.out = 100)),
     stringsAsFactors = FALSE
   )
-  r <- propose_roles(df)
+  r <- propose_roles(df, mode = "local")
   r$role[r$col == "yield"] <- "outcome"
 
   m <- suppressWarnings(mask(df, r, seed = 1))
@@ -72,7 +72,7 @@ test_that("Date and datetime covariates are retained with class and NA mask", {
   df$sowing_date[c(3, 17)] <- NA
   df$measured_at[c(5, 23)] <- NA
 
-  r <- propose_roles(df, detect = FALSE)
+  r <- propose_roles(df, detect = FALSE, mode = "local")
   r$role[r$col == "yield"] <- "outcome"
 
   m <- suppressWarnings(mask(df, r, mode = "collaborate", seed = 1))
@@ -101,7 +101,7 @@ test_that("Explicit keep columns pass through collaborate mode unchanged", {
     yield = rnorm(40),
     stringsAsFactors = FALSE
   )
-  r <- propose_roles(df, detect = FALSE)
+  r <- propose_roles(df, detect = FALSE, mode = "local")
   r$role[r$col == "yield"] <- "outcome"
   r <- set_role(r, "site_label", action = "keep")
 
@@ -125,7 +125,7 @@ test_that("Explicit keep columns pass through collaborate mode unchanged", {
 test_that(
   "mask(mode = 'local') emits no advisory warning (channel separation)",
   {
-  r <- propose_roles(iris)
+  r <- propose_roles(iris, mode = "local")
   r$role[r$col == "Sepal.Length"] <- "outcome"
   expect_no_warning(m <- mask(iris, r, seed = 1))
   # The reminder is recorded on the recipe, not signalled as a warning.
@@ -134,13 +134,13 @@ test_that(
 )
 
 test_that("mask() errors on non-data-frame input", {
-  r <- propose_roles(iris)
+  r <- propose_roles(iris, mode = "local")
   r$role[r$col == "Sepal.Length"] <- "outcome"
   expect_error(mask(list(), r), "must be a data frame")
 })
 
 test_that("mask() no longer requires an outcome column", {
-  r <- propose_roles(iris)
+  r <- propose_roles(iris, mode = "local")
   expect_true(all(r$role != "outcome"))
   m <- suppressWarnings(mask(iris, r, seed = 1))
   s <- synthetic(m)
@@ -150,7 +150,7 @@ test_that("mask() no longer requires an outcome column", {
 })
 
 test_that("roles_validate errors on non-numeric scrambled outcome", {
-  r <- propose_roles(iris)
+  r <- propose_roles(iris, mode = "local")
   r <- set_role(r, "Species", role = "outcome", action = "scramble")
   expect_error(roles_validate(r), "outcomes can be scrambled")
 })
@@ -169,7 +169,7 @@ test_that("mask() runs end-to-end on MET tab_04 (skip if fixture absent)", {
   df <- fst::read_fst(fpath, as.data.table = FALSE)
   # detect = FALSE keeps a single treatment; multiple treatments are tested in
   # test-mask-multi-treatment.R.
-  r <- propose_roles(df, detect = FALSE)
+  r <- propose_roles(df, detect = FALSE, mode = "local")
   r$role[r$col == "G_Yield_Tn_ha"] <- "outcome"
   r$role[r$col == "Cultivar_Habit"] <- "covariate"
 

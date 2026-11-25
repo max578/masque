@@ -9,7 +9,7 @@ make_collab_fixture <- function(n = 100, seed = 0) {
     notes_id = paste0("note_", seq_len(n)), # auto-ignored (free-text)
     stringsAsFactors = FALSE
   )
-  r <- propose_roles(df)
+  r <- propose_roles(df, mode = "local")
   r$role[r$col == "yield"] <- "outcome"
   list(df = df, roles = r)
 }
@@ -92,7 +92,7 @@ test_that("Local-mode optional permute via roles$mask_levels = 'permute'", {
     yield = rnorm(20),
     stringsAsFactors = FALSE
   )
-  r <- propose_roles(df)
+  r <- propose_roles(df, mode = "local")
   r$role[r$col == "yield"] <- "outcome"
   r <- set_role(r, "Genotype", action = "scramble")
 

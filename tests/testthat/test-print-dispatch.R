@@ -58,16 +58,16 @@ test_that("print methods dispatch from an installed copy of the package", {
         ),
         raw_list = any(grepl("attr(,\"class\")", out, fixed = TRUE)),
         recipe_lines = length(capture.output(
-          print(recipe(mask(iris, propose_roles(iris), seed = 1L))),
+          print(recipe(mask(iris, propose_roles(iris, mode = "local"), seed = 1L))),
           type = "message"
         )),
         # str() and knit_print() redaction must also register when installed.
         str_seed = any(grepl("424242", capture.output(
-          str(recipe(mask(iris, propose_roles(iris), seed = 424242L)))
+          str(recipe(mask(iris, propose_roles(iris, mode = "local"), seed = 424242L)))
         ), fixed = TRUE)),
         knit_class = if (requireNamespace("knitr", quietly = TRUE)) {
           class(knitr::knit_print(
-            recipe(mask(iris, propose_roles(iris), seed = 1L))
+            recipe(mask(iris, propose_roles(iris, mode = "local"), seed = 1L))
           ))[1L]
         } else {
           "knit_asis"

@@ -38,7 +38,7 @@ test_that(
     other = factor(rep(c("a", "b"), 25)),
     stringsAsFactors = FALSE
   )
-  roles <- propose_roles(df, detect = FALSE)
+  roles <- propose_roles(df, detect = FALSE, mode = "local")
   roles$role[roles$col == "x"] <- "outcome"
   roles$role[roles$col == "keep_me"] <- "keep"
   roles$role[roles$col == "num_keep"] <- "keep"

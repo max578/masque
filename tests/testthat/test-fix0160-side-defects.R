@@ -81,7 +81,7 @@ test_that("conform_table() reports a label holding braces as text", {
 })
 
 test_that("the all-keep warning carries a masque_ class", {
-  r <- propose_roles(iris, detect = FALSE)
+  r <- propose_roles(iris, detect = FALSE, mode = "local")
   r <- set_role(r, names(iris), action = "keep")
   expect_warning(roles_validate(r, iris), class = "masque_all_keep")
 })

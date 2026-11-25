@@ -30,24 +30,28 @@ plan <- propose_roles(df, mode = "collaborate")
 
 ## Why
 
-An analyst has the synthetic table and their own code; the custodian keeps
-the original and the recipe. This vignette covers what the recipe carries,
+An analyst has the synthetic table and their own code. The data owner
+keeps the original and the recipe. This vignette covers what the recipe carries,
 how the analyst's finished pipeline is run on the original, and what
 happens when the original holds a value the recipe has never seen.
 
+The examples use `mode = "collaborate"`, because the default mode
+(`"null"`) keeps no structure beyond the design. The recipe works the same
+way in every mode.
+
 ## What
 
-The `masque_recipe` object returned by `mask()` holds the real labels,
-the original column names and the seed. With the synthetic it undoes every
-alias, so keep it with the original data and never send it with the
-synthetic. Get it with `recipe()`.
+The recipe, taken from a `mask()` result with `recipe()`, holds the real
+labels, the original column names and the seed. Together with the
+synthetic it undoes every alias, so keep it with the original data and never send it with the
+synthetic.
 
 Two functions make the round-trip. `apply_recipe()` recodes the original
-data into the clone's labels and column names, which is how a custodian
-runs an analyst's finished pipeline on it. `unmask()` goes the other way and turns
-a result in the clone's labels back into the original ones.
-`save_recipe()`/`read_recipe()` persist a recipe to a single `.rds`
-file, and `reveal_maps()` prints the level maps that a redacted `print()`
+data into the clone's labels and column names, which is how a data owner
+runs an analyst's finished pipeline on it. `unmask()` goes the other way
+and turns a result in the clone's labels back into the original ones.
+`save_recipe()` and `read_recipe()` write and read a recipe as a single
+`.rds` file, and `reveal_maps()` prints the level maps that a redacted `print()`
 withholds.
 
 ## Example
@@ -65,14 +69,13 @@ A recipe holds:
 - `masque_version`, `created_at`, `mode`: provenance.
 - `seed`: the seed of the call. With it the same call reproduces the same
   alias maps, so keep it as private as the maps.
-- `roles`: the two-axis role and action table, with the original column
+- `roles`: each column's role and action, with the original column
   names.
 - `conditional`, `ladder`, `conditioning_cols`, `conditioning_used`,
   `conditioning_dropped`, `conditioning_shifted`, `fallback_frac`: what a
   conditional clone asked for, the stratum it got, the columns it dropped
   or carried as shifts, and the share of rows pooled.
-- `level_maps`: the per-column original-to-alias maps. The sensitive
-  part. Aliases follow one scheme: `trt_001`, `trt_002`, ... for a single
+- `level_maps`: the per-column original-to-alias maps. This is the sensitive part. Aliases follow one scheme: `trt_001`, `trt_002`, ... for a single
   aliased treatment, factor or numeric (`<col>_trt_001` when several
   treatments are aliased), `<col>_L001` for a categorical
   covariate, `<col>_D001` for a design column, `<col>_I001` for an
@@ -88,9 +91,9 @@ A recipe holds:
   tidying.
 - `conform`: the label merges and type changes `conform_table()` made, so
   `apply_recipe()` replays them on the original.
-- `grain`: each design unit within which columns were synthesised once per
-  unit, with the columns, the number of units and whether the clone kept
-  the grain or fell back to rows.
+- `grain`: for each design unit whose columns were synthesised once per
+  unit, the columns, the number of units, and whether the clone kept the
+  unit or fell back to rows.
 - `events`: the linked time-to-event specs and how many final times were
   capped.
 - `coords`: one entry per coordinate pair declared to `mask()`'s
@@ -99,19 +102,27 @@ A recipe holds:
 - `allow_unmasked_coords`: `TRUE` only when the caller deliberately
   wrote a real coordinate through unmasked.
 - `allow_kept_outcome`: `TRUE` only when the caller allowed a kept outcome
-  in a collaborate clone.
+  in a default or collaborate clone.
+- `noise`: the draw behind the `noise` action, `"summary"` or
+  `"standard"`.
+- `plan` and `owner_key`: the plan the clone was made from, resolved on the
+  original, and a private key for the data owner's known-truth controls.
+  Both are empty when `mask()` was not given a plan.
 - `warnings`: the warnings raised while masking, including any HIGH
   audit finding.
-- `integrity_fp`: a SHA-256 of `is.na(original)`, an integrity
-  fingerprint, not a privacy guarantee.
+- `content_fp` and `integrity_fp`: fingerprints of the original's values
+  (two weighted sums per numeric column and a digest of the rest) and of
+  its missing-value pattern (a SHA-256 of `is.na(original)`).
+  `apply_recipe()` uses them to check it was given the same table. They are
+  integrity checks, not privacy guarantees.
 
 A recipe written by an older version has no record for the slots added
 since, for example `coords` before 0.10.0 and `allow_unmasked_coords`
 before 0.11.0. It still prints, applies and unmasks. The changelog lists
 when each slot was added.
 
-It does not hold the copula covariance, the raw observed values, or any
-file paths or usernames.
+It does not hold the copula covariance, the values of any re-simulated or
+noise column, or any file paths or usernames.
 
 A recipe built with `coords` records how its coordinates were masked, so
 an audit of the recipe does not need the original data back:
@@ -152,10 +163,10 @@ rec
 
 The same holds for `format()`, `str()` and knitr output of a recipe and of
 a `masque` object, so the seed and the maps do not end up in a log or a
-rendered report by accident. Anyone holding the recipe can print the maps
-with an explicit call, which shows a warning first:
+rendered report by accident. Anyone holding the recipe can print the maps with an explicit call, which
+shows a warning first. Its output, 24 genotype labels, is left out here:
 
-```{r reveal, results = "hide"}
+```{r reveal, message = FALSE}
 reveal_maps(rec)
 ```
 
@@ -168,7 +179,7 @@ The usual pattern is to fit on the synthetic, recode the original with
 # Analyst trains on the synthetic clone.
 fit <- lm(yield ~ gen, data = synthetic(m))
 
-# Custodian re-targets the same pipeline onto the real data.
+# The data owner runs the same pipeline on the real data.
 orig_in_synth_space <- apply_recipe(df, rec)
 preds <- predict(fit, newdata = orig_in_synth_space)
 preds_match_nrow <- length(preds) == nrow(df)
@@ -187,39 +198,44 @@ labels_recovered
 Columns whose action is `keep`, re-simulated numeric columns and numeric
 predictions pass through both functions unchanged. A numeric treatment
 that was aliased is mapped both ways, and `unmask()` returns its exact
-original values. `apply_recipe()` returns an aliased
-factor with the clone's levels in the clone's order, so a model fitted on
+original values. `apply_recipe()` returns an aliased factor with the
+clone's levels in the clone's order, so a model fitted on
 the translated original has the same reference level as on the clone.
 
 ### Fail-closed translation
 
-If the data drifts, for example a new treatment level the recipe has never
-seen, `apply_recipe()` stops with an error:
+If the data drifts, for example a new treatment level the recipe has
+never seen, `apply_recipe()` stops with an error. Any change to the values
+also fails the integrity check, which runs first, so the example turns
+that check off to reach the label check:
 
 ```{r fail-closed, error = TRUE}
 drifted <- df
 levels(drifted$gen) <- c(levels(df$gen), "BRAND_NEW")
 drifted$gen[1] <- "BRAND_NEW"
-apply_recipe(drifted, rec)
+apply_recipe(drifted, rec, check_integrity = FALSE)
 ```
 
 The message names the column (`gen`) and the value (`"BRAND_NEW"`). Either
-remove the drifted rows before re-targeting, or mask the data that
-contains the new value again. Masking again makes a new recipe and a new
+remove the drifted rows before running the pipeline, or mask the data
+that contains the new value again. Masking again makes a new recipe and a new
 synthetic, and the analyst needs the new synthetic in place of the old
 one.
 
 ### Saving the recipe
 
 `save_recipe()` writes a single small `.rds`, to be stored next to the
-original at the same security class. The path must end in `.rds`. `read_recipe()`
-validates the file and notes a version mismatch without raising an error.
+original at the same security class. The path must end in `.rds`.
+`read_recipe()` validates the file and notes a version mismatch without
+raising an error.
 
 ```{r save}
 tmp <- tempfile(fileext = ".rds")
 save_recipe(rec, tmp)
 rec2 <- read_recipe(tmp)
-fingerprint_survives_roundtrip <- identical(rec@integrity_fp, rec2@integrity_fp)
+fingerprint_survives_roundtrip <- identical(
+  rec@integrity_fp, rec2@integrity_fp
+)
 fingerprint_survives_roundtrip
 ```
 
@@ -242,17 +258,17 @@ names(fwd_set)
 
 `save_recipe()` and `read_recipe()` keep a bundle as one file, and
 `reveal_maps(recipe(ms), table = "quality")` reveals the maps of the named
-tables only.
+table only.
 
 Because the shared keys were aliased consistently at masking time, the
-re-targeted tables join on the same keys the synthetic tables do.
+recoded tables join on the same keys the synthetic tables do.
 
-### Figure: the clone the analyst actually develops against
+### Figure: original against synthetic yield
 
 The checks above are about labels. The figure shows the numeric column the
 analyst works with: the original yield against the synthetic yield.
 
-```{r fig-overlay, eval = requireNamespace("ggplot2", quietly = TRUE), fig.cap = "Density of yield, original trial against the synthetic clone the analyst develops against. The two distributions overlap closely because the default numeric synthesis preserves each column's marginal distribution."}
+```{r fig-overlay, eval = requireNamespace("ggplot2", quietly = TRUE), fig.cap = "Density of yield, original trial against the synthetic clone. The two distributions overlap closely because collaborate mode draws each re-simulated numeric column from its own marginal distribution.", fig.alt = "Two overlapping density curves of yield, original and synthetic, with nearly the same shape."}
 synth_tbl <- synthetic(m)
 overlay_df <- rbind(
   data.frame(value = df$yield, table = "original"),
@@ -262,8 +278,7 @@ ggplot2::ggplot(overlay_df, ggplot2::aes(x = value, fill = table)) +
   ggplot2::geom_density(alpha = 0.5) +
   ggplot2::scale_fill_viridis_d(name = "table") +
   ggplot2::labs(
-    x = "yield (t/ha)", y = "density",
-    title = "Original versus synthetic marginal distribution of yield"
+    x = "yield (t/ha)", y = "density"
   ) +
   ggplot2::theme_minimal()
 ```
@@ -282,31 +297,31 @@ stops the translation where the data drifted.
 
 The two yield densities overlap closely, so the marginal distribution is
 kept. That says nothing about whether a treatment effect or a non-linear
-relationship between columns is kept; see *Confidentiality and the threat
-model*.
+relationship between columns is kept. *Confidentiality and the threat
+model* covers both.
 
-With the recipe, the custodian can run the analyst's finished pipeline on
-the real data without changing it.
+With the recipe, the data owner can run the analyst's finished pipeline
+on the real data without changing it.
 
 ## Limits
 
 This vignette uses one recipe built from one clean public trial, with one
-planted drift. A table whose category labels changed over time (renamed
-treatments, retired sites) will be refused more often. The round-trip
-verbs invert only what the recipe recorded: numeric columns pass through unchanged, so `unmask()` cannot undo
-a numeric transformation a pipeline made, and a recipe cannot repair a join
-that was broken before masking. The leakage audit, the conditional clone
+planted drift. By default `apply_recipe()` accepts only the table the
+recipe was built from. With `check_integrity = FALSE` it runs on updated
+data, and labels added since masking are still refused. The round-trip
+functions invert only what the recipe recorded. Numeric columns pass
+through unchanged, so `unmask()` cannot undo a numeric transformation a
+pipeline made, and a recipe cannot repair a join that was broken before
+masking. The leakage audit, the conditional clone
 and the coordinate controls are covered in *Confidentiality and the threat
 model*.
 
 ## What to read next
 
-*Getting started with masque* is the custodian's side of this same
-handoff: building and reviewing the masking plan that produces the recipe
+*Getting started with masque* is the data owner's side of this same handover: building and reviewing the masking plan that produces the recipe
 this vignette reads. *Confidentiality and the threat model* sets out what
 the recipe and the synthetic together do and do not protect, including the
-leakage audit and the conditional clone that preserves a treatment effect
-this vignette's round-trip checks do not touch.
+leakage audit and the conditional clone that mimics a treatment effect.
 
 ## Reproduce
 
